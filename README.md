@@ -26,6 +26,22 @@ PYINSTALLER_CONFIG_DIR="$(pwd)/.pyinstaller" pyinstaller --noconfirm "TeamTalk V
 
 Die App liegt danach unter `dist/TeamTalk VO Client.app`.
 
+## Windows-Port (Hinweise fuer Claude)
+- **SDK**: TeamTalk SDK fuer Windows (DLLs) statt macOS dylib. Erwartet wird
+  `third_party/teamtalk/tt5sdk_v5.19a_windows/` mit `TeamTalk_DLL/TeamTalk5.dll`.
+- **Python/GUI**: wxPython fuer Windows. Teste auf Python 3.10+.
+- **TTS**:
+  - espeak-ng Windows-Bundle mit `espeak-ng.exe` und `espeak-ng-data`.
+  - Im Code: `afplay` ersetzen (Windows: `winsound` oder `ffplay`).
+  - Pfade und `ESPEAK_DATA_PATH` an Windows anpassen.
+- **PyInstaller**:
+  - `.spec` anpassen: Windows-binarys als `binaries`, `datas` fuer espeak-ng-data.
+  - App-Ausgabe ist `.exe` in `dist/`.
+- **Audio**:
+  - Geraete-Namen unterscheiden sich. Pruefen, ob TeamTalk Audio-Enums identisch sind.
+- **Signing**:
+  - Optional Windows Code Signing (nicht Teil dieses Repos).
+
 ## Hinweise zu Accessibility (VoiceOver)
 - Alle Felder besitzen explizite Labels und Names.
 - Klare Tab-Reihenfolge durch `MoveAfterInTabOrder`.
