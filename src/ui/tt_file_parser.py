@@ -1,0 +1,140 @@
+from __future__ import annotations
+
+import configparser
+import json
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Optional
+
+from .models import ParsedTeamTalkFile, ServerProfile
+
+
+def parse_teamtalk_file(path: Path) -> Optional[ParsedTeamTalkFile]:
+    data = path.read_bytes()
+    for encoding in ("utf-8", "latin-1"):
+        try:
+            text = data.decode(encoding)
+            break
+        except UnicodeDecodeError:
+            continue
+    else:
+        return None
+
+    text_stripped = text.strip()
+    if not text_stripped:
+        return None
+
+    if text_stripped.startswith("{") or text_stripped.startswith("["):
+        try:
+            payload = json.loads(text_stripped)
+            if isinstance(payload, list) and payload:
+                payload = payload[0]
+            return _profile_from_mapping(payload, path)
+        except Exception:
+            pass
+
+    if "<" in text_stripped and ">" in text_stripped:
+        try:
+            root = ET.fromstring(text_stripped)
+            if root.tag.lower() == "teamtalk" or root.find("host") is not None:
+                parsed = _parse_teamtalk_xml(root, path)
+                if parsed:
+                    return parsed
+            payload = {child.tag.lower(): (child.text or "") for child in root.iter() if child is not root}
+            return _profile_from_mapping(payload, path)
+        except Exception:
+            pass
+
+    try:
+        parser = configparser.ConfigParser()
+        if "[" not in text_stripped:
+            text_stripped = "[server]\n" + text_stripped
+        parser.read_string(text_stripped)
+        section = parser[parser.sections()[0]] if parser.sections() else {}
+        payload = {k.lower(): v for k, v in section.items()}
+        return _profile_from_mapping(payload, path)
+    except Exception:
+        return None
+
+
+def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkFile]:
+    def pick(*keys, default=""):
+        for key in keys:
+            if key in payload and str(payload[key]).strip():
+                return str(payload[key]).strip()
+        return default
+
+    host = pick("host", "server", "address", "ip")
+    tcp = pick("tcpport", "tcp_port", "port", default="10333")
+    udp = pick("udpport", "udp_port", default="10333")
+    nickname = pick("nickname", "nick", default="VoiceOverUser")
+    username = pick("username", "user", default="guest")
+    password = pick("password", "pass", default="guest")
+    client_name = pick("clientname", "client_name", default="TeamTalk VO")
+    name = pick("name", default=path.stem)
+
+    channel_path = pick("channelpath", "channel_path", "channel") or None
+    channel_id = pick("channelid", "channel_id")
+    channel_id_int = int(channel_id) if channel_id.isdigit() else None
+
+    if not host:
+        return None
+    try:
+        tcp_port = int(tcp)
+        udp_port = int(udp)
+    except ValueError:
+        return None
+
+    profile = ServerProfile(
+        name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
+        nickname=nickname, username=username, password=password, client_name=client_name,
+    )
+    return ParsedTeamTalkFile(profile=profile, channel_path=channel_path, channel_id=channel_id_int)
+
+
+def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalkFile]:
+    host_node = root.find("host") if root.tag.lower() == "teamtalk" else root.find(".//host")
+    if host_node is None:
+        return None
+
+    def text_of(node, default=""):
+        if node is None or node.text is None:
+            return default
+        return node.text.strip()
+
+    name = text_of(host_node.find("name"), path.stem)
+    host = text_of(host_node.find("address"), "")
+    tcp = text_of(host_node.find("tcpport"), "10333")
+    udp = text_of(host_node.find("udpport"), "10333")
+
+    auth = host_node.find("auth")
+    username = text_of(auth.find("username") if auth is not None else None, "guest")
+    password = text_of(auth.find("password") if auth is not None else None, "guest")
+    nickname = text_of(auth.find("nickname") if auth is not None else None, "VoiceOverUser")
+
+    join = host_node.find("join")
+    channel_path = text_of(join.find("channel") if join is not None else None, "") or None
+    channel_password = text_of(join.find("password") if join is not None else None, "") or None
+    join_last_channel = text_of(join.find("join-last-channel") if join is not None else None, "false").lower() == "true"
+
+    if not host:
+        return None
+    try:
+        tcp_port = int(tcp)
+        udp_port = int(udp)
+    except ValueError:
+        return None
+    if not nickname:
+        nickname = "VoiceOverUser"
+
+    encrypted_flag = text_of(host_node.find("encrypted"), "false").lower() == "true"
+
+    profile = ServerProfile(
+        name=name or host, host=host, tcp_port=tcp_port, udp_port=udp_port,
+        nickname=nickname, username=username, password=password, client_name="TeamTalk VO",
+    )
+    return ParsedTeamTalkFile(
+        profile=profile, channel_path=channel_path, channel_id=None,
+        channel_password=channel_password, encrypted=encrypted_flag,
+        join_last_channel=join_last_channel,
+    )

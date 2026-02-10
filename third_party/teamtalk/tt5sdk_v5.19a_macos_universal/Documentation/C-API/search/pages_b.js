@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['ban_20user_20by_20ip_20address_0',['Ban user by IP-address',['../changelog.html#v45aipban',1,'']]],
+  ['banning_20users_1',['Kicking and Banning Users',['../group__server.html#userban',1,'']]],
+  ['based_20audio_20configuration_2',['Channel based audio configuration',['../changelog.html#v41aaudiocfg',1,'']]],
+  ['be_20renamed_3',['Channels can be renamed',['../changelog.html#v50achanrename',1,'']]],
+  ['become_20channel_20operator_4',['Automatically become channel operator',['../changelog.html#v43aautoop',1,'']]],
+  ['been_20reduced_5',['Dependencies on Linux has been reduced',['../changelog.html#v52adeps',1,'']]],
+  ['been_20removed_6',['Peer to peer support has been removed',['../changelog.html#v50ap2p',1,'']]],
+  ['being_20recorded_20to_7',['Get name of file being recorded to',['../changelog.html#v43aaudiofilename',1,'']]],
+  ['bitmap_8',['bitmap',['../group__desktopshare.html#desktopshow',1,'Displaying Shared Desktop Window (or bitmap)'],['../group__desktopshare.html#desktoptx',1,'Send Desktop Window (or bitmap)']]],
+  ['bitrate_20limit_20moved_20to_20user_20account_9',['Audio codec bitrate limit moved to user account',['../changelog.html#v50abitratelimit',1,'']]],
+  ['blocking_10',['Encrypted client connect is no longer blocking',['../changelog.html#v513ablockcrypt',1,'']]],
+  ['blowfish_11',['AES encryption replaces Blowfish',['../changelog.html#v50aaes',1,'']]],
+  ['buffer_20for_20voice_20stream_12',['Jitter buffer for voice stream',['../changelog.html#v57ajitter',1,'']]],
+  ['bug_20fixes_20in_20v_204_200c_13',['Bug fixes in v. 4.0c',['../changelog.html#v40cbugfixes',1,'']]],
+  ['bug_20fixes_20in_20v5_2011a_14',['Bug Fixes in v5.11a',['../changelog.html#v511abugfixes',1,'']]],
+  ['bug_20fixes_20in_20v5_2012a_15',['Bug Fixes in v5.12a',['../changelog.html#v512abugfixes',1,'']]],
+  ['bug_20fixes_20in_20v5_2019a_16',['Bug fixes in v5.19a',['../changelog.html#v519abugfix',1,'']]],
+  ['bug_20fixes_20in_20v5_204a_17',['Bug fixes in v5.4a',['../changelog.html#v54abugfixes',1,'']]],
+  ['bugfixes_20in_20v5_202a_18',['Bugfixes in v5.2a',['../changelog.html#v52abugfixes',1,'']]],
+  ['bugfixes_20in_20v5_202b_19',['Bugfixes in v5.2b',['../changelog.html#v52bbugfixes',1,'']]],
+  ['bugfixes_20in_20v5_202d_20',['Bugfixes in v5.2d',['../changelog.html#v52dbugfixes',1,'']]],
+  ['by_20channel_21',['Audio configuration no longer forced by channel',['../changelog.html#v50aagc',1,'']]],
+  ['by_20ip_20address_22',['Ban user by IP-address',['../changelog.html#v45aipban',1,'']]],
+  ['by_20peer_23',['Get software client used by peer',['../changelog.html#v52aclientname',1,'']]]
+];

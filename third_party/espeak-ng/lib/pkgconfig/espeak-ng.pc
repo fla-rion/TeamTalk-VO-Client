@@ -1,0 +1,11 @@
+prefix=@@HOMEBREW_CELLAR@@/espeak-ng/1.52.0
+exec_prefix=@@HOMEBREW_CELLAR@@/espeak-ng/1.52.0
+libdir=@@HOMEBREW_CELLAR@@/espeak-ng/1.52.0/lib
+includedir=${prefix}/include
+
+Name: eSpeak NG
+Description: eSpeak NG is a multi-lingual software speech synthesizer
+Version: 1.52.0
+Requires:
+Libs: -L${libdir} -lespeak-ng
+Cflags: -I${includedir}
