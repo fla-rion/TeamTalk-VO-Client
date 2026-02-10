@@ -1,72 +1,70 @@
 # TeamTalk VoiceOver Client (macOS)
 
-Minimaler Python/wxPython-Client auf Basis des TeamTalk SDK v5.19a (Standard Edition). Das SDK liegt unter `third_party/teamtalk/` und darf nur gemäß Lizenzbedingungen von BearWare verwendet werden.
+Minimaler Python/wxPython-Client auf Basis des TeamTalk SDK v5.19a (Standard Edition).
+Das SDK liegt unter third_party/teamtalk/ und darf nur gemaess Lizenzbedingungen von BearWare verwendet werden.
 Das Projekt bundelt espeak-ng (GPLv3) fuer TTS.
 
 ## Voraussetzungen
 - macOS 10.13+
 - Python 3.10+
-- TeamTalk SDK v5.19a (bereits in `third_party/`)
-- `wxPython` (siehe `requirements.txt`)
+- TeamTalk SDK v5.19a (bereits in third_party/)
+- wxPython (siehe requirements.txt)
 
 ## Start
-
-```bash
+Setup:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 PYTHONPATH=src python src/app.py
-```
 
 ## Build (macOS App)
-```bash
+Build:
 source .venv/bin/activate
 PYINSTALLER_CONFIG_DIR="$(pwd)/.pyinstaller" pyinstaller --noconfirm "TeamTalk VO Client.spec"
-```
 
-Die App liegt danach unter `dist/TeamTalk VO Client.app`.
+Die App liegt danach unter dist/TeamTalk VO Client.app.
 
 ## Windows-Port (Hinweise fuer Claude)
-- **SDK**: TeamTalk SDK fuer Windows (DLLs) statt macOS dylib. Erwartet wird
-  `third_party/teamtalk/tt5sdk_v5.19a_windows/` mit `TeamTalk_DLL/TeamTalk5.dll`.
-- **Python/GUI**: wxPython fuer Windows. Teste auf Python 3.10+.
-- **TTS**:
-  - espeak-ng Windows-Bundle mit `espeak-ng.exe` und `espeak-ng-data`.
-  - Im Code: `afplay` ersetzen (Windows: `winsound` oder `ffplay`).
-  - Pfade und `ESPEAK_DATA_PATH` an Windows anpassen.
-- **PyInstaller**:
-  - `.spec` anpassen: Windows-binarys als `binaries`, `datas` fuer espeak-ng-data.
-  - App-Ausgabe ist `.exe` in `dist/`.
-- **Audio**:
+- SDK: TeamTalk SDK fuer Windows (DLLs) statt macOS dylib. Erwartet wird
+  third_party/teamtalk/tt5sdk_v5.19a_windows/ mit TeamTalk_DLL/TeamTalk5.dll.
+- Python/GUI: wxPython fuer Windows. Teste auf Python 3.10+.
+- TTS:
+  - espeak-ng Windows-Bundle mit espeak-ng.exe und espeak-ng-data.
+  - Im Code: afplay ersetzen (Windows: winsound oder ffplay).
+  - Pfade und ESPEAK_DATA_PATH an Windows anpassen.
+- PyInstaller:
+  - .spec anpassen: Windows-binarys als binaries, datas fuer espeak-ng-data.
+  - App-Ausgabe ist .exe in dist/.
+- Audio:
   - Geraete-Namen unterscheiden sich. Pruefen, ob TeamTalk Audio-Enums identisch sind.
-- **Signing**:
+- Signing:
   - Optional Windows Code Signing (nicht Teil dieses Repos).
 
 ## Hinweise zu Accessibility (VoiceOver)
 - Alle Felder besitzen explizite Labels und Names.
-- Klare Tab-Reihenfolge durch `MoveAfterInTabOrder`.
-- Statusmeldungen werden in ein `Ereignisprotokoll` geschrieben, damit VoiceOver Änderungen ansagt.
+- Klare Tab-Reihenfolge durch MoveAfterInTabOrder.
+- Statusmeldungen werden in ein Ereignisprotokoll geschrieben, damit VoiceOver Aenderungen ansagt.
 
 ## TTS (espeak-ng)
 - espeak-ng wird im App-Bundle mitgeliefert.
 - Beim ersten Aktivieren von TTS wird espeak-ng nach
-  `~/Library/Application Support/TeamTalkVOClient/espeak-ng` kopiert,
+  ~/Library/Application Support/TeamTalkVOClient/espeak-ng kopiert,
   um wiederholte macOS-Abfragen zu vermeiden.
 
 ## Features
 - Serverliste mit Import/Export (JSON)
-- Öffnen von TeamTalk-Dateien (`.tt`, `.ini`, `.json`, `.xml`) und direktes Verbinden
+- Oeffnen von TeamTalk-Dateien (.tt, .ini, .json, .xml) und direktes Verbinden
 - Kanalbaum + Doppelklick zum Beitreten
 - Nutzerliste
 - Textchat (Kanal/Benutzer)
-- Audio-Gerätewahl, Gain/Volume, Voice Activation
+- Audio-Geraetewahl, Gain/Volume, Voice Activation
 - Push-to-Talk (Leertaste halten)
-- Tray-Icon (Schließen minimiert in Tray)
+- Tray-Icon (Schliessen minimiert in Tray)
 
 ## Lizenz
-- Der Quellcode dieses Projekts steht unter der GPLv3 (siehe `LICENSE`).
+- Der Quellcode dieses Projekts steht unter der GPLv3 (siehe LICENSE).
 - Das TeamTalk SDK unterliegt der BearWare-Lizenz. Trial-Builds deaktivieren sich nach 30 Tagen. Fuer produktive Nutzung ist eine Lizenz erforderlich.
 - espeak-ng ist GPLv3; diese Lizenz gilt fuer das gesamte Bundle.
 
 ## Hinweis zu Repos
-`dist/`, `build/`, `.venv/` und `.pyinstaller/` werden nicht versioniert.
+dist/, build/, .venv/ und .pyinstaller/ werden nicht versioniert.
