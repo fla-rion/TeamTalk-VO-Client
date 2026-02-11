@@ -46,16 +46,17 @@ pyinstaller --noconfirm "TeamTalk VO Client_win.spec"
 
 Die .exe liegt danach unter dist/TeamTalk VO Client/.
 
-## Hinweise zu Accessibility (VoiceOver)
+## Hinweise zu Accessibility (VoiceOver / NVDA)
 - Alle Felder besitzen explizite Labels und Names.
 - Klare Tab-Reihenfolge durch MoveAfterInTabOrder.
-- Statusmeldungen werden in ein Ereignisprotokoll geschrieben, damit VoiceOver Aenderungen ansagt.
+- Statusmeldungen werden in ein Ereignisprotokoll geschrieben, damit VoiceOver/NVDA Aenderungen ansagt.
+- Unter Windows: StaticText-Labels werden direkt vor ihren Controls erzeugt, damit NVDA sie korrekt zuordnet (Z-Order).
 
 ## TTS (espeak-ng)
 - espeak-ng wird im App-Bundle mitgeliefert.
-- Beim ersten Aktivieren von TTS wird espeak-ng nach
-  ~/Library/Application Support/TeamTalkVOClient/espeak-ng kopiert,
-  um wiederholte macOS-Abfragen zu vermeiden.
+- Beim ersten Aktivieren von TTS wird espeak-ng in das lokale App-Datenverzeichnis kopiert:
+  - macOS: ~/Library/Application Support/TeamTalkVOClient/espeak-ng
+  - Windows: %APPDATA%\TeamTalkVOClient\espeak-ng
 
 ## Features
 - Serverliste mit Import/Export (JSON)
