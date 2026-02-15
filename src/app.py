@@ -576,7 +576,27 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self.set_status, "Verbindung verloren")
             wx.CallAfter(self.schedule_reconnect)
         elif event == tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
-            wx.CallAfter(self.set_status, "Verschluesselungsfehler")
+            err = self.tt_str(msg.clienterrormsg.szErrorMsg)
+            no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
+            if err and no:
+                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {err} ({no})")
+            elif err:
+                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {err}")
+            elif no:
+                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {no}")
+            else:
+                wx.CallAfter(self.set_status, "Verschluesselungsfehler")
+        elif event == tt.ClientEvent.CLIENTEVENT_INTERNAL_ERROR:
+            err = self.tt_str(msg.clienterrormsg.szErrorMsg)
+            no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
+            if err and no:
+                wx.CallAfter(self.set_status, f"Interner Fehler: {err} ({no})")
+            elif err:
+                wx.CallAfter(self.set_status, f"Interner Fehler: {err}")
+            elif no:
+                wx.CallAfter(self.set_status, f"Interner Fehler: {no}")
+            else:
+                wx.CallAfter(self.set_status, "Interner Fehler")
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
             wx.CallAfter(self.set_status, f"Fehler: {err}")

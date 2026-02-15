@@ -113,6 +113,9 @@ class TeamTalkClient:
     ) -> ConnectResult:
         self._apply_encryption_context(encrypted)
         if not self.client.connect(self.tt.ttstr(host), tcp_port, udp_port, 0, 0, encrypted):
+            detail = self._get_connect_start_error_detail()
+            if detail:
+                return ConnectResult(False, f"Verbindung konnte nicht gestartet werden: {detail}")
             return ConnectResult(False, "Verbindung konnte nicht gestartet werden")
 
         ok, msg = self._wait_for_events(
@@ -126,10 +129,61 @@ class TeamTalkClient:
         if not ok:
             return ConnectResult(False, "Verbindung fehlgeschlagen")
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_FAILED:
+            detail = self._message_error_detail(msg)
+            if detail:
+                return ConnectResult(False, f"Verbindung fehlgeschlagen: {detail}")
             return ConnectResult(False, "Verbindung fehlgeschlagen")
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
+            detail = self._message_error_detail(msg)
+            if detail:
+                return ConnectResult(False, f"Verschluesselungsfehler: {detail}")
             return ConnectResult(False, "Verschluesselungsfehler")
         return ConnectResult(True, "ok")
+
+    def _get_connect_start_error_detail(self, timeout_ms: int = 400) -> str:
+        """Try to extract immediate SDK error details right after connect() returned false."""
+        end = self._timestamp_ms() + timeout_ms
+        while self._timestamp_ms() < end:
+            msg = self.client.getMessage(50)
+            event = msg.nClientEvent
+            if event == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                continue
+            if event == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
+                return "Verschluesselungsfehler"
+            if event == self.tt.ClientEvent.CLIENTEVENT_CON_FAILED:
+                return "Verbindung fehlgeschlagen"
+            if event in (
+                self.tt.ClientEvent.CLIENTEVENT_INTERNAL_ERROR,
+                self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR,
+            ):
+                try:
+                    err_no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
+                    err_text = self.tt.ttstr(getattr(msg.clienterrormsg, "szErrorMsg", "")).strip()
+                except Exception:
+                    err_no = 0
+                    err_text = ""
+                if err_text and err_no:
+                    return f"{err_text} (Fehler {err_no})"
+                if err_text:
+                    return err_text
+                if err_no:
+                    return f"Fehler {err_no}"
+        return ""
+
+    def _message_error_detail(self, msg) -> str:
+        try:
+            err_no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
+            err_text = self.tt.ttstr(getattr(msg.clienterrormsg, "szErrorMsg", "")).strip()
+        except Exception:
+            err_no = 0
+            err_text = ""
+        if err_text and err_no:
+            return f"{err_text} (Fehler {err_no})"
+        if err_text:
+            return err_text
+        if err_no:
+            return f"Fehler {err_no}"
+        return ""
 
     def connect_and_login(
         self,
