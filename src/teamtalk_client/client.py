@@ -231,6 +231,12 @@ class TeamTalkClient:
     def get_my_channel_id(self) -> int:
         return self.client.getMyChannelID()
 
+    def restart_sound_system(self) -> bool:
+        fn = getattr(self.tt, "_RestartSoundSystem", None)
+        if fn:
+            return fn()
+        return False
+
     def get_sound_devices(self):
         return self.client.getSoundDevices()
 

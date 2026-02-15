@@ -180,6 +180,7 @@ class AudioTab(wx.Panel):
     def on_refresh_audio(self, _event):
         client = self.frame.client
         tt_str = self.frame.tt_str
+        client.restart_sound_system()
         devices = list(client.get_sound_devices())
         inputs = [d for d in devices if d.nMaxInputChannels > 0]
         outputs = [d for d in devices if d.nMaxOutputChannels > 0]
