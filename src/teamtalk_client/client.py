@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import ctypes
+import ipaddress
+import socket
 import time
 import threading
 from dataclasses import dataclass
@@ -70,6 +72,24 @@ class TeamTalkClient:
             msg = self.client.getMessage(0)
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 break
+
+    def _build_connect_hosts(self, host: str) -> List[str]:
+        """Return host candidates, including resolved IPs for DNS fallback."""
+        candidates: List[str] = [host]
+        try:
+            ipaddress.ip_address(host)
+            return candidates
+        except ValueError:
+            pass
+        try:
+            infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+            for info in infos:
+                ip = info[4][0]
+                if ip and ip not in candidates:
+                    candidates.append(ip)
+        except Exception:
+            pass
+        return candidates
 
     def _disconnect_and_drain(self) -> None:
         try:
@@ -199,20 +219,25 @@ class TeamTalkClient:
     ) -> ConnectResult:
         with self._connect_lock:
             self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
+            hosts_to_try = self._build_connect_hosts(host)
 
-            # First attempt: disconnect existing session and reuse current client.
-            self._disconnect_and_drain()
-            transport_result = self._connect_transport(host, tcp_port, udp_port, encrypted, timeout_ms)
-            if not transport_result.ok:
-                # Second attempt: full SDK client re-init to recover from poisoned TLS/connect state.
-                self._recreate_client()
-                transport_result = self._connect_transport(host, tcp_port, udp_port, encrypted, timeout_ms)
+            transport_result = ConnectResult(False, "Verbindung fehlgeschlagen")
+            for connect_host in hosts_to_try:
+                # First attempt: disconnect existing session and reuse current client.
+                self._disconnect_and_drain()
+                transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
+                if not transport_result.ok:
+                    # Second attempt: full SDK client re-init to recover from poisoned TLS/connect state.
+                    self._recreate_client()
+                    transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
                 if not transport_result.ok and encrypted and udp_port > 0:
                     # Third attempt for encrypted sessions: TCP-only fallback.
                     self._recreate_client()
-                    transport_result = self._connect_transport(host, tcp_port, 0, encrypted, timeout_ms)
-                if not transport_result.ok:
-                    return transport_result
+                    transport_result = self._connect_transport(connect_host, tcp_port, 0, encrypted, timeout_ms)
+                if transport_result.ok:
+                    break
+            if not transport_result.ok:
+                return transport_result
 
             cmdid = self.client.doLogin(
                 self.tt.ttstr(nickname),
