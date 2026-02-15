@@ -221,11 +221,6 @@ class TeamTalkClient:
                 self.tt.ttstr(client_name),
             )
 
-            ok, _ = self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, timeout_ms)
-            if not ok:
-                self._disconnect_and_drain()
-                return ConnectResult(False, "Login fehlgeschlagen")
-
             ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
             if not ok:
                 self._disconnect_and_drain()
@@ -234,6 +229,8 @@ class TeamTalkClient:
                     return ConnectResult(False, f"Login fehlgeschlagen: {err}")
                 return ConnectResult(False, "Server antwortet nicht auf Login")
 
+            # We already have CMD_SUCCESS for login; MYSELF_LOGGEDIN may arrive slightly later.
+            self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, min(3000, timeout_ms))
             self._connected = True
             return ConnectResult(True, f"Eingeloggt in Kanal: {self.tt.ttstr(msg.channel.szName)}")
 
