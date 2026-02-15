@@ -56,12 +56,11 @@ from ui.tt_file_parser import parse_teamtalk_file
 from ui.tabs.connection import ConnectionTab
 from ui.tabs.channels import ChannelsTab
 from ui.tabs.chat import ChatTab
-from ui.tabs.audio import AudioTab
 from ui.tabs.media import MediaTab
 from ui.tabs.files import FilesTab
 from ui.tabs.admin import AdminTab
 from ui.tabs.speak import SpeakTab
-from ui.tabs.system import SystemTab
+from ui.tabs.settings import SettingsTab
 from tts import TTSManager
 
 
@@ -112,8 +111,9 @@ class MainFrame(wx.Frame):
         self.connection_tab = ConnectionTab(self.notebook, self)
         self.channels_tab = ChannelsTab(self.notebook, self)
         self.chat_tab = ChatTab(self.notebook, self)
-        self.system_tab = SystemTab(self.notebook, self)
-        self.audio_tab = AudioTab(self.notebook, self)
+        self.settings_tab = SettingsTab(self.notebook, self)
+        self.audio_tab = self.settings_tab.audio_tab
+        self.system_tab = self.settings_tab.system_tab
         self.media_tab = MediaTab(self.notebook, self)
         self.files_tab = FilesTab(self.notebook, self)
         self.admin_tab = AdminTab(self.notebook, self)
@@ -121,8 +121,7 @@ class MainFrame(wx.Frame):
         self.notebook.AddPage(self.connection_tab, "Verbindung")
         self.notebook.AddPage(self.channels_tab, "Kanaele")
         self.notebook.AddPage(self.chat_tab, "Chat")
-        self.notebook.AddPage(self.system_tab, "System & TTS")
-        self.notebook.AddPage(self.audio_tab, "Audio")
+        self.notebook.AddPage(self.settings_tab, "Einstellungen")
         self.notebook.AddPage(self.media_tab, "Aufnahme & Medien")
         self.notebook.AddPage(self.files_tab, "Dateien")
         self.notebook.AddPage(self.admin_tab, "Administration")
