@@ -607,6 +607,16 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self.files_tab.refresh_file_list)
         elif event == tt.ClientEvent.CLIENTEVENT_FILETRANSFER:
             wx.CallAfter(self.files_tab.on_file_transfer_update, int(msg.nSource))
+        elif event in (
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_ADDED", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_REMOVED", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_UNPLUGGED", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_INPUT", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_OUTPUT", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_INPUT_COMDEVICE", -1),
+            getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_NEW_DEFAULT_OUTPUT_COMDEVICE", -1),
+        ):
+            wx.CallAfter(self.audio_tab.refresh_audio_devices, False)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:
             wx.CallAfter(self.admin_tab.add_account_to_list, msg.useraccount)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:

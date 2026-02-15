@@ -18,6 +18,7 @@ class AudioTab(wx.Panel):
         self._input_devices = []
         self._output_devices = []
         self._loopback_handle = None
+        self._last_device_snapshot = ((), ())
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -159,7 +160,7 @@ class AudioTab(wx.Panel):
         self._vu_timer.Start(100)
 
         # Init device list
-        self.on_refresh_audio(None)
+        self.refresh_audio_devices(announce=False)
 
     def destroy_timers(self):
         self._vu_timer.Stop()
@@ -178,29 +179,67 @@ class AudioTab(wx.Panel):
     # --- Device refresh & apply ---
 
     def on_refresh_audio(self, _event):
+        self.refresh_audio_devices(announce=True)
+
+    def refresh_audio_devices(self, announce: bool = False, _attempt: int = 0):
         client = self.frame.client
         tt_str = self.frame.tt_str
-        client.restart_sound_system()
+        prev_in_idx = self.input_device.GetSelection()
+        prev_out_idx = self.output_device.GetSelection()
+        prev_in_id = None
+        prev_out_id = None
+        if 0 <= prev_in_idx < len(self._input_devices):
+            prev_in_id = int(self._input_devices[prev_in_idx].nDeviceID)
+        if 0 <= prev_out_idx < len(self._output_devices):
+            prev_out_id = int(self._output_devices[prev_out_idx].nDeviceID)
+
+        restarted = client.restart_sound_system()
         devices = list(client.get_sound_devices())
+        if not devices and _attempt < 2:
+            # Hotplug events can arrive a bit later after restart.
+            wx.CallLater(200, lambda: self.refresh_audio_devices(announce=announce, _attempt=_attempt + 1))
+            return
         inputs = [d for d in devices if d.nMaxInputChannels > 0]
         outputs = [d for d in devices if d.nMaxOutputChannels > 0]
         self._input_devices = inputs
         self._output_devices = outputs
 
-        self.input_device.Set([tt_str(d.szDeviceName) for d in inputs])
-        self.output_device.Set([tt_str(d.szDeviceName) for d in outputs])
+        input_labels = [tt_str(d.szDeviceName) for d in inputs]
+        output_labels = [tt_str(d.szDeviceName) for d in outputs]
+        self.input_device.Set(input_labels)
+        self.output_device.Set(output_labels)
 
         indev, outdev = client.get_default_sound_devices()
         indev_val = getattr(indev, "value", indev)
         outdev_val = getattr(outdev, "value", outdev)
-        for idx, d in enumerate(inputs):
-            if d.nDeviceID == indev_val:
-                self.input_device.SetSelection(idx)
-                break
-        for idx, d in enumerate(outputs):
-            if d.nDeviceID == outdev_val:
-                self.output_device.SetSelection(idx)
-                break
+
+        self._select_device(self.input_device, inputs, prev_in_id, indev_val)
+        self._select_device(self.output_device, outputs, prev_out_id, outdev_val)
+
+        snapshot = (tuple(input_labels), tuple(output_labels))
+        changed = snapshot != self._last_device_snapshot
+        self._last_device_snapshot = snapshot
+
+        if announce:
+            text = f"Geraeteliste aktualisiert: {len(inputs)} Eingabe, {len(outputs)} Ausgabe"
+            if not restarted:
+                text += " (Soundsystem-Reset nicht verfuegbar)"
+            elif not changed:
+                text += " (keine Aenderung erkannt)"
+            self.frame.set_status(text)
+        elif changed:
+            self.frame.set_status(f"Neue Audiogeraete erkannt: {len(inputs)} Eingabe, {len(outputs)} Ausgabe")
+
+    def _select_device(self, choice: wx.Choice, devices: list, preferred_id: int, default_id: int) -> None:
+        for target in (preferred_id, default_id):
+            if target is None:
+                continue
+            for idx, dev in enumerate(devices):
+                if int(dev.nDeviceID) == int(target):
+                    choice.SetSelection(idx)
+                    return
+        if devices:
+            choice.SetSelection(0)
 
     def on_apply_audio(self, _event):
         client = self.frame.client
