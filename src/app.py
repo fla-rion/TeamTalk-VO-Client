@@ -332,9 +332,10 @@ class MainFrame(wx.Frame):
     def _connect_from_profile(self, parsed: ParsedTeamTalkFile):
         def worker():
             self.client.stop_event_loop_and_wait()
+            encrypted = bool(parsed.encrypted or parsed.profile.encrypted)
             self.logger.write(
                 f"Connect from .tt: host={parsed.profile.host} tcp={parsed.profile.tcp_port} "
-                f"udp={parsed.profile.udp_port} user={parsed.profile.username} encrypted={parsed.encrypted}"
+                f"udp={parsed.profile.udp_port} user={parsed.profile.username} encrypted={encrypted}"
             )
             result = self.client.connect_and_login(
                 host=parsed.profile.host,
@@ -344,7 +345,7 @@ class MainFrame(wx.Frame):
                 username=parsed.profile.username,
                 password=parsed.profile.password,
                 client_name=parsed.profile.client_name,
-                encrypted=parsed.encrypted,
+                encrypted=encrypted,
                 timeout_ms=8000,
             )
             self._pending_join = parsed if result.ok else None

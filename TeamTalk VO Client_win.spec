@@ -4,14 +4,13 @@
 a = Analysis(
     ['src/app.py'],
     pathex=['src', 'third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalkPy'],
-    binaries=[
-        ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalk_DLL/TeamTalk5.dll', '.'),
-    ],
+    binaries=[],
     datas=[
         ('src/teamtalk_client', 'teamtalk_client'),
         ('src/platform_paths.py', '.'),
         ('src/ui', 'ui'),
         ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalkPy', 'TeamTalkPy'),
+        ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalk_DLL', 'TeamTalk_DLL'),
         ('third_party/yt-dlp', 'yt-dlp'),
         ('third_party/espeak-ng', 'espeak-ng'),
     ],

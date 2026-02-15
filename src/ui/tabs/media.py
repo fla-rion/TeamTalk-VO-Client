@@ -748,18 +748,19 @@ class MediaTab(wx.Panel):
     # --- YouTube streaming (yt-dlp) ---
 
     def _find_yt_dlp(self) -> Optional[str]:
+        exe_name = "yt-dlp.exe" if sys.platform == "win32" else "yt-dlp"
         # 1) Bundled binary (PyInstaller)
         if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
-            bundled = Path(sys._MEIPASS) / "yt-dlp" / "yt-dlp"
+            bundled = Path(sys._MEIPASS) / "yt-dlp" / exe_name
             if bundled.exists():
                 return str(bundled)
         # 2) Repo binary
         root = Path(__file__).resolve().parents[2]
-        local = root / "third_party" / "yt-dlp" / "yt-dlp"
+        local = root / "third_party" / "yt-dlp" / exe_name
         if local.exists():
             return str(local)
         # 3) PATH
-        return shutil.which("yt-dlp")
+        return shutil.which(exe_name) or shutil.which("yt-dlp")
 
     def on_ytdlp_stream(self, _event):
         url = self.yt_url.GetValue().strip()

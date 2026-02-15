@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -8,6 +9,13 @@ def ensure_teamtalk_sdk_on_path() -> None:
     here = Path(__file__).resolve()
     if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
         sdk_py = Path(sys._MEIPASS) / "TeamTalkPy"
+        if sys.platform == "win32":
+            try:
+                dll_dir = Path(sys._MEIPASS) / "TeamTalk_DLL"
+                if dll_dir.exists():
+                    os.add_dll_directory(str(dll_dir))
+            except Exception:
+                pass
     else:
         root = here.parents[2]
         if sys.platform == "win32":

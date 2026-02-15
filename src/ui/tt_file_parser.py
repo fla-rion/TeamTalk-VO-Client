@@ -9,6 +9,19 @@ from typing import Optional
 from .models import ParsedTeamTalkFile, ServerProfile
 
 
+def _to_bool(value, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
 def parse_teamtalk_file(path: Path) -> Optional[ParsedTeamTalkFile]:
     data = path.read_bytes()
     for encoding in ("utf-8", "latin-1"):
@@ -76,6 +89,10 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
     channel_path = pick("channelpath", "channel_path", "channel") or None
     channel_id = pick("channelid", "channel_id")
     channel_id_int = int(channel_id) if channel_id.isdigit() else None
+    encrypted_flag = _to_bool(
+        pick("encrypted", "encryption", "tls", "ssl", "secure", default="false"),
+        default=False,
+    )
 
     if not host:
         return None
@@ -88,8 +105,11 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
     profile = ServerProfile(
         name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
         nickname=nickname, username=username, password=password, client_name=client_name,
+        encrypted=encrypted_flag,
     )
-    return ParsedTeamTalkFile(profile=profile, channel_path=channel_path, channel_id=channel_id_int)
+    return ParsedTeamTalkFile(
+        profile=profile, channel_path=channel_path, channel_id=channel_id_int, encrypted=encrypted_flag
+    )
 
 
 def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalkFile]:
@@ -127,11 +147,12 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
     if not nickname:
         nickname = "VoiceOverUser"
 
-    encrypted_flag = text_of(host_node.find("encrypted"), "false").lower() == "true"
+    encrypted_flag = _to_bool(text_of(host_node.find("encrypted"), "false"), default=False)
 
     profile = ServerProfile(
         name=name or host, host=host, tcp_port=tcp_port, udp_port=udp_port,
         nickname=nickname, username=username, password=password, client_name="TeamTalk VO",
+        encrypted=encrypted_flag,
     )
     return ParsedTeamTalkFile(
         profile=profile, channel_path=channel_path, channel_id=None,
