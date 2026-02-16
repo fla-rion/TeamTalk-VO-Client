@@ -74,6 +74,9 @@ class ConnectionTab(wx.Panel):
         self.reconnect_btn = wx.Button(self, label="Neu verbinden")
         self.reconnect_btn.SetName("Neu verbinden")
         self.reconnect_btn.Bind(wx.EVT_BUTTON, self.on_reconnect)
+        self.server_check_btn = wx.Button(self, label="Server checken")
+        self.server_check_btn.SetName("Server checken")
+        self.server_check_btn.Bind(wx.EVT_BUTTON, self.on_server_check)
         self.join_root_btn = wx.Button(self, label="Root-Kanal beitreten")
         self.join_root_btn.SetName("Root-Kanal beitreten")
         self.join_root_btn.Bind(wx.EVT_BUTTON, self.on_join_root)
@@ -87,7 +90,7 @@ class ConnectionTab(wx.Panel):
         self.auto_reconnect.SetName("Auto-Reconnect")
         self.auto_reconnect.Bind(wx.EVT_CHECKBOX, self.on_auto_reconnect)
 
-        for btn in (self.connect_btn, self.reconnect_btn, self.join_root_btn,
+        for btn in (self.connect_btn, self.reconnect_btn, self.server_check_btn, self.join_root_btn,
                      self.leave_btn, self.logout_btn):
             action_row.Add(btn, 0, wx.RIGHT, 8)
         action_row.Add(self.auto_reconnect, 0)
@@ -221,6 +224,9 @@ class ConnectionTab(wx.Panel):
 
         threading.Thread(target=worker, daemon=True).start()
 
+    def on_server_check(self, _event):
+        self.frame.scan_saved_servers_presence()
+
     def on_join_root(self, _event):
         self.frame.join_channel(self.frame.client.get_root_channel_id())
 
@@ -257,7 +263,7 @@ class ConnectionTab(wx.Panel):
             self.server_list, self.server_add, self.server_edit, self.server_remove,
             self.host, self.tcp_port, self.udp_port, self.nickname, self.username,
             self.password, self.client_name, self.elevenlabs_key, self.encrypted,
-            self.connect_btn, self.reconnect_btn,
+            self.connect_btn, self.reconnect_btn, self.server_check_btn,
             self.join_root_btn, self.leave_btn, self.logout_btn, self.auto_reconnect,
         ]
         for i in range(1, len(order)):

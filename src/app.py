@@ -236,6 +236,83 @@ class MainFrame(wx.Frame):
             api_key = self.connection_tab.elevenlabs_key.GetValue().strip()
             self._update_speak_tab(api_key)
 
+    def scan_saved_servers_presence(self):
+        servers = list(self.store.items())
+        if not servers:
+            self.set_status("Keine Server in der Liste")
+            return
+
+        self.connection_tab.server_check_btn.Disable()
+        self.set_status("Pruefe Serverliste...")
+
+        def _user_display_name(scanner: TeamTalkClient, user) -> str:
+            nickname = scanner.tt.ttstr(getattr(user, "szNickname", "")).strip()
+            username = scanner.tt.ttstr(getattr(user, "szUsername", "")).strip()
+            if nickname and username and nickname != username:
+                return f"{nickname} ({username})"
+            return nickname or username or ""
+
+        def _short_error(text: str, max_len: int = 120) -> str:
+            cleaned = " ".join((text or "").split())
+            if len(cleaned) <= max_len:
+                return cleaned
+            return cleaned[: max_len - 3] + "..."
+
+        def worker():
+            lines: List[str] = []
+            for profile in servers:
+                scanner = TeamTalkClient()
+                try:
+                    result = scanner.connect_and_login(
+                        host=profile.host,
+                        tcp_port=profile.tcp_port,
+                        udp_port=profile.udp_port,
+                        nickname=profile.nickname,
+                        username=profile.username,
+                        password=profile.password,
+                        client_name=profile.client_name,
+                        encrypted=profile.encrypted,
+                        timeout_ms=5000,
+                    )
+                    if not result.ok:
+                        lines.append(f"{profile.name}: nicht erreichbar ({_short_error(result.message)})")
+                        continue
+
+                    users = list(scanner.get_server_users() or [])
+                    names = sorted(
+                        [name for name in (_user_display_name(scanner, u) for u in users) if name],
+                        key=str.casefold,
+                    )
+                    if names:
+                        lines.append(f"{profile.name}: {len(names)} online - {', '.join(names)}")
+                    else:
+                        lines.append(f"{profile.name}: niemand online")
+                except Exception as exc:
+                    lines.append(f"{profile.name}: Fehler ({_short_error(str(exc))})")
+                finally:
+                    try:
+                        scanner.client.disconnect()
+                    except Exception:
+                        pass
+                    try:
+                        scanner.close()
+                    except Exception:
+                        pass
+
+            report = "\n".join(lines) if lines else "Keine Daten."
+            wx.CallAfter(self._finish_server_presence_scan, report)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _finish_server_presence_scan(self, report: str):
+        self.connection_tab.server_check_btn.Enable()
+        for line in report.splitlines():
+            self.logger.write(f"Servercheck: {line}")
+        self.set_status("Servercheck abgeschlossen")
+        dlg = wx.MessageDialog(self, report, "Server-Status", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def join_channel(self, channel_id: int):
         tab = self.connection_tab
         tab.join_root_btn.Disable()
