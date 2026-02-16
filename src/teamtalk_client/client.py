@@ -220,23 +220,30 @@ class TeamTalkClient:
         with self._connect_lock:
             self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
             hosts_to_try = self._build_connect_hosts(host)
+            attempt_log: List[str] = []
 
             transport_result = ConnectResult(False, "Verbindung fehlgeschlagen")
             for connect_host in hosts_to_try:
                 # First attempt: disconnect existing session and reuse current client.
                 self._disconnect_and_drain()
                 transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
+                attempt_log.append(f"{connect_host}:{tcp_port}/{udp_port} -> {transport_result.message}")
                 if not transport_result.ok:
                     # Second attempt: full SDK client re-init to recover from poisoned TLS/connect state.
                     self._recreate_client()
                     transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
+                    attempt_log.append(f"{connect_host}:{tcp_port}/{udp_port} reinit -> {transport_result.message}")
                 if not transport_result.ok and encrypted and udp_port > 0:
                     # Third attempt for encrypted sessions: TCP-only fallback.
                     self._recreate_client()
                     transport_result = self._connect_transport(connect_host, tcp_port, 0, encrypted, timeout_ms)
+                    attempt_log.append(f"{connect_host}:{tcp_port}/0 tcp-only -> {transport_result.message}")
                 if transport_result.ok:
                     break
             if not transport_result.ok:
+                attempts_text = " | ".join(attempt_log[:8])
+                if attempts_text:
+                    return ConnectResult(False, f"{transport_result.message} | {attempts_text}")
                 return transport_result
 
             cmdid = self.client.doLogin(
