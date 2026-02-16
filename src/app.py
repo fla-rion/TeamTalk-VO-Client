@@ -333,9 +333,17 @@ class MainFrame(wx.Frame):
         def worker():
             self.client.stop_event_loop_and_wait()
             encrypted = bool(parsed.encrypted or parsed.profile.encrypted)
+            verify_peer = parsed.verify_peer
+            tls_has_custom_material = bool(
+                (parsed.ca_certificate_pem or "").strip()
+                or (parsed.client_certificate_pem or "").strip()
+                or (parsed.client_private_key_pem or "").strip()
+            )
             self.logger.write(
                 f"Connect from .tt: host={parsed.profile.host} tcp={parsed.profile.tcp_port} "
-                f"udp={parsed.profile.udp_port} user={parsed.profile.username} encrypted={encrypted}"
+                f"udp={parsed.profile.udp_port} user={parsed.profile.username} encrypted={encrypted} "
+                f"verify_peer={verify_peer if verify_peer is not None else 'default'} "
+                f"custom_material={tls_has_custom_material}"
             )
             result = self.client.connect_and_login(
                 host=parsed.profile.host,
@@ -346,6 +354,8 @@ class MainFrame(wx.Frame):
                 password=parsed.profile.password,
                 client_name=parsed.profile.client_name,
                 encrypted=encrypted,
+                verify_peer=verify_peer,
+                tls_has_custom_material=tls_has_custom_material,
                 timeout_ms=8000,
             )
             self._pending_join = parsed if result.ok else None

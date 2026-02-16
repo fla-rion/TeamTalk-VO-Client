@@ -24,8 +24,10 @@ class TeamTalkClient:
         self._connect_lock = threading.Lock()
         self._event_thread: Optional[threading.Thread] = None
         self._event_stop = threading.Event()
-        self._last_connect: Optional[Tuple[str, int, int, str, str, str, str, bool]] = None
+        self._last_connect: Optional[Tuple[str, int, int, str, str, str, str, bool, Optional[bool], bool]] = None
+        self._last_transport_encrypted: Optional[bool] = None
         self._connected = False
+        self._last_encryption_context_info = "ctx=none"
 
     def _timestamp_ms(self) -> int:
         return int(round(time.time() * 1000))
@@ -108,20 +110,37 @@ class TeamTalkClient:
         self._connected = False
         self._drain_message_queue()
 
-    def _apply_encryption_context(self, encrypted: bool) -> None:
+    def _apply_encryption_context(
+        self,
+        encrypted: bool,
+        verify_peer: Optional[bool] = None,
+        tls_has_custom_material: bool = False,
+    ) -> None:
         try:
             if encrypted:
+                effective_verify_peer = bool(verify_peer) if verify_peer is not None else False
+                should_apply_context = effective_verify_peer or tls_has_custom_material
+                if not should_apply_context:
+                    self._last_encryption_context_info = (
+                        "ctx=encrypted skipped verify_peer=False custom_material=False"
+                    )
+                    return
+
                 ctx = self.tt.EncryptionContext()
-                # Allow encrypted connections even when server uses self-signed certs.
-                ctx.bVerifyPeer = False
+                ctx.bVerifyPeer = effective_verify_peer
                 ctx.bVerifyClientOnce = False
-                ctx.nVerifyDepth = 0
-                self.client.setEncryptionContext(ctx)
+                ctx.nVerifyDepth = 1 if effective_verify_peer else 0
+                applied = self.client.setEncryptionContext(ctx)
+                self._last_encryption_context_info = (
+                    f"ctx=encrypted verify_peer={effective_verify_peer} "
+                    f"custom_material={tls_has_custom_material} "
+                    f"verify_client_once=False depth={ctx.nVerifyDepth} applied={bool(applied)}"
+                )
             else:
-                # Reset any previous TLS context when using plain connections.
-                self.client.setEncryptionContext(self.tt.EncryptionContext())
-        except Exception:
-            pass
+                # For plain connections we keep TLS context untouched.
+                self._last_encryption_context_info = "ctx=plain skipped"
+        except Exception as exc:
+            self._last_encryption_context_info = f"ctx=error {exc}"
 
     def _connect_transport(
         self,
@@ -130,13 +149,19 @@ class TeamTalkClient:
         udp_port: int,
         encrypted: bool,
         timeout_ms: int,
+        verify_peer: Optional[bool] = None,
+        tls_has_custom_material: bool = False,
     ) -> ConnectResult:
-        self._apply_encryption_context(encrypted)
+        self._apply_encryption_context(
+            encrypted,
+            verify_peer=verify_peer,
+            tls_has_custom_material=tls_has_custom_material,
+        )
         if not self.client.connect(self.tt.ttstr(host), tcp_port, udp_port, 0, 0, encrypted):
             detail = self._get_connect_start_error_detail()
             if detail:
-                return ConnectResult(False, f"Verbindung konnte nicht gestartet werden: {detail}")
-            return ConnectResult(False, "Verbindung konnte nicht gestartet werden")
+                return ConnectResult(False, f"Verbindung konnte nicht gestartet werden: {detail} ({self._last_encryption_context_info})")
+            return ConnectResult(False, f"Verbindung konnte nicht gestartet werden ({self._last_encryption_context_info})")
 
         ok, msg = self._wait_for_events(
             (
@@ -147,17 +172,17 @@ class TeamTalkClient:
             timeout_ms,
         )
         if not ok:
-            return ConnectResult(False, "Verbindung fehlgeschlagen")
+            return ConnectResult(False, f"Verbindung fehlgeschlagen ({self._last_encryption_context_info})")
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_FAILED:
             detail = self._message_error_detail(msg)
             if detail:
-                return ConnectResult(False, f"Verbindung fehlgeschlagen: {detail}")
-            return ConnectResult(False, "Verbindung fehlgeschlagen")
+                return ConnectResult(False, f"Verbindung fehlgeschlagen: {detail} ({self._last_encryption_context_info})")
+            return ConnectResult(False, f"Verbindung fehlgeschlagen ({self._last_encryption_context_info})")
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             detail = self._message_error_detail(msg)
             if detail:
-                return ConnectResult(False, f"Verschluesselungsfehler: {detail}")
-            return ConnectResult(False, "Verschluesselungsfehler")
+                return ConnectResult(False, f"Verschluesselungsfehler: {detail} ({self._last_encryption_context_info})")
+            return ConnectResult(False, f"Verschluesselungsfehler ({self._last_encryption_context_info})")
         return ConnectResult(True, "ok")
 
     def _get_connect_start_error_detail(self, timeout_ms: int = 400) -> str:
@@ -215,30 +240,81 @@ class TeamTalkClient:
         password: str,
         client_name: str,
         encrypted: bool = False,
+        verify_peer: Optional[bool] = None,
+        tls_has_custom_material: bool = False,
         timeout_ms: int = 8000,
     ) -> ConnectResult:
         with self._connect_lock:
-            self._last_connect = (host, tcp_port, udp_port, nickname, username, password, client_name, encrypted)
+            self._last_connect = (
+                host,
+                tcp_port,
+                udp_port,
+                nickname,
+                username,
+                password,
+                client_name,
+                encrypted,
+                verify_peer,
+                tls_has_custom_material,
+            )
             hosts_to_try = self._build_connect_hosts(host)
             attempt_log: List[str] = []
+            wants_tls_context = bool(encrypted and (bool(verify_peer) or tls_has_custom_material))
+
+            # Switching between encrypted and plain can leave SDK transport state behind.
+            if self._last_transport_encrypted is not None and self._last_transport_encrypted != encrypted:
+                self._recreate_client()
+                attempt_log.append(
+                    f"mode-switch reinit ({self._last_transport_encrypted} -> {encrypted})"
+                )
+
+            # Encrypted server without peer verification/custom certs should run with a clean SDK instance.
+            if encrypted and not wants_tls_context:
+                self._recreate_client()
+                attempt_log.append("encrypted-noctx reinit")
 
             transport_result = ConnectResult(False, "Verbindung fehlgeschlagen")
             for connect_host in hosts_to_try:
                 # First attempt: disconnect existing session and reuse current client.
                 self._disconnect_and_drain()
-                transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
+                transport_result = self._connect_transport(
+                    connect_host,
+                    tcp_port,
+                    udp_port,
+                    encrypted,
+                    timeout_ms,
+                    verify_peer=verify_peer,
+                    tls_has_custom_material=tls_has_custom_material,
+                )
                 attempt_log.append(f"{connect_host}:{tcp_port}/{udp_port} -> {transport_result.message}")
                 if not transport_result.ok:
                     # Second attempt: full SDK client re-init to recover from poisoned TLS/connect state.
                     self._recreate_client()
-                    transport_result = self._connect_transport(connect_host, tcp_port, udp_port, encrypted, timeout_ms)
+                    transport_result = self._connect_transport(
+                        connect_host,
+                        tcp_port,
+                        udp_port,
+                        encrypted,
+                        timeout_ms,
+                        verify_peer=verify_peer,
+                        tls_has_custom_material=tls_has_custom_material,
+                    )
                     attempt_log.append(f"{connect_host}:{tcp_port}/{udp_port} reinit -> {transport_result.message}")
                 if not transport_result.ok and encrypted and udp_port > 0:
                     # Third attempt for encrypted sessions: TCP-only fallback.
                     self._recreate_client()
-                    transport_result = self._connect_transport(connect_host, tcp_port, 0, encrypted, timeout_ms)
+                    transport_result = self._connect_transport(
+                        connect_host,
+                        tcp_port,
+                        0,
+                        encrypted,
+                        timeout_ms,
+                        verify_peer=verify_peer,
+                        tls_has_custom_material=tls_has_custom_material,
+                    )
                     attempt_log.append(f"{connect_host}:{tcp_port}/0 tcp-only -> {transport_result.message}")
                 if transport_result.ok:
+                    self._last_transport_encrypted = encrypted
                     break
             if not transport_result.ok:
                 attempts_text = " | ".join(attempt_log[:8])

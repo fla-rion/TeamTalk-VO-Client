@@ -22,6 +22,17 @@ def _to_bool(value, default: bool = False) -> bool:
     return default
 
 
+def _to_optional_bool(value) -> Optional[bool]:
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off"}:
+        return False
+    return None
+
+
 def parse_teamtalk_file(path: Path) -> Optional[ParsedTeamTalkFile]:
     data = path.read_bytes()
     for encoding in ("utf-8", "latin-1"):
@@ -94,6 +105,12 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
         default=False,
     )
 
+    verify_peer = None
+    for key in ("verify-peer", "verify_peer", "verifypeer"):
+        if key in payload:
+            verify_peer = _to_optional_bool(payload.get(key))
+            break
+
     if not host:
         return None
     try:
@@ -108,7 +125,8 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
         encrypted=encrypted_flag,
     )
     return ParsedTeamTalkFile(
-        profile=profile, channel_path=channel_path, channel_id=channel_id_int, encrypted=encrypted_flag
+        profile=profile, channel_path=channel_path, channel_id=channel_id_int, encrypted=encrypted_flag,
+        verify_peer=verify_peer,
     )
 
 
@@ -137,6 +155,12 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
     channel_password = text_of(join.find("password") if join is not None else None, "") or None
     join_last_channel = text_of(join.find("join-last-channel") if join is not None else None, "false").lower() == "true"
 
+    trusted = host_node.find("trusted-certificate")
+    verify_peer = _to_optional_bool(text_of(trusted.find("verify-peer") if trusted is not None else None, ""))
+    ca_certificate_pem = text_of(trusted.find("certificate-authority-pem") if trusted is not None else None, "")
+    client_certificate_pem = text_of(trusted.find("client-certificate-pem") if trusted is not None else None, "")
+    client_private_key_pem = text_of(trusted.find("client-private-key-pem") if trusted is not None else None, "")
+
     if not host:
         return None
     try:
@@ -157,5 +181,8 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
     return ParsedTeamTalkFile(
         profile=profile, channel_path=channel_path, channel_id=None,
         channel_password=channel_password, encrypted=encrypted_flag,
-        join_last_channel=join_last_channel,
+        join_last_channel=join_last_channel, verify_peer=verify_peer,
+        ca_certificate_pem=ca_certificate_pem,
+        client_certificate_pem=client_certificate_pem,
+        client_private_key_pem=client_private_key_pem,
     )

@@ -30,6 +30,10 @@ class ParsedTeamTalkFile:
     channel_password: Optional[str] = None
     encrypted: bool = False
     join_last_channel: bool = False
+    verify_peer: Optional[bool] = None
+    ca_certificate_pem: str = ""
+    client_certificate_pem: str = ""
+    client_private_key_pem: str = ""
 
 
 class FileLogger:
