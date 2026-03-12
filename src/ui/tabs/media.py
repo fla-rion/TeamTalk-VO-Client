@@ -94,9 +94,12 @@ class MediaTab(wx.Panel):
         self._stream_duration_ms = 0
         self._yt_tempdir: Optional[Path] = None
         self._yt_output_path: Optional[Path] = None
+        self._yt_results = []
         self._radio_entries = []
+        self._radio_search_results = []
         self._podcast_results = []
         self._podcast_episodes = []
+        self._twitch_stream_url: Optional[str] = None
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -132,7 +135,7 @@ class MediaTab(wx.Panel):
         # --- Streaming source selector ---
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.stream_mode = wx.Choice(self, choices=["Datei", "YouTube", "Webradio", "Podcasts"])
+        self.stream_mode = wx.Choice(self, choices=["Datei", "YouTube", "Webradio", "Podcasts", "Twitch"])
         self.stream_mode.SetName("Streaming-Quelle")
         self.stream_mode.SetSelection(0)
         self.stream_mode.Bind(wx.EVT_CHOICE, self.on_stream_mode)
@@ -195,6 +198,23 @@ class MediaTab(wx.Panel):
         yt_box = wx.StaticBox(self.yt_panel, label="YouTube-Streaming (yt-dlp)")
         yt_sizer = wx.StaticBoxSizer(yt_box, wx.VERTICAL)
 
+        yt_search_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_yt_search = wx.StaticText(self.yt_panel, label="YouTube Suche")
+        self.yt_search = wx.TextCtrl(self.yt_panel)
+        self.yt_search.SetName("YouTube Suche")
+        self.yt_search_btn = wx.Button(self.yt_panel, label="Suchen")
+        self.yt_search_btn.SetName("YouTube suchen")
+        self.yt_search_btn.Bind(wx.EVT_BUTTON, self.on_ytdlp_search)
+        yt_search_row.Add(self.yt_search, 1, wx.RIGHT | wx.EXPAND, 8)
+        yt_search_row.Add(self.yt_search_btn, 0)
+        yt_sizer.Add(yt_search_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        self.yt_results = wx.ListBox(self.yt_panel)
+        self.yt_results.SetName("YouTube Ergebnisse")
+        self.yt_results.Bind(wx.EVT_LISTBOX, self.on_ytdlp_select)
+        yt_sizer.Add(self.yt_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+        self.yt_results.SetMinSize((-1, 120))
+
         yt_row = wx.BoxSizer(wx.HORIZONTAL)
         lbl_yt_url = wx.StaticText(self.yt_panel, label="YouTube-Link")
         self.yt_url = wx.TextCtrl(self.yt_panel)
@@ -232,10 +252,69 @@ class MediaTab(wx.Panel):
         self.yt_panel.SetSizer(yt_sizer)
         sizer.Add(self.yt_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # --- Twitch (yt-dlp) ---
+        self.twitch_panel = wx.Panel(self)
+        twitch_box = wx.StaticBox(self.twitch_panel, label="Twitch-Streaming (yt-dlp)")
+        twitch_sizer = wx.StaticBoxSizer(twitch_box, wx.VERTICAL)
+
+        twitch_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_twitch_url = wx.StaticText(self.twitch_panel, label="Twitch-Link")
+        self.twitch_url = wx.TextCtrl(self.twitch_panel)
+        self.twitch_url.SetName("Twitch-Link")
+        self.twitch_btn = wx.Button(self.twitch_panel, label="Streamen")
+        self.twitch_btn.SetName("Twitch streamen")
+        self.twitch_btn.Bind(wx.EVT_BUTTON, self.on_twitch_stream)
+        twitch_row.Add(self.twitch_url, 1, wx.RIGHT | wx.EXPAND, 8)
+        twitch_row.Add(self.twitch_btn, 0)
+        twitch_sizer.Add(twitch_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        self.twitch_status = wx.StaticText(self.twitch_panel, label="Status: bereit")
+        self.twitch_status.SetName("Twitch-Status")
+        twitch_sizer.Add(self.twitch_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        twitch_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.twitch_pause_btn = wx.Button(self.twitch_panel, label="Pause")
+        self.twitch_pause_btn.SetName("Twitch Pause")
+        self.twitch_pause_btn.Bind(wx.EVT_BUTTON, self.on_pause)
+        self.twitch_stop_btn = wx.Button(self.twitch_panel, label="Stopp")
+        self.twitch_stop_btn.SetName("Twitch Stopp")
+        self.twitch_stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
+        twitch_ctrl_row.Add(self.twitch_pause_btn, 0, wx.RIGHT, 8)
+        twitch_ctrl_row.Add(self.twitch_stop_btn, 0)
+        twitch_sizer.Add(twitch_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        twitch_gain_row = wx.BoxSizer(wx.HORIZONTAL)
+        twitch_gain_row.Add(wx.StaticText(self.twitch_panel, label="Streaming Lautstaerke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.twitch_stream_gain = wx.Slider(self.twitch_panel, value=100, minValue=25, maxValue=400)
+        self.twitch_stream_gain.SetName("Twitch Lautstaerke")
+        self.twitch_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
+        twitch_gain_row.Add(self.twitch_stream_gain, 1, wx.EXPAND)
+        twitch_sizer.Add(twitch_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+
+        self.twitch_panel.SetSizer(twitch_sizer)
+        sizer.Add(self.twitch_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # --- Webradio ---
         self.radio_panel = wx.Panel(self)
         radio_box = wx.StaticBox(self.radio_panel, label="Webradio")
         radio_sizer = wx.StaticBoxSizer(radio_box, wx.VERTICAL)
+
+        radio_search_row = wx.BoxSizer(wx.HORIZONTAL)
+        lbl_radio_search = wx.StaticText(self.radio_panel, label="Webradio Suche")
+        self.radio_search = wx.TextCtrl(self.radio_panel)
+        self.radio_search.SetName("Webradio Suche")
+        self.radio_search_btn = wx.Button(self.radio_panel, label="Suchen")
+        self.radio_search_btn.SetName("Webradio suchen")
+        self.radio_search_btn.Bind(wx.EVT_BUTTON, self.on_radio_search)
+        radio_search_row.Add(self.radio_search, 1, wx.RIGHT | wx.EXPAND, 8)
+        radio_search_row.Add(self.radio_search_btn, 0)
+        radio_sizer.Add(radio_search_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        self.radio_results = wx.ListBox(self.radio_panel)
+        self.radio_results.SetName("Webradio Ergebnisse")
+        self.radio_results.Bind(wx.EVT_LISTBOX, self.on_radio_search_select)
+        radio_sizer.Add(self.radio_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+        self.radio_results.SetMinSize((-1, 100))
 
         lbl_radio_choice = wx.StaticText(self.radio_panel, label="Webradio Senderliste")
         self.radio_choice = wx.Choice(self.radio_panel)
@@ -472,6 +551,8 @@ class MediaTab(wx.Panel):
             val = self.radio_stream_gain.GetValue()
         elif self.podcast_panel.IsShown():
             val = self.podcast_stream_gain.GetValue()
+        elif self.twitch_panel.IsShown():
+            val = self.twitch_stream_gain.GetValue()
         else:
             val = self.stream_gain.GetValue()
         return max(0.1, float(val) / 100.0)
@@ -492,11 +573,15 @@ class MediaTab(wx.Panel):
         for i in range(1, len(file_order)):
             file_order[i].MoveAfterInTabOrder(file_order[i - 1])
         yt_order = [self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain]
+        yt_order = [
+            self.yt_search, self.yt_search_btn, self.yt_results,
+            self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain,
+        ]
         for i in range(1, len(yt_order)):
             yt_order[i].MoveAfterInTabOrder(yt_order[i - 1])
         radio_order = [
-            self.radio_choice, self.radio_url, self.radio_play_btn,
-            self.radio_pause_btn, self.radio_stop_btn, self.radio_stream_gain,
+            self.radio_search, self.radio_search_btn, self.radio_results, self.radio_choice,
+            self.radio_url, self.radio_play_btn, self.radio_pause_btn, self.radio_stop_btn, self.radio_stream_gain,
         ]
         for i in range(1, len(radio_order)):
             radio_order[i].MoveAfterInTabOrder(radio_order[i - 1])
@@ -507,6 +592,11 @@ class MediaTab(wx.Panel):
         ]
         for i in range(1, len(pod_order)):
             pod_order[i].MoveAfterInTabOrder(pod_order[i - 1])
+        twitch_order = [
+            self.twitch_url, self.twitch_btn, self.twitch_pause_btn, self.twitch_stop_btn, self.twitch_stream_gain,
+        ]
+        for i in range(1, len(twitch_order)):
+            twitch_order[i].MoveAfterInTabOrder(twitch_order[i - 1])
 
     def on_stream_mode(self, _event):
         self._update_stream_mode()
@@ -517,10 +607,12 @@ class MediaTab(wx.Panel):
         show_yt = mode == 1
         show_radio = mode == 2
         show_podcast = mode == 3
+        show_twitch = mode == 4
         self.stream_panel.Show(show_file)
         self.yt_panel.Show(show_yt)
         self.radio_panel.Show(show_radio)
         self.podcast_panel.Show(show_podcast)
+        self.twitch_panel.Show(show_twitch)
         self.Layout()
         self.GetParent().Layout()
         # Move focus to the first control in the visible panel
@@ -529,10 +621,91 @@ class MediaTab(wx.Panel):
             1: self.yt_url,
             2: self.radio_choice,
             3: self.podcast_search,
+            4: self.twitch_url,
         }
         target = focus_targets.get(mode)
         if target:
             target.SetFocus()
+
+    # --- YouTube search (yt-dlp) ---
+
+    def on_ytdlp_search(self, _event):
+        term = self.yt_search.GetValue().strip()
+        if not term:
+            self.frame.set_status("Bitte Suchbegriff eingeben")
+            return
+        ytdlp = self._find_yt_dlp()
+        if not ytdlp:
+            self.frame.set_status("yt-dlp nicht gefunden (binary fehlt)")
+            self.yt_status.SetLabel("Status: yt-dlp fehlt")
+            return
+
+        self.yt_search_btn.Disable()
+        self.yt_status.SetLabel("Status: Suche laeuft...")
+
+        def worker():
+            try:
+                cmd = [
+                    ytdlp,
+                    "--dump-json",
+                    "--no-playlist",
+                    f"ytsearch10:{term}",
+                ]
+                proc = subprocess.run(cmd, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    err = (proc.stderr or proc.stdout or "Unbekannter Fehler").strip()
+                    wx.CallAfter(self._ytdlp_search_failed, err)
+                    return
+                items = []
+                parsed = []
+                for line in (proc.stdout or "").splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except Exception:
+                        continue
+                    title = data.get("title") or "Video"
+                    channel = data.get("uploader") or ""
+                    duration = data.get("duration")
+                    url = data.get("webpage_url") or data.get("url") or ""
+                    label = title
+                    if channel:
+                        label += f" — {channel}"
+                    if duration:
+                        mins = int(duration) // 60
+                        secs = int(duration) % 60
+                        label += f" — {mins}:{secs:02d}"
+                    items.append(label)
+                    parsed.append({"title": title, "channel": channel, "duration": duration, "url": url})
+                wx.CallAfter(self._ytdlp_search_ready, items, parsed)
+            except Exception as exc:
+                wx.CallAfter(self._ytdlp_search_failed, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _ytdlp_search_ready(self, items, parsed):
+        self.yt_search_btn.Enable()
+        self._yt_results = parsed
+        self.yt_results.Set(items)
+        if items:
+            self.yt_results.SetSelection(0)
+            self.on_ytdlp_select(None)
+        self.yt_status.SetLabel(f"Status: {len(items)} Treffer")
+
+    def _ytdlp_search_failed(self, message: str):
+        self.yt_search_btn.Enable()
+        self.yt_status.SetLabel("Status: Suche fehlgeschlagen")
+        self.frame.set_status(f"YouTube-Suche fehlgeschlagen: {message}")
+
+    def on_ytdlp_select(self, _event):
+        idx = self.yt_results.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._yt_results):
+            return
+        url = self._yt_results[idx].get("url") or ""
+        if url:
+            self.yt_url.SetValue(url)
 
     # --- Podcasts ---
 
@@ -841,6 +1014,63 @@ class MediaTab(wx.Panel):
             self._yt_tempdir = None
             self._yt_output_path = None
 
+    # --- Twitch streaming (yt-dlp) ---
+
+    def on_twitch_stream(self, _event):
+        url = self.twitch_url.GetValue().strip()
+        if not url:
+            self.frame.set_status("Bitte einen Twitch-Link eingeben")
+            return
+        ytdlp = self._find_yt_dlp()
+        if not ytdlp:
+            self.frame.set_status("yt-dlp nicht gefunden (binary fehlt)")
+            self.twitch_status.SetLabel("Status: yt-dlp fehlt")
+            return
+
+        self.twitch_btn.Disable()
+        self.twitch_status.SetLabel("Status: Stream wird vorbereitet...")
+        self.frame.set_status("Twitch-Stream wird gestartet")
+
+        def worker():
+            try:
+                cmd = [
+                    ytdlp,
+                    "-g",
+                    "--no-playlist",
+                    url,
+                ]
+                proc = subprocess.run(cmd, capture_output=True, text=True)
+                if proc.returncode != 0:
+                    err = (proc.stderr or proc.stdout or "Unbekannter Fehler").strip()
+                    wx.CallAfter(self._twitch_failed, err)
+                    return
+                stream_url = (proc.stdout or "").splitlines()[0].strip()
+                if not stream_url:
+                    wx.CallAfter(self._twitch_failed, "Keine Stream-URL gefunden")
+                    return
+                wx.CallAfter(self._twitch_ready, stream_url)
+            except Exception as exc:
+                wx.CallAfter(self._twitch_failed, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _twitch_failed(self, message: str):
+        self.twitch_btn.Enable()
+        self.twitch_status.SetLabel("Status: Fehler")
+        self.frame.set_status(f"Twitch-Streaming fehlgeschlagen: {message}")
+
+    def _twitch_ready(self, stream_url: str):
+        self.twitch_btn.Enable()
+        self.twitch_status.SetLabel("Status: Stream bereit")
+        ok = self.frame.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._get_stream_gain())
+        if ok:
+            self._streaming = True
+            self.media_path.SetValue(stream_url)
+            self.media_info.SetLabel("Dauer: Live-Stream")
+            self.frame.set_status("Twitch-Streaming gestartet")
+        else:
+            self.frame.set_status("Twitch-Streaming konnte nicht gestartet werden")
+
     # --- Webradio ---
 
     def _load_radio_list(self):
@@ -856,6 +1086,62 @@ class MediaTab(wx.Panel):
         if idx == wx.NOT_FOUND or idx >= len(self._radio_entries):
             return
         self.radio_url.SetValue(self._radio_entries[idx][1])
+
+    def on_radio_search(self, _event):
+        term = self.radio_search.GetValue().strip()
+        if not term:
+            self.frame.set_status("Bitte Suchbegriff eingeben")
+            return
+        self.radio_search_btn.Disable()
+        self.frame.set_status("Webradio-Suche laeuft...")
+
+        def worker():
+            try:
+                params = {"name": term, "limit": 20, "hidebroken": 1, "order": "clickcount", "reverse": 1}
+                url = "https://de1.api.radio-browser.info/json/stations/search"
+                data = self._fetch_json(url, params=params)
+                if not isinstance(data, list):
+                    data = []
+                items = []
+                parsed = []
+                for r in data:
+                    name = r.get("name") or "Sender"
+                    country = r.get("country") or ""
+                    codec = r.get("codec") or ""
+                    bitrate = r.get("bitrate") or ""
+                    stream = r.get("url_resolved") or r.get("url") or ""
+                    label = name
+                    meta = " ".join([x for x in (country, codec, f"{bitrate}kbps" if bitrate else "") if x])
+                    if meta:
+                        label += f" — {meta}"
+                    items.append(label)
+                    parsed.append({"name": name, "url": stream, "meta": meta})
+                wx.CallAfter(self._radio_search_ready, items, parsed)
+            except Exception as exc:
+                wx.CallAfter(self._radio_search_failed, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _radio_search_ready(self, items, parsed):
+        self.radio_search_btn.Enable()
+        self._radio_search_results = parsed
+        self.radio_results.Set(items)
+        if items:
+            self.radio_results.SetSelection(0)
+            self.on_radio_search_select(None)
+        self.frame.set_status(f"Webradio Treffer: {len(items)}")
+
+    def _radio_search_failed(self, message: str):
+        self.radio_search_btn.Enable()
+        self.frame.set_status(f"Webradio-Suche fehlgeschlagen: {message}")
+
+    def on_radio_search_select(self, _event):
+        idx = self.radio_results.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._radio_search_results):
+            return
+        url = self._radio_search_results[idx].get("url") or ""
+        if url:
+            self.radio_url.SetValue(url)
 
     def on_radio_stream(self, _event):
         url = self.radio_url.GetValue().strip()

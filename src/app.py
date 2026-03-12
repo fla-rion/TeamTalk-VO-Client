@@ -98,6 +98,15 @@ class ServerCheckDialog(wx.Dialog):
         self.CentreOnParent()
 
 
+class LazyTabPlaceholder(wx.Panel):
+    def __init__(self, parent: wx.Window, label: str) -> None:
+        super().__init__(parent)
+        self.label = label
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(wx.StaticText(self, label="Wird geladen..."), 0, wx.ALL, 12)
+        self.SetSizer(sizer)
+
+
 class MainFrame(wx.Frame):
     """Main window -- thin orchestrator that creates notebook tabs and dispatches events."""
 
@@ -115,6 +124,10 @@ class MainFrame(wx.Frame):
         self._window_focused = True
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
+        self.media_tab: Optional[MediaTab] = None
+        self.files_tab: Optional[FilesTab] = None
+        self.admin_tab: Optional[AdminTab] = None
+        self._lazy_pages: Dict[str, wx.Panel] = {}
 
         # Paths
         from platform_paths import app_data_dir
@@ -148,16 +161,21 @@ class MainFrame(wx.Frame):
         self.settings_tab = SettingsTab(self.notebook, self)
         self.audio_tab = self.settings_tab.audio_tab
         self.system_tab = self.settings_tab.system_tab
-        self.media_tab = MediaTab(self.notebook, self)
-        self.files_tab = FilesTab(self.notebook, self)
-        self.admin_tab = AdminTab(self.notebook, self)
+        media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
+        files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
+        admin_placeholder = LazyTabPlaceholder(self.notebook, "Administration")
+        self._lazy_pages = {
+            "media": media_placeholder,
+            "files": files_placeholder,
+            "admin": admin_placeholder,
+        }
 
         self.notebook.AddPage(self.connection_tab, "Verbindung")
         self.notebook.AddPage(self.channels_tab, "Kanaele")
         self.notebook.AddPage(self.chat_tab, "Chat")
-        self.notebook.AddPage(self.media_tab, "Aufnahme & Medien")
-        self.notebook.AddPage(self.files_tab, "Dateien")
-        self.notebook.AddPage(self.admin_tab, "Administration")
+        self.notebook.AddPage(media_placeholder, "Aufnahme & Medien")
+        self.notebook.AddPage(files_placeholder, "Dateien")
+        self.notebook.AddPage(admin_placeholder, "Administration")
         self.notebook.AddPage(self.settings_tab, "Einstellungen")
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
@@ -261,12 +279,14 @@ class MainFrame(wx.Frame):
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
-            wx.CallLater(800, self.files_tab.refresh_file_list)
+            if self.files_tab is not None:
+                wx.CallLater(800, self.files_tab.refresh_file_list)
             if self._pending_join is not None:
                 wx.CallLater(500, self._join_from_pending)
             if self.audio_tab.voice_activation.GetValue() and not self._ptt_enabled:
                 self.client.enable_voice_transmission(True)
-            self.admin_tab.check_admin_visibility()
+            if self.admin_tab is not None:
+                self.admin_tab.check_admin_visibility()
             api_key = self.connection_tab.elevenlabs_key.GetValue().strip()
             self._update_speak_tab(api_key)
 
@@ -403,7 +423,8 @@ class MainFrame(wx.Frame):
             if restore_result.ok:
                 self.client.start_event_loop(self.handle_tt_message)
                 self._refresh_channels_with_retry()
-                wx.CallLater(800, self.files_tab.refresh_file_list)
+                if self.files_tab is not None:
+                    wx.CallLater(800, self.files_tab.refresh_file_list)
 
         self.set_status("Servercheck abgeschlossen")
         dlg = ServerCheckDialog(self, rows)
@@ -424,7 +445,8 @@ class MainFrame(wx.Frame):
                 if result.ok:
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
-                    wx.CallAfter(self.files_tab.refresh_file_list)
+                    if self.files_tab is not None:
+                        wx.CallAfter(self.files_tab.refresh_file_list)
             except Exception as exc:
                 self.client.start_event_loop(self.handle_tt_message)
                 wx.CallAfter(self.set_status, f"Fehler: {exc}")
@@ -586,13 +608,15 @@ class MainFrame(wx.Frame):
                     wx.CallAfter(self.set_status, "Kanalbeitritt erfolgreich")
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
-                    wx.CallAfter(self.files_tab.refresh_file_list)
+                    if self.files_tab is not None:
+                        wx.CallAfter(self.files_tab.refresh_file_list)
                     return
                 wx.CallAfter(self.set_status, result_join.message)
                 if result_join.ok:
                     wx.CallAfter(self.channels_tab.refresh_channels_and_users)
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
-                    wx.CallAfter(self.files_tab.refresh_file_list)
+                    if self.files_tab is not None:
+                        wx.CallAfter(self.files_tab.refresh_file_list)
             except Exception as exc:
                 self.client.start_event_loop(self.handle_tt_message)
                 wx.CallAfter(self.set_status, f"Fehler beim Kanalbeitritt: {exc}")
@@ -750,14 +774,47 @@ class MainFrame(wx.Frame):
     def on_tab_changed(self, event):
         try:
             idx = event.GetSelection()
-            if self.notebook.GetPage(idx) is self.files_tab:
+            page = self.notebook.GetPage(idx)
+            self._ensure_lazy_tab(page)
+            page = self.notebook.GetPage(idx)
+            if self.files_tab is not None and page is self.files_tab:
                 wx.CallAfter(self.files_tab.refresh_file_list)
-            if self.notebook.GetPage(idx) is self.audio_tab and self._window_focused:
+            if page is self.audio_tab and self._window_focused:
                 self.audio_tab.set_active(True)
             else:
                 self.audio_tab.set_active(False)
         finally:
             event.Skip()
+
+    def _ensure_lazy_tab(self, page: wx.Panel) -> None:
+        # Replace placeholder panels with real tabs on first access.
+        if page is self._lazy_pages.get("media"):
+            self._replace_lazy_tab("media", MediaTab)
+        elif page is self._lazy_pages.get("files"):
+            self._replace_lazy_tab("files", FilesTab)
+        elif page is self._lazy_pages.get("admin"):
+            self._replace_lazy_tab("admin", AdminTab)
+
+    def _replace_lazy_tab(self, key: str, factory):
+        placeholder = self._lazy_pages.get(key)
+        if placeholder is None:
+            return
+        idx = self.notebook.GetPageIndex(placeholder)
+        if idx == wx.NOT_FOUND:
+            return
+        if key == "media":
+            self.media_tab = factory(self.notebook, self)
+            self.notebook.DeletePage(idx)
+            self.notebook.InsertPage(idx, self.media_tab, "Aufnahme & Medien")
+        elif key == "files":
+            self.files_tab = factory(self.notebook, self)
+            self.notebook.DeletePage(idx)
+            self.notebook.InsertPage(idx, self.files_tab, "Dateien")
+        elif key == "admin":
+            self.admin_tab = factory(self.notebook, self)
+            self.notebook.DeletePage(idx)
+            self.notebook.InsertPage(idx, self.admin_tab, "Administration")
+        self._lazy_pages[key] = None
 
     # ------------------------------------------------------------------
     # Event handler (dispatches to tabs)
@@ -818,13 +875,17 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             self._handle_text_message(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:
-            wx.CallAfter(self.media_tab.on_stream_update, msg.mediafileinfo)
+            if self.media_tab is not None:
+                wx.CallAfter(self.media_tab.on_stream_update, msg.mediafileinfo)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_FILE_NEW:
-            wx.CallAfter(self.files_tab.refresh_file_list)
+            if self.files_tab is not None:
+                wx.CallAfter(self.files_tab.refresh_file_list)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_FILE_REMOVE:
-            wx.CallAfter(self.files_tab.refresh_file_list)
+            if self.files_tab is not None:
+                wx.CallAfter(self.files_tab.refresh_file_list)
         elif event == tt.ClientEvent.CLIENTEVENT_FILETRANSFER:
-            wx.CallAfter(self.files_tab.on_file_transfer_update, int(msg.nSource))
+            if self.files_tab is not None:
+                wx.CallAfter(self.files_tab.on_file_transfer_update, int(msg.nSource))
         elif event in (
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_ADDED", -1),
             getattr(tt.ClientEvent, "CLIENTEVENT_SOUNDDEVICE_REMOVED", -1),
@@ -836,9 +897,11 @@ class MainFrame(wx.Frame):
         ):
             wx.CallAfter(self.audio_tab.refresh_audio_devices, False, False, True)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT:
-            wx.CallAfter(self.admin_tab.add_account_to_list, msg.useraccount)
+            if self.admin_tab is not None:
+                wx.CallAfter(self.admin_tab.add_account_to_list, msg.useraccount)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER:
-            wx.CallAfter(self.admin_tab.add_ban_to_list, msg.banneduser)
+            if self.admin_tab is not None:
+                wx.CallAfter(self.admin_tab.add_ban_to_list, msg.banneduser)
 
     def _emit_user_presence_event(self, msg, tt):
         event = msg.nClientEvent
@@ -939,7 +1002,8 @@ class MainFrame(wx.Frame):
         self.connection_tab.destroy_timers()
         self.audio_tab.destroy_timers()
         # Stop media / recording
-        self.media_tab.stop_all()
+        if self.media_tab is not None:
+            self.media_tab.stop_all()
         # Stop ElevenLabs streaming / cleanup
         if self.speak_tab is not None:
             self.speak_tab.cleanup()
