@@ -24,10 +24,11 @@ class AudioTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         # --- Device selection ---
+        dev_box = wx.StaticBox(self, label="Geraete")
+        dev_sizer = wx.StaticBoxSizer(dev_box, wx.VERTICAL)
         dev_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         dev_form.AddGrowableCol(1)
 
-        # Create label immediately before control for NVDA association
         lbl_in = wx.StaticText(self, label="Eingabegeraet")
         self.input_device = wx.Choice(self)
         self.input_device.SetName("Eingabegeraet")
@@ -39,14 +40,15 @@ class AudioTab(wx.Panel):
         dev_form.Add(self.input_device, 1, wx.EXPAND)
         dev_form.Add(lbl_out, 0, wx.ALIGN_CENTER_VERTICAL)
         dev_form.Add(self.output_device, 1, wx.EXPAND)
+        dev_sizer.Add(dev_form, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(dev_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
-        sizer.Add(dev_form, 0, wx.ALL | wx.EXPAND, 8)
+        # --- Voice activation ---
+        va_box = wx.StaticBox(self, label="Voice Activation")
+        va_sizer = wx.StaticBoxSizer(va_box, wx.VERTICAL)
+        va_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        va_form.AddGrowableCol(1)
 
-        # --- Voice activation & sliders ---
-        ctrl_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
-        ctrl_form.AddGrowableCol(1)
-
-        # Each label created right before its control
         lbl_va = wx.StaticText(self, label="Voice Activation")
         self.voice_activation = wx.CheckBox(self, label="Voice Activation")
         self.voice_activation.SetName("Voice Activation")
@@ -56,6 +58,26 @@ class AudioTab(wx.Panel):
         self.voice_level = wx.Slider(self, value=30, minValue=0, maxValue=100)
         self.voice_level.SetName("Voice Level")
         self.voice_level.Bind(wx.EVT_SLIDER, self.on_voice_level)
+
+        lbl_delay = wx.StaticText(self, label="VA Nachlauf (ms)")
+        self.va_delay = wx.Slider(self, value=0, minValue=0, maxValue=5000)
+        self.va_delay.SetName("VA Nachlauf")
+        self.va_delay.Bind(wx.EVT_SLIDER, self.on_va_delay)
+
+        va_form.Add(lbl_va, 0, wx.ALIGN_CENTER_VERTICAL)
+        va_form.Add(self.voice_activation, 0)
+        va_form.Add(lbl_vl, 0, wx.ALIGN_CENTER_VERTICAL)
+        va_form.Add(self.voice_level, 1, wx.EXPAND)
+        va_form.Add(lbl_delay, 0, wx.ALIGN_CENTER_VERTICAL)
+        va_form.Add(self.va_delay, 1, wx.EXPAND)
+        va_sizer.Add(va_form, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(va_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+
+        # --- Levels ---
+        levels_box = wx.StaticBox(self, label="Pegel und Lautstaerke")
+        levels_sizer = wx.StaticBoxSizer(levels_box, wx.VERTICAL)
+        levels_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        levels_form.AddGrowableCol(1)
 
         lbl_ig = wx.StaticText(self, label="Mikrofon Gain")
         self.input_gain = wx.Slider(self, value=2000, minValue=0, maxValue=32000)
@@ -67,16 +89,12 @@ class AudioTab(wx.Panel):
         self.output_volume.SetName("Ausgabe Lautstaerke")
         self.output_volume.Bind(wx.EVT_SLIDER, self.on_output_volume)
 
-        ctrl_form.Add(lbl_va, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrl_form.Add(self.voice_activation, 0)
-        ctrl_form.Add(lbl_vl, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrl_form.Add(self.voice_level, 1, wx.EXPAND)
-        ctrl_form.Add(lbl_ig, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrl_form.Add(self.input_gain, 1, wx.EXPAND)
-        ctrl_form.Add(lbl_ov, 0, wx.ALIGN_CENTER_VERTICAL)
-        ctrl_form.Add(self.output_volume, 1, wx.EXPAND)
-
-        sizer.Add(ctrl_form, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+        levels_form.Add(lbl_ig, 0, wx.ALIGN_CENTER_VERTICAL)
+        levels_form.Add(self.input_gain, 1, wx.EXPAND)
+        levels_form.Add(lbl_ov, 0, wx.ALIGN_CENTER_VERTICAL)
+        levels_form.Add(self.output_volume, 1, wx.EXPAND)
+        levels_sizer.Add(levels_form, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(levels_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- VU Meter ---
         vu_box = wx.StaticBox(self, label="VU Meter")
@@ -84,23 +102,16 @@ class AudioTab(wx.Panel):
         self.vu_gauge = wx.Gauge(self, range=100)
         self.vu_gauge.SetName("VU Meter")
         vu_sizer.Add(self.vu_gauge, 0, wx.ALL | wx.EXPAND, 4)
-        sizer.Add(vu_sizer, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(vu_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
-        # --- VA stop delay ---
-        delay_row = wx.BoxSizer(wx.HORIZONTAL)
-        lbl_delay = wx.StaticText(self, label="VA Nachlauf (ms)")
-        delay_row.Add(lbl_delay, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.va_delay = wx.Slider(self, value=0, minValue=0, maxValue=5000)
-        self.va_delay.SetName("VA Nachlauf")
-        self.va_delay.Bind(wx.EVT_SLIDER, self.on_va_delay)
-        delay_row.Add(self.va_delay, 1, wx.EXPAND)
-        sizer.Add(delay_row, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
-
-        # --- Output mute ---
+        # --- Output ---
+        output_box = wx.StaticBox(self, label="Ausgabe")
+        output_sizer = wx.StaticBoxSizer(output_box, wx.VERTICAL)
         self.output_mute = wx.CheckBox(self, label="Ausgabe stummschalten")
         self.output_mute.SetName("Ausgabe stummschalten")
         self.output_mute.Bind(wx.EVT_CHECKBOX, self.on_output_mute)
-        sizer.Add(self.output_mute, 0, wx.ALL, 8)
+        output_sizer.Add(self.output_mute, 0, wx.ALL, 8)
+        sizer.Add(output_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Device effects ---
         effects_box = wx.StaticBox(self, label="Geraeteeffekte")
@@ -118,9 +129,11 @@ class AudioTab(wx.Panel):
         effects_sizer.Add(self.denoise_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         effects_sizer.Add(self.echo_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
         effects_sizer.Add(self.apply_effects_btn, 0, wx.ALL, 4)
-        sizer.Add(effects_sizer, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+        sizer.Add(effects_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Preprocessing ---
+        preprocess_box = wx.StaticBox(self, label="Vorverarbeitung")
+        preprocess_sizer = wx.StaticBoxSizer(preprocess_box, wx.VERTICAL)
         preprocess_row = wx.BoxSizer(wx.HORIZONTAL)
         lbl_pp = wx.StaticText(self, label="Vorverarbeitung")
         preprocess_row.Add(lbl_pp, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
@@ -129,9 +142,18 @@ class AudioTab(wx.Panel):
         self.preprocess_choice.SetSelection(0)
         self.preprocess_choice.Bind(wx.EVT_CHOICE, self.on_preprocess_changed)
         preprocess_row.Add(self.preprocess_choice, 1, wx.EXPAND)
-        sizer.Add(preprocess_row, 0, wx.ALL | wx.EXPAND, 8)
+        preprocess_sizer.Add(preprocess_row, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(preprocess_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
         # --- Buttons row ---
+        actions_box = wx.StaticBox(self, label="Aktionen")
+        actions_sizer = wx.StaticBoxSizer(actions_box, wx.VERTICAL)
+        mode_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.duplex_mode = wx.CheckBox(self, label="Duplex-Modus verwenden (Input/Output gekoppelt)")
+        self.duplex_mode.SetName("Duplex-Modus")
+        mode_row.Add(self.duplex_mode, 1, wx.EXPAND)
+        actions_sizer.Add(mode_row, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.refresh_audio_btn = wx.Button(self, label="Geraete aktualisieren")
         self.refresh_audio_btn.SetName("Geraete aktualisieren")
@@ -150,7 +172,62 @@ class AudioTab(wx.Panel):
         btn_row.Add(self.apply_audio_btn, 0, wx.RIGHT, 8)
         btn_row.Add(self.ptt_toggle, 0, wx.RIGHT, 8)
         btn_row.Add(self.loopback_toggle, 0)
-        sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        actions_sizer.Add(btn_row, 0, wx.ALL, 8)
+
+        # PTT hotkey (in-app only)
+        hotkey_box = wx.StaticBox(self, label="PTT-Hotkey")
+        hotkey_sizer = wx.StaticBoxSizer(hotkey_box, wx.VERTICAL)
+        hotkey_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.ptt_hotkey_label = wx.StaticText(self, label="PTT-Hotkey: ")
+        self.ptt_hotkey_label.SetName("PTT-Hotkey Anzeige")
+        self.ptt_hotkey_btn = wx.Button(self, label="Hotkey aufnehmen")
+        self.ptt_hotkey_btn.SetName("PTT-Hotkey aufnehmen")
+        self.ptt_hotkey_btn.Bind(wx.EVT_BUTTON, self._on_capture_hotkey)
+        hotkey_row.Add(self.ptt_hotkey_label, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        hotkey_row.Add(self.ptt_hotkey_btn, 0)
+        hotkey_sizer.Add(hotkey_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        note = wx.StaticText(self, label="Hinweis: Der Hotkey funktioniert nur innerhalb der App.")
+        hotkey_sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        actions_sizer.Add(hotkey_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(actions_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+
+        # --- Preferences ---
+        prefs_box = wx.StaticBox(self, label="Audioeinstellungen speichern")
+        prefs_sizer = wx.StaticBoxSizer(prefs_box, wx.VERTICAL)
+
+        self.auto_apply_prefs = wx.CheckBox(self, label="Audioeinstellungen beim Start anwenden")
+        self.auto_apply_prefs.SetName("Audioeinstellungen beim Start anwenden")
+        self.auto_apply_prefs.SetValue(bool(self.frame.settings_store.settings.auto_apply_audio))
+        self.auto_apply_prefs.Bind(wx.EVT_CHECKBOX, self._on_pref_auto_apply)
+        prefs_sizer.Add(self.auto_apply_prefs, 0, wx.ALL, 8)
+
+        self.auto_apply_device_change = wx.CheckBox(self, label="Bei Geraetewechsel automatisch anwenden")
+        self.auto_apply_device_change.SetName("Audio automatisch anwenden bei Geraetewechsel")
+        self.auto_apply_device_change.SetValue(
+            bool(self.frame.settings_store.settings.auto_apply_audio_on_device_change)
+        )
+        self.auto_apply_device_change.Bind(wx.EVT_CHECKBOX, self._on_pref_auto_apply_device_change)
+        prefs_sizer.Add(self.auto_apply_device_change, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        prefs_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.save_prefs_btn = wx.Button(self, label="Aktuelle Audioeinstellungen speichern")
+        self.save_prefs_btn.SetName("Audioeinstellungen speichern")
+        self.save_prefs_btn.Bind(wx.EVT_BUTTON, self._on_pref_save)
+        self.apply_prefs_btn = wx.Button(self, label="Gespeicherte Audioeinstellungen anwenden")
+        self.apply_prefs_btn.SetName("Audioeinstellungen anwenden")
+        self.apply_prefs_btn.Bind(wx.EVT_BUTTON, self._on_pref_apply)
+        self.clear_prefs_btn = wx.Button(self, label="Gespeicherte Audioeinstellungen loeschen")
+        self.clear_prefs_btn.SetName("Audioeinstellungen loeschen")
+        self.clear_prefs_btn.Bind(wx.EVT_BUTTON, self._on_pref_clear)
+
+        prefs_btn_row.Add(self.save_prefs_btn, 0, wx.RIGHT, 8)
+        prefs_btn_row.Add(self.apply_prefs_btn, 0, wx.RIGHT, 8)
+        prefs_btn_row.Add(self.clear_prefs_btn, 0)
+        prefs_sizer.Add(prefs_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(prefs_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.EXPAND, 8)
+
+        self.update_ptt_hotkey_label()
 
         self.SetSizer(sizer)
         self._set_tab_order()
@@ -306,10 +383,11 @@ class AudioTab(wx.Panel):
                 choice.SetSelection(0)
 
     def _on_device_poll_timer(self, _event):
+        auto_apply = bool(self.frame.settings_store.settings.auto_apply_audio_on_device_change)
         self.refresh_audio_devices(
             announce=False,
             prefer_previous=False,
-            auto_apply=True,
+            auto_apply=auto_apply,
             restart_sound=False,
         )
 
@@ -329,7 +407,17 @@ class AudioTab(wx.Panel):
         client.close_sound_output_device()
         client.close_sound_duplex_devices()
 
-        input_ok = client.init_sound_input_device(indev_id)
+        use_duplex = bool(self.duplex_mode.GetValue())
+        if use_duplex:
+            duplex_ok = client.init_sound_duplex_devices(indev_id, outdev_id)
+            if not duplex_ok:
+                self.frame.set_status("Duplex-Modus fehlgeschlagen, fallback auf getrennte Geraete")
+                use_duplex = False
+
+        input_ok = True
+        output_ok = True
+        if not use_duplex:
+            input_ok = client.init_sound_input_device(indev_id)
         if not input_ok:
             indev_def, _ = client.get_default_sound_devices()
             indev_val = getattr(indev_def, "value", indev_def)
@@ -345,10 +433,11 @@ class AudioTab(wx.Panel):
             self.frame.set_status("Eingabegeraet konnte nicht initialisiert werden")
             return
 
-        output_ok = client.init_sound_output_device(outdev_id)
-        if not output_ok:
-            self.frame.set_status("Ausgabegeraet konnte nicht initialisiert werden")
-            return
+        if not use_duplex:
+            output_ok = client.init_sound_output_device(outdev_id)
+            if not output_ok:
+                self.frame.set_status("Ausgabegeraet konnte nicht initialisiert werden")
+                return
 
         client.set_sound_input_gain(int(self.input_gain.GetValue()))
         client.set_sound_output_volume(int(self.output_volume.GetValue()))
@@ -448,8 +537,170 @@ class AudioTab(wx.Panel):
             self.voice_level, self.input_gain, self.output_volume,
             self.va_delay, self.output_mute, self.agc_check,
             self.denoise_check, self.echo_check, self.apply_effects_btn,
-            self.preprocess_choice, self.refresh_audio_btn, self.apply_audio_btn,
-            self.ptt_toggle, self.loopback_toggle,
+            self.preprocess_choice, self.duplex_mode, self.refresh_audio_btn, self.apply_audio_btn,
+            self.ptt_toggle, self.loopback_toggle, self.ptt_hotkey_btn,
+            self.auto_apply_prefs, self.auto_apply_device_change,
+            self.save_prefs_btn, self.apply_prefs_btn, self.clear_prefs_btn,
         ]
         for i in range(1, len(order)):
             order[i].MoveAfterInTabOrder(order[i - 1])
+
+    # ------------------------------------------------------------------
+    # Preferences (save/apply)
+    # ------------------------------------------------------------------
+
+    def get_audio_prefs(self) -> dict:
+        in_idx = self.input_device.GetSelection()
+        out_idx = self.output_device.GetSelection()
+        in_id = None
+        out_id = None
+        if 0 <= in_idx < len(self._input_devices):
+            in_id = int(self._input_devices[in_idx].nDeviceID)
+        if 0 <= out_idx < len(self._output_devices):
+            out_id = int(self._output_devices[out_idx].nDeviceID)
+        return {
+            "input_device_id": in_id,
+            "output_device_id": out_id,
+            "use_duplex": bool(self.duplex_mode.GetValue()),
+            "voice_activation": bool(self.voice_activation.GetValue()),
+            "voice_level": int(self.voice_level.GetValue()),
+            "input_gain": int(self.input_gain.GetValue()),
+            "output_volume": int(self.output_volume.GetValue()),
+            "va_delay": int(self.va_delay.GetValue()),
+            "output_mute": bool(self.output_mute.GetValue()),
+            "effects_agc": bool(self.agc_check.GetValue()),
+            "effects_denoise": bool(self.denoise_check.GetValue()),
+            "effects_echo": bool(self.echo_check.GetValue()),
+            "preprocess_choice": int(self.preprocess_choice.GetSelection()),
+        }
+
+    def apply_audio_prefs(self, prefs: dict, announce: bool = True) -> None:
+        if not isinstance(prefs, dict) or not prefs:
+            if announce:
+                self.frame.set_status("Keine Audioeinstellungen vorhanden")
+            return
+
+        # Select devices
+        in_id = prefs.get("input_device_id")
+        out_id = prefs.get("output_device_id")
+        if in_id is not None:
+            self._select_device(self.input_device, self._input_devices, (in_id, None))
+        if out_id is not None:
+            self._select_device(self.output_device, self._output_devices, (out_id, None))
+
+        # Duplex
+        if "use_duplex" in prefs:
+            self.duplex_mode.SetValue(bool(prefs["use_duplex"]))
+
+        # Sliders before apply
+        if "voice_level" in prefs:
+            self.voice_level.SetValue(int(prefs["voice_level"]))
+        if "input_gain" in prefs:
+            self.input_gain.SetValue(int(prefs["input_gain"]))
+        if "output_volume" in prefs:
+            self.output_volume.SetValue(int(prefs["output_volume"]))
+
+        # Apply device init + gain/volume/VA level
+        self.on_apply_audio(None)
+
+        # Voice activation
+        if "voice_activation" in prefs:
+            enabled = bool(prefs["voice_activation"])
+            self.voice_activation.SetValue(enabled)
+            self.frame.client.enable_voice_activation(enabled)
+            if enabled and not self.frame._ptt_enabled:
+                self.frame.client.enable_voice_transmission(True)
+            if not enabled and not self.frame._ptt_enabled:
+                self.frame.client.enable_voice_transmission(False)
+
+        # VA delay
+        if "va_delay" in prefs:
+            self.va_delay.SetValue(int(prefs["va_delay"]))
+            self.on_va_delay(None)
+
+        # Output mute
+        if "output_mute" in prefs:
+            muted = bool(prefs["output_mute"])
+            self.output_mute.SetValue(muted)
+            self.frame.client.set_sound_output_mute(muted)
+
+        # Effects
+        if "effects_agc" in prefs:
+            self.agc_check.SetValue(bool(prefs["effects_agc"]))
+        if "effects_denoise" in prefs:
+            self.denoise_check.SetValue(bool(prefs["effects_denoise"]))
+        if "effects_echo" in prefs:
+            self.echo_check.SetValue(bool(prefs["effects_echo"]))
+        if any(k in prefs for k in ("effects_agc", "effects_denoise", "effects_echo")):
+            self.on_apply_effects(None)
+
+        # Preprocess
+        if "preprocess_choice" in prefs:
+            sel = int(prefs["preprocess_choice"])
+            if 0 <= sel < self.preprocess_choice.GetCount():
+                self.preprocess_choice.SetSelection(sel)
+                self.on_preprocess_changed(None)
+
+        if announce:
+            self.frame.set_status("Audioeinstellungen geladen")
+
+    # ------------------------------------------------------------------
+    # Preferences UI handlers
+    # ------------------------------------------------------------------
+
+    def _on_pref_auto_apply(self, _event) -> None:
+        self.frame.settings_store.settings.auto_apply_audio = bool(self.auto_apply_prefs.GetValue())
+        self.frame.settings_store.save()
+        self.frame.set_status("Auto-Apply gespeichert" if self.auto_apply_prefs.GetValue() else "Auto-Apply deaktiviert")
+
+    def _on_pref_auto_apply_device_change(self, _event) -> None:
+        self.frame.settings_store.settings.auto_apply_audio_on_device_change = bool(
+            self.auto_apply_device_change.GetValue()
+        )
+        self.frame.settings_store.save()
+        self.frame.set_status(
+            "Auto-Apply bei Geraetewechsel aktiviert"
+            if self.auto_apply_device_change.GetValue()
+            else "Auto-Apply bei Geraetewechsel deaktiviert"
+        )
+
+    def _on_pref_save(self, _event) -> None:
+        prefs = self.get_audio_prefs()
+        self.frame.settings_store.settings.audio_prefs = prefs
+        self.frame.settings_store.save()
+        self.frame.set_status("Audioeinstellungen gespeichert")
+
+    def _on_pref_apply(self, _event) -> None:
+        prefs = self.frame.settings_store.settings.audio_prefs or {}
+        if not prefs:
+            self.frame.set_status("Keine gespeicherten Audioeinstellungen")
+            return
+        self.apply_audio_prefs(prefs, announce=True)
+        self.frame.set_status("Audioeinstellungen angewendet")
+
+    def _on_pref_clear(self, _event) -> None:
+        self.frame.settings_store.settings.audio_prefs = {}
+        self.frame.settings_store.save()
+        self.frame.set_status("Gespeicherte Audioeinstellungen geloescht")
+
+    # ------------------------------------------------------------------
+    # Hotkey capture
+    # ------------------------------------------------------------------
+
+    def _on_capture_hotkey(self, _event) -> None:
+        self.frame._capture_ptt_hotkey = True
+        self.ptt_hotkey_label.SetLabel("PTT-Hotkey: (Taste druecken...)")
+        self.frame.set_status("PTT-Hotkey Aufnahme gestartet (ESC = Abbruch)")
+
+    def update_ptt_hotkey_label(self) -> None:
+        keycode = int(self.frame._ptt_hotkey or 0)
+        self.ptt_hotkey_label.SetLabel(f"PTT-Hotkey: {self._format_keycode(keycode)}")
+
+    def _format_keycode(self, keycode: int) -> str:
+        if keycode == wx.WXK_SPACE:
+            return "Leertaste"
+        if wx.WXK_F1 <= keycode <= wx.WXK_F24:
+            return f"F{keycode - wx.WXK_F1 + 1}"
+        if 32 <= keycode <= 126:
+            return chr(keycode)
+        return f"Taste {keycode}"

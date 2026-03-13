@@ -3,9 +3,9 @@ from __future__ import annotations
 import dataclasses
 import json
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -99,3 +99,44 @@ class ServerStore:
     def export_to(self, path: Path) -> None:
         data = [asdict(item) for item in self._items]
         path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+@dataclass
+class AppSettings:
+    auto_apply_audio: bool = False
+    auto_apply_audio_on_device_change: bool = False
+    ptt_hotkey: int = 0
+    audio_prefs: Dict[str, Any] = field(default_factory=dict)
+
+
+class SettingsStore:
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.settings = AppSettings()
+        self.load()
+
+    def load(self) -> None:
+        if not self.path.exists():
+            return
+        try:
+            data = json.loads(self.path.read_text(encoding="utf-8"))
+        except Exception:
+            return
+        if isinstance(data, dict):
+            self.settings.auto_apply_audio = bool(data.get("auto_apply_audio", False))
+            self.settings.auto_apply_audio_on_device_change = bool(
+                data.get("auto_apply_audio_on_device_change", False)
+            )
+            self.settings.ptt_hotkey = int(data.get("ptt_hotkey", 0) or 0)
+            prefs = data.get("audio_prefs", {})
+            self.settings.audio_prefs = prefs if isinstance(prefs, dict) else {}
+
+    def save(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "auto_apply_audio": bool(self.settings.auto_apply_audio),
+            "auto_apply_audio_on_device_change": bool(self.settings.auto_apply_audio_on_device_change),
+            "ptt_hotkey": int(self.settings.ptt_hotkey or 0),
+            "audio_prefs": self.settings.audio_prefs or {},
+        }
+        self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
