@@ -54,12 +54,12 @@ from ui.models import (
     ParsedTeamTalkFile,
     ServerProfile,
     ServerStore,
+    SettingsStore,
 )
 from ui.tray import TrayIcon
 from ui.tt_file_parser import parse_teamtalk_file
 from ui.tabs.connection import ConnectionTab
-from ui.tabs.channels import ChannelsTab
-from ui.tabs.chat import ChatTab
+from ui.tabs.channels_chat import ChannelsChatTab
 from ui.tabs.media import MediaTab
 from ui.tabs.files import FilesTab
 from ui.tabs.admin import AdminTab
@@ -81,7 +81,7 @@ class ServerCheckDialog(wx.Dialog):
 
         table = dv.DataViewListCtrl(panel, style=wx.BORDER_SUNKEN)
         table.AppendTextColumn("Server", width=220)
-        table.AppendTextColumn("TLS", width=70)
+        table.AppendTextColumn("TLS", width=110)
         table.AppendTextColumn("Ergebnis", width=120)
         table.AppendTextColumn("Nutzer / Details", width=560)
         for server, tls, result, details in rows:
@@ -107,6 +107,76 @@ class LazyTabPlaceholder(wx.Panel):
         self.SetSizer(sizer)
 
 
+class SettingsWindow(wx.Frame):
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent, title="Einstellungen", size=(880, 820))
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.settings_tab = SettingsTab(panel, parent)
+        sizer.Add(self.settings_tab, 1, wx.ALL | wx.EXPAND, 8)
+        panel.SetSizer(sizer)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        self.Bind(wx.EVT_SHOW, self._on_show)
+        self._bind_shortcuts()
+
+    def _on_close(self, event):
+        # Hide instead of destroy to keep state.
+        self.Hide()
+        self.settings_tab.audio_tab.set_active(False)
+        if event.CanVeto():
+            event.Veto()
+
+    def _on_show(self, event):
+        if event.IsShown():
+            self.settings_tab.audio_tab.set_active(True)
+        else:
+            self.settings_tab.audio_tab.set_active(False)
+        event.Skip()
+
+    def _bind_shortcuts(self) -> None:
+        accel = wx.AcceleratorTable(
+            [
+                (wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE),
+            ]
+        )
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, self._on_menu_close, id=wx.ID_CLOSE)
+
+    def _on_menu_close(self, _event) -> None:
+        self.Hide()
+        self.settings_tab.audio_tab.set_active(False)
+
+
+class ConnectionWindow(wx.Frame):
+    def __init__(self, parent: wx.Window) -> None:
+        super().__init__(parent, title="Verbindung", size=(980, 900))
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        self.connection_tab = ConnectionTab(panel, parent)
+        sizer.Add(self.connection_tab, 1, wx.ALL | wx.EXPAND, 8)
+        panel.SetSizer(sizer)
+        self.Bind(wx.EVT_CLOSE, self._on_close)
+        self._bind_shortcuts()
+
+    def _on_close(self, event):
+        # Hide instead of destroy to keep state.
+        self.Hide()
+        if event.CanVeto():
+            event.Veto()
+
+    def _bind_shortcuts(self) -> None:
+        accel = wx.AcceleratorTable(
+            [
+                (wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE),
+            ]
+        )
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, self._on_menu_close, id=wx.ID_CLOSE)
+
+    def _on_menu_close(self, _event) -> None:
+        self.Hide()
+
+
 class MainFrame(wx.Frame):
     """Main window -- thin orchestrator that creates notebook tabs and dispatches events."""
 
@@ -122,6 +192,9 @@ class MainFrame(wx.Frame):
         self._message_buffers: Dict[Tuple[int, int, int, int], List] = {}
         self._pending_join: Optional[ParsedTeamTalkFile] = None
         self._window_focused = True
+        self._capture_ptt_hotkey = False
+        self._recording_active = False
+        self._recording_path: Optional[str] = None
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
         self.media_tab: Optional[MediaTab] = None
@@ -134,8 +207,10 @@ class MainFrame(wx.Frame):
         app_dir = app_data_dir()
         app_dir.mkdir(parents=True, exist_ok=True)
         self.store = ServerStore(app_dir / "servers.json")
+        self.settings_store = SettingsStore(app_dir / "settings.json")
         self.logger = FileLogger(app_dir / "client.log")
         self.tts = TTSManager(self)
+        self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
 
         # Tray
         self.tray = TrayIcon(self)
@@ -155,10 +230,13 @@ class MainFrame(wx.Frame):
         self.notebook = wx.Notebook(panel)
         self.notebook.SetName("Hauptnavigation")
 
-        self.connection_tab = ConnectionTab(self.notebook, self)
-        self.channels_tab = ChannelsTab(self.notebook, self)
-        self.chat_tab = ChatTab(self.notebook, self)
-        self.settings_tab = SettingsTab(self.notebook, self)
+        self.connection_window = ConnectionWindow(self)
+        self.connection_tab = self.connection_window.connection_tab
+        self.channels_chat_tab = ChannelsChatTab(self.notebook, self)
+        self.channels_tab = self.channels_chat_tab.channels_tab
+        self.chat_tab = self.channels_chat_tab.chat_tab
+        self.settings_window = SettingsWindow(self)
+        self.settings_tab = self.settings_window.settings_tab
         self.audio_tab = self.settings_tab.audio_tab
         self.system_tab = self.settings_tab.system_tab
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
@@ -170,13 +248,11 @@ class MainFrame(wx.Frame):
             "admin": admin_placeholder,
         }
 
-        self.notebook.AddPage(self.connection_tab, "Verbindung")
-        self.notebook.AddPage(self.channels_tab, "Kanaele")
-        self.notebook.AddPage(self.chat_tab, "Chat")
+        self.notebook.AddPage(self.channels_chat_tab, "Kanäle und Chat")
         self.notebook.AddPage(media_placeholder, "Aufnahme & Medien")
         self.notebook.AddPage(files_placeholder, "Dateien")
         self.notebook.AddPage(admin_placeholder, "Administration")
-        self.notebook.AddPage(self.settings_tab, "Einstellungen")
+        # Settings live in a separate window (opened via Help menu).
 
         self.notebook.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.on_tab_changed)
         main_sizer.Add(self.notebook, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 12)
@@ -197,6 +273,9 @@ class MainFrame(wx.Frame):
         self.SetSize((980, 980))
         self.Centre()
 
+        # Apply saved audio prefs (if enabled) after UI is ready.
+        wx.CallLater(300, self._apply_saved_audio_prefs_on_startup)
+
         # Tab order inside each tab is handled by the tab panels themselves.
         # Global keyboard hooks
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_hook)
@@ -204,6 +283,16 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_KEY_UP, self.on_key_up)
         self.Bind(wx.EVT_CLOSE, self.on_close)
         self.Bind(wx.EVT_ACTIVATE, self._on_activate)
+
+        # Ensure Cmd+, opens settings on macOS even if menu shortcuts are ignored.
+        if sys.platform == "darwin":
+            accel = wx.AcceleratorTable(
+                [
+                    (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
+                ]
+            )
+            self.SetAcceleratorTable(accel)
+            self.Bind(wx.EVT_MENU, self.on_menu_settings, id=wx.ID_PREFERENCES)
 
     # ------------------------------------------------------------------
     # Menu
@@ -213,18 +302,116 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
         file_menu = wx.Menu()
         open_tt = file_menu.Append(wx.ID_ANY, "TeamTalk-Datei oeffnen...\tCtrl+O")
+        file_menu.AppendSeparator()
+        con_connect = file_menu.Append(wx.ID_ANY, "Verbinden")
+        con_disconnect = file_menu.Append(wx.ID_ANY, "Trennen")
+        con_reconnect = file_menu.Append(wx.ID_ANY, "Neu verbinden")
+        file_menu.AppendSeparator()
+        con_autoreconnect = file_menu.AppendCheckItem(wx.ID_ANY, "Auto-Reconnect")
+        file_menu.AppendSeparator()
+        con_join_root = file_menu.Append(wx.ID_ANY, "Root-Kanal beitreten")
+        con_leave = file_menu.Append(wx.ID_ANY, "Kanal verlassen")
+        file_menu.AppendSeparator()
+        con_server_check = file_menu.Append(wx.ID_ANY, "Server checken")
+        file_menu.AppendSeparator()
         import_servers = file_menu.Append(wx.ID_ANY, "Serverliste importieren...")
         export_servers = file_menu.Append(wx.ID_ANY, "Serverliste exportieren...")
         file_menu.AppendSeparator()
         quit_item = file_menu.Append(wx.ID_EXIT, "Beenden\tCtrl+Q")
 
         menubar.Append(file_menu, "Datei")
+
+        
+
+        # Kanal
+        chan_menu = wx.Menu()
+        chan_create = chan_menu.Append(wx.ID_ANY, "Kanal erstellen...")
+        chan_edit = chan_menu.Append(wx.ID_ANY, "Kanal bearbeiten...")
+        chan_delete = chan_menu.Append(wx.ID_ANY, "Kanal loeschen...")
+        chan_menu.AppendSeparator()
+        chan_join = chan_menu.Append(wx.ID_ANY, "Kanal beitreten...")
+        chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen")
+        chan_menu.AppendSeparator()
+        chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
+        menubar.Append(chan_menu, "Kanal")
+
+        # Benutzer
+        user_menu = wx.Menu()
+        user_info = user_menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        user_mute = user_menu.Append(wx.ID_ANY, "Benutzer stummschalten")
+        user_volume = user_menu.Append(wx.ID_ANY, "Benutzer-Lautstaerke...")
+        user_menu.AppendSeparator()
+        user_op = user_menu.Append(wx.ID_ANY, "Operator geben/nehmen")
+        user_kick = user_menu.Append(wx.ID_ANY, "Benutzer kicken...")
+        user_menu.AppendSeparator()
+        user_subs = user_menu.Append(wx.ID_ANY, "Abonnements...")
+        menubar.Append(user_menu, "Benutzer")
+
+        # Audio
+        audio_menu = wx.Menu()
+        audio_ptt = audio_menu.AppendCheckItem(wx.ID_ANY, "Push-to-Talk")
+        audio_va = audio_menu.AppendCheckItem(wx.ID_ANY, "Voice Activation")
+        audio_menu.AppendSeparator()
+        audio_apply = audio_menu.Append(wx.ID_ANY, "Audio anwenden")
+        audio_refresh = audio_menu.Append(wx.ID_ANY, "Geraete aktualisieren")
+        audio_menu.AppendSeparator()
+        audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, "Mikrofontest")
+        menubar.Append(audio_menu, "Audio")
+
+        # Aufnahmen
+        rec_menu = wx.Menu()
+        rec_start = rec_menu.Append(wx.ID_ANY, "Aufnahme starten...")
+        rec_stop = rec_menu.Append(wx.ID_ANY, "Aufnahme stoppen")
+        menubar.Append(rec_menu, "Aufnahmen")
+
+        # Hilfe
+        help_menu = wx.Menu()
+        help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
+        help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
+        help_about = help_menu.Append(wx.ID_ANY, "Über")
+        menubar.Append(help_menu, "Hilfe")
+
         self.SetMenuBar(menubar)
 
         self.Bind(wx.EVT_MENU, self.on_open_tt_file, open_tt)
         self.Bind(wx.EVT_MENU, self.on_import_servers, import_servers)
         self.Bind(wx.EVT_MENU, self.on_export_servers, export_servers)
         self.Bind(wx.EVT_MENU, self.on_menu_quit, quit_item)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_connect, con_connect)
+        self.Bind(wx.EVT_MENU, self.on_menu_disconnect, con_disconnect)
+        self.Bind(wx.EVT_MENU, self.on_menu_reconnect, con_reconnect)
+        self.Bind(wx.EVT_MENU, self.on_menu_auto_reconnect, con_autoreconnect)
+        self.Bind(wx.EVT_MENU, self.on_menu_join_root, con_join_root)
+        self.Bind(wx.EVT_MENU, self.on_menu_leave_channel, con_leave)
+        self.Bind(wx.EVT_MENU, self.on_menu_server_check, con_server_check)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_create, chan_create)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_edit, chan_edit)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_delete, chan_delete)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_join, chan_join)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_leave, chan_leave)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_mute, user_mute)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_volume, user_volume)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_operator, user_op)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_apply, audio_apply)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, audio_refresh)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_loopback, audio_loopback)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_record_start, rec_start)
+        self.Bind(wx.EVT_MENU, self.on_menu_record_stop, rec_stop)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
+        self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
+        self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
     # ------------------------------------------------------------------
     # Shared helpers (called from tabs)
@@ -235,11 +422,534 @@ class MainFrame(wx.Frame):
         self.log.AppendText(text + "\n")
         self.logger.write(text)
 
+    def _apply_saved_audio_prefs_on_startup(self) -> None:
+        try:
+            settings = self.settings_store.settings
+            if settings.auto_apply_audio and settings.audio_prefs:
+                self.audio_tab.apply_audio_prefs(settings.audio_prefs, announce=False)
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Menu helpers
+    # ------------------------------------------------------------------
+
+    def _get_selected_channel_id(self) -> Optional[int]:
+        chan_id = self.channels_tab._selected_channel_id
+        if chan_id:
+            return int(chan_id)
+        my_ch = self.client.get_my_channel_id()
+        if my_ch:
+            return int(my_ch)
+        return None
+
+    def _get_selected_user(self):
+        uid = self.channels_tab._selected_user_id
+        if uid is None:
+            return None
+        for user in self.channels_tab._current_users:
+            if int(user.nUserID) == int(uid):
+                return user
+        try:
+            return self.client.get_user(int(uid))
+        except Exception:
+            return None
+
+    def _ask_text(self, title: str, label: str, value: str = "", password: bool = False) -> Optional[str]:
+        style = wx.TE_PASSWORD if password else 0
+        dlg = wx.TextEntryDialog(self, label, title, value, style=style)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return None
+        text = dlg.GetValue()
+        dlg.Destroy()
+        return text
+
+    def _require_connected(self, action_label: str = "Aktion") -> bool:
+        if not self.client.is_connected():
+            self.set_status(f"Nicht verbunden: {action_label}")
+            return False
+        return True
+
+    def _channel_details_dialog(
+        self,
+        title: str,
+        name: str = "",
+        topic: str = "",
+        permanent: bool = False,
+        allow_password: bool = True,
+    ) -> Optional[dict]:
+        dlg = wx.Dialog(self, title=title)
+        root = wx.BoxSizer(wx.VERTICAL)
+        form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        form.AddGrowableCol(1)
+
+        lbl_name = wx.StaticText(dlg, label="Name")
+        name_ctrl = wx.TextCtrl(dlg, value=name)
+        lbl_topic = wx.StaticText(dlg, label="Thema")
+        topic_ctrl = wx.TextCtrl(dlg, value=topic)
+
+        form.Add(lbl_name, 0, wx.ALIGN_CENTER_VERTICAL)
+        form.Add(name_ctrl, 1, wx.EXPAND)
+        form.Add(lbl_topic, 0, wx.ALIGN_CENTER_VERTICAL)
+        form.Add(topic_ctrl, 1, wx.EXPAND)
+
+        pw_ctrl = None
+        pw_check = None
+        if allow_password:
+            pw_check = wx.CheckBox(dlg, label="Passwort setzen")
+            pw_ctrl = wx.TextCtrl(dlg, value="", style=wx.TE_PASSWORD)
+            form.Add(pw_check, 0, wx.ALIGN_CENTER_VERTICAL)
+            form.Add(pw_ctrl, 1, wx.EXPAND)
+
+        perm_check = wx.CheckBox(dlg, label="Permanent")
+        perm_check.SetValue(permanent)
+        form.AddSpacer(0)
+        form.Add(perm_check, 0)
+
+        root.Add(form, 0, wx.ALL | wx.EXPAND, 10)
+        btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return None
+
+        result = {
+            "name": name_ctrl.GetValue().strip(),
+            "topic": topic_ctrl.GetValue().strip(),
+            "permanent": bool(perm_check.GetValue()),
+        }
+        if allow_password and pw_check and pw_ctrl:
+            result["set_password"] = bool(pw_check.GetValue())
+            result["password"] = pw_ctrl.GetValue()
+        dlg.Destroy()
+        return result
+
+    def _record_format_dialog(self) -> Optional[tuple]:
+        formats = [
+            ("WAV (PCM)", self.client.tt.AudioFileFormat.AFF_WAVE_FORMAT),
+            ("MP3 128k", self.client.tt.AudioFileFormat.AFF_MP3_128KBIT_FORMAT),
+            ("MP3 256k", self.client.tt.AudioFileFormat.AFF_MP3_256KBIT_FORMAT),
+            ("Channel-Codec", self.client.tt.AudioFileFormat.AFF_CHANNELCODEC_FORMAT),
+        ]
+        dlg = wx.SingleChoiceDialog(self, "Aufnahmeformat waehlen", "Aufnahme", [f[0] for f in formats])
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return None
+        idx = dlg.GetSelection()
+        dlg.Destroy()
+        return formats[idx]
+
     def tt_str(self, value) -> str:
         out = self.client.tt.ttstr(value)
         if isinstance(out, bytes):
             return out.decode("utf-8", errors="replace")
         return str(out)
+
+    # ------------------------------------------------------------------
+    # Menu actions
+    # ------------------------------------------------------------------
+
+    def on_menu_connect(self, _event):
+        if not self.connection_window.IsShown():
+            self.connection_window.Show()
+        self.connection_window.Raise()
+        self.connection_window.SetFocus()
+
+    def on_menu_disconnect(self, _event):
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        try:
+            self.client.stop_event_loop_and_wait()
+        except Exception:
+            pass
+        self.client.disconnect_transport()
+        self.set_status("Verbindung getrennt")
+
+    def on_menu_reconnect(self, _event):
+        self.connection_tab.on_reconnect(None)
+
+    def on_menu_auto_reconnect(self, event):
+        enabled = event.IsChecked()
+        self._auto_reconnect = enabled
+        self.connection_tab.auto_reconnect.SetValue(enabled)
+
+    def on_menu_join_root(self, _event):
+        if not self._require_connected("Root-Kanal beitreten"):
+            return
+        self.connection_tab.on_join_root(None)
+
+    def on_menu_leave_channel(self, _event):
+        if not self._require_connected("Kanal verlassen"):
+            return
+        self.connection_tab.on_leave_channel(None)
+
+    def on_menu_server_check(self, _event):
+        self.connection_tab.on_server_check(None)
+
+    def on_menu_channel_create(self, _event):
+        if not self._require_connected("Kanal erstellen"):
+            return
+        parent_id = self._get_selected_channel_id() or self.client.get_root_channel_id()
+        data = self._channel_details_dialog("Kanal erstellen", allow_password=True)
+        if not data or not data["name"]:
+            self.set_status("Kanalname fehlt")
+            return
+        result = self.client.make_channel(
+            name=data["name"],
+            parent_id=parent_id,
+            topic=data.get("topic", ""),
+            password=data.get("password", "") if data.get("set_password") else "",
+            permanent=bool(data.get("permanent")),
+        )
+        self.set_status(result.message)
+        if result.ok:
+            self.channels_tab.refresh_channels_and_users()
+
+    def on_menu_channel_edit(self, _event):
+        if not self._require_connected("Kanal bearbeiten"):
+            return
+        chan_id = self._get_selected_channel_id()
+        if not chan_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        channel = self.client.get_channel(chan_id)
+        if not channel:
+            self.set_status("Kanal nicht gefunden")
+            return
+        data = self._channel_details_dialog(
+            "Kanal bearbeiten",
+            name=self.tt_str(channel.szName),
+            topic=self.tt_str(channel.szTopic),
+            permanent=bool(channel.uChannelType & self.client.tt.ChannelType.CHANNEL_PERMANENT),
+            allow_password=True,
+        )
+        if not data or not data["name"]:
+            self.set_status("Kanalname fehlt")
+            return
+        channel.szName = self.client.tt.ttstr(data["name"])
+        channel.szTopic = self.client.tt.ttstr(data.get("topic", ""))
+        if data.get("set_password"):
+            pw = data.get("password", "")
+            channel.szPassword = self.client.tt.ttstr(pw)
+            channel.bPassword = bool(pw)
+        channel.uChannelType = (
+            self.client.tt.ChannelType.CHANNEL_PERMANENT
+            if data.get("permanent")
+            else self.client.tt.ChannelType.CHANNEL_DEFAULT
+        )
+        result = self.client.update_channel(channel)
+        self.set_status(result.message)
+        if result.ok:
+            self.channels_tab.refresh_channels_and_users()
+
+    def on_menu_channel_delete(self, _event):
+        if not self._require_connected("Kanal loeschen"):
+            return
+        chan_id = self._get_selected_channel_id()
+        if not chan_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        dlg = wx.MessageDialog(self, "Kanal wirklich loeschen?", "Kanal loeschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        result = self.client.remove_channel(chan_id)
+        self.set_status(result.message)
+        if result.ok:
+            self.channels_tab.refresh_channels_and_users()
+
+    def on_menu_channel_join(self, _event):
+        if not self._require_connected("Kanal beitreten"):
+            return
+        chan_id = self._get_selected_channel_id()
+        if chan_id:
+            self.join_channel(int(chan_id))
+            return
+        path = self._ask_text("Kanal beitreten", "Kanalpfad (z. B. /Lobby):", "/")
+        if not path:
+            return
+        self.set_status("Trete Kanal bei...")
+
+        def worker():
+            self.client.stop_event_loop_and_wait()
+            result = self.client.join_channel_by_path(path, timeout_ms=6000)
+            self.client.start_event_loop(self.handle_tt_message)
+            wx.CallAfter(self.set_status, result.message)
+            if result.ok:
+                wx.CallAfter(self.channels_tab.refresh_channels_and_users)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def on_menu_channel_leave(self, _event):
+        if not self._require_connected("Kanal verlassen"):
+            return
+        self.connection_tab.on_leave_channel(None)
+
+    def on_menu_channel_message(self, _event):
+        if not self._require_connected("Kanalnachricht senden"):
+            return
+        chan_id = self.client.get_my_channel_id() or self._get_selected_channel_id()
+        if not chan_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        msg = self._ask_text("Kanalnachricht", "Nachricht:")
+        if not msg:
+            return
+        if self.client.send_channel_message(int(chan_id), msg):
+            self.chat_tab.append_chat(f"Ich: {msg}", kind="own")
+        else:
+            self.set_status("Senden fehlgeschlagen")
+
+    def on_menu_user_info(self, _event):
+        if not self._require_connected("Benutzerinfo"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        details = [
+            f"Nickname: {self.tt_str(user.szNickname)}",
+            f"Benutzername: {self.tt_str(user.szUsername)}",
+            f"ID: {int(user.nUserID)}",
+            f"Kanal: {int(user.nChannelID)}",
+            f"Status: {int(user.nStatusMode)}",
+        ]
+        dlg = wx.MessageDialog(self, "\n".join(details), "Benutzerinfo", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_user_mute(self, _event):
+        if not self._require_connected("Benutzer stummschalten"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE)
+        self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_VOICE), not muted)
+        self.set_status("Benutzer stummgeschaltet" if not muted else "Benutzer entstummt")
+
+    def on_menu_user_volume(self, _event):
+        if not self._require_connected("Benutzer-Lautstaerke"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        dlg = wx.NumberEntryDialog(self, "Lautstaerke (0-32000)", "Lautstaerke:", "Benutzer-Lautstaerke", 1000, 0, 32000)
+        if dlg.ShowModal() == wx.ID_OK:
+            vol = dlg.GetValue()
+            self.client.set_user_volume(int(user.nUserID), int(self.client.tt.StreamType.STREAMTYPE_VOICE), vol)
+            self.set_status(f"Lautstaerke auf {vol} gesetzt")
+        dlg.Destroy()
+
+    def on_menu_user_operator(self, _event):
+        if not self._require_connected("Operator geben/nehmen"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        my_ch = self.client.get_my_channel_id()
+        if not my_ch:
+            self.set_status("Kein eigener Kanal")
+            return
+        is_op = self.client.is_channel_operator(int(my_ch), int(user.nUserID))
+        self.client.do_channel_op(int(my_ch), int(user.nUserID), not is_op)
+        self.set_status("Operator gesetzt" if not is_op else "Operator entzogen")
+
+    def on_menu_user_kick(self, _event):
+        if not self._require_connected("Benutzer kicken"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        my_ch = self.client.get_my_channel_id()
+        if not my_ch:
+            self.set_status("Kein eigener Kanal")
+            return
+        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        dlg.Destroy()
+        self.client.do_kick_user(int(user.nUserID), int(my_ch))
+        self.set_status("Benutzer gekickt")
+
+    def on_menu_user_subscriptions(self, _event):
+        if not self._require_connected("Abonnements"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        tt = self.client.tt
+        flags = [
+            ("Sprache", tt.Subscription.SUBSCRIBE_VOICE),
+            ("Video", tt.Subscription.SUBSCRIBE_VIDEOCAPTURE),
+            ("Mediendatei", tt.Subscription.SUBSCRIBE_MEDIAFILE),
+            ("Benutzernachrichten", tt.Subscription.SUBSCRIBE_USER_MSG),
+            ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
+            ("Broadcast", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
+            ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
+        ]
+        dlg = wx.Dialog(self, title="Abonnements")
+        root = wx.BoxSizer(wx.VERTICAL)
+        checks = []
+        current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
+        for label, flag in flags:
+            cb = wx.CheckBox(dlg, label=label)
+            cb.SetValue(bool(current & int(flag)))
+            checks.append((cb, int(flag)))
+            root.Add(cb, 0, wx.ALL, 4)
+        btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+        dlg.SetSizerAndFit(root)
+        if dlg.ShowModal() == wx.ID_OK:
+            for cb, flag in checks:
+                want = cb.GetValue()
+                have = bool(current & flag)
+                if want and not have:
+                    self.client.do_subscribe(int(user.nUserID), flag)
+                if not want and have:
+                    self.client.do_unsubscribe(int(user.nUserID), flag)
+            self.set_status("Abonnements geaendert")
+        dlg.Destroy()
+
+    def on_menu_audio_ptt(self, _event):
+        at = self.audio_tab
+        at.ptt_toggle.SetValue(not at.ptt_toggle.GetValue())
+        at.on_ptt_toggle(None)
+
+    def on_menu_audio_va(self, _event):
+        enabled = not self.audio_tab.voice_activation.GetValue()
+        self.audio_tab.voice_activation.SetValue(enabled)
+        self.client.enable_voice_activation(enabled)
+        if enabled and not self._ptt_enabled:
+            self.client.enable_voice_transmission(True)
+        if not enabled and not self._ptt_enabled:
+            self.client.enable_voice_transmission(False)
+        self.set_status("Voice Activation an" if enabled else "Voice Activation aus")
+
+    def on_menu_audio_apply(self, _event):
+        self.audio_tab.on_apply_audio(None)
+
+    def on_menu_audio_refresh(self, _event):
+        self.audio_tab.on_refresh_audio(None)
+
+    def on_menu_audio_loopback(self, _event):
+        at = self.audio_tab
+        at.loopback_toggle.SetValue(not at.loopback_toggle.GetValue())
+        at.on_loopback_toggle(None)
+
+    def on_menu_record_start(self, _event):
+        if not self._require_connected("Aufnahme starten"):
+            return
+        if self._recording_active:
+            self.set_status("Aufnahme laeuft bereits")
+            return
+        fmt = self._record_format_dialog()
+        if not fmt:
+            return
+        label, audio_format = fmt
+        with wx.FileDialog(self, "Aufnahme speichern", wildcard="Audio (*.wav;*.mp3)|*.wav;*.mp3|Alle Dateien|*.*", style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        ok = self.client.start_recording_muxed(path, int(audio_format))
+        if ok:
+            self._recording_active = True
+            self._recording_path = path
+            self.set_status(f"Aufnahme gestartet ({label})")
+        else:
+            self.set_status("Aufnahme konnte nicht gestartet werden")
+
+    def on_menu_record_stop(self, _event):
+        if not self._require_connected("Aufnahme stoppen"):
+            return
+        if not self._recording_active:
+            self.set_status("Keine laufende Aufnahme")
+            return
+        ok = self.client.stop_recording_muxed()
+        self._recording_active = False
+        if ok:
+            self.set_status("Aufnahme beendet")
+        else:
+            self.set_status("Aufnahme beenden fehlgeschlagen")
+
+    def on_menu_export_logs(self, _event):
+        try:
+            self.settings_tab._export_logs_zip()
+        except Exception:
+            self.set_status("Log-Export fehlgeschlagen")
+
+    def on_menu_settings(self, _event):
+        if not self.settings_window.IsShown():
+            self.settings_window.Show()
+        self.settings_window.Raise()
+        self.settings_window.SetFocus()
+
+    def on_menu_about(self, _event):
+        text = self._build_about_text()
+        dlg = wx.Dialog(self, title="Über", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        root = wx.BoxSizer(wx.VERTICAL)
+        info = wx.TextCtrl(
+            dlg,
+            value=text,
+            style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2,
+        )
+        info.SetMinSize((700, 520))
+        root.Add(info, 1, wx.ALL | wx.EXPAND, 10)
+        btns = dlg.CreateButtonSizer(wx.OK)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        dlg.SetSizerAndFit(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _build_about_text(self) -> str:
+        parts: List[str] = []
+        parts.append("TeamTalk VoiceOver Client")
+        parts.append("Entwickler: Flarion")
+        parts.append("Hinweis: Beta-Tester werden spaeter aufgefuehrt.")
+        parts.append("")
+        parts.append("Bestandteile:")
+        parts.append("- TeamTalk SDK (BearWare)")
+        parts.append("- wxPython")
+        parts.append("- PyInstaller")
+        parts.append("- espeak-ng")
+        parts.append("- yt-dlp")
+        parts.append("- certifi, urllib3, charset-normalizer")
+        parts.append("")
+        parts.append("Lizenzen:")
+
+        base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+        license_paths = [
+            base / "licenses" / "TEAMTALK_VO_CLIENT_LICENSE.txt",
+            base / "licenses" / "TEAMTALK_SDK_LICENSE.txt",
+        ]
+
+        for lp in license_paths:
+            parts.append("")
+            if not lp.exists():
+                continue
+            parts.append(f"--- {lp.name} ---")
+            try:
+                parts.append(lp.read_text(encoding="utf-8", errors="replace"))
+            except Exception:
+                continue
+
+        parts.append("")
+        parts.append("Weitere Abhaengigkeiten sind enthalten; falls Lizenztexte fehlen,")
+        parts.append("bitte die jeweiligen Projekte konsultieren.")
+        return "\n".join(parts)
 
     # ------------------------------------------------------------------
     # Connection logic (shared across tabs)
@@ -377,17 +1087,24 @@ class MainFrame(wx.Frame):
                         continue
 
                     names = [str(n) for n in data.get("names", []) if str(n).strip()]
+                    note = str(data.get("note", "") or "").strip()
                     if names:
+                        details = ", ".join(names)
+                        if note:
+                            details = f"{details} ({note})"
                         rows.append(
                             (
                                 profile.name,
                                 "Ja" if profile.encrypted else "Nein",
                                 f"{len(names)} online",
-                                ", ".join(names),
+                                details,
                             )
                         )
                     else:
-                        rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "0 online", "-"))
+                        details = "-"
+                        if note:
+                            details = note
+                        rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "0 online", details))
                 except Exception as exc:
                     rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "Fehler", _short_error(str(exc))))
 
@@ -468,8 +1185,8 @@ class MainFrame(wx.Frame):
             if self.speak_tab is None:
                 self.speak_tab = SpeakTab(self.notebook, self)
             if not self._speak_tab_added:
-                # Insert after "Chat" tab (index 3)
-                self.notebook.InsertPage(3, self.speak_tab, "Sprechen")
+                # Insert after "Kanäle und Chat" tab (index 1)
+                self.notebook.InsertPage(1, self.speak_tab, "Sprechen")
                 self._speak_tab_added = True
             self.speak_tab.set_api_key(api_key)
         else:
@@ -710,7 +1427,10 @@ class MainFrame(wx.Frame):
     def on_key_hook(self, event):
         key = event.GetKeyCode()
         if key == wx.WXK_F5:
-            self.channels_tab.refresh_channels_and_users()
+            if self.client.is_connected():
+                self.channels_tab.refresh_channels_and_users()
+            else:
+                self.set_status("Nicht verbunden")
             return
         if key == wx.WXK_F9:
             at = self.audio_tab
@@ -720,7 +1440,22 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def on_key_down(self, event):
-        if self._ptt_enabled and event.GetKeyCode() == wx.WXK_SPACE:
+        if self._capture_ptt_hotkey:
+            key = event.GetKeyCode()
+            if key == wx.WXK_ESCAPE:
+                self._capture_ptt_hotkey = False
+                self.audio_tab.update_ptt_hotkey_label()
+                self.set_status("PTT-Hotkey Aufnahme abgebrochen")
+                return
+            self._ptt_hotkey = int(key)
+            self.settings_store.settings.ptt_hotkey = int(key)
+            self.settings_store.save()
+            self._capture_ptt_hotkey = False
+            self.audio_tab.update_ptt_hotkey_label()
+            self.set_status("PTT-Hotkey gespeichert")
+            return
+
+        if self._ptt_enabled and event.GetKeyCode() == self._ptt_hotkey:
             if self._is_text_input_focused():
                 event.Skip()
                 return
@@ -732,7 +1467,7 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def on_key_up(self, event):
-        if self._ptt_enabled and event.GetKeyCode() == wx.WXK_SPACE:
+        if self._ptt_enabled and event.GetKeyCode() == self._ptt_hotkey:
             if self._ptt_active:
                 self._ptt_active = False
                 self.client.enable_voice_transmission(False)
@@ -754,12 +1489,8 @@ class MainFrame(wx.Frame):
         if not self._window_focused:
             self.audio_tab.set_active(False)
         else:
-            try:
-                idx = self.notebook.GetSelection()
-                if self.notebook.GetPage(idx) is self.audio_tab:
-                    self.audio_tab.set_active(True)
-            except Exception:
-                pass
+            if self.settings_window.IsShown():
+                self.audio_tab.set_active(True)
         event.Skip()
 
     def _send_notification(self, title: str, message: str):
@@ -779,7 +1510,7 @@ class MainFrame(wx.Frame):
             page = self.notebook.GetPage(idx)
             if self.files_tab is not None and page is self.files_tab:
                 wx.CallAfter(self.files_tab.refresh_file_list)
-            if page is self.audio_tab and self._window_focused:
+            if self.settings_window.IsShown() and self._window_focused:
                 self.audio_tab.set_active(True)
             else:
                 self.audio_tab.set_active(False)
@@ -993,6 +1724,14 @@ class MainFrame(wx.Frame):
 
     def on_close(self, event):
         self.Hide()
+        try:
+            self.connection_window.Hide()
+        except Exception:
+            pass
+        try:
+            self.settings_window.Hide()
+        except Exception:
+            pass
         self.tray.SetIcon(self.tray._icon, "TeamTalk VoiceOver Client (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
@@ -1012,6 +1751,14 @@ class MainFrame(wx.Frame):
         # Close SDK
         self.client.close()
         self.tray.Destroy()
+        try:
+            self.connection_window.Destroy()
+        except Exception:
+            pass
+        try:
+            self.settings_window.Destroy()
+        except Exception:
+            pass
         self.Destroy()
 
 
@@ -1050,8 +1797,9 @@ def _run_probe_server_once(argv: List[str]) -> int:
         client_name = str(payload.get("client_name", "TeamTalk VO"))
         encrypted = bool(payload.get("encrypted", False))
 
-        def _probe_connect(user: str, pwd: str, retries: int) -> ConnectResult:
+        def _probe_connect(user: str, pwd: str, retries: int, use_encrypted: Optional[bool] = None) -> ConnectResult:
             last = ConnectResult(False, "Unbekannter Fehler")
+            effective_encrypted = encrypted if use_encrypted is None else use_encrypted
             for attempt in range(max(1, retries)):
                 last = scanner.connect_and_login(
                     host=host,
@@ -1061,7 +1809,7 @@ def _run_probe_server_once(argv: List[str]) -> int:
                     username=user,
                     password=pwd,
                     client_name=client_name,
-                    encrypted=encrypted,
+                    encrypted=effective_encrypted,
                     remember_last_connect=False,
                     timeout_ms=8000,
                 )
@@ -1072,6 +1820,7 @@ def _run_probe_server_once(argv: List[str]) -> int:
             return last
 
         result = _probe_connect(username, password, 6 if encrypted else 1)
+        tls_hint = ""
         if (
             not result.ok
             and encrypted
@@ -1080,6 +1829,12 @@ def _run_probe_server_once(argv: List[str]) -> int:
         ):
             # Some public encrypted servers still expect the legacy "guest" user.
             result = _probe_connect("guest", "", 4)
+        if not result.ok and not encrypted:
+            # Some servers only accept TLS even if the entry is stored as plain.
+            tls_try = _probe_connect(username, password, 2, use_encrypted=True)
+            if tls_try.ok:
+                result = tls_try
+                tls_hint = "Hinweis: Server erwartet TLS (verschluesselt)."
         if not result.ok:
             result_data = {"ok": False, "message": result.message, "names": []}
         else:
@@ -1094,6 +1849,8 @@ def _run_probe_server_once(argv: List[str]) -> int:
                     names.append(nickname or username)
             names = sorted(names, key=str.casefold)
             result_data = {"ok": True, "message": "ok", "names": names}
+            if tls_hint:
+                result_data["note"] = tls_hint
     except Exception as exc:
         result_data = {"ok": False, "message": str(exc), "names": []}
     finally:

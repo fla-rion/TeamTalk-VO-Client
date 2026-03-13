@@ -325,9 +325,52 @@ class TeamTalkClient:
                         tls_has_custom_material=tls_has_custom_material,
                     )
                     attempt_log.append(f"{connect_host}:{tcp_port}/0 tcp-only -> {transport_result.message}")
+                if not transport_result.ok and not encrypted and udp_port > 0:
+                    # TCP-only fallback for plain sessions in case UDP is blocked.
+                    self._recreate_client()
+                    transport_result = self._connect_transport(
+                        connect_host,
+                        tcp_port,
+                        0,
+                        encrypted,
+                        timeout_ms,
+                        verify_peer=verify_peer,
+                        tls_has_custom_material=tls_has_custom_material,
+                    )
+                    attempt_log.append(f"{connect_host}:{tcp_port}/0 tcp-only -> {transport_result.message}")
                 if transport_result.ok:
                     self._last_transport_encrypted = encrypted
                     break
+            if not transport_result.ok and not encrypted:
+                # Some servers require TLS even if the entry is stored as plain.
+                self._recreate_client()
+                tls_result = self._connect_transport(
+                    hosts_to_try[0],
+                    tcp_port,
+                    udp_port,
+                    True,
+                    timeout_ms,
+                    verify_peer=verify_peer,
+                    tls_has_custom_material=tls_has_custom_material,
+                )
+                attempt_log.append(f"{hosts_to_try[0]}:{tcp_port}/{udp_port} tls-fallback -> {tls_result.message}")
+                if not tls_result.ok and udp_port > 0:
+                    self._recreate_client()
+                    tls_result = self._connect_transport(
+                        hosts_to_try[0],
+                        tcp_port,
+                        0,
+                        True,
+                        timeout_ms,
+                        verify_peer=verify_peer,
+                        tls_has_custom_material=tls_has_custom_material,
+                    )
+                    attempt_log.append(f"{hosts_to_try[0]}:{tcp_port}/0 tls-fallback tcp-only -> {tls_result.message}")
+                if tls_result.ok:
+                    self._last_transport_encrypted = True
+                    encrypted = True
+                    transport_result = tls_result
+
             if not transport_result.ok:
                 attempts_text = " | ".join(attempt_log[:8])
                 if attempts_text:
@@ -430,6 +473,59 @@ class TeamTalkClient:
             parent_id = self.get_my_channel_id()
 
         return ConnectResult(False, "Kanalbeitritt fehlgeschlagen")
+
+    def make_channel(
+        self,
+        name: str,
+        parent_id: int,
+        topic: str = "",
+        password: str = "",
+        permanent: bool = False,
+        timeout_ms: int = 4000,
+    ) -> ConnectResult:
+        ch = self.tt.Channel()
+        ch.nParentID = int(parent_id)
+        ch.nChannelID = 0
+        ch.szName = self.tt.ttstr(name)
+        ch.szTopic = self.tt.ttstr(topic)
+        if password:
+            ch.szPassword = self.tt.ttstr(password)
+            ch.bPassword = True
+        ch.uChannelType = self.tt.ChannelType.CHANNEL_PERMANENT if permanent else self.tt.ChannelType.CHANNEL_DEFAULT
+        cmdid = self.client.doMakeChannel(ch)
+        ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
+        if not ok:
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                return ConnectResult(False, f"Kanal erstellen fehlgeschlagen: {err}")
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                return ConnectResult(False, "Kanal erstellen fehlgeschlagen: Timeout")
+            return ConnectResult(False, "Kanal erstellen fehlgeschlagen")
+        return ConnectResult(True, "Kanal erstellt")
+
+    def update_channel(self, channel, timeout_ms: int = 4000) -> ConnectResult:
+        cmdid = self.client.doUpdateChannel(channel)
+        ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
+        if not ok:
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                return ConnectResult(False, f"Kanal aktualisieren fehlgeschlagen: {err}")
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                return ConnectResult(False, "Kanal aktualisieren fehlgeschlagen: Timeout")
+            return ConnectResult(False, "Kanal aktualisieren fehlgeschlagen")
+        return ConnectResult(True, "Kanal aktualisiert")
+
+    def remove_channel(self, channel_id: int, timeout_ms: int = 4000) -> ConnectResult:
+        cmdid = self.client.doRemoveChannel(int(channel_id))
+        ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
+        if not ok:
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                return ConnectResult(False, f"Kanal loeschen fehlgeschlagen: {err}")
+            if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
+                return ConnectResult(False, "Kanal loeschen fehlgeschlagen: Timeout")
+            return ConnectResult(False, "Kanal loeschen fehlgeschlagen")
+        return ConnectResult(True, "Kanal geloescht")
 
     def leave_channel(self, timeout_ms: int = 2000) -> ConnectResult:
         cmdid = self.client.doLeaveChannel()
