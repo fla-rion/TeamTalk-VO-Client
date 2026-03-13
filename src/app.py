@@ -593,7 +593,7 @@ class MainFrame(wx.Frame):
         if not self.connection_window.IsShown():
             self.connection_window.Show()
         self.connection_window.Raise()
-        self.connection_window.SetFocus()
+        wx.CallAfter(self.connection_window.connection_tab.server_list.SetFocus)
 
     def on_menu_disconnect(self, _event):
         if not self.client.is_connected():
@@ -931,7 +931,7 @@ class MainFrame(wx.Frame):
         if not self.settings_window.IsShown():
             self.settings_window.Show()
         self.settings_window.Raise()
-        self.settings_window.SetFocus()
+        wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
 
     def on_menu_about(self, _event):
         text = self._build_about_text()
