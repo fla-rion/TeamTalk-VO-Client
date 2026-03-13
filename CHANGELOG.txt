@@ -1,7 +1,9 @@
 Changelog
 =========
 
-2026-03-13 (v0.7.0)
+Hinweis: Die Versionen 0.1.0 bis 0.6.x sind grob geschaetzt aus unserem Verlauf.
+
+2026-03-13 (v0.7.1)
 - Server-Check zeigt Zusammenfassung (Gesamt, Online, Fehler, Nutzer) und sortiert Ergebnisse.
 - Server-Check fragt vor Start nach Bestaetigung.
 - Server-Check nutzt Inline-Probe (kein Subprozess) fuer stabilere Ergebnisse.
@@ -13,3 +15,37 @@ Changelog
 - CI: Gitea Actions Workflow fuer Windows-Builds hinzugefuegt.
 - UI: Kanaele-Ansicht gruppiert, Bezeichnungen vereinheitlicht, Chat-Ziel klarer.
 - UI: Verbindung/Dateien/Admin/Sprechen/System mit klareren Gruppen und Labels.
+- Changelog in Hilfe-Menue integriert.
+- Versionierung: App-Version 0.7.0 und Bundle/Windows-Metadaten gesetzt.
+
+2026-03-10 (v0.6.0)
+- Verbindung als eigenes Fenster (statt Tab), Cmd+W schliesst Fenster.
+- Einstellungen als eigenes Fenster im Hilfe-Menue, Cmd+, oeffnet Einstellungen.
+- Tabs umorganisiert; Kanaele + Chat zusammengelegt.
+- Stabilere Reconnect- und Verbindungslogik zwischen TLS/Plain.
+- Server-Check Ergebnisanzeige als Tabelle (Dialog).
+
+2026-03-05 (v0.5.0)
+- Audio-Bereich ausgebaut: Geraete, Pegel, Effekte, Vorverarbeitung, Aktionen.
+- Audio-Prefs speichern/anwenden/loeschen; Auto-Anwenden bei Geraetewechsel.
+- PTT-Hotkey innerhalb der App erfassen.
+- Verbesserte Statusmeldungen und Log-Export.
+
+2026-02-28 (v0.4.0)
+- Medien/Streaming-Bereich erweitert (YouTube/Webradio/Twitch).
+- Datei-Tab: Upload/Download/Loeschen, Fortschrittsanzeige.
+- Admin-Tab: Konten, Sperren, Servereigenschaften.
+
+2026-02-20 (v0.3.0)
+- System & TTS: espeak-ng Einstellungen, Stimmenwahl, Tests.
+- Chat-Tab mit Privatnachrichten und Chatverlauf.
+- Kanalliste/Nutzerliste mit Kontextmenues und Aktionen.
+
+2026-02-12 (v0.2.0)
+- Grundlegender Verbindungsdialog mit Serverliste.
+- Speichern/Import/Export der Serverliste.
+- Auto-Reconnect, Basis-Logging, TTS Grundfunktion.
+
+2026-02-06 (v0.1.0)
+- Projektbasis: TeamTalk-VO-Client aufgebaut.
+- Grundlegende UI-Struktur und erste Tabs.
