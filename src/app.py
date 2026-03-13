@@ -1066,7 +1066,6 @@ class MainFrame(wx.Frame):
                     pass
 
             for profile in sorted_servers:
-                out_file = None
                 try:
                     payload = {
                         "host": profile.host,
@@ -1078,42 +1077,7 @@ class MainFrame(wx.Frame):
                         "client_name": profile.client_name,
                         "encrypted": bool(profile.encrypted),
                     }
-                    data: Dict[str, object] = {}
-                    max_attempts = 2
-                    for attempt in range(max_attempts):
-                        with tempfile.NamedTemporaryFile(prefix="tt_probe_", suffix=".json", delete=False) as tf:
-                            out_file = tf.name
-                        cmd = [
-                            sys.executable,
-                            "--probe-server",
-                            json.dumps(payload, ensure_ascii=False),
-                            "--probe-out",
-                            out_file,
-                        ]
-                        try:
-                            subprocess.run(cmd, check=False, timeout=35)
-                            with open(out_file, "r", encoding="utf-8") as f:
-                                data = json.load(f)
-                        except Exception as exc:
-                            # Fallback: run probe inline if the subprocess fails (timeout/launch error).
-                            self.logger.write(
-                                f"Servercheck-Debug: Probe-Subprozess fehlgeschlagen fuer {profile.name}: {exc}"
-                            )
-                            data = _probe_server_payload(payload)
-                            if not bool(data.get("ok", False)):
-                                msg = str(data.get("message", "")).strip() or str(exc)
-                                data["message"] = f"{msg} (Fallback nach: {exc})"
-                        finally:
-                            try:
-                                if out_file and os.path.exists(out_file):
-                                    os.remove(out_file)
-                            except Exception:
-                                pass
-                            out_file = None
-                        if bool(data.get("ok", False)):
-                            break
-                        if attempt + 1 < max_attempts:
-                            time.sleep(0.35)
+                    data = _probe_server_payload(payload)
 
                     if not bool(data.get("ok", False)):
                         rows.append(
