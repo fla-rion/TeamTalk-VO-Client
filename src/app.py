@@ -11,6 +11,8 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+APP_VERSION = "0.7.0"
+
 
 def _init_startup_logging() -> None:
     from platform_paths import log_dir as _log_dir
@@ -214,7 +216,7 @@ class MainFrame(wx.Frame):
     """Main window -- thin orchestrator that creates notebook tabs and dispatches events."""
 
     def __init__(self) -> None:
-        super().__init__(None, title="TeamTalk VoiceOver Client")
+        super().__init__(None, title=f"TeamTalk VoiceOver Client {APP_VERSION}")
         self.client = TeamTalkClient()
 
         # Shared state
@@ -256,7 +258,7 @@ class MainFrame(wx.Frame):
         panel.SetName("Hauptfenster")
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        title = wx.StaticText(panel, label="TeamTalk Client (VoiceOver-optimiert)")
+        title = wx.StaticText(panel, label=f"TeamTalk Client {APP_VERSION} (VoiceOver-optimiert)")
         title.SetName("Titel")
         main_sizer.Add(title, 0, wx.ALL, 12)
 
@@ -969,7 +971,7 @@ class MainFrame(wx.Frame):
 
     def _build_about_text(self) -> str:
         parts: List[str] = []
-        parts.append("TeamTalk VoiceOver Client")
+        parts.append(f"TeamTalk VoiceOver Client {APP_VERSION}")
         parts.append("Entwickler: Flarion")
         parts.append("Hinweis: Beta-Tester werden spaeter aufgefuehrt.")
         parts.append("")
@@ -1768,7 +1770,7 @@ class MainFrame(wx.Frame):
             self.settings_window.Hide()
         except Exception:
             pass
-        self.tray.SetIcon(self.tray._icon, "TeamTalk VoiceOver Client (im Tray)")
+        self.tray.SetIcon(self.tray._icon, f"TeamTalk VoiceOver Client {APP_VERSION} (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
 

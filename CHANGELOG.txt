@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2026-03-13
+2026-03-13 (v0.7.0)
 - Server-Check zeigt Zusammenfassung (Gesamt, Online, Fehler, Nutzer) und sortiert Ergebnisse.
 - Server-Check fragt vor Start nach Bestaetigung.
 - Server-Check nutzt Inline-Probe (kein Subprozess) fuer stabilere Ergebnisse.
