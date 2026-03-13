@@ -981,9 +981,10 @@ class MainFrame(wx.Frame):
         left_sizer = wx.BoxSizer(wx.VERTICAL)
         left_label = wx.StaticText(left, label="Versionen")
         left_sizer.Add(left_label, 0, wx.ALL, 8)
-        version_list = wx.ListBox(left)
-        version_list.SetName("Changelog Versionen")
-        left_sizer.Add(version_list, 1, wx.ALL | wx.EXPAND, 8)
+        version_table = dv.DataViewListCtrl(left, style=wx.BORDER_SUNKEN | dv.DV_SINGLE)
+        version_table.SetName("Changelog Versionen")
+        version_table.AppendTextColumn("Version", width=200)
+        left_sizer.Add(version_table, 1, wx.ALL | wx.EXPAND, 8)
         left.SetSizer(left_sizer)
 
         right_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -995,18 +996,21 @@ class MainFrame(wx.Frame):
         right.SetSizer(right_sizer)
 
         titles = [title for title, _ in sections]
-        version_list.Set(titles)
+        for title in titles:
+            version_table.AppendItem([title])
         if titles:
-            version_list.SetSelection(0)
+            version_table.SelectRow(0)
             detail.SetValue("\n".join(sections[0][1]).strip() + "\n")
 
         def on_select(_evt):
-            idx = version_list.GetSelection()
-            if idx == wx.NOT_FOUND:
+            row = version_table.GetSelectedRow()
+            if row == -1:
                 return
-            detail.SetValue("\n".join(sections[idx][1]).strip() + "\n")
+            if row >= len(sections):
+                return
+            detail.SetValue("\n".join(sections[row][1]).strip() + "\n")
 
-        version_list.Bind(wx.EVT_LISTBOX, on_select)
+        version_table.Bind(dv.EVT_DATAVIEW_SELECTION_CHANGED, on_select)
 
         splitter.SplitVertically(left, right, sashPosition=220)
         splitter.SetMinimumPaneSize(160)
