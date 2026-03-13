@@ -1065,7 +1065,7 @@ class MainFrame(wx.Frame):
                 except Exception:
                     pass
 
-            for profile in sorted_servers:
+            for idx, profile in enumerate(sorted_servers):
                 try:
                     payload = {
                         "host": profile.host,
@@ -1111,6 +1111,8 @@ class MainFrame(wx.Frame):
                         rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "0 online", details))
                 except Exception as exc:
                     rows.append((profile.name, "Ja" if profile.encrypted else "Nein", "Fehler", _short_error(str(exc))))
+                if idx + 1 < len(sorted_servers):
+                    time.sleep(0.35)
 
             self.client._last_connect = saved_connect
 
@@ -1808,7 +1810,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
                     time.sleep(0.3)
             return last
 
-        result = _probe_connect(username, password, 6 if encrypted else 1)
+        result = _probe_connect(username, password, 6 if encrypted else 3)
         tls_hint = ""
         if (
             not result.ok
