@@ -59,6 +59,21 @@ class DesktopTab(wx.Panel):
 
         sizer.Add(control_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        input_box = wx.StaticBox(self, label="Desktop-Steuerung (Remote)")
+        input_sizer = wx.StaticBoxSizer(input_box, wx.VERTICAL)
+        input_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.left_click_btn = wx.Button(self, label="Linksklick")
+        self.left_click_btn.SetName("Desktop Linksklick")
+        self.right_click_btn = wx.Button(self, label="Rechtsklick")
+        self.right_click_btn.SetName("Desktop Rechtsklick")
+        self.middle_click_btn = wx.Button(self, label="Mittelklick")
+        self.middle_click_btn.SetName("Desktop Mittelklick")
+        input_row.Add(self.left_click_btn, 0, wx.RIGHT, 8)
+        input_row.Add(self.right_click_btn, 0, wx.RIGHT, 8)
+        input_row.Add(self.middle_click_btn, 0)
+        input_sizer.Add(input_row, 0, wx.ALL, 8)
+        sizer.Add(input_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         status_box = wx.StaticBox(self, label="Status")
         status_sizer = wx.StaticBoxSizer(status_box, wx.VERTICAL)
         self.status_label = wx.StaticText(self, label="Bereit")
@@ -71,6 +86,9 @@ class DesktopTab(wx.Panel):
         self.share_toggle.Bind(wx.EVT_CHECKBOX, self.on_share_toggle)
         self.send_once_btn.Bind(wx.EVT_BUTTON, self.on_send_once)
         self.stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
+        self.left_click_btn.Bind(wx.EVT_BUTTON, lambda _e: self._send_click("left"))
+        self.right_click_btn.Bind(wx.EVT_BUTTON, lambda _e: self._send_click("right"))
+        self.middle_click_btn.Bind(wx.EVT_BUTTON, lambda _e: self._send_click("middle"))
         self.Bind(wx.EVT_TIMER, self.on_timer, self._timer)
 
     def set_active(self, active: bool) -> None:
@@ -121,6 +139,14 @@ class DesktopTab(wx.Panel):
     def on_desktop_window(self, username: str) -> None:
         self._last_sender = username
         self._set_status(f"Desktop-Stream aktiv: {username}")
+
+    def _send_click(self, button: str) -> None:
+        if not self.frame.client.is_connected():
+            self.frame.set_status("Nicht verbunden")
+            return
+        ok = self.frame.client.send_desktop_click(button)
+        label = "Linksklick" if button == "left" else "Rechtsklick" if button == "right" else "Mittelklick"
+        self._set_status(f"{label} gesendet" if ok else f"{label} fehlgeschlagen")
 
     def _set_status(self, text: str) -> None:
         self.status_label.SetLabel(text)

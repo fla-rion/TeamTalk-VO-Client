@@ -1041,6 +1041,10 @@ class TeamTalkClient:
         self._ensure_desktop_api()
         return bool(self.tt._CloseDesktopWindow(self.client._tt))
 
+    def send_desktop_click(self, button: str = "left") -> int:
+        self._ensure_desktop_api()
+        return int(self._send_desktop_click(button))
+
     def _ensure_desktop_api(self) -> None:
         if hasattr(self.tt, "_SendDesktopWindow"):
             return
@@ -1052,6 +1056,29 @@ class TeamTalkClient:
             self.tt.dll.TT_CloseDesktopWindow,
             [self.tt.BOOL, [self.tt._TTInstance]],
         )
+        self.tt._SendDesktopInput = self.tt.function_factory(
+            self.tt.dll.TT_SendDesktopInput,
+            [self.tt.BOOL, [self.tt._TTInstance, ctypes.POINTER(self.tt.DesktopInput), self.tt.INT32]],
+        )
+
+    def _send_desktop_click(self, button: str) -> bool:
+        keycodes = {
+            "left": 0x1000,
+            "right": 0x1001,
+            "middle": 0x1002,
+        }
+        keycode = keycodes.get(button, 0x1000)
+        ignore_pos = 0xFFFF
+        inputs = (self.tt.DesktopInput * 2)()
+        inputs[0].uMousePosX = ignore_pos
+        inputs[0].uMousePosY = ignore_pos
+        inputs[0].uKeyCode = keycode
+        inputs[0].uKeyState = int(self.tt.DesktopKeyState.DESKTOPKEYSTATE_DOWN)
+        inputs[1].uMousePosX = ignore_pos
+        inputs[1].uMousePosY = ignore_pos
+        inputs[1].uKeyCode = keycode
+        inputs[1].uKeyState = int(self.tt.DesktopKeyState.DESKTOPKEYSTATE_UP)
+        return bool(self.tt._SendDesktopInput(self.client._tt, inputs, 2))
 
     # ------------------------------------------------------------------
     # Audio injection (app audio)
