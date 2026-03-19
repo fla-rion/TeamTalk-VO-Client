@@ -36,7 +36,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.12"
+APP_VERSION = "0.9.13"
 
 
 def _init_startup_logging() -> None:

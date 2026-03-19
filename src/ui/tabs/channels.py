@@ -341,6 +341,12 @@ class ChannelsTab(wx.Panel):
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
             ("Desktop-Steuerung", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
             ("Desktop-Intercept", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
+            ("Intercept Benutzer-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
+            ("Intercept Kanal-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
+            ("Intercept Voice", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
+            ("Intercept Video", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
+            ("Intercept Mediafile", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
+            ("Intercept Custom", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
         ]
         sub_items = []
         current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
