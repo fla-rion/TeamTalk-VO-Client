@@ -8,6 +8,7 @@ Changelog
     - Frage-Modus als schneller Toggle.
     - Mich selbst hoeren (Mikrofontest) als Menuepunkt.
     - TTS aktiv als Menuepunkt.
+    - Desktop senden als Menuepunkt.
 - Benutzer-Abonnements:
     - Intercept-Optionen (User/Kanal/Voice/Video/Media/Custom) ergaenzt.
 - Kanal:
@@ -17,6 +18,7 @@ Changelog
     - TT-URL fuer Kanal kopieren.
 - Benutzer:
     - Benutzerinfo vorlesen.
+    - Zielkanal merken + Benutzer in Zielkanal verschieben.
 - Hilfe:
     - Verbindungsstatistiken vorlesen.
 

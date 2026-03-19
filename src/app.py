@@ -239,6 +239,7 @@ class MainFrame(wx.Frame):
         self._user_recording_include_self = True
         self._video_tx_enabled = False
         self._mute_all = False
+        self._move_target_channel_id: Optional[int] = None
         self._status_mode = 0
         self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
@@ -431,6 +432,8 @@ class MainFrame(wx.Frame):
         user_menu.AppendSeparator()
         user_subs = user_menu.Append(wx.ID_ANY, "Abonnements...")
         user_move = user_menu.Append(wx.ID_ANY, "Benutzer verschieben...")
+        user_store_move = user_menu.Append(wx.ID_ANY, "Zielkanal merken")
+        user_move_stored = user_menu.Append(wx.ID_ANY, "In Zielkanal verschieben")
         menubar.Append(user_menu, "Benutzer")
 
         # Server
@@ -447,6 +450,7 @@ class MainFrame(wx.Frame):
         profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
         profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
         profile_tts = profile_menu.AppendCheckItem(wx.ID_ANY, "TTS aktiv")
+        profile_desktop = profile_menu.AppendCheckItem(wx.ID_ANY, "Desktop senden")
         menubar.Append(profile_menu, "Profil")
 
         # Audio
@@ -520,6 +524,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
         self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
         self.Bind(wx.EVT_MENU, self.on_menu_user_move, user_move)
+        self.Bind(wx.EVT_MENU, self.on_menu_store_move_target, user_store_move)
+        self.Bind(wx.EVT_MENU, self.on_menu_move_to_target, user_move_stored)
 
         self.Bind(wx.EVT_MENU, self.on_menu_online_users, server_online)
         self.Bind(wx.EVT_MENU, self.on_menu_server_broadcast, server_broadcast)
@@ -530,6 +536,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_question_mode, profile_question)
         self.Bind(wx.EVT_MENU, self.on_menu_hear_myself, profile_hear)
         self.Bind(wx.EVT_MENU, self.on_menu_toggle_tts, profile_tts)
+        self.Bind(wx.EVT_MENU, self.on_menu_desktop_sharing, profile_desktop)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -961,6 +968,24 @@ class MainFrame(wx.Frame):
         except Exception:
             self.set_status("TTS konnte nicht umgestellt werden")
 
+    def _ensure_desktop_tab(self) -> Optional[DesktopTab]:
+        if self.desktop_tab is not None:
+            return self.desktop_tab
+        placeholder = self._lazy_pages.get("desktop")
+        if placeholder is None:
+            return self.desktop_tab
+        self._replace_lazy_tab("desktop", DesktopTab)
+        return self.desktop_tab
+
+    def on_menu_desktop_sharing(self, event):
+        enabled = event.IsChecked()
+        tab = self._ensure_desktop_tab()
+        if tab is None:
+            self.set_status("Desktop-Tab nicht verfuegbar")
+            return
+        tab.share_toggle.SetValue(enabled)
+        tab.on_share_toggle(wx.CommandEvent())
+
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):
             return
@@ -1248,6 +1273,33 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_store_move_target(self, _event):
+        if not self._require_connected("Zielkanal merken"):
+            return
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        self._move_target_channel_id = int(channel_id)
+        channel = self.client.get_channel(int(channel_id))
+        name = self.tt_str(getattr(channel, "szName", "")) if channel else str(channel_id)
+        self.set_status(f"Zielkanal gespeichert: {name}")
+
+    def on_menu_move_to_target(self, _event):
+        if not self._require_connected("In Zielkanal verschieben"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewaehlt")
+            return
+        if not self._move_target_channel_id:
+            self.set_status("Kein Zielkanal gespeichert")
+            return
+        cmdid = self.client.do_move_user(int(user.nUserID), int(self._move_target_channel_id))
+        if cmdid < 0:
+            self.set_status("Benutzer verschieben fehlgeschlagen")
+        else:
+            self.set_status("Benutzer verschoben")
     def on_menu_user_info_speak(self, _event):
         if not self._require_connected("Benutzerinfo vorlesen"):
             return
