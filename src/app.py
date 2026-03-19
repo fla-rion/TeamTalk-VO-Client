@@ -29,11 +29,12 @@ from ui.tabs.admin import AdminTab
 from ui.tabs.speak import SpeakTab
 from ui.tabs.settings import SettingsTab
 from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog
+from ui.user_status import ChangeStatusDialog
 from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.5"
+APP_VERSION = "0.9.6"
 
 
 def _init_startup_logging() -> None:
@@ -425,6 +426,12 @@ class MainFrame(wx.Frame):
         server_stats = server_menu.Append(wx.ID_ANY, "Serverstatistiken...")
         menubar.Append(server_menu, "Server")
 
+        # Profil
+        profile_menu = wx.Menu()
+        profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname aendern...")
+        profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
+        menubar.Append(profile_menu, "Profil")
+
         # Audio
         audio_menu = wx.Menu()
         audio_ptt = audio_menu.AppendCheckItem(wx.ID_ANY, "Push-to-Talk")
@@ -493,6 +500,9 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_online_users, server_online)
         self.Bind(wx.EVT_MENU, self.on_menu_server_broadcast, server_broadcast)
         self.Bind(wx.EVT_MENU, self.on_menu_server_stats, server_stats)
+
+        self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
+        self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -826,6 +836,48 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
         self.server_stats_dialog = None
+
+    def on_menu_change_nickname(self, _event):
+        if not self._require_connected("Nickname aendern"):
+            return
+        current = ""
+        try:
+            user = self.client.get_user(self.client.get_my_user_id())
+            current = self.tt_str(getattr(user, "szNickname", "")) or ""
+        except Exception:
+            current = ""
+        value = self._ask_text("Nickname aendern", "Neuer Nickname", current)
+        if value is None:
+            return
+        value = value.strip()
+        if not value:
+            self.set_status("Nickname darf nicht leer sein")
+            return
+        cmdid = self.client.change_nickname(value)
+        if cmdid < 0:
+            self.set_status("Nickname aendern fehlgeschlagen")
+        else:
+            self.set_status("Nickname wird geaendert")
+
+    def on_menu_change_status(self, _event):
+        if not self._require_connected("Status setzen"):
+            return
+        dlg = ChangeStatusDialog(self)
+        if dlg.ShowModal() == wx.ID_OK:
+            idx, message = dlg.get_values()
+            tt = self.client.tt
+            mode_map = {
+                0: int(tt.UserStatusMode.STATUSMODE_AVAILABLE),
+                1: int(tt.UserStatusMode.STATUSMODE_AWAY),
+                2: int(tt.UserStatusMode.STATUSMODE_QUESTION),
+            }
+            mode = mode_map.get(idx, int(tt.UserStatusMode.STATUSMODE_AVAILABLE))
+            cmdid = self.client.change_status(mode, message)
+            if cmdid < 0:
+                self.set_status("Status konnte nicht gesetzt werden")
+            else:
+                self.set_status("Status wird gesetzt")
+        dlg.Destroy()
 
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):

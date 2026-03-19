@@ -796,6 +796,12 @@ class TeamTalkClient:
             ok = ok and (self.client.doTextMessage(msg) >= 0)
         return ok
 
+    def change_nickname(self, nickname: str) -> int:
+        return self.client.doChangeNickname(self.tt.ttstr(nickname))
+
+    def change_status(self, mode: int, message: str) -> int:
+        return self.client.doChangeStatus(int(mode), self.tt.ttstr(message))
+
     # ------------------------------------------------------------------
     # Error & Statistics
     # ------------------------------------------------------------------
