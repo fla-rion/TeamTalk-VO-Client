@@ -903,9 +903,6 @@ class TeamTalkClient:
     def get_voice_activation_stop_delay(self) -> int:
         return self.tt._GetVoiceActivationStopDelay(self.client._tt)
 
-    def set_sound_output_mute(self, mute: bool) -> bool:
-        return self.tt._SetSoundOutputMute(self.client._tt, mute)
-
     # ------------------------------------------------------------------
     # Sound Loopback
     # ------------------------------------------------------------------

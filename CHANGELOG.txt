@@ -4,12 +4,29 @@ Changelog
 2026-03-19 (v0.10.0)
 - Verbindung:
     - TT-URL kopieren und TT-Datei speichern.
+- Datei:
+    - Neuen Client starten (Menue).
+    - Sound-Konfiguration Untermenue (Eingabe/Ausgabe als Liste, Audio, Effekte).
+    - Konversationen aufzeichnen + Einstellungen im Datei-Menue.
 - Profil:
     - Frage-Modus als schneller Toggle.
     - Mich selbst hoeren (Mikrofontest) als Menuepunkt.
     - TTS aktiv als Menuepunkt.
     - Desktop senden als Menuepunkt.
     - Benachrichtigungen (Chat/Privat/System/Eigene) als Menuepunkte.
+- Server:
+    - Sperren (Server) anzeigen.
+    - Administration oeffnen.
+    - Servereigenschaften oeffnen + Konfiguration speichern (Menue).
+- Audio:
+    - Audio-Einstellungen oeffnen.
+    - Effekte (AGC/Rauschunterdrueckung/Echounterdrueckung) als Menuepunkte inkl. Anwenden.
+- Benutzer:
+    - Private Nachricht direkt aus dem Menue senden.
+    - Erweitert-Menue fuer schnelle Lautstaerke-Anpassung.
+    - Ban/Kick+Ban direkt aus dem Benutzer-Menue.
+- Aufnahmen:
+    - Shortcut zu Konversationen-Aufzeichnung im Medien-Tab.
 - Benutzer-Abonnements:
     - Intercept-Optionen (User/Kanal/Voice/Video/Media/Custom) ergaenzt.
 - Kanal:
@@ -18,6 +35,8 @@ Changelog
     - Kanalstatistik vorlesen.
     - TT-URL fuer Kanal kopieren.
     - Sperren im Kanal anzeigen.
+    - Dateien-Menue (Upload/Download/Loeschen/Aktualisieren) im Kanal.
+    - Streaming-Menue (Datei/YouTube/Webradio/Podcast/Twitch) im Kanal.
 - Benutzer:
     - Benutzerinfo vorlesen.
     - Zielkanal merken + Benutzer in Zielkanal verschieben.
