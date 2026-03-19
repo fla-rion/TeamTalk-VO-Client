@@ -36,7 +36,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.11"
+APP_VERSION = "0.9.12"
 
 
 def _init_startup_logging() -> None:
@@ -440,6 +440,7 @@ class MainFrame(wx.Frame):
         profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname aendern...")
         profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
         profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
+        profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
         menubar.Append(profile_menu, "Profil")
 
         # Audio
@@ -515,6 +516,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_change_nickname, profile_nick)
         self.Bind(wx.EVT_MENU, self.on_menu_change_status, profile_status)
         self.Bind(wx.EVT_MENU, self.on_menu_question_mode, profile_question)
+        self.Bind(wx.EVT_MENU, self.on_menu_hear_myself, profile_hear)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -914,6 +916,14 @@ class MainFrame(wx.Frame):
             self.set_status("Status konnte nicht gesetzt werden")
         else:
             self.set_status("Frage-Modus aktiv" if enabled else "Frage-Modus aus")
+
+    def on_menu_hear_myself(self, event):
+        enabled = event.IsChecked()
+        try:
+            self.audio_tab.loopback_toggle.SetValue(enabled)
+            self.audio_tab.on_loopback_toggle(None)
+        except Exception:
+            self.set_status("Mikrofontest konnte nicht umgestellt werden")
 
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):
