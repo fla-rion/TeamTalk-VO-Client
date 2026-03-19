@@ -13,8 +13,12 @@ Changelog
 - Kanal:
     - Kanalinfo Dialog.
     - Kanalinfo vorlesen.
+    - Kanalstatistik vorlesen.
+    - TT-URL fuer Kanal kopieren.
 - Benutzer:
     - Benutzerinfo vorlesen.
+- Hilfe:
+    - Verbindungsstatistiken vorlesen.
 
 2026-03-19 (v0.9.9)
 - Desktop:

@@ -414,6 +414,8 @@ class MainFrame(wx.Frame):
         chan_menu.AppendSeparator()
         chan_info = chan_menu.Append(wx.ID_ANY, "Kanalinfo...")
         chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
+        chan_stats_speak = chan_menu.Append(wx.ID_ANY, "Kanalstatistik vorlesen")
+        chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL fuer Kanal kopieren")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         menubar.Append(chan_menu, "Kanal")
 
@@ -479,6 +481,7 @@ class MainFrame(wx.Frame):
         help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
         help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
+        help_stats_speak = help_menu.Append(wx.ID_ANY, "Statistiken vorlesen")
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
         menubar.Append(help_menu, "Hilfe")
@@ -505,6 +508,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_channel_leave, chan_leave)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info, chan_info)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_info_speak, chan_info_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_stats_speak, chan_stats_speak)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_tt_url, chan_tt_url)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_message, chan_msg)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
@@ -543,6 +548,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
         self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
+        self.Bind(wx.EVT_MENU, self.on_menu_client_stats_speak, help_stats_speak)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -865,6 +871,19 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
 
+    def on_menu_client_stats_speak(self, _event):
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        stats = self.client.get_client_statistics()
+        if stats is None:
+            self.set_status("Keine Statistik verfuegbar")
+            return
+        udp = int(getattr(stats, "nUdpPingTimeMs", 0) or 0)
+        tcp = int(getattr(stats, "nTcpPingTimeMs", 0) or 0)
+        text = f"UDP Ping {udp} Millisekunden, TCP Ping {tcp} Millisekunden."
+        self.tts.speak(text, kind="system")
+
     def on_menu_change_nickname(self, _event):
         if not self._require_connected("Nickname aendern"):
             return
@@ -1162,6 +1181,39 @@ class MainFrame(wx.Frame):
             f"Diskquota {int(getattr(channel, 'nDiskQuota', 0) or 0) // (1024 * 1024)} MB."
         )
         self.tts.speak(text, kind="system")
+
+    def on_menu_channel_stats_speak(self, _event):
+        if not self._require_connected("Kanalstatistik vorlesen"):
+            return
+        channel_id = self._get_selected_channel_id()
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewaehlt")
+            return
+        users = list(self.client.get_channel_users(int(channel_id)))
+        count = len(users)
+        self.tts.speak(f"{count} Benutzer im Kanal.", kind="system")
+
+    def on_menu_channel_tt_url(self, _event):
+        if not self._require_connected("TT-URL fuer Kanal"):
+            return
+        profile = self.connection_tab.profile_from_form()
+        if not profile:
+            return
+        channel_id = self._get_selected_channel_id()
+        channel_path = None
+        if channel_id:
+            try:
+                channel_path = self.tt_str(self.client.get_channel_path(int(channel_id)))
+            except Exception:
+                channel_path = None
+        from ui.tt_file_parser import build_teamtalk_url
+        url = build_teamtalk_url(profile, channel_path=channel_path or None)
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(url))
+            wx.TheClipboard.Close()
+            self.set_status("TT-URL kopiert")
+        else:
+            self.set_status("Zwischenablage konnte nicht geoeffnet werden")
 
     def on_menu_channel_message(self, _event):
         if not self._require_connected("Kanalnachricht senden"):
