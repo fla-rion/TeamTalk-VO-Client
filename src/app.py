@@ -28,13 +28,14 @@ from ui.tabs.files import FilesTab
 from ui.tabs.admin import AdminTab
 from ui.tabs.speak import SpeakTab
 from ui.tabs.settings import SettingsTab
+from ui.tabs.desktop import DesktopTab
 from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog
 from ui.user_status import ChangeStatusDialog
 from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.6"
+APP_VERSION = "0.9.7"
 
 
 def _init_startup_logging() -> None:
@@ -243,6 +244,7 @@ class MainFrame(wx.Frame):
         self.media_tab: Optional[MediaTab] = None
         self.files_tab: Optional[FilesTab] = None
         self.admin_tab: Optional[AdminTab] = None
+        self.desktop_tab: Optional[DesktopTab] = None
         self._lazy_pages: Dict[str, wx.Panel] = {}
 
         # Paths
@@ -300,16 +302,19 @@ class MainFrame(wx.Frame):
         self.server_stats_dialog: Optional[ServerStatisticsDialog] = None
         self.online_users_dialog: Optional[OnlineUsersDialog] = None
         media_placeholder = LazyTabPlaceholder(self.notebook, "Aufnahme & Medien")
+        desktop_placeholder = LazyTabPlaceholder(self.notebook, "Desktop")
         files_placeholder = LazyTabPlaceholder(self.notebook, "Dateien")
         admin_placeholder = LazyTabPlaceholder(self.notebook, "Administration")
         self._lazy_pages = {
             "media": media_placeholder,
+            "desktop": desktop_placeholder,
             "files": files_placeholder,
             "admin": admin_placeholder,
         }
 
         self.notebook.AddPage(self.channels_chat_tab, "Kanäle und Chat")
         self.notebook.AddPage(media_placeholder, "Aufnahme & Medien")
+        self.notebook.AddPage(desktop_placeholder, "Desktop")
         self.notebook.AddPage(files_placeholder, "Dateien")
         self.notebook.AddPage(admin_placeholder, "Administration")
         # Settings live in a separate window (opened via Help menu).
@@ -317,6 +322,7 @@ class MainFrame(wx.Frame):
         self._tab_info_map = {
             "Kanäle und Chat": "Kanäle, Nutzerliste, Chat und Privatnachrichten.",
             "Aufnahme & Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
+            "Desktop": "Desktopfreigabe senden/Status anzeigen.",
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
         }
@@ -2023,9 +2029,13 @@ class MainFrame(wx.Frame):
         # Pause audio polling when app is not focused to reduce CPU usage.
         if not self._window_focused:
             self.audio_tab.set_active(False)
+            if self.desktop_tab is not None:
+                self.desktop_tab.set_active(False)
         else:
             if self.settings_window.IsShown():
                 self.audio_tab.set_active(True)
+            if self.desktop_tab is not None:
+                self.desktop_tab.set_active(True)
         event.Skip()
 
     def _send_notification(self, title: str, message: str):
@@ -2075,6 +2085,8 @@ class MainFrame(wx.Frame):
         # Replace placeholder panels with real tabs on first access.
         if page is self._lazy_pages.get("media"):
             self._replace_lazy_tab("media", MediaTab)
+        elif page is self._lazy_pages.get("desktop"):
+            self._replace_lazy_tab("desktop", DesktopTab)
         elif page is self._lazy_pages.get("files"):
             self._replace_lazy_tab("files", FilesTab)
         elif page is self._lazy_pages.get("admin"):
@@ -2095,6 +2107,10 @@ class MainFrame(wx.Frame):
             self.media_tab = factory(self.notebook, self)
             self.notebook.DeletePage(idx)
             self.notebook.InsertPage(idx, self.media_tab, "Aufnahme & Medien")
+        elif key == "desktop":
+            self.desktop_tab = factory(self.notebook, self)
+            self.notebook.DeletePage(idx)
+            self.notebook.InsertPage(idx, self.desktop_tab, "Desktop")
         elif key == "files":
             self.files_tab = factory(self.notebook, self)
             self.notebook.DeletePage(idx)
@@ -2196,6 +2212,13 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_SERVERSTATISTICS:
             if self.server_stats_dialog is not None:
                 wx.CallAfter(self.server_stats_dialog.update_stats, msg.serverstatistics)
+        elif event == tt.ClientEvent.CLIENTEVENT_USER_DESKTOPWINDOW:
+            if self.desktop_tab is not None:
+                try:
+                    username = self.tt_str(msg.user.szNickname) or self.tt_str(msg.user.szUsername) or "Benutzer"
+                except Exception:
+                    username = "Benutzer"
+                wx.CallAfter(self.desktop_tab.on_desktop_window, username)
 
     def _emit_user_presence_event(self, msg, tt):
         event = msg.nClientEvent

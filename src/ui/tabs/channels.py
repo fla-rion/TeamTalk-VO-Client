@@ -339,6 +339,8 @@ class ChannelsTab(wx.Panel):
             ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
             ("Broadcast", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
+            ("Desktop-Steuerung", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
+            ("Desktop-Intercept", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
         ]
         sub_items = []
         current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
