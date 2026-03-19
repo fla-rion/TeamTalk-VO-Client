@@ -31,11 +31,12 @@ from ui.tabs.settings import SettingsTab
 from ui.tabs.desktop import DesktopTab
 from ui.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog
 from ui.user_status import ChangeStatusDialog
+from ui.client_stats import ClientStatisticsDialog
 from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.7"
+APP_VERSION = "0.9.8"
 
 
 def _init_startup_logging() -> None:
@@ -469,6 +470,7 @@ class MainFrame(wx.Frame):
         help_menu = wx.Menu()
         help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
         help_logs = help_menu.Append(wx.ID_ANY, "Logs exportieren...")
+        help_stats = help_menu.Append(wx.ID_ANY, "Verbindungsstatistiken...")
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, "Über")
         menubar.Append(help_menu, "Hilfe")
@@ -526,6 +528,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_export_logs, help_logs)
+        self.Bind(wx.EVT_MENU, self.on_menu_client_stats, help_stats)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -842,6 +845,11 @@ class MainFrame(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
         self.server_stats_dialog = None
+
+    def on_menu_client_stats(self, _event):
+        dlg = ClientStatisticsDialog(self, self)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_change_nickname(self, _event):
         if not self._require_connected("Nickname aendern"):
