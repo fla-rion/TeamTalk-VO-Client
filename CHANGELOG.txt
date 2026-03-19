@@ -9,6 +9,7 @@ Changelog
     - Mich selbst hoeren (Mikrofontest) als Menuepunkt.
     - TTS aktiv als Menuepunkt.
     - Desktop senden als Menuepunkt.
+    - Benachrichtigungen (Chat/Privat/System/Eigene) als Menuepunkte.
 - Benutzer-Abonnements:
     - Intercept-Optionen (User/Kanal/Voice/Video/Media/Custom) ergaenzt.
 - Kanal:

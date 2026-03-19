@@ -453,6 +453,13 @@ class MainFrame(wx.Frame):
         profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
         profile_tts = profile_menu.AppendCheckItem(wx.ID_ANY, "TTS aktiv")
         profile_desktop = profile_menu.AppendCheckItem(wx.ID_ANY, "Desktop senden")
+        profile_menu.AppendSeparator()
+        notif_menu = wx.Menu()
+        notif_chat = notif_menu.AppendCheckItem(wx.ID_ANY, "Chat vorlesen")
+        notif_private = notif_menu.AppendCheckItem(wx.ID_ANY, "Privat vorlesen")
+        notif_system = notif_menu.AppendCheckItem(wx.ID_ANY, "System vorlesen")
+        notif_own = notif_menu.AppendCheckItem(wx.ID_ANY, "Eigene Nachrichten vorlesen")
+        profile_menu.AppendSubMenu(notif_menu, "Benachrichtigungen")
         menubar.Append(profile_menu, "Profil")
 
         # Audio
@@ -540,6 +547,10 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_hear_myself, profile_hear)
         self.Bind(wx.EVT_MENU, self.on_menu_toggle_tts, profile_tts)
         self.Bind(wx.EVT_MENU, self.on_menu_desktop_sharing, profile_desktop)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_toggle_tts_flag("chat", e), notif_chat)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_toggle_tts_flag("private", e), notif_private)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_toggle_tts_flag("system", e), notif_system)
+        self.Bind(wx.EVT_MENU, lambda e: self.on_menu_toggle_tts_flag("own", e), notif_own)
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
@@ -970,6 +981,22 @@ class MainFrame(wx.Frame):
             self.set_status("TTS aktiviert" if enabled else "TTS deaktiviert")
         except Exception:
             self.set_status("TTS konnte nicht umgestellt werden")
+
+    def on_menu_toggle_tts_flag(self, flag: str, event) -> None:
+        enabled = event.IsChecked()
+        try:
+            if flag == "chat":
+                self.system_tab.tts_chat.SetValue(enabled)
+            elif flag == "private":
+                self.system_tab.tts_private.SetValue(enabled)
+            elif flag == "system":
+                self.system_tab.tts_system.SetValue(enabled)
+            elif flag == "own":
+                self.system_tab.tts_own.SetValue(enabled)
+            self.system_tab._apply_settings(None)
+            self.set_status("Benachrichtigung gespeichert")
+        except Exception:
+            self.set_status("Benachrichtigung konnte nicht umgestellt werden")
 
     def _ensure_desktop_tab(self) -> Optional[DesktopTab]:
         if self.desktop_tab is not None:
