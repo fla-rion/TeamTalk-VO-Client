@@ -131,6 +131,50 @@ class MediaTab(wx.Panel):
 
         sizer.Add(rec_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
+        # --- Conversation Recording ---
+        convo_box = wx.StaticBox(self, label="Konversationen aufzeichnen")
+        convo_sizer = wx.StaticBoxSizer(convo_box, wx.VERTICAL)
+
+        self.user_rec_enable = wx.CheckBox(self, label="Automatisch aufzeichnen")
+        self.user_rec_enable.SetName("Konversationen aufzeichnen")
+        self.user_rec_enable.SetValue(False)
+        convo_sizer.Add(self.user_rec_enable, 0, wx.ALL, 4)
+
+        dir_row = wx.BoxSizer(wx.HORIZONTAL)
+        dir_row.Add(wx.StaticText(self, label="Zielordner"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.user_rec_dir = wx.DirPickerCtrl(self, message="Ordner fuer Aufnahmen waehlen")
+        self.user_rec_dir.SetName("Zielordner")
+        dir_row.Add(self.user_rec_dir, 1, wx.EXPAND)
+        convo_sizer.Add(dir_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        pattern_row = wx.BoxSizer(wx.HORIZONTAL)
+        pattern_row.Add(wx.StaticText(self, label="Dateiname"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.user_rec_pattern = wx.TextCtrl(self)
+        self.user_rec_pattern.SetName("Dateiname")
+        self.user_rec_pattern.SetValue("%Y%m%d-%H%M%S #%userid% %username%")
+        pattern_row.Add(self.user_rec_pattern, 1, wx.EXPAND)
+        convo_sizer.Add(pattern_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        format_row = wx.BoxSizer(wx.HORIZONTAL)
+        format_row.Add(wx.StaticText(self, label="Format"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.user_rec_format = wx.Choice(self, choices=["WAV", "MP3 128k", "MP3 256k"])
+        self.user_rec_format.SetName("Konversationsformat")
+        self.user_rec_format.SetSelection(0)
+        format_row.Add(self.user_rec_format, 1, wx.EXPAND)
+        convo_sizer.Add(format_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        self.user_rec_include_self = wx.CheckBox(self, label="Eigene Stimme mit aufnehmen")
+        self.user_rec_include_self.SetName("Eigene Stimme mit aufnehmen")
+        self.user_rec_include_self.SetValue(True)
+        convo_sizer.Add(self.user_rec_include_self, 0, wx.ALL, 4)
+
+        self.user_rec_apply = wx.Button(self, label="Anwenden")
+        self.user_rec_apply.SetName("Aufzeichnung anwenden")
+        self.user_rec_apply.Bind(wx.EVT_BUTTON, self.on_user_record_apply)
+        convo_sizer.Add(self.user_rec_apply, 0, wx.ALL, 4)
+
+        sizer.Add(convo_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # --- Streaming source selector ---
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
@@ -446,6 +490,26 @@ class MediaTab(wx.Panel):
         }
         return int(mapping.get(self.rec_format.GetSelection(), tt.AudioFileFormat.AFF_WAVE_FORMAT))
 
+    def _get_user_rec_format(self) -> int:
+        tt = self.frame.client.tt
+        mapping = {
+            0: tt.AudioFileFormat.AFF_WAVE_FORMAT,
+            1: tt.AudioFileFormat.AFF_MP3_128KBIT_FORMAT,
+            2: tt.AudioFileFormat.AFF_MP3_256KBIT_FORMAT,
+        }
+        return int(mapping.get(self.user_rec_format.GetSelection(), tt.AudioFileFormat.AFF_WAVE_FORMAT))
+
+    def on_user_record_apply(self, _event):
+        enabled = self.user_rec_enable.GetValue()
+        folder = self.user_rec_dir.GetPath() if enabled else ""
+        if enabled and not folder:
+            self.frame.set_status("Bitte Zielordner waehlen")
+            return
+        pattern = self.user_rec_pattern.GetValue().strip() if enabled else ""
+        fmt = self._get_user_rec_format()
+        include_self = self.user_rec_include_self.GetValue()
+        self.frame.configure_user_recording(enabled, folder, pattern, fmt, include_self)
+
     def on_rec_start(self, _event):
         ext = "wav" if self.rec_format.GetSelection() == 0 else "mp3"
         with wx.FileDialog(
@@ -560,6 +624,8 @@ class MediaTab(wx.Panel):
         # Top-level controls (direct children of self)
         top_order = [
             self.rec_format, self.rec_start_btn, self.rec_stop_btn,
+            self.user_rec_enable, self.user_rec_dir, self.user_rec_pattern,
+            self.user_rec_format, self.user_rec_include_self, self.user_rec_apply,
             self.stream_mode,
         ]
         for i in range(1, len(top_order)):

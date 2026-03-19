@@ -32,7 +32,7 @@ from tts import TTSManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.9.0"
+APP_VERSION = "0.9.1"
 
 
 def _init_startup_logging() -> None:
@@ -228,6 +228,11 @@ class MainFrame(wx.Frame):
         self._capture_ptt_hotkey = False
         self._recording_active = False
         self._recording_path: Optional[str] = None
+        self._user_recording_enabled = False
+        self._user_recording_dir = ""
+        self._user_recording_pattern = ""
+        self._user_recording_format = int(self.client.tt.AudioFileFormat.AFF_WAVE_FORMAT)
+        self._user_recording_include_self = True
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
         self.media_tab: Optional[MediaTab] = None
@@ -1935,6 +1940,8 @@ class MainFrame(wx.Frame):
         ):
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
+            if self._user_recording_enabled:
+                self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
@@ -2005,6 +2012,71 @@ class MainFrame(wx.Frame):
         self.chat_tab.append_chat(text, kind="system")
         self.emit_system_message(text, speak=False)
         self._send_notification("Status", text)
+
+    def _handle_user_recording_event(self, msg, tt) -> None:
+        event = msg.nClientEvent
+        user = getattr(msg, "user", None)
+        if user is None:
+            return
+        my_ch = self.client.get_my_channel_id()
+        if not my_ch:
+            return
+        my_ch = int(my_ch)
+        if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
+            if int(getattr(user, "nChannelID", 0) or 0) == my_ch:
+                self._apply_user_recording_to_user(int(user.nUserID), True)
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
+            self._apply_user_recording_to_user(int(user.nUserID), False)
+
+    def configure_user_recording(
+        self,
+        enabled: bool,
+        folder_path: str,
+        filename_vars: str,
+        audio_format: int,
+        include_self: bool = True,
+    ) -> None:
+        self._user_recording_enabled = bool(enabled)
+        self._user_recording_dir = folder_path or ""
+        self._user_recording_pattern = filename_vars or ""
+        self._user_recording_format = int(audio_format)
+        self._user_recording_include_self = bool(include_self)
+        if not self.client.is_connected():
+            self.set_status("Konversationsaufzeichnung gespeichert (nicht verbunden)")
+            return
+        self._apply_user_recording_for_current_channel(self._user_recording_enabled)
+        self.set_status(
+            "Konversationsaufzeichnung aktiviert"
+            if self._user_recording_enabled
+            else "Konversationsaufzeichnung deaktiviert"
+        )
+
+    def _apply_user_recording_for_current_channel(self, enabled: bool) -> None:
+        my_ch = self.client.get_my_channel_id()
+        if not my_ch:
+            return
+        users = list(self.client.get_channel_users(int(my_ch)))
+        for user in users:
+            self._apply_user_recording_to_user(int(user.nUserID), enabled)
+        if self._user_recording_include_self:
+            self._apply_user_recording_to_user(0, enabled)
+
+    def _apply_user_recording_to_user(self, user_id: int, enabled: bool) -> None:
+        tt = self.client.tt
+        if not enabled:
+            self.client.set_user_media_storage_dir(
+                user_id,
+                "",
+                "",
+                int(tt.AudioFileFormat.AFF_NONE),
+            )
+            return
+        self.client.set_user_media_storage_dir(
+            user_id,
+            self._user_recording_dir,
+            self._user_recording_pattern,
+            self._user_recording_format,
+        )
 
     def _handle_text_message(self, msg, tt):
         key = (

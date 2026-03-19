@@ -725,6 +725,20 @@ class TeamTalkClient:
     def set_sound_output_volume(self, level: int) -> bool:
         return self.tt._SetSoundOutputVolume(self.client._tt, level)
 
+    def set_user_media_storage_dir(
+        self,
+        user_id: int,
+        folder_path: str,
+        filename_vars: str,
+        audio_format: int,
+    ) -> bool:
+        return self.client.setUserMediaStorageDir(
+            int(user_id),
+            self.tt.ttstr(folder_path),
+            self.tt.ttstr(filename_vars),
+            audio_format,
+        )
+
     def send_channel_message(self, channel_id: int, message: str) -> bool:
         msgs = self.tt.buildTextMessage(message, self.tt.TextMsgType.MSGTYPE_CHANNEL, nChannelID=channel_id)
         ok = True
