@@ -129,6 +129,8 @@ class AppSettings:
     always_on_top: bool = False
     show_server_in_title: bool = True
     chat_history_format: str = "Liste"
+    show_toolbar: bool = False       # Standard: versteckt (Screenreader-freundlich)
+    show_event_log: bool = False     # Standard: versteckt (Screenreader-freundlich)
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
 
@@ -173,6 +175,8 @@ class SettingsStore:
             self.settings.always_on_top = bool(data.get("always_on_top", False))
             self.settings.show_server_in_title = bool(data.get("show_server_in_title", True))
             self.settings.chat_history_format = str(data.get("chat_history_format", "Liste") or "Liste")
+            self.settings.show_toolbar = bool(data.get("show_toolbar", False))
+            self.settings.show_event_log = bool(data.get("show_event_log", False))
             sound_events = data.get("sound_events", {})
             self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
 
@@ -202,6 +206,8 @@ class SettingsStore:
             "always_on_top": bool(self.settings.always_on_top),
             "show_server_in_title": bool(self.settings.show_server_in_title),
             "chat_history_format": str(self.settings.chat_history_format or "Liste"),
+            "show_toolbar": bool(self.settings.show_toolbar),
+            "show_event_log": bool(self.settings.show_event_log),
             "sound_events": self.settings.sound_events or {},
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

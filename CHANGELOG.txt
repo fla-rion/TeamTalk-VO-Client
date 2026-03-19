@@ -2,6 +2,47 @@ Changelog
 =========
 
 2026-03-19 (v0.10.0)
+- Barrierefreiheit / Hauptfenster:
+    - Toolbar und Ereignisprotokoll standardmaessig versteckt (weniger Tab-Stopps fuer VoiceOver/NVDA).
+    - Einstellungen > Anzeige: "Toolbar anzeigen" und "Ereignisprotokoll anzeigen" Optionen.
+    - Titeltext im Fensterkoerper entfernt (nur noch in der Titelleiste).
+    - Fensterhöhe kompakter (700px statt 980px).
+- Hauptfenster Toolbar / Schnellaktionen (optional, Standard: versteckt):
+    - Toggle-Buttons fuer PTT, Voice Activation, Video, Desktop, Mute, Aufnahme, Frage-Modus.
+    - Mastervolume- und Mikrofon-Gain-Slider.
+    - VU-Meter (Eingangspegel, 10 Hz).
+- Kanal-Dialog:
+    - OPUS-Einstellungen: App-Typ, Samplerate, Kanaele, Bitrate, VBR, DTX, Intervall, Framegroesse.
+    - Speex / Speex-VBR: Samplerate, Qualitaet, Max-Bitrate, DTX, Intervall.
+    - Feste Lautstaerke fuer alle Kanal-Nutzer.
+    - Stream-Timeout-Timer (Sprache und Medien).
+- Einstellungen (4 neue Bereiche):
+    - Allgemein: Geschlecht, Abwesenheits-Timer, BearWare Web-Login.
+    - Anzeige: Ins Tray minimieren, Immer im Vordergrund, Chat-Format, VU-Meter-Sichtbarkeit,
+      Fenstertitel, Toolbar-Sichtbarkeit, Protokoll-Sichtbarkeit.
+    - Verbindung: Standard-Abonnements (7 Optionen), TCP/UDP-Port-Bindung.
+    - Sound-Ereignisse: 16 Ereignisse mit Sounddatei-Auswahl, Test-Funktion, Lautstaerke, Modus.
+- Serverliste:
+    - Kontextmenue: Duplizieren, TT-Datei generieren, Beitrittscode eingeben.
+    - Doppelklick + Enter zum Verbinden.
+    - Live-Namensfilter.
+- Benutzer-Menue:
+    - Stummschalten-Submenue: Sprache und Mediendatei getrennt.
+    - Kick/Sperren-Submenue: Aus Kanal, Vom Server (je mit/ohne Ban).
+    - Sendekontrolle-Submenue fuer Operatoren (Sprache/Video/Desktop/Medien/Nachrichten).
+    - Voice/Media Stream weiterleiten (Relay via Intercept).
+    - Desktop-Zugriff erlauben/entziehen.
+    - Alles stummschalten im Benutzer-Menue.
+- Kanal-Menue:
+    - Kanal erstellen: F7-Shortcut.
+    - Kanalzustand vorlesen (wer sendet gerade).
+- Hilfe-Menue:
+    - Handbuch (oeffnet BearWare-Doku im Browser).
+    - BearWare.dk Website.
+- Tastaturkuerzel:
+    - F2: Verbindungsfenster / Serverliste.
+    - F6: Privatnachricht an ausgewaehlten Benutzer.
+    - F7: Kanal erstellen.
 - Verbindung:
     - TT-URL kopieren und TT-Datei speichern.
 - Datei:

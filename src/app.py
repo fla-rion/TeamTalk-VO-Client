@@ -278,10 +278,6 @@ class MainFrame(wx.Frame):
         panel.SetName("Hauptfenster")
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        title = wx.StaticText(panel, label=f"TeamTalk Client {APP_VERSION} (VoiceOver-optimiert)")
-        title.SetName("Titel")
-        main_sizer.Add(title, 0, wx.ALL, 12)
-
         nav_panel = wx.Panel(panel)
         nav_sizer = wx.BoxSizer(wx.HORIZONTAL)
         nav_label = wx.StaticText(nav_panel, label="Bereich:")
@@ -295,9 +291,10 @@ class MainFrame(wx.Frame):
         nav_panel.SetSizer(nav_sizer)
         main_sizer.Add(nav_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
-        # --- Quick-Actions Panel (toolbar equivalent) ---
-        qa_panel = wx.Panel(panel)
-        qa_panel.SetName("Schnellaktionen")
+        # --- Quick-Actions Panel (toolbar equivalent, standardmaessig versteckt) ---
+        self.qa_panel = wx.Panel(panel)
+        self.qa_panel.SetName("Schnellaktionen")
+        qa_panel = self.qa_panel  # lokaler Alias
         qa_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         self.tb_ptt = wx.ToggleButton(qa_panel, label="PTT")
@@ -408,8 +405,11 @@ class MainFrame(wx.Frame):
         self.log.SetMinSize((-1, 100))
 
         panel.SetSizer(main_sizer)
-        self.SetSize((980, 980))
+        self.SetSize((980, 700))
         self.Centre()
+
+        # Anzeigeeinstellungen sofort anwenden (Toolbar/Log standardmaessig versteckt).
+        self.apply_display_settings()
 
         # Apply saved audio prefs (if enabled) after UI is ready.
         wx.CallLater(300, self._apply_saved_audio_prefs_on_startup)
@@ -532,6 +532,17 @@ class MainFrame(wx.Frame):
                 self.vu_meter.SetValue(min(100, int(level * 100 / 32768)))
         except Exception:
             pass
+
+    def apply_display_settings(self) -> None:
+        """Wendet Anzeigeeinstellungen auf das Hauptfenster an (Toolbar, Log, Immer-vorne)."""
+        s = self.settings_store.settings
+        self.qa_panel.Show(bool(s.show_toolbar))
+        self.log.Show(bool(s.show_event_log))
+        if bool(s.always_on_top):
+            self.SetWindowStyle(self.GetWindowStyle() | wx.STAY_ON_TOP)
+        else:
+            self.SetWindowStyle(self.GetWindowStyle() & ~wx.STAY_ON_TOP)
+        self.Layout()
 
     # ------------------------------------------------------------------
     # Menu

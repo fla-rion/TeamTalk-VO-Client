@@ -203,6 +203,22 @@ class SettingsTab(wx.Panel):
         self._show_server_title.SetValue(bool(s.show_server_in_title))
         sizer.Add(self._show_server_title, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        note = wx.StaticText(panel, label="Hinweis: Toolbar und Protokoll sind standardmaessig versteckt\n(empfohlen fuer Screenreader/VoiceOver/NVDA).")
+        note.SetName("Barrierefreiheitshinweis")
+        sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._show_toolbar = wx.CheckBox(panel, label="Toolbar / Schnellaktionen anzeigen")
+        self._show_toolbar.SetName("Toolbar anzeigen")
+        self._show_toolbar.SetValue(bool(s.show_toolbar))
+        self._show_toolbar.Bind(wx.EVT_CHECKBOX, self._on_toolbar_changed)
+        sizer.Add(self._show_toolbar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._show_event_log = wx.CheckBox(panel, label="Ereignisprotokoll anzeigen")
+        self._show_event_log.SetName("Ereignisprotokoll anzeigen")
+        self._show_event_log.SetValue(bool(s.show_event_log))
+        self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
+        sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         save_btn = wx.Button(panel, label="Speichern")
         save_btn.SetName("Anzeige speichern")
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_display)
@@ -348,8 +364,19 @@ class SettingsTab(wx.Panel):
         sel = self._chat_format.GetSelection()
         s.chat_history_format = chat_choices[sel] if 0 <= sel < len(chat_choices) else "Liste"
         s.show_server_in_title = self._show_server_title.GetValue()
+        s.show_toolbar = self._show_toolbar.GetValue()
+        s.show_event_log = self._show_event_log.GetValue()
         self.frame.settings_store.save()
+        self.frame.apply_display_settings()
         self.frame.set_status("Anzeigeeinstellungen gespeichert")
+
+    def _on_toolbar_changed(self, _event):
+        self.frame.qa_panel.Show(self._show_toolbar.GetValue())
+        self.frame.Layout()
+
+    def _on_event_log_changed(self, _event):
+        self.frame.log.Show(self._show_event_log.GetValue())
+        self.frame.Layout()
 
     def _on_always_on_top_changed(self, _event):
         checked = self._always_on_top.GetValue()
