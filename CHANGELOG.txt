@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.10)
+- "Über"-Dialog: Korrekturen und Ergänzungen:
+    - Name korrigiert: "Karo" → "Garo".
+    - Garo: Danksagung um Windows-Testbegleitung und aktive Anpassungen
+      über die gesamte Projektlaufzeit ergänzt.
+    - Reiter "Allgemein": Hinweis zur Plattformunterstützung hinzugefügt –
+      macOS ist der primäre Entwicklungs- und Testrahmen; Windows- und
+      Linux-Nutzer können vereinzelt auf plattformspezifische Einschränkungen
+      stoßen.
+
 2026-03-20 (v0.10.9)
 - "Über"-Dialog vollständig überarbeitet (Hilfe-Menü → "Über"):
     - Reiter "Allgemein": App-Name, Version, Hauptentwickler, verwendete

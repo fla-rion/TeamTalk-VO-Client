@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.9"
+APP_VERSION = "0.10.10"
 
 
 def _init_startup_logging() -> None:
@@ -2604,6 +2604,15 @@ class MainFrame(wx.Frame):
             "Hauptentwickler\n"
             "  Florian Lichteblau (Flarion)\n"
             "\n"
+            "Hinweis zur Plattformunterstützung\n"
+            "  Ich entwickle dieses Projekt in erster Linie für macOS und\n"
+            "  optimiere es für VoiceOver. Dank der Multiplattform-Fähigkeiten\n"
+            "  von wxPython bin ich jedoch stets bemüht, auch für Windows und\n"
+            "  Linux Lösungen bereitzustellen. Windows- und Linux-Nutzer sollten\n"
+            "  allerdings beachten, dass es vereinzelt zu plattformspezifischen\n"
+            "  Einschränkungen kommen kann, da macOS der primäre Entwicklungs-\n"
+            "  und Testrahmen ist.\n"
+            "\n"
             "Verwendete Bibliotheken und Werkzeuge\n"
             "  • TeamTalk SDK  –  BearWare (bearware.dk)\n"
             "  • wxPython  –  wxWidgets-Projekt\n"
@@ -2631,10 +2640,12 @@ class MainFrame(wx.Frame):
             "Beta-Tester und Unterstützer\n"
             "════════════════════════════════════════\n"
             "\n"
-            "Karo\n"
+            "Garo\n"
             "  Herzlichen Dank für die Bereitstellung des Git-Servers,\n"
             "  auf dem dieses Projekt ganz oder in Teilen für die\n"
             "  Zusammenarbeit verfügbar gemacht wurde und wird.\n"
+            "  Garo hat außerdem die Windows-Tests über die gesamte\n"
+            "  Projektlaufzeit begleitet und aktiv Anpassungen vorgenommen.\n"
             "\n"
             "FVH\n"
             "  Dank für wichtige frühe Entwicklungsarbeit: die Einführung\n"
