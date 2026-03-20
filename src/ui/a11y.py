@@ -77,7 +77,7 @@ def patch_button_accessibility() -> None:
         def _new_role_desc(self):
             try:
                 return (
-                    "Kontrollkästchen"
+                    "Schalter"
                     if self.bezelStyle() == 0
                     else "Taste"
                 )
