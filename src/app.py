@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.16"
+APP_VERSION = "0.10.17"
 
 
 def _init_startup_logging() -> None:
@@ -2889,10 +2889,11 @@ class MainFrame(wx.Frame):
             "Eigene KI-Sprachausgabe über ElevenLabs in den Kanal sprechen lassen.\n"
             "\n"
             "Voraussetzung: ElevenLabs-API-Schlüssel.\n"
-            "Den API-Schlüssel tragen Sie im Tab 'Verbindung' im Feld\n"
-            "'ElevenLabs API Key' ein – direkt beim jeweiligen Serverprofil.\n"
-            "Der Schlüssel wird mit dem Profil gespeichert und beim Verbinden\n"
-            "automatisch an den Sprechen-Tab übergeben.\n"
+            "Den API-Schlüssel tragen Sie in den Einstellungen ein:\n"
+            "  Einstellungen → Bereich 'ElevenLabs' → Feld 'API-Schlüssel'\n"
+            "  → Speichern drücken.\n"
+            "Der Schlüssel gilt global für alle Serverprofile. Er wird beim\n"
+            "nächsten Verbinden automatisch an den Sprechen-Tab übergeben.\n"
             "\n"
             "Bedienung:\n"
             "  Stimme / Modell: Aus den per API geladenen Listen wählen.\n"
@@ -3512,7 +3513,7 @@ class MainFrame(wx.Frame):
                 self.client.enable_voice_transmission(True)
             if self.admin_tab is not None:
                 self.admin_tab.check_admin_visibility()
-            api_key = self.connection_tab.elevenlabs_key.GetValue().strip()
+            api_key = self.settings_store.settings.elevenlabs_api_key or ""
             self._update_speak_tab(api_key)
 
     def scan_saved_servers_presence(self):

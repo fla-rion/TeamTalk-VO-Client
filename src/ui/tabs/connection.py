@@ -80,7 +80,6 @@ class ConnectionTab(wx.Panel):
         self.username = self._add_field(form, "Benutzername", "guest")
         self.password = self._add_field(form, "Passwort", "guest", style=wx.TE_PASSWORD)
         self.client_name = self._add_field(form, "Client-Name", "TeamTalk VO")
-        self.elevenlabs_key = self._add_field(form, "ElevenLabs API Key", "", style=wx.TE_PASSWORD)
 
         self.encrypted = wx.CheckBox(self, label="Versc&hlüsselt (Encrypted)")
         self.encrypted.SetName("Verschlüsselt")
@@ -175,7 +174,6 @@ class ConnectionTab(wx.Panel):
         self.username.SetValue(profile.username)
         self.password.SetValue(profile.password)
         self.client_name.SetValue(profile.client_name)
-        self.elevenlabs_key.SetValue(profile.elevenlabs_api_key)
         self.encrypted.SetValue(profile.encrypted)
 
     def profile_from_form(self) -> Optional[ServerProfile]:
@@ -190,7 +188,6 @@ class ConnectionTab(wx.Panel):
         username = self.username.GetValue().strip()
         password = self.password.GetValue().strip()
         client_name = self.client_name.GetValue().strip()
-        elevenlabs_api_key = self.elevenlabs_key.GetValue().strip()
         if not host:
             self.frame.set_status("Server darf nicht leer sein")
             return None
@@ -199,7 +196,6 @@ class ConnectionTab(wx.Panel):
             name=host, host=host, tcp_port=tcp_port, udp_port=udp_port,
             nickname=nickname, username=username, password=password,
             client_name=client_name, encrypted=encrypted,
-            elevenlabs_api_key=elevenlabs_api_key,
         )
 
     def reload_server_list(self):
@@ -404,7 +400,7 @@ class ConnectionTab(wx.Panel):
         order = [
             self.server_list, self.server_add, self.server_edit, self.server_remove,
             self.host, self.tcp_port, self.udp_port, self.nickname, self.username,
-            self.password, self.client_name, self.elevenlabs_key, self.encrypted,
+            self.password, self.client_name, self.encrypted,
             self.connect_btn, self.reconnect_btn, self.server_check_btn,
             self.join_root_btn, self.leave_btn, self.logout_btn, self.auto_reconnect,
         ]

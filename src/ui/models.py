@@ -133,6 +133,8 @@ class AppSettings:
     show_event_log: bool = False     # Standard: versteckt (Screenreader-freundlich)
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
+    # ElevenLabs
+    elevenlabs_api_key: str = ""
 
 
 class SettingsStore:
@@ -179,6 +181,7 @@ class SettingsStore:
             self.settings.show_event_log = bool(data.get("show_event_log", False))
             sound_events = data.get("sound_events", {})
             self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
+            self.settings.elevenlabs_api_key = str(data.get("elevenlabs_api_key", "") or "")
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -209,5 +212,6 @@ class SettingsStore:
             "show_toolbar": bool(self.settings.show_toolbar),
             "show_event_log": bool(self.settings.show_event_log),
             "sound_events": self.settings.sound_events or {},
+            "elevenlabs_api_key": str(self.settings.elevenlabs_api_key or ""),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

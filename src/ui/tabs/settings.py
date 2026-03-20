@@ -64,7 +64,7 @@ class SettingsTab(wx.Panel):
         top_row.Add(wx.StaticText(self, label="Bereich"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.section_choice = wx.Choice(self, choices=[
             "Allgemein", "Anzeige", "Verbindung", "Sound-Ereignisse",
-            "Audio", "Video", "Tastenkürzel", "System & TTS",
+            "Audio", "Video", "Tastenkürzel", "System & TTS", "ElevenLabs",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -92,6 +92,7 @@ class SettingsTab(wx.Panel):
         self.display_tab = self._build_display_tab()
         self.connection_tab_settings = self._build_connection_tab()
         self.sound_events_tab = self._build_sound_events_tab()
+        self.elevenlabs_tab = self._build_elevenlabs_tab()
 
         self._sections = {
             "Allgemein": self.general_tab,
@@ -102,6 +103,7 @@ class SettingsTab(wx.Panel):
             "Video": self.video_tab,
             "Tastenkürzel": self.shortcuts_tab,
             "System & TTS": self.system_tab,
+            "ElevenLabs": self.elevenlabs_tab,
         }
 
         for panel in self._sections.values():
@@ -450,6 +452,47 @@ class SettingsTab(wx.Panel):
         self.frame.sound_manager.play(key, custom or None)
         if not custom:
             self.frame.set_status("Standard-Sound wird abgespielt")
+
+    def _build_elevenlabs_tab(self) -> wx.Panel:
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        el_box = wx.StaticBox(panel, label="ElevenLabs Text-to-Speech")
+        el_sizer = wx.StaticBoxSizer(el_box, wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Tragen Sie hier Ihren ElevenLabs API-Schlüssel ein.\n"
+            "Er wird global für alle Serverprofile gespeichert."
+        ))
+        info.SetName("ElevenLabs Info")
+        el_sizer.Add(info, 0, wx.ALL, 8)
+
+        key_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        key_form.AddGrowableCol(1)
+        key_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._elevenlabs_key = wx.TextCtrl(panel, value=str(s.elevenlabs_api_key or ""), style=wx.TE_PASSWORD)
+        self._elevenlabs_key.SetName("ElevenLabs API-Schlüssel")
+        key_form.Add(self._elevenlabs_key, 1, wx.EXPAND)
+        el_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        sizer.Add(el_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("ElevenLabs speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_elevenlabs)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _on_save_elevenlabs(self, _event):
+        key = self._elevenlabs_key.GetValue().strip()
+        self.frame.settings_store.settings.elevenlabs_api_key = key
+        self.frame.settings_store.save()
+        self.frame._update_speak_tab(key)
+        self.frame.set_status("ElevenLabs API-Schlüssel gespeichert")
 
     # ------------------------------------------------------------------
     # Section navigation

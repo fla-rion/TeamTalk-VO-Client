@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.17)
+- ElevenLabs API-Schlüssel aus dem Verbindung-Tab entfernt und in einen
+  eigenen Einstellungsbereich verschoben: Einstellungen → ElevenLabs.
+  Der Schlüssel gilt jetzt global für alle Serverprofile.
+- AppSettings / SettingsStore: elevenlabs_api_key gespeichert und geladen.
+- ServerProfile.elevenlabs_api_key bleibt für Rückwärtskompatibilität
+  im Datenmodell (wird nicht mehr in der UI angezeigt).
+- Handbuch: ElevenLabs-Abschnitt auf den neuen Speicherort aktualisiert.
+
 2026-03-20 (v0.10.16)
 - OnlineUsersDialog: Cmd+W zum Schließen (Accelerator Table) hinzugefügt.
 - OnlineUsersDialog: Schaltfläche "Privatnachricht" direkt im Dialog ergänzt,
