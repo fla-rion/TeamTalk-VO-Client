@@ -12,7 +12,7 @@ class ChangeStatusDialog(wx.Dialog):
 
         row = wx.BoxSizer(wx.HORIZONTAL)
         row.Add(wx.StaticText(self, label="Status"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.status_choice = wx.Choice(self, choices=["Verfuegbar", "Abwesend", "Frage"])
+        self.status_choice = wx.Choice(self, choices=["Verfügbar", "Abwesend", "Frage"])
         self.status_choice.SetName("Status Auswahl")
         self.status_choice.SetSelection(0)
         row.Add(self.status_choice, 1, wx.EXPAND)

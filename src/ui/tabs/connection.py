@@ -101,8 +101,8 @@ class ConnectionTab(wx.Panel):
         self.reconnect_btn = wx.Button(self, label="Neu verbinden")
         self.reconnect_btn.SetName("Neu verbinden")
         self.reconnect_btn.Bind(wx.EVT_BUTTON, self.on_reconnect)
-        self.server_check_btn = wx.Button(self, label="Server checken")
-        self.server_check_btn.SetName("Server checken")
+        self.server_check_btn = wx.Button(self, label="Server prüfen")
+        self.server_check_btn.SetName("Server prüfen")
         self.server_check_btn.Bind(wx.EVT_BUTTON, self.on_server_check)
         self.join_root_btn = wx.Button(self, label="Root-Kanal beitreten")
         self.join_root_btn.SetName("Root-Kanal beitreten")
@@ -119,8 +119,8 @@ class ConnectionTab(wx.Panel):
         self.share_file_btn = wx.Button(self, label="TT-Datei speichern")
         self.share_file_btn.SetName("TT-Datei speichern")
         self.share_file_btn.Bind(wx.EVT_BUTTON, self.on_save_tt_file)
-        self.auto_reconnect = wx.CheckBox(self, label="Auto-Reconnect")
-        self.auto_reconnect.SetName("Auto-Reconnect")
+        self.auto_reconnect = wx.CheckBox(self, label="Automatisch neu verbinden")
+        self.auto_reconnect.SetName("Automatisch neu verbinden")
         self.auto_reconnect.Bind(wx.EVT_CHECKBOX, self.on_auto_reconnect)
 
         for btn in (

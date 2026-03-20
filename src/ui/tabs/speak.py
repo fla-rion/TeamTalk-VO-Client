@@ -59,7 +59,7 @@ class SpeakTab(wx.Panel):
         settings_form.Add(wx.StaticText(self, label="Stabilität"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.stability_slider = wx.Slider(self, value=50, minValue=0, maxValue=100)
         self.stability_slider.SetName("Stabilität")
-        self.stability_slider.SetHelpText("Stimmstabilitaet (0-100)")
+        self.stability_slider.SetHelpText("Stimmstabilität (0-100)")
         settings_form.Add(self.stability_slider, 1, wx.EXPAND)
 
         settings_form.Add(wx.StaticText(self, label="Ähnlichkeit"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -135,7 +135,7 @@ class SpeakTab(wx.Panel):
             if resp.status_code != 200:
                 msg = f"ElevenLabs API Fehler: HTTP {resp.status_code}"
                 if resp.status_code == 401:
-                    msg = "ElevenLabs API Key ungueltig (401 Unauthorized)"
+                    msg = "ElevenLabs API Key ungültig (401 Unauthorized)"
                 elif resp.status_code == 403:
                     msg = "ElevenLabs API Zugriff verweigert (403 Forbidden)"
                 wx.CallAfter(self._set_status, msg)
@@ -147,7 +147,7 @@ class SpeakTab(wx.Panel):
             models = client.get_models()
 
             if not voices and not models:
-                wx.CallAfter(self._set_status, "Keine Stimmen/Modelle geladen - API Key pruefen")
+                wx.CallAfter(self._set_status, "Keine Stimmen/Modelle geladen - API Key prüfen")
                 return
 
             wx.CallAfter(self._populate_voices, voices)

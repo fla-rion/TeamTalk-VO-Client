@@ -40,7 +40,7 @@ _SOUND_EVENTS = [
 _SUBSCRIPTION_FLAGS = [
     ("Benutzernachrichten", "SUBSCRIBE_USER_MSG"),
     ("Kanalnachrichten", "SUBSCRIBE_CHANNEL_MSG"),
-    ("Broadcast", "SUBSCRIBE_BROADCAST_MSG"),
+    ("Rundnachricht", "SUBSCRIBE_BROADCAST_MSG"),
     ("Sprache", "SUBSCRIBE_VOICE"),
     ("Video", "SUBSCRIBE_VIDEOCAPTURE"),
     ("Desktop", "SUBSCRIBE_DESKTOP"),

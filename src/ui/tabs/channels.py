@@ -200,11 +200,11 @@ class ChannelsTab(wx.Panel):
         name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername)
         flags = []
         if user.uUserType & tt.UserType.USERTYPE_ADMIN:
-            flags.append("ADMIN")
+            flags.append("Admin")
         if user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE:
-            flags.append("MUTED")
+            flags.append("Stumm")
         if user.uUserState & tt.UserState.USERSTATE_VOICE:
-            flags.append("VOICE")
+            flags.append("Spricht")
         if flags:
             return f"{name} ({', '.join(flags)})"
         return name
@@ -337,7 +337,7 @@ class ChannelsTab(wx.Panel):
             ("Mediendatei", tt.Subscription.SUBSCRIBE_MEDIAFILE),
             ("Benutzernachrichten", tt.Subscription.SUBSCRIBE_USER_MSG),
             ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
-            ("Broadcast", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
+            ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
             ("Desktop-Steuerung", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
             ("Desktop-Intercept", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),

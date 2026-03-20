@@ -156,7 +156,7 @@ class AdminTab(wx.Panel):
         self._accounts.append(account)
         tt = self.frame.client.tt
         idx = self.account_list.InsertItem(self.account_list.GetItemCount(), tt_str(account.szUsername))
-        utype = "Admin" if account.uUserType & tt.UserType.USERTYPE_ADMIN else "Standard"
+        utype = "Administrator" if account.uUserType & tt.UserType.USERTYPE_ADMIN else "Standard"
         self.account_list.SetItem(idx, 1, utype)
         self.account_list.SetItem(idx, 2, tt_str(account.szNote))
 
@@ -225,7 +225,7 @@ class AdminTab(wx.Panel):
                 else:
                     wx.CallAfter(self.frame.set_status, f"Konto konnte nicht gelöscht werden: {username}")
             except Exception as e:
-                wx.CallAfter(self.frame.set_status, f"Fehler beim Loeschen des Kontos: {e}")
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Löschen des Kontos: {e}")
             finally:
                 wx.CallAfter(self.del_account_btn.Enable)
 
@@ -383,8 +383,8 @@ class _NewAccountDialog(wx.Dialog):
         self._note.SetName("Notiz")
         form.Add(self._note, 1, wx.EXPAND)
 
-        self._admin_check = wx.CheckBox(self, label="Admin")
-        self._admin_check.SetName("Admin")
+        self._admin_check = wx.CheckBox(self, label="Administrator")
+        self._admin_check.SetName("Administrator")
 
         sizer.Add(form, 0, wx.ALL | wx.EXPAND, 12)
         sizer.Add(self._admin_check, 0, wx.LEFT | wx.BOTTOM, 12)

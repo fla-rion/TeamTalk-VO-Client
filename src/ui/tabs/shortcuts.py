@@ -23,7 +23,7 @@ class ShortcutsTab(wx.Panel):
 
         self._rows = []
         self._rows.append(self._make_row("Alles stummschalten", "hotkey_mute_all"))
-        self._rows.append(self._make_row("Voice Activation umschalten", "hotkey_voice_activation"))
+        self._rows.append(self._make_row("Sprachaktivierung umschalten", "hotkey_voice_activation"))
         self._rows.append(self._make_row("Video senden umschalten", "hotkey_video_tx"))
 
         for row in self._rows:
@@ -73,7 +73,7 @@ class ShortcutsTab(wx.Panel):
             if label is None:
                 return
             if capturing:
-                label.SetLabel("(Taste druecken...)")
+                label.SetLabel("(Taste drücken...)")
             else:
                 self.update_labels()
             return

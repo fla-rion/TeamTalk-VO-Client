@@ -303,13 +303,13 @@ class MainFrame(wx.Frame):
 
         self.tb_ptt = wx.ToggleButton(qa_panel, label="PTT")
         self.tb_ptt.SetName("Push-to-Talk")
-        self.tb_va = wx.ToggleButton(qa_panel, label="VA")
-        self.tb_va.SetName("Voice Activation")
+        self.tb_va = wx.ToggleButton(qa_panel, label="Sprachaktivierung")
+        self.tb_va.SetName("Sprachaktivierung")
         self.tb_video = wx.ToggleButton(qa_panel, label="Video")
         self.tb_video.SetName("Video senden")
         self.tb_desktop = wx.ToggleButton(qa_panel, label="Desktop")
         self.tb_desktop.SetName("Desktop freigeben")
-        self.tb_mute = wx.ToggleButton(qa_panel, label="Mute")
+        self.tb_mute = wx.ToggleButton(qa_panel, label="Stumm")
         self.tb_mute.SetName("Alles stummschalten")
         self.tb_record = wx.ToggleButton(qa_panel, label="Aufnahme")
         self.tb_record.SetName("Aufnahme")
@@ -568,8 +568,8 @@ class MainFrame(wx.Frame):
         sound_menu = wx.Menu()
         self._sound_input_menu = wx.Menu()
         self._sound_output_menu = wx.Menu()
-        sound_menu.AppendSubMenu(self._sound_input_menu, "Eingabegeraete")
-        sound_menu.AppendSubMenu(self._sound_output_menu, "Ausgabegeraete")
+        sound_menu.AppendSubMenu(self._sound_input_menu, "Eingabegeräte")
+        sound_menu.AppendSubMenu(self._sound_output_menu, "Ausgabegeräte")
         sound_menu.AppendSeparator()
         sound_settings = sound_menu.Append(wx.ID_ANY, "Audio-Einstellungen...")
         sound_apply = sound_menu.Append(wx.ID_ANY, "Audio anwenden")
@@ -584,12 +584,12 @@ class MainFrame(wx.Frame):
         con_disconnect = file_menu.Append(wx.ID_ANY, "Trennen")
         con_reconnect = file_menu.Append(wx.ID_ANY, "Neu verbinden")
         file_menu.AppendSeparator()
-        con_autoreconnect = file_menu.AppendCheckItem(wx.ID_ANY, "Auto-Reconnect")
+        con_autoreconnect = file_menu.AppendCheckItem(wx.ID_ANY, "Automatisch neu verbinden")
         file_menu.AppendSeparator()
         con_join_root = file_menu.Append(wx.ID_ANY, "Root-Kanal beitreten")
         con_leave = file_menu.Append(wx.ID_ANY, "Kanal verlassen")
         file_menu.AppendSeparator()
-        con_server_check = file_menu.Append(wx.ID_ANY, "Server checken")
+        con_server_check = file_menu.Append(wx.ID_ANY, "Server prüfen")
         file_menu.AppendSeparator()
         import_servers = file_menu.Append(wx.ID_ANY, "Serverliste importieren...")
         export_servers = file_menu.Append(wx.ID_ANY, "Serverliste exportieren...")
@@ -613,7 +613,7 @@ class MainFrame(wx.Frame):
         chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
         chan_stats_speak = chan_menu.Append(wx.ID_ANY, "Kanalstatistik vorlesen")
         chan_state_speak = chan_menu.Append(wx.ID_ANY, "Kanalzustand vorlesen")
-        chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL fuer Kanal kopieren")
+        chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL für Kanal kopieren")
         chan_bans = chan_menu.Append(wx.ID_ANY, "Sperren im Kanal anzeigen...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
         chan_menu.AppendSeparator()
@@ -680,7 +680,7 @@ class MainFrame(wx.Frame):
         server_broadcast = server_menu.Append(wx.ID_ANY, "Servernachricht senden...")
         server_stats = server_menu.Append(wx.ID_ANY, "Serverstatistiken...")
         server_bans = server_menu.Append(wx.ID_ANY, "Sperren (Server) anzeigen...")
-        server_admin = server_menu.Append(wx.ID_ANY, "Administration oeffnen")
+        server_admin = server_menu.Append(wx.ID_ANY, "Administration öffnen")
         server_props = server_menu.Append(wx.ID_ANY, "Servereigenschaften...")
         server_save_config = server_menu.Append(wx.ID_ANY, "Konfiguration speichern")
         menubar.Append(server_menu, "Server")
@@ -690,7 +690,7 @@ class MainFrame(wx.Frame):
         profile_nick = profile_menu.Append(wx.ID_ANY, "Nickname ändern...")
         profile_status = profile_menu.Append(wx.ID_ANY, "Status setzen...")
         profile_question = profile_menu.AppendCheckItem(wx.ID_ANY, "Frage-Modus")
-        profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hoeren")
+        profile_hear = profile_menu.AppendCheckItem(wx.ID_ANY, "Mich selbst hören")
         profile_tts = profile_menu.AppendCheckItem(wx.ID_ANY, "TTS aktiv")
         profile_desktop = profile_menu.AppendCheckItem(wx.ID_ANY, "Desktop senden")
         profile_menu.AppendSeparator()
@@ -705,7 +705,7 @@ class MainFrame(wx.Frame):
         # Audio
         audio_menu = wx.Menu()
         audio_ptt = audio_menu.AppendCheckItem(wx.ID_ANY, "Push-to-Talk")
-        audio_va = audio_menu.AppendCheckItem(wx.ID_ANY, "Voice Activation")
+        audio_va = audio_menu.AppendCheckItem(wx.ID_ANY, "Sprachaktivierung")
         audio_menu.AppendSeparator()
         audio_settings = audio_menu.Append(wx.ID_ANY, "Audio-Einstellungen...")
         audio_menu.AppendSeparator()
@@ -1098,7 +1098,7 @@ class MainFrame(wx.Frame):
         _flag("Solo-Transmit (nur ein Sprecher)", tt.ChannelType.CHANNEL_SOLO_TRANSMIT)
         _flag("Classroom (Operator steuert Sprechen)", tt.ChannelType.CHANNEL_CLASSROOM)
         _flag("Operator nur Empfang", tt.ChannelType.CHANNEL_OPERATOR_RECVONLY)
-        _flag("Keine Voice Activation", tt.ChannelType.CHANNEL_NO_VOICEACTIVATION)
+        _flag("Keine Sprachaktivierung", tt.ChannelType.CHANNEL_NO_VOICEACTIVATION)
         _flag("Keine Aufnahmen", tt.ChannelType.CHANNEL_NO_RECORDING)
         _flag("Versteckter Kanal", tt.ChannelType.CHANNEL_HIDDEN)
         root.Add(type_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
@@ -1424,14 +1424,14 @@ class MainFrame(wx.Frame):
         self.ban_dialog = None
 
     def on_menu_open_admin(self, _event):
-        if not self._require_connected("Administration oeffnen"):
+        if not self._require_connected("Administration öffnen"):
             return
         if not self._select_tab_by_label("Administration"):
             self._replace_lazy_tab("admin", AdminTab)
             self._select_tab_by_label("Administration")
 
     def on_menu_server_properties(self, _event):
-        if not self._require_connected("Servereigenschaften oeffnen"):
+        if not self._require_connected("Servereigenschaften öffnen"):
             return
         if not self._select_tab_by_label("Administration"):
             self._replace_lazy_tab("admin", AdminTab)
@@ -1463,7 +1463,7 @@ class MainFrame(wx.Frame):
             return
         stats = self.client.get_client_statistics()
         if stats is None:
-            self.set_status("Keine Statistik verfuegbar")
+            self.set_status("Keine Statistik verfügbar")
             return
         udp = int(getattr(stats, "nUdpPingTimeMs", 0) or 0)
         tcp = int(getattr(stats, "nTcpPingTimeMs", 0) or 0)
@@ -1576,7 +1576,7 @@ class MainFrame(wx.Frame):
         enabled = event.IsChecked()
         tab = self._ensure_desktop_tab()
         if tab is None:
-            self.set_status("Desktop-Tab nicht verfuegbar")
+            self.set_status("Desktop-Tab nicht verfügbar")
             return
         tab.share_toggle.SetValue(enabled)
         tab.on_share_toggle(wx.CommandEvent())
@@ -1683,7 +1683,7 @@ class MainFrame(wx.Frame):
             return
         chan_id = self._get_selected_channel_id()
         if not chan_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         channel = self.client.get_channel(chan_id)
         if not channel:
@@ -1751,7 +1751,7 @@ class MainFrame(wx.Frame):
             return
         chan_id = self._get_selected_channel_id()
         if not chan_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         dlg = wx.MessageDialog(self, "Kanal wirklich löschen?", "Kanal löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Ja", "Nein")
@@ -1796,7 +1796,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         channel = self.client.get_channel(int(channel_id))
         if channel is None:
@@ -1820,7 +1820,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         channel = self.client.get_channel(int(channel_id))
         if channel is None:
@@ -1839,7 +1839,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         users = list(self.client.get_channel_users(int(channel_id)))
         count = len(users)
@@ -1850,7 +1850,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id() or self.client.get_my_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         tt = self.client.tt
         users = list(self.client.get_channel_users(int(channel_id)))
@@ -1875,7 +1875,7 @@ class MainFrame(wx.Frame):
         self.set_status(text)
 
     def on_menu_channel_tt_url(self, _event):
-        if not self._require_connected("TT-URL fuer Kanal"):
+        if not self._require_connected("TT-URL für Kanal"):
             return
         profile = self.connection_tab.profile_from_form()
         if not profile:
@@ -1901,7 +1901,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         dlg = BanListDialog(self, self, "Sperren im Kanal")
         self.ban_dialog = dlg
@@ -1923,7 +1923,7 @@ class MainFrame(wx.Frame):
             return
         chan_id = self.client.get_my_channel_id() or self._get_selected_channel_id()
         if not chan_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         msg = self._ask_text("Kanalnachricht", "Nachricht:")
         if not msg:
@@ -1975,7 +1975,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         details = [
             f"Nickname: {self.tt_str(user.szNickname)}",
@@ -1993,7 +1993,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         nick = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or "Benutzer"
         msg = self._ask_text("Private Nachricht", f"Nachricht an {nick}:")
@@ -2009,7 +2009,7 @@ class MainFrame(wx.Frame):
             return
         channel_id = self._get_selected_channel_id()
         if not channel_id:
-            self.set_status("Kein Kanal ausgewaehlt")
+            self.set_status("Kein Kanal ausgewählt")
             return
         self._move_target_channel_id = int(channel_id)
         channel = self.client.get_channel(int(channel_id))
@@ -2021,7 +2021,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         if not self._move_target_channel_id:
             self.set_status("Kein Zielkanal gespeichert")
@@ -2036,7 +2036,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         nickname = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
@@ -2057,7 +2057,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE)
@@ -2069,7 +2069,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         muted = bool(user.uUserState & tt.UserState.USERSTATE_MUTE_MEDIAFILE)
@@ -2086,7 +2086,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         # Intercept-Abonnement toggeln: weiterleiten = SUBSCRIBE_INTERCEPT_VOICE aktivieren
@@ -2104,7 +2104,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
@@ -2121,7 +2121,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         current = self._get_user_volume_level(int(user.nUserID))
         dlg = wx.NumberEntryDialog(self, "Lautstärke (0–32000)", "Lautstärke:", "Benutzerlautstärke", current, 0, 32000)
@@ -2139,7 +2139,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         current = self._get_user_volume_level(int(user.nUserID))
         new_level = self._set_user_volume_level(int(user.nUserID), current + 1000)
@@ -2150,7 +2150,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         current = self._get_user_volume_level(int(user.nUserID))
         new_level = self._set_user_volume_level(int(user.nUserID), current - 1000)
@@ -2161,7 +2161,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         my_ch = self.client.get_my_channel_id()
         if not my_ch:
@@ -2176,7 +2176,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         my_ch = self.client.get_my_channel_id()
         if not my_ch:
@@ -2196,7 +2196,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
@@ -2209,7 +2209,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
@@ -2231,7 +2231,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken?", "Vom Server kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Ja", "Nein")
@@ -2248,7 +2248,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
@@ -2268,7 +2268,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         my_ch = self.client.get_my_channel_id()
         if not my_ch:
@@ -2294,7 +2294,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         flags = [
@@ -2303,7 +2303,7 @@ class MainFrame(wx.Frame):
             ("Mediendatei", tt.Subscription.SUBSCRIBE_MEDIAFILE),
             ("Benutzernachrichten", tt.Subscription.SUBSCRIBE_USER_MSG),
             ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
-            ("Broadcast", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
+            ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
             ("Intercept Benutzer-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
             ("Intercept Kanal-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
@@ -2344,7 +2344,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         channels = list(self.client.get_server_channels())
         if not channels:
@@ -2379,7 +2379,7 @@ class MainFrame(wx.Frame):
             return
         user = self._get_selected_user()
         if not user:
-            self.set_status("Kein Benutzer ausgewaehlt")
+            self.set_status("Kein Benutzer ausgewählt")
             return
         tt = self.client.tt
         current = int(getattr(user, "uLocalSubscriptions", 0) or 0)
@@ -2447,7 +2447,7 @@ class MainFrame(wx.Frame):
                 target_idx = idx
                 break
         if target_idx is None:
-            self.set_status("Geraet nicht gefunden")
+            self.set_status("Gerät nicht gefunden")
             return
         choice.SetSelection(target_idx)
         self.audio_tab.on_apply_audio(None)
@@ -2486,7 +2486,7 @@ class MainFrame(wx.Frame):
             self.client.enable_voice_transmission(True)
         if not enabled and not self._ptt_enabled:
             self.client.enable_voice_transmission(False)
-        self.set_status("Voice Activation an" if enabled else "Voice Activation aus")
+        self.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
 
     def on_menu_audio_apply(self, _event):
         self.audio_tab.on_apply_audio(None)
@@ -2532,7 +2532,7 @@ class MainFrame(wx.Frame):
         if not self._require_connected("Aufnahme starten"):
             return
         if self._recording_active:
-            self.set_status("Aufnahme laeuft bereits")
+            self.set_status("Aufnahme läuft bereits")
             return
         fmt = self._record_format_dialog()
         if not fmt:
@@ -2798,7 +2798,7 @@ class MainFrame(wx.Frame):
             return
 
         self.connection_tab.server_check_btn.Disable()
-        self.set_status("Pruefe Serverliste...")
+        self.set_status("Prüfe Serverliste...")
 
         def _short_error(text: str, max_len: int = 380) -> str:
             cleaned = " ".join((text or "").split())
@@ -3424,13 +3424,13 @@ class MainFrame(wx.Frame):
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
             no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
             if err and no:
-                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {err} ({no})")
+                wx.CallAfter(self.set_status, f"Verschlüsselungsfehler: {err} ({no})")
             elif err:
-                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {err}")
+                wx.CallAfter(self.set_status, f"Verschlüsselungsfehler: {err}")
             elif no:
-                wx.CallAfter(self.set_status, f"Verschluesselungsfehler: {no}")
+                wx.CallAfter(self.set_status, f"Verschlüsselungsfehler: {no}")
             else:
-                wx.CallAfter(self.set_status, "Verschluesselungsfehler")
+                wx.CallAfter(self.set_status, "Verschlüsselungsfehler")
         elif event == tt.ClientEvent.CLIENTEVENT_INTERNAL_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
             no = int(getattr(msg.clienterrormsg, "nErrorNo", 0) or 0)
@@ -3645,7 +3645,7 @@ class MainFrame(wx.Frame):
             elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
                 wx.CallAfter(self._send_notification, "Kanalnachricht", f"{from_user}: {content}")
             elif msg_type == int(tt.TextMsgType.MSGTYPE_BROADCAST):
-                wx.CallAfter(self._send_notification, "Broadcast", f"{from_user}: {content}")
+                wx.CallAfter(self._send_notification, "Rundnachricht", f"{from_user}: {content}")
 
     def emit_system_message(self, text: str, speak: bool = False) -> None:
         self.system_tab.append_system(text)
@@ -3708,7 +3708,7 @@ class App(wx.App):
 
 
 def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
-    result_data: Dict[str, object] = {"ok": False, "message": "Probe-Parameter ungueltig", "names": []}
+    result_data: Dict[str, object] = {"ok": False, "message": "Probe-Parameter ungültig", "names": []}
     scanner = TeamTalkClient()
     try:
         host = str(payload.get("host", ""))
@@ -3757,7 +3757,7 @@ def _probe_server_payload(payload: Dict[str, object]) -> Dict[str, object]:
             tls_try = _probe_connect(username, password, 6, use_encrypted=True)
             if tls_try.ok:
                 result = tls_try
-                tls_hint = "Hinweis: Server erwartet TLS (verschluesselt)."
+                tls_hint = "Hinweis: Server erwartet TLS (verschlüsselt)."
         if not result.ok:
             result_data = {"ok": False, "message": result.message, "names": []}
         else:

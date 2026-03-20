@@ -363,12 +363,12 @@ class AudioTab(wx.Panel):
         if announce and status_ready:
             text = f"Geräteliste aktualisiert: {len(inputs)} Eingabe, {len(outputs)} Ausgabe"
             if not restarted:
-                text += " (Soundsystem-Reset nicht verfuegbar)"
+                text += " (Soundsystem-Reset nicht verfügbar)"
             elif not changed:
-                text += " (keine Aenderung erkannt)"
+                text += " (keine Änderung erkannt)"
             self.frame.set_status(text)
         elif changed and status_ready:
-            self.frame.set_status(f"Neue Audiogeraete erkannt: {len(inputs)} Eingabe, {len(outputs)} Ausgabe")
+            self.frame.set_status(f"Neue Audiogeräte erkannt: {len(inputs)} Eingabe, {len(outputs)} Ausgabe")
 
     def _select_device(self, choice: wx.Choice, devices: list, targets: tuple) -> None:
         for target in targets:
@@ -446,7 +446,7 @@ class AudioTab(wx.Panel):
 
         if self.voice_activation.GetValue() and not self.frame._ptt_enabled:
             client.enable_voice_transmission(True)
-        self.frame.set_status("Audiogeraete aktiviert")
+        self.frame.set_status("Audiogeräte aktiviert")
 
     # --- Voice controls ---
 
@@ -678,7 +678,7 @@ class AudioTab(wx.Panel):
 
     def _on_capture_hotkey(self, _event) -> None:
         self.frame._capture_ptt_hotkey = True
-        self.ptt_hotkey_label.SetLabel("PTT-Hotkey: (Taste druecken...)")
+        self.ptt_hotkey_label.SetLabel("PTT-Hotkey: (Taste drücken...)")
         self.frame.set_status("PTT-Hotkey Aufnahme gestartet (ESC = Abbruch)")
 
     def update_ptt_hotkey_label(self) -> None:

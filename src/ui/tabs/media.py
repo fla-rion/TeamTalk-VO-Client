@@ -706,7 +706,7 @@ class MediaTab(wx.Panel):
             return
 
         self.yt_search_btn.Disable()
-        self.yt_status.SetLabel("Status: Suche laeuft...")
+        self.yt_status.SetLabel("Status: Suche läuft...")
 
         def worker():
             try:
@@ -1158,7 +1158,7 @@ class MediaTab(wx.Panel):
             self.frame.set_status("Bitte Suchbegriff eingeben")
             return
         self.radio_search_btn.Disable()
-        self.frame.set_status("Webradio-Suche laeuft...")
+        self.frame.set_status("Webradio-Suche läuft...")
 
         def worker():
             try:

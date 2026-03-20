@@ -188,8 +188,8 @@ class TeamTalkClient:
         if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             detail = self._message_error_detail(msg)
             if detail:
-                return ConnectResult(False, f"Verschluesselungsfehler: {detail} ({self._last_encryption_context_info})")
-            return ConnectResult(False, f"Verschluesselungsfehler ({self._last_encryption_context_info})")
+                return ConnectResult(False, f"Verschlüsselungsfehler: {detail} ({self._last_encryption_context_info})")
+            return ConnectResult(False, f"Verschlüsselungsfehler ({self._last_encryption_context_info})")
         return ConnectResult(True, "ok")
 
     def _get_connect_start_error_detail(self, timeout_ms: int = 400) -> str:
@@ -201,7 +201,7 @@ class TeamTalkClient:
             if event == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 continue
             if event == self.tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
-                return "Verschluesselungsfehler"
+                return "Verschlüsselungsfehler"
             if event == self.tt.ClientEvent.CLIENTEVENT_CON_FAILED:
                 return "Verbindung fehlgeschlagen"
             if event in (
@@ -426,7 +426,7 @@ class TeamTalkClient:
 
         segments = [seg for seg in alt_normalized.split("/") if seg]
         if not segments:
-            return ConnectResult(False, "Ungueltiger Kanalpfad")
+            return ConnectResult(False, "Ungültiger Kanalpfad")
 
         current_path = ""
         parent_id = self.get_root_channel_id()
@@ -602,7 +602,7 @@ class TeamTalkClient:
             if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                 return ConnectResult(False, "Kanal erstellen fehlgeschlagen: Timeout")
             return ConnectResult(False, "Kanal erstellen fehlgeschlagen")
-        return ConnectResult(True, "Kanal erstellt (temporaer)")
+        return ConnectResult(True, "Kanal erstellt (temporär)")
 
     def update_channel(self, channel, timeout_ms: int = 4000) -> ConnectResult:
         cmdid = self.client.doUpdateChannel(channel)
@@ -639,9 +639,9 @@ class TeamTalkClient:
         cmdid = self.client.doLogout()
         ok, _ = self._wait_for_cmd_success(cmdid, timeout_ms)
         if not ok:
-            return ConnectResult(False, "Logout fehlgeschlagen")
+            return ConnectResult(False, "Abmelden fehlgeschlagen")
         self._connected = False
-        return ConnectResult(True, "Logout erfolgreich")
+        return ConnectResult(True, "Abmelden erfolgreich")
 
     def get_server_channels(self):
         return self.client.getServerChannels()

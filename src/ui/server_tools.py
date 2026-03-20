@@ -17,7 +17,7 @@ class BroadcastMessageDialog(wx.Dialog):
         sizer.Add(wx.StaticText(self, label="Nachricht an alle verbundenen Nutzer senden:"), 0, wx.ALL, 8)
 
         self.message = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_RICH2)
-        self.message.SetName("Broadcast Nachricht")
+        self.message.SetName("Rundnachricht")
         self.message.SetMinSize((520, 180))
         sizer.Add(self.message, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 

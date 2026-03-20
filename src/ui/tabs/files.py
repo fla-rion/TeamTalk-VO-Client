@@ -54,7 +54,7 @@ class FilesTab(wx.Panel):
         transfer_box = wx.StaticBox(self, label="Dateiübertragung")
         transfer_sizer = wx.StaticBoxSizer(transfer_box, wx.VERTICAL)
         self.transfer_gauge = wx.Gauge(transfer_box, range=100)
-        self.transfer_gauge.SetName("Transfer-Fortschritt")
+        self.transfer_gauge.SetName("Übertragungsfortschritt")
         transfer_sizer.Add(self.transfer_gauge, 0, wx.ALL | wx.EXPAND, 8)
         sizer.Add(transfer_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
