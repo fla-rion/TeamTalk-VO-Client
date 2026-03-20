@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.15)
+- Handbuch-Dialog repariert: wx.html.HtmlWindow durch zuverlässiges
+  wx.TextCtrl (mehrzeilig, schreibgeschützt) ersetzt – Inhalt wurde
+  zuvor nicht angezeigt.
+- Handbuch vollständig neu geschrieben: alle 15 Tabs, vollständige
+  Menüleiste, Push-to-Talk, Sprachaktivierung, TTS, Plattform-
+  unterschiede macOS/Windows/Linux, direkt eingebettet in app.py.
+
 2026-03-20 (v0.10.14)
 - Absturz beim Beenden behoben (macOS "unerwartet beendet"-Dialog):
     - App.OnExit: os._exit(0) verhindert PyObjC-Destruktor-Crash.
