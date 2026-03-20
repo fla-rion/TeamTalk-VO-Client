@@ -59,9 +59,9 @@ class AudioTab(wx.Panel):
         self.voice_level.SetName("Aktivierungspegel")
         self.voice_level.Bind(wx.EVT_SLIDER, self.on_voice_level)
 
-        lbl_delay = wx.StaticText(self, label="VA Nachlauf (ms)")
+        lbl_delay = wx.StaticText(self, label="Nachlauf (ms)")
         self.va_delay = wx.Slider(self, value=0, minValue=0, maxValue=5000)
-        self.va_delay.SetName("VA Nachlauf")
+        self.va_delay.SetName("Sprachaktivierung Nachlauf")
         self.va_delay.Bind(wx.EVT_SLIDER, self.on_va_delay)
 
         va_form.Add(lbl_va, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -149,7 +149,7 @@ class AudioTab(wx.Panel):
         actions_box = wx.StaticBox(self, label="Aktionen")
         actions_sizer = wx.StaticBoxSizer(actions_box, wx.VERTICAL)
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.duplex_mode = wx.CheckBox(self, label="Duplex-Modus verwenden (Input/Output gekoppelt)")
+        self.duplex_mode = wx.CheckBox(self, label="Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)")
         self.duplex_mode.SetName("Duplex-Modus")
         mode_row.Add(self.duplex_mode, 1, wx.EXPAND)
         actions_sizer.Add(mode_row, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)

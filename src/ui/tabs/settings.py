@@ -62,7 +62,7 @@ class SettingsTab(wx.Panel):
         top_row.Add(wx.StaticText(self, label="Bereich"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.section_choice = wx.Choice(self, choices=[
             "Allgemein", "Anzeige", "Verbindung", "Sound-Ereignisse",
-            "Audio", "Video", "Shortcuts", "System & TTS",
+            "Audio", "Video", "Tastenkürzel", "System & TTS",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -98,7 +98,7 @@ class SettingsTab(wx.Panel):
             "Sound-Ereignisse": self.sound_events_tab,
             "Audio": self.audio_tab,
             "Video": self.video_tab,
-            "Shortcuts": self.shortcuts_tab,
+            "Tastenkürzel": self.shortcuts_tab,
             "System & TTS": self.system_tab,
         }
 

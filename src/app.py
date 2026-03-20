@@ -645,8 +645,8 @@ class MainFrame(wx.Frame):
         user_adv = wx.Menu()
         user_vol_up = user_adv.Append(wx.ID_ANY, "Lauter\tCtrl+Right")
         user_vol_down = user_adv.Append(wx.ID_ANY, "Leiser\tCtrl+Left")
-        user_relay_voice = user_adv.Append(wx.ID_ANY, "Voice Stream weiterleiten")
-        user_relay_media = user_adv.Append(wx.ID_ANY, "Media Stream weiterleiten")
+        user_relay_voice = user_adv.Append(wx.ID_ANY, "Sprachstream weiterleiten")
+        user_relay_media = user_adv.Append(wx.ID_ANY, "Medienstream weiterleiten")
         user_menu.AppendSubMenu(user_adv, "Erweitert")
         user_menu.AppendSeparator()
         user_op = user_menu.Append(wx.ID_ANY, "Operator geben/nehmen")
@@ -657,7 +657,7 @@ class MainFrame(wx.Frame):
         user_kick_ban_server = user_kick_menu.Append(wx.ID_ANY, "Vom Server kicken + Bannen...")
         user_kick_menu.AppendSeparator()
         user_ban = user_kick_menu.Append(wx.ID_ANY, "Bannen...")
-        user_menu.AppendSubMenu(user_kick_menu, "Kick / Sperren")
+        user_menu.AppendSubMenu(user_kick_menu, "Kicken / Sperren")
         user_tx_menu = wx.Menu()
         user_tx_voice = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Sprache senden")
         user_tx_video = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Video senden")
@@ -1095,8 +1095,8 @@ class MainFrame(wx.Frame):
             type_box.Add(cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
             return cb
 
-        _flag("Solo-Transmit (nur ein Sprecher)", tt.ChannelType.CHANNEL_SOLO_TRANSMIT)
-        _flag("Classroom (Operator steuert Sprechen)", tt.ChannelType.CHANNEL_CLASSROOM)
+        _flag("Nur ein Sprecher gleichzeitig (Solo)", tt.ChannelType.CHANNEL_SOLO_TRANSMIT)
+        _flag("Unterrichtsmodus (Operator steuert Sprecher)", tt.ChannelType.CHANNEL_CLASSROOM)
         _flag("Operator nur Empfang", tt.ChannelType.CHANNEL_OPERATOR_RECVONLY)
         _flag("Keine Sprachaktivierung", tt.ChannelType.CHANNEL_NO_VOICEACTIVATION)
         _flag("Keine Aufnahmen", tt.ChannelType.CHANNEL_NO_RECORDING)
@@ -1174,7 +1174,7 @@ class MainFrame(wx.Frame):
         spx_vbr = wx.CheckBox(dlg, label="Variable Bitrate (VBR)")
         lbl_spx_maxbr = wx.StaticText(dlg, label="Max. Bitrate (bps, 0=aus)")
         spx_maxbr = wx.SpinCtrl(dlg, min=0, max=128000, initial=0)
-        spx_dtx = wx.CheckBox(dlg, label="DTX")
+        spx_dtx = wx.CheckBox(dlg, label="Stille ignorieren (DTX)")
         for lbl, ctrl in [(lbl_spx_sr, spx_sr), (lbl_spx_q, spx_q),
                           (lbl_spx_tx, spx_tx), (lbl_spx_maxbr, spx_maxbr)]:
             speex_form.Add(lbl, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -1194,7 +1194,7 @@ class MainFrame(wx.Frame):
         fixed_vol_spin = wx.SpinCtrl(dlg, min=0, max=32000, initial=0)
         lbl_voice_timeout = wx.StaticText(dlg, label="Max. Sprachdauer (Sek., 0=aus)")
         voice_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
-        lbl_media_timeout = wx.StaticText(dlg, label="Max. Mediadauer (Sek., 0=aus)")
+        lbl_media_timeout = wx.StaticText(dlg, label="Max. Mediendauer (Sek., 0=aus)")
         media_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
         audio_adv_form.AddSpacer(0)
         audio_adv_form.Add(fixed_vol_check, 0)
@@ -2082,7 +2082,7 @@ class MainFrame(wx.Frame):
         self.set_status("Ausgabe stummgeschaltet" if self._mute_all else "Ausgabe aktiv")
 
     def on_menu_user_relay_voice(self, _event):
-        if not self._require_connected("Voice Stream weiterleiten"):
+        if not self._require_connected("Sprachstream weiterleiten"):
             return
         user = self._get_selected_user()
         if not user:
@@ -2094,13 +2094,13 @@ class MainFrame(wx.Frame):
         flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE)
         if current & flag:
             self.client.do_unsubscribe(int(user.nUserID), flag)
-            self.set_status("Voice Stream Weiterleitung deaktiviert")
+            self.set_status("Sprachstream-Weiterleitung deaktiviert")
         else:
             self.client.do_subscribe(int(user.nUserID), flag)
-            self.set_status("Voice Stream wird weitergeleitet")
+            self.set_status("Sprachstream wird weitergeleitet")
 
     def on_menu_user_relay_media(self, _event):
-        if not self._require_connected("Media Stream weiterleiten"):
+        if not self._require_connected("Medienstream weiterleiten"):
             return
         user = self._get_selected_user()
         if not user:
@@ -2111,10 +2111,10 @@ class MainFrame(wx.Frame):
         flag = int(tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE)
         if current & flag:
             self.client.do_unsubscribe(int(user.nUserID), flag)
-            self.set_status("Media Stream Weiterleitung deaktiviert")
+            self.set_status("Medienstream-Weiterleitung deaktiviert")
         else:
             self.client.do_subscribe(int(user.nUserID), flag)
-            self.set_status("Media Stream wird weitergeleitet")
+            self.set_status("Medienstream wird weitergeleitet")
 
     def on_menu_user_volume(self, _event):
         if not self._require_connected("Benutzerlautstärke"):
@@ -2182,7 +2182,7 @@ class MainFrame(wx.Frame):
         if not my_ch:
             self.set_status("Kein eigener Kanal")
             return
-        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken?", "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
@@ -2205,7 +2205,7 @@ class MainFrame(wx.Frame):
         self.set_status("Benutzer gebannt")
 
     def on_menu_user_kick_ban(self, _event):
-        if not self._require_connected("Kick + Ban (Kanal)"):
+        if not self._require_connected("Kicken + Bannen (Kanal)"):
             return
         user = self._get_selected_user()
         if not user:
@@ -2214,7 +2214,7 @@ class MainFrame(wx.Frame):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken und bannen?", "Kick + Ban", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, "Benutzer wirklich kicken und bannen?", "Kicken + Bannen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
@@ -2253,7 +2253,7 @@ class MainFrame(wx.Frame):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken und bannen?", "Kick + Ban (Server)", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg = wx.MessageDialog(self, "Benutzer wirklich vom Server kicken und bannen?", "Kicken + Bannen (Server)", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
@@ -2305,13 +2305,13 @@ class MainFrame(wx.Frame):
             ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
             ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
-            ("Intercept Benutzer-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
-            ("Intercept Kanal-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
-            ("Intercept Voice", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
-            ("Intercept Video", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
-            ("Intercept Desktop", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
-            ("Intercept Mediafile", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
-            ("Intercept Custom", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
+            ("Benutzernachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
+            ("Kanalnachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
+            ("Sprache abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
+            ("Video abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
+            ("Desktop abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
+            ("Mediendatei abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
+            ("Benutzerdefiniert abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
         ]
         dlg = wx.Dialog(self, title="Abonnements")
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
@@ -2678,7 +2678,7 @@ class MainFrame(wx.Frame):
         parts: List[str] = []
         parts.append(f"TeamTalk VoiceOver Client {APP_VERSION}")
         parts.append("Entwickler: Flarion")
-        parts.append("Hinweis: Beta-Tester werden spaeter aufgefuehrt.")
+        parts.append("Hinweis: Beta-Tester werden später aufgeführt.")
         parts.append("")
         parts.append("Bestandteile:")
         parts.append("- TeamTalk SDK (BearWare)")
@@ -2707,7 +2707,7 @@ class MainFrame(wx.Frame):
                 continue
 
         parts.append("")
-        parts.append("Weitere Abhaengigkeiten sind enthalten; falls Lizenztexte fehlen,")
+        parts.append("Weitere Abhängigkeiten sind enthalten; falls Lizenztexte fehlen,")
         parts.append("bitte die jeweiligen Projekte konsultieren.")
         return "\n".join(parts)
 

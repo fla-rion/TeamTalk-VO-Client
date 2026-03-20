@@ -14,7 +14,7 @@ class ShortcutsTab(wx.Panel):
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
         self.frame = frame
-        self.SetName("Shortcuts")
+        self.SetName("Tastenkürzel")
 
         root = wx.BoxSizer(wx.VERTICAL)
 

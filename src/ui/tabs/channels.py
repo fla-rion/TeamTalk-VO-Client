@@ -340,13 +340,13 @@ class ChannelsTab(wx.Panel):
             ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
             ("Desktop-Steuerung", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
-            ("Desktop-Intercept", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
-            ("Intercept Benutzer-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
-            ("Intercept Kanal-Msg", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
-            ("Intercept Voice", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
-            ("Intercept Video", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
-            ("Intercept Mediafile", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
-            ("Intercept Custom", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
+            ("Desktop abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
+            ("Benutzernachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
+            ("Kanalnachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
+            ("Sprache abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
+            ("Video abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
+            ("Mediendatei abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
+            ("Benutzerdefiniert abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
         ]
         sub_items = []
         current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
@@ -363,8 +363,8 @@ class ChannelsTab(wx.Panel):
 
         ban_item = menu.Append(wx.ID_ANY, "Bannen...")
         move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
-        kick_item = menu.Append(wx.ID_ANY, "Kick")
-        kick_ban_item = menu.Append(wx.ID_ANY, "Kick + Ban")
+        kick_item = menu.Append(wx.ID_ANY, "Kicken")
+        kick_ban_item = menu.Append(wx.ID_ANY, "Kicken + Bannen")
         desktop_access_item = menu.Append(wx.ID_ANY, "Desktop-Zugriff erlauben")
 
         # Bind handlers
@@ -429,7 +429,7 @@ class ChannelsTab(wx.Panel):
             return
         dlg = wx.MessageDialog(
             self, "Benutzer wirklich kicken?",
-            "Kick", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:
@@ -449,7 +449,7 @@ class ChannelsTab(wx.Panel):
             return
         dlg = wx.MessageDialog(
             self, "Benutzer wirklich kicken und bannen?",
-            "Kick + Ban", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            "Kicken + Bannen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() != wx.ID_YES:

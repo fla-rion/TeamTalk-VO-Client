@@ -3,6 +3,8 @@ Changelog
 
 2026-03-20 (v0.10.3)
 - Beschriftungen / Barrierefreiheit:
+    - "Shortcuts" → "Tastenkürzel" in Einstellungen-Abschnittsauswahl.
+    - "spaeter aufgefuehrt" → "später aufgeführt" + "Abhaengigkeiten" → "Abhängigkeiten" in Über-Dialog.
     - Alle verbleibenden englischen und umlautsubstituierten Button-Labels korrigiert:
       - "Loeschen" → "Löschen", "Transfer" → "Dateiübertragung" (Dateien-Tab).
       - "Rate" → "Sprechtempo", "Test sprechen" → "Test vorlesen" (System-Tab).
