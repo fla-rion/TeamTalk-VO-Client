@@ -38,7 +38,7 @@ class SpeakTab(wx.Panel):
         self.voice_choice = wx.Choice(self)
         self.voice_choice.SetName("Stimme")
         sel_form.Add(self.voice_choice, 1, wx.EXPAND)
-        self.refresh_btn = wx.Button(self, label="Aktualisieren")
+        self.refresh_btn = wx.Button(self, label="&Aktualisieren")
         self.refresh_btn.SetName("Stimmen und Modelle aktualisieren")
         self.refresh_btn.Bind(wx.EVT_BUTTON, self.on_refresh)
         sel_form.Add(self.refresh_btn, 0)
@@ -75,7 +75,7 @@ class SpeakTab(wx.Panel):
         settings_form.Add(self.style_slider, 1, wx.EXPAND)
 
         settings_form.Add(wx.StaticText(self, label=""), 0)
-        self.speaker_boost = wx.CheckBox(self, label="Sprecher-Boost")
+        self.speaker_boost = wx.CheckBox(self, label="&Sprecher-Boost")
         self.speaker_boost.SetName("Sprecher-Boost")
         self.speaker_boost.SetHelpText("Sprecherklarheit verstärken (nicht bei v3)")
         self.speaker_boost.SetValue(True)
@@ -93,10 +93,10 @@ class SpeakTab(wx.Panel):
 
         # --- Buttons + Status ---
         btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.speak_btn = wx.Button(self, label="Sprechen")
+        self.speak_btn = wx.Button(self, label="S&prechen")
         self.speak_btn.SetName("Sprechen")
         self.speak_btn.Bind(wx.EVT_BUTTON, self.on_speak)
-        self.stop_btn = wx.Button(self, label="Stopp")
+        self.stop_btn = wx.Button(self, label="S&topp")
         self.stop_btn.SetName("Stopp")
         self.stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
         btn_row.Add(self.speak_btn, 0, wx.RIGHT, 8)

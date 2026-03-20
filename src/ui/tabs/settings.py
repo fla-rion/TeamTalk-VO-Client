@@ -40,13 +40,13 @@ _SOUND_EVENTS = [
 ]
 
 _SUBSCRIPTION_FLAGS = [
-    ("Benutzernachrichten", "SUBSCRIBE_USER_MSG"),
-    ("Kanalnachrichten", "SUBSCRIBE_CHANNEL_MSG"),
-    ("Rundnachricht", "SUBSCRIBE_BROADCAST_MSG"),
-    ("Sprache", "SUBSCRIBE_VOICE"),
-    ("Video", "SUBSCRIBE_VIDEOCAPTURE"),
-    ("Desktop", "SUBSCRIBE_DESKTOP"),
-    ("Mediendatei", "SUBSCRIBE_MEDIAFILE"),
+    ("&Benutzernachrichten", "SUBSCRIBE_USER_MSG"),
+    ("&Kanalnachrichten", "SUBSCRIBE_CHANNEL_MSG"),
+    ("&Rundnachricht", "SUBSCRIBE_BROADCAST_MSG"),
+    ("&Sprache", "SUBSCRIBE_VOICE"),
+    ("&Video", "SUBSCRIBE_VIDEOCAPTURE"),
+    ("&Desktop", "SUBSCRIBE_DESKTOP"),
+    ("&Mediendatei", "SUBSCRIBE_MEDIAFILE"),
 ]
 
 
@@ -74,7 +74,7 @@ class SettingsTab(wx.Panel):
 
         # --- Log sharing ---
         log_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.share_logs_btn = wx.Button(self, label="Logs senden")
+        self.share_logs_btn = wx.Button(self, label="&Logs senden")
         self.share_logs_btn.SetName("Logs senden")
         self.share_logs_btn.Bind(wx.EVT_BUTTON, self._on_share_logs_menu)
         log_row.Add(self.share_logs_btn, 0, wx.RIGHT, 8)
@@ -142,7 +142,7 @@ class SettingsTab(wx.Panel):
         # BearWare
         bearware_box = wx.StaticBox(panel, label="BearWare Web-Login")
         bearware_sizer = wx.StaticBoxSizer(bearware_box, wx.VERTICAL)
-        self._bearware_enable = wx.CheckBox(panel, label="BearWare Web-Login verwenden")
+        self._bearware_enable = wx.CheckBox(panel, label="&BearWare Web-Login verwenden")
         self._bearware_enable.SetName("BearWare Web-Login verwenden")
         self._bearware_enable.SetValue(bool(s.bearware_login))
         bearware_sizer.Add(self._bearware_enable, 0, wx.ALL, 4)
@@ -161,7 +161,7 @@ class SettingsTab(wx.Panel):
         sizer.Add(bearware_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Save button
-        save_btn = wx.Button(panel, label="Speichern")
+        save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Allgemein speichern")
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_general)
         sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
@@ -175,12 +175,12 @@ class SettingsTab(wx.Panel):
         sizer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
 
-        self._minimize_to_tray = wx.CheckBox(panel, label="Im Tray minimieren (statt schließen)")
+        self._minimize_to_tray = wx.CheckBox(panel, label="&Im Tray minimieren (statt schließen)")
         self._minimize_to_tray.SetName("Im Tray minimieren")
         self._minimize_to_tray.SetValue(bool(s.minimize_to_tray))
         sizer.Add(self._minimize_to_tray, 0, wx.ALL, 8)
 
-        self._always_on_top = wx.CheckBox(panel, label="Immer im Vordergrund")
+        self._always_on_top = wx.CheckBox(panel, label="Immer im &Vordergrund")
         self._always_on_top.SetName("Immer im Vordergrund")
         self._always_on_top.SetValue(bool(s.always_on_top))
         self._always_on_top.Bind(wx.EVT_CHECKBOX, self._on_always_on_top_changed)
@@ -194,13 +194,13 @@ class SettingsTab(wx.Panel):
             self._chat_format.SetSelection(chat_choices.index(fmt))
         sizer.Add(self._chat_format, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        self._show_vu_meter = wx.CheckBox(panel, label="VU-Meter anzeigen")
+        self._show_vu_meter = wx.CheckBox(panel, label="VU-&Meter anzeigen")
         self._show_vu_meter.SetName("VU-Meter anzeigen")
         self._show_vu_meter.SetValue(True)
         self._show_vu_meter.Bind(wx.EVT_CHECKBOX, self._on_vu_meter_changed)
         sizer.Add(self._show_vu_meter, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._show_server_title = wx.CheckBox(panel, label="Fenstertitel zeigt Server/Kanal")
+        self._show_server_title = wx.CheckBox(panel, label="&Fenstertitel zeigt Server/Kanal")
         self._show_server_title.SetName("Fenstertitel zeigt Server/Kanal")
         self._show_server_title.SetValue(bool(s.show_server_in_title))
         sizer.Add(self._show_server_title, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -209,19 +209,19 @@ class SettingsTab(wx.Panel):
         note.SetName("Barrierefreiheitshinweis")
         sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._show_toolbar = wx.CheckBox(panel, label="Toolbar / Schnellaktionen anzeigen")
+        self._show_toolbar = wx.CheckBox(panel, label="&Toolbar / Schnellaktionen anzeigen")
         self._show_toolbar.SetName("Toolbar anzeigen")
         self._show_toolbar.SetValue(bool(s.show_toolbar))
         self._show_toolbar.Bind(wx.EVT_CHECKBOX, self._on_toolbar_changed)
         sizer.Add(self._show_toolbar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._show_event_log = wx.CheckBox(panel, label="Ereignisprotokoll anzeigen")
+        self._show_event_log = wx.CheckBox(panel, label="&Ereignisprotokoll anzeigen")
         self._show_event_log.SetName("Ereignisprotokoll anzeigen")
         self._show_event_log.SetValue(bool(s.show_event_log))
         self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
         sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        save_btn = wx.Button(panel, label="Speichern")
+        save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Anzeige speichern")
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_display)
         sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
@@ -267,7 +267,7 @@ class SettingsTab(wx.Panel):
         ports_sizer.Add(port_form, 0, wx.ALL | wx.EXPAND, 8)
         sizer.Add(ports_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        save_btn = wx.Button(panel, label="Speichern")
+        save_btn = wx.Button(panel, label="S&peichern")
         save_btn.SetName("Verbindung speichern")
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_connection)
         sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
@@ -332,7 +332,7 @@ class SettingsTab(wx.Panel):
         mode_row.Add(self._sound_play_mode, 0)
         bottom_sizer.Add(mode_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        save_btn = wx.Button(panel, label="Speichern")
+        save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Sound-Ereignisse speichern")
         save_btn.Bind(wx.EVT_BUTTON, self._on_save_sound_events)
         bottom_sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)

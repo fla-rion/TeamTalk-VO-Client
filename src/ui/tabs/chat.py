@@ -25,7 +25,7 @@ class ChatTab(wx.Panel):
         target_sizer.Add(self.chat_target, 0, wx.ALL, 8)
 
         target_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.private_chat = wx.CheckBox(target_box, label="Privat")
+        self.private_chat = wx.CheckBox(target_box, label="&Privat")
         self.private_chat.SetName("Privat")
         self.private_chat.Bind(wx.EVT_CHECKBOX, lambda e: self.update_chat_target())
         # Label created immediately before control for NVDA
@@ -49,7 +49,7 @@ class ChatTab(wx.Panel):
         self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.chat_input.SetName("Nachricht")
         self.chat_input.Bind(wx.EVT_TEXT_ENTER, self.on_chat_send)
-        self.chat_send = wx.Button(self, label="Senden")
+        self.chat_send = wx.Button(self, label="&Senden")
         self.chat_send.SetName("Nachricht senden")
         self.chat_send.Bind(wx.EVT_BUTTON, self.on_chat_send)
         input_row.Add(lbl_msg, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 4)

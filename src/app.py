@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.12"
+APP_VERSION = "0.10.13"
 
 
 def _init_startup_logging() -> None:
@@ -304,19 +304,19 @@ class MainFrame(wx.Frame):
         qa_panel = self.qa_panel  # lokaler Alias
         qa_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.tb_ptt = wx.CheckBox(qa_panel, label="PTT")
+        self.tb_ptt = wx.CheckBox(qa_panel, label="&PTT")
         self.tb_ptt.SetName("Push-to-Talk")
-        self.tb_va = wx.CheckBox(qa_panel, label="Sprachaktivierung")
+        self.tb_va = wx.CheckBox(qa_panel, label="&Sprachaktivierung")
         self.tb_va.SetName("Sprachaktivierung")
-        self.tb_video = wx.CheckBox(qa_panel, label="Video")
+        self.tb_video = wx.CheckBox(qa_panel, label="&Video")
         self.tb_video.SetName("Video senden")
-        self.tb_desktop = wx.CheckBox(qa_panel, label="Desktop")
+        self.tb_desktop = wx.CheckBox(qa_panel, label="&Desktop")
         self.tb_desktop.SetName("Desktop freigeben")
-        self.tb_mute = wx.CheckBox(qa_panel, label="Stumm")
+        self.tb_mute = wx.CheckBox(qa_panel, label="S&tumm")
         self.tb_mute.SetName("Alles stummschalten")
-        self.tb_record = wx.CheckBox(qa_panel, label="Aufnahme")
+        self.tb_record = wx.CheckBox(qa_panel, label="&Aufnahme")
         self.tb_record.SetName("Aufnahme")
-        self.tb_question = wx.CheckBox(qa_panel, label="?-Modus")
+        self.tb_question = wx.CheckBox(qa_panel, label="?-&Modus")
         self.tb_question.SetName("Frage-Modus")
 
         for btn in (self.tb_ptt, self.tb_va, self.tb_video, self.tb_desktop,

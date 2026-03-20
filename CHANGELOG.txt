@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.13)
+- Tastaturkürzel (Mnemonics) zu allen Schaltflächen und Checkboxen in der
+  gesamten Benutzeroberfläche hinzugefügt:
+    - Verbindungs-, Kanal-, Chat-, Audio-, Medien-, Dateien-, Admin-,
+      Sprechen-, Desktop-, Einstellungs-, System- und Kürzel-Tab.
+    - Schnellaktionen-Leiste (Hauptfenster).
+    - Server-Hilfsdialoge (Online-Nutzer, Sperren, Statistiken).
+  Windows-Nutzer können Schaltflächen und Checkboxen jetzt per Alt+Buchstabe
+  direkt aktivieren, ohne Tab durchlaufen zu müssen. Auf macOS und Linux
+  ohne Auswirkung.
+
 2026-03-20 (v0.10.12)
 - Restliche wx.Slider durch wx.SpinCtrl ersetzt (UI-Vereinheitlichung):
     - System-Tab: TTS-Sprechtempo (80–400), TTS-Lautstärke (0–200).

@@ -39,7 +39,7 @@ class ShortcutsTab(wx.Panel):
         title.SetMinSize((260, -1))
         hotkey_label = wx.StaticText(panel, label="(nicht gesetzt)")
         hotkey_label.SetName(f"{label} Hotkey")
-        btn = wx.Button(panel, label="Hotkey aufnehmen")
+        btn = wx.Button(panel, label="&Hotkey aufnehmen")
         btn.SetName(f"{label} Hotkey aufnehmen")
         btn.Bind(wx.EVT_BUTTON, lambda _evt, k=key: self.frame.start_hotkey_capture(k))
         sizer.Add(title, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)

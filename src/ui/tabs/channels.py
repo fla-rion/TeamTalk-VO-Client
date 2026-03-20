@@ -68,7 +68,7 @@ class ChannelsTab(wx.Panel):
         setup_list_accessible(self.channel_list)
         self.channel_list.SetMinSize((-1, 140))
         self.channel_list.Bind(wx.EVT_LISTBOX_DCLICK, self.on_channel_list_join)
-        self.channel_join_btn = wx.Button(list_box, label="Kanal beitreten")
+        self.channel_join_btn = wx.Button(list_box, label="&Kanal beitreten")
         self.channel_join_btn.SetName("Kanal beitreten")
         self.channel_join_btn.Bind(wx.EVT_BUTTON, self.on_channel_list_join)
         ch_row.Add(self.channel_list, 1, wx.RIGHT | wx.EXPAND, 8)
