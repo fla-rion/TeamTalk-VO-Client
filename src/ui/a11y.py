@@ -43,17 +43,42 @@ def setup_list_accessible(lb: wx.ListBox) -> None:
 
 
 def patch_list_row_accessibility() -> None:
-    """Swizzelt NSTableRow einmalig, damit VoiceOver den Listeneintragstext vorliest.
+    """Swizzelt wxNSTableView und NSTableRow, damit VoiceOver Listen korrekt ansagt.
 
-    wxNSTableView-Zeilen enthalten den Text in einer NSTableViewCellProxy-Kindansicht.
-    VoiceOver liest ohne diesen Patch nur die Rolle ('Zeile'), nicht den Inhalt.
+    Ohne diesen Patch liest VoiceOver wx.ListBox als "Tabelle" und jede Zeile als
+    "Tabelle N Zeile M" vor.  Mit dem Patch werden sie als "Liste" / Listeneintrag
+    mit dem Elementtext vorgelesen.
     """
     if sys.platform != "darwin":
         return
 
     try:
         import objc  # noqa: PLC0415
+        from AppKit import NSAccessibilityListRole  # noqa: PLC0415
 
+        # ------------------------------------------------------------------
+        # 1. wxNSTableView global als AXList deklarieren
+        #    (wird von wx.ListBox verwendet; ohne diesen Patch: "Tabelle")
+        # ------------------------------------------------------------------
+        try:
+            cls_tv = objc.lookUpClass("wxNSTableView")
+
+            @objc.typedSelector(b"@@:")
+            def _tv_role(self):
+                return NSAccessibilityListRole
+
+            @objc.typedSelector(b"@@:")
+            def _tv_role_desc(self):
+                return "Liste"
+
+            objc.classAddMethod(cls_tv, b"accessibilityRole", _tv_role)
+            objc.classAddMethod(cls_tv, b"accessibilityRoleDescription", _tv_role_desc)
+        except Exception:
+            pass
+
+        # ------------------------------------------------------------------
+        # 2. NSTableRow: Elementtext vorlesen, "Zeile N" unterdrücken
+        # ------------------------------------------------------------------
         cls_row = objc.lookUpClass("NSTableRow")
 
         def _cell_text(row):
@@ -71,19 +96,32 @@ def patch_list_row_accessibility() -> None:
         def _row_label(self):
             return _cell_text(self)
 
+        @objc.typedSelector(b"@@:")
+        def _row_value(self):
+            return _cell_text(self)
+
+        # Rollenbeschreibung leer lassen → VoiceOver sagt nicht "Zeile" / "row"
+        @objc.typedSelector(b"@@:")
+        def _row_role_desc(self):
+            return ""
+
         _orig_attr_value = cls_row.instanceMethodForSelector_(
             b"accessibilityAttributeValue:"
         )
 
         @objc.typedSelector(b"@@:@")
         def _row_attr_value(self, attr):
-            if attr in ("AXTitle", "AXLabel", "AXDescription"):
+            if attr in ("AXTitle", "AXLabel", "AXDescription", "AXValue"):
                 txt = _cell_text(self)
                 if txt:
                     return txt
+            if attr == "AXRoleDescription":
+                return ""
             return _orig_attr_value(self, attr)
 
         objc.classAddMethod(cls_row, b"accessibilityLabel", _row_label)
+        objc.classAddMethod(cls_row, b"accessibilityValue", _row_value)
+        objc.classAddMethod(cls_row, b"accessibilityRoleDescription", _row_role_desc)
         objc.classAddMethod(cls_row, b"accessibilityAttributeValue:", _row_attr_value)
 
     except Exception:
