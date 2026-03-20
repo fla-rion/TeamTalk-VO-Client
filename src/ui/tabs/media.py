@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING, Optional
 
 import shutil
 import subprocess
-import tempfile
 import threading
 from pathlib import Path
 import sys
@@ -28,6 +27,17 @@ if TYPE_CHECKING:
 
 class MediaTab(wx.Panel):
     """Tab 5: Aufnahme & Medien -- recording and media file streaming."""
+
+    # yt-dlp sources: (display name, search prefix or None)
+    # Sources with a search prefix support "prefix10:query" search via yt-dlp.
+    YT_SOURCES: list = [
+        ("YouTube",    "ytsearch"),
+        ("SoundCloud", "scsearch"),
+        ("Twitch",     None),
+        ("Bandcamp",   None),
+        ("Vimeo",      None),
+        ("Mixcloud",   None),
+    ]
 
     RADIO_ENTRIES = [
         ("localradio Aachen und region", "https://stream.dashitradio.de/dashitradio/mp3-128/stream.mp3"),
@@ -180,7 +190,8 @@ class MediaTab(wx.Panel):
         # --- Streaming source selector ---
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.stream_mode = wx.Choice(self, choices=["Datei", "YouTube", "Webradio", "Podcasts", "Twitch"])
+        _yt_names = [name for name, _ in self.YT_SOURCES]
+        self.stream_mode = wx.Choice(self, choices=["Datei"] + _yt_names + ["Webradio", "Podcasts"])
         self.stream_mode.SetName("Streaming-Quelle")
         self.stream_mode.SetSelection(0)
         self.stream_mode.Bind(wx.EVT_CHOICE, self.on_stream_mode)
@@ -238,107 +249,73 @@ class MediaTab(wx.Panel):
         self.stream_panel.SetSizer(stream_sizer)
         sizer.Add(self.stream_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        # --- YouTube (yt-dlp) ---
-        self.yt_panel = wx.Panel(self)
-        yt_box = wx.StaticBox(self.yt_panel, label="YouTube-Streaming (yt-dlp)")
-        yt_sizer = wx.StaticBoxSizer(yt_box, wx.VERTICAL)
+        # --- Unified yt-dlp streaming panel ---
+        self.ytdlp_panel = wx.Panel(self)
+        ytdlp_box = wx.StaticBox(self.ytdlp_panel, label="Streaming (yt-dlp)")
+        ytdlp_sizer = wx.StaticBoxSizer(ytdlp_box, wx.VERTICAL)
 
-        yt_search_row = wx.BoxSizer(wx.HORIZONTAL)
-        yt_search_row.Add(wx.StaticText(self.yt_panel, label="YouTube Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.yt_search = wx.TextCtrl(self.yt_panel)
-        self.yt_search.SetName("YouTube Suche")
-        self.yt_search_btn = wx.Button(self.yt_panel, label="Suchen")
-        self.yt_search_btn.SetName("YouTube suchen")
-        self.yt_search_btn.Bind(wx.EVT_BUTTON, self.on_ytdlp_search)
-        yt_search_row.Add(self.yt_search, 1, wx.RIGHT | wx.EXPAND, 8)
-        yt_search_row.Add(self.yt_search_btn, 0)
-        yt_sizer.Add(yt_search_row, 0, wx.ALL | wx.EXPAND, 4)
+        # Search section — shown only for sources with search support
+        self.ytdlp_search_box = wx.Panel(self.ytdlp_panel)
+        ytdlp_search_inner = wx.BoxSizer(wx.VERTICAL)
 
-        self.yt_results = wx.ListBox(self.yt_panel)
-        self.yt_results.SetName("YouTube Ergebnisse")
-        setup_list_accessible(self.yt_results)
-        self.yt_results.Bind(wx.EVT_LISTBOX, self.on_ytdlp_select)
-        yt_sizer.Add(self.yt_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
-        self.yt_results.SetMinSize((-1, 120))
+        ytdlp_search_row = wx.BoxSizer(wx.HORIZONTAL)
+        ytdlp_search_row.Add(wx.StaticText(self.ytdlp_search_box, label="Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.ytdlp_search = wx.TextCtrl(self.ytdlp_search_box)
+        self.ytdlp_search.SetName("Suche")
+        self.ytdlp_search_btn = wx.Button(self.ytdlp_search_box, label="Suchen")
+        self.ytdlp_search_btn.SetName("Suchen")
+        self.ytdlp_search_btn.Bind(wx.EVT_BUTTON, self.on_ytdlp_search)
+        ytdlp_search_row.Add(self.ytdlp_search, 1, wx.RIGHT | wx.EXPAND, 8)
+        ytdlp_search_row.Add(self.ytdlp_search_btn, 0)
+        ytdlp_search_inner.Add(ytdlp_search_row, 0, wx.BOTTOM | wx.EXPAND, 4)
 
-        yt_row = wx.BoxSizer(wx.HORIZONTAL)
-        yt_row.Add(wx.StaticText(self.yt_panel, label="YouTube-Link"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.yt_url = wx.TextCtrl(self.yt_panel)
-        self.yt_url.SetName("YouTube-Link")
-        self.yt_btn = wx.Button(self.yt_panel, label="Download & streamen")
-        self.yt_btn.SetName("YouTube streamen")
-        self.yt_btn.Bind(wx.EVT_BUTTON, self.on_ytdlp_stream)
-        yt_row.Add(self.yt_url, 1, wx.RIGHT | wx.EXPAND, 8)
-        yt_row.Add(self.yt_btn, 0)
-        yt_sizer.Add(yt_row, 0, wx.ALL | wx.EXPAND, 4)
+        self.ytdlp_results = wx.ListBox(self.ytdlp_search_box)
+        self.ytdlp_results.SetName("Suchergebnisse")
+        setup_list_accessible(self.ytdlp_results)
+        self.ytdlp_results.Bind(wx.EVT_LISTBOX, self.on_ytdlp_select)
+        self.ytdlp_results.SetMinSize((-1, 120))
+        ytdlp_search_inner.Add(self.ytdlp_results, 0, wx.BOTTOM | wx.EXPAND, 4)
 
-        self.yt_status = wx.StaticText(self.yt_panel, label="Status: bereit")
-        self.yt_status.SetName("YouTube-Status")
-        yt_sizer.Add(self.yt_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+        self.ytdlp_search_box.SetSizer(ytdlp_search_inner)
+        ytdlp_sizer.Add(self.ytdlp_search_box, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 4)
 
-        yt_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.yt_pause_btn = wx.Button(self.yt_panel, label="Pause")
-        self.yt_pause_btn.SetName("YouTube Pause")
-        self.yt_pause_btn.Bind(wx.EVT_BUTTON, self.on_pause)
-        self.yt_stop_btn = wx.Button(self.yt_panel, label="Stopp")
-        self.yt_stop_btn.SetName("YouTube Stopp")
-        self.yt_stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
-        yt_ctrl_row.Add(self.yt_pause_btn, 0, wx.RIGHT, 8)
-        yt_ctrl_row.Add(self.yt_stop_btn, 0)
-        yt_sizer.Add(yt_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+        # URL row — always visible
+        ytdlp_url_row = wx.BoxSizer(wx.HORIZONTAL)
+        ytdlp_url_row.Add(wx.StaticText(self.ytdlp_panel, label="Link"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.ytdlp_url = wx.TextCtrl(self.ytdlp_panel)
+        self.ytdlp_url.SetName("Link")
+        self.ytdlp_stream_btn = wx.Button(self.ytdlp_panel, label="Streamen")
+        self.ytdlp_stream_btn.SetName("Streamen")
+        self.ytdlp_stream_btn.Bind(wx.EVT_BUTTON, self.on_ytdlp_stream)
+        ytdlp_url_row.Add(self.ytdlp_url, 1, wx.RIGHT | wx.EXPAND, 8)
+        ytdlp_url_row.Add(self.ytdlp_stream_btn, 0)
+        ytdlp_sizer.Add(ytdlp_url_row, 0, wx.ALL | wx.EXPAND, 4)
 
-        yt_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        yt_gain_row.Add(wx.StaticText(self.yt_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.yt_stream_gain = wx.Slider(self.yt_panel, value=100, minValue=25, maxValue=400)
-        self.yt_stream_gain.SetName("YouTube-Lautstärke")
-        self.yt_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
-        yt_gain_row.Add(self.yt_stream_gain, 1, wx.EXPAND)
-        yt_sizer.Add(yt_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+        self.ytdlp_status = wx.StaticText(self.ytdlp_panel, label="Status: bereit")
+        self.ytdlp_status.SetName("Streaming-Status")
+        ytdlp_sizer.Add(self.ytdlp_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
-        self.yt_panel.SetSizer(yt_sizer)
-        sizer.Add(self.yt_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        ytdlp_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.ytdlp_pause_btn = wx.Button(self.ytdlp_panel, label="Pause")
+        self.ytdlp_pause_btn.SetName("Streaming Pause")
+        self.ytdlp_pause_btn.Bind(wx.EVT_BUTTON, self.on_pause)
+        self.ytdlp_stop_btn = wx.Button(self.ytdlp_panel, label="Stopp")
+        self.ytdlp_stop_btn.SetName("Streaming Stopp")
+        self.ytdlp_stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
+        ytdlp_ctrl_row.Add(self.ytdlp_pause_btn, 0, wx.RIGHT, 8)
+        ytdlp_ctrl_row.Add(self.ytdlp_stop_btn, 0)
+        ytdlp_sizer.Add(ytdlp_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
-        # --- Twitch (yt-dlp) ---
-        self.twitch_panel = wx.Panel(self)
-        twitch_box = wx.StaticBox(self.twitch_panel, label="Twitch-Streaming (yt-dlp)")
-        twitch_sizer = wx.StaticBoxSizer(twitch_box, wx.VERTICAL)
+        ytdlp_gain_row = wx.BoxSizer(wx.HORIZONTAL)
+        ytdlp_gain_row.Add(wx.StaticText(self.ytdlp_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.ytdlp_stream_gain = wx.Slider(self.ytdlp_panel, value=100, minValue=25, maxValue=400)
+        self.ytdlp_stream_gain.SetName("Streaming-Lautstärke")
+        self.ytdlp_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
+        ytdlp_gain_row.Add(self.ytdlp_stream_gain, 1, wx.EXPAND)
+        ytdlp_sizer.Add(ytdlp_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
 
-        twitch_row = wx.BoxSizer(wx.HORIZONTAL)
-        twitch_row.Add(wx.StaticText(self.twitch_panel, label="Twitch-Link"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.twitch_url = wx.TextCtrl(self.twitch_panel)
-        self.twitch_url.SetName("Twitch-Link")
-        self.twitch_btn = wx.Button(self.twitch_panel, label="Streamen")
-        self.twitch_btn.SetName("Twitch streamen")
-        self.twitch_btn.Bind(wx.EVT_BUTTON, self.on_twitch_stream)
-        twitch_row.Add(self.twitch_url, 1, wx.RIGHT | wx.EXPAND, 8)
-        twitch_row.Add(self.twitch_btn, 0)
-        twitch_sizer.Add(twitch_row, 0, wx.ALL | wx.EXPAND, 4)
-
-        self.twitch_status = wx.StaticText(self.twitch_panel, label="Status: bereit")
-        self.twitch_status.SetName("Twitch-Status")
-        twitch_sizer.Add(self.twitch_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
-
-        twitch_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.twitch_pause_btn = wx.Button(self.twitch_panel, label="Pause")
-        self.twitch_pause_btn.SetName("Twitch Pause")
-        self.twitch_pause_btn.Bind(wx.EVT_BUTTON, self.on_pause)
-        self.twitch_stop_btn = wx.Button(self.twitch_panel, label="Stopp")
-        self.twitch_stop_btn.SetName("Twitch Stopp")
-        self.twitch_stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
-        twitch_ctrl_row.Add(self.twitch_pause_btn, 0, wx.RIGHT, 8)
-        twitch_ctrl_row.Add(self.twitch_stop_btn, 0)
-        twitch_sizer.Add(twitch_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
-
-        twitch_gain_row = wx.BoxSizer(wx.HORIZONTAL)
-        twitch_gain_row.Add(wx.StaticText(self.twitch_panel, label="Streaming-Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.twitch_stream_gain = wx.Slider(self.twitch_panel, value=100, minValue=25, maxValue=400)
-        self.twitch_stream_gain.SetName("Twitch-Lautstärke")
-        self.twitch_stream_gain.Bind(wx.EVT_SLIDER, self.on_stream_gain)
-        twitch_gain_row.Add(self.twitch_stream_gain, 1, wx.EXPAND)
-        twitch_sizer.Add(twitch_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
-
-        self.twitch_panel.SetSizer(twitch_sizer)
-        sizer.Add(self.twitch_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        self.ytdlp_panel.SetSizer(ytdlp_sizer)
+        sizer.Add(self.ytdlp_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Webradio ---
         self.radio_panel = wx.Panel(self)
@@ -614,14 +591,12 @@ class MediaTab(wx.Panel):
             self.frame.client.update_streaming_media(paused=False, offset_ms=None, preamp_gain=self._get_stream_gain())
 
     def _get_stream_gain(self) -> float:
-        if self.yt_panel.IsShown():
-            val = self.yt_stream_gain.GetValue()
+        if self.ytdlp_panel.IsShown():
+            val = self.ytdlp_stream_gain.GetValue()
         elif self.radio_panel.IsShown():
             val = self.radio_stream_gain.GetValue()
         elif self.podcast_panel.IsShown():
             val = self.podcast_stream_gain.GetValue()
-        elif self.twitch_panel.IsShown():
-            val = self.twitch_stream_gain.GetValue()
         else:
             val = self.stream_gain.GetValue()
         return max(0.1, float(val) / 100.0)
@@ -643,13 +618,12 @@ class MediaTab(wx.Panel):
         ]
         for i in range(1, len(file_order)):
             file_order[i].MoveAfterInTabOrder(file_order[i - 1])
-        yt_order = [self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain]
-        yt_order = [
-            self.yt_search, self.yt_search_btn, self.yt_results,
-            self.yt_url, self.yt_btn, self.yt_pause_btn, self.yt_stop_btn, self.yt_stream_gain,
+        ytdlp_order = [
+            self.ytdlp_search, self.ytdlp_search_btn, self.ytdlp_results,
+            self.ytdlp_url, self.ytdlp_stream_btn, self.ytdlp_pause_btn, self.ytdlp_stop_btn, self.ytdlp_stream_gain,
         ]
-        for i in range(1, len(yt_order)):
-            yt_order[i].MoveAfterInTabOrder(yt_order[i - 1])
+        for i in range(1, len(ytdlp_order)):
+            ytdlp_order[i].MoveAfterInTabOrder(ytdlp_order[i - 1])
         radio_order = [
             self.radio_search, self.radio_search_btn, self.radio_results, self.radio_choice,
             self.radio_url, self.radio_play_btn, self.radio_pause_btn, self.radio_stop_btn, self.radio_stream_gain,
@@ -663,69 +637,75 @@ class MediaTab(wx.Panel):
         ]
         for i in range(1, len(pod_order)):
             pod_order[i].MoveAfterInTabOrder(pod_order[i - 1])
-        twitch_order = [
-            self.twitch_url, self.twitch_btn, self.twitch_pause_btn, self.twitch_stop_btn, self.twitch_stream_gain,
-        ]
-        for i in range(1, len(twitch_order)):
-            twitch_order[i].MoveAfterInTabOrder(twitch_order[i - 1])
 
     def on_stream_mode(self, _event):
         self._update_stream_mode()
 
     def _update_stream_mode(self):
         mode = self.stream_mode.GetSelection()
-        show_file = mode == 0
-        show_yt = mode == 1
-        show_radio = mode == 2
-        show_podcast = mode == 3
-        show_twitch = mode == 4
-        self.stream_panel.Show(show_file)
-        self.yt_panel.Show(show_yt)
-        self.radio_panel.Show(show_radio)
-        self.podcast_panel.Show(show_podcast)
-        self.twitch_panel.Show(show_twitch)
+        n_yt = len(self.YT_SOURCES)
+        is_ytdlp = 1 <= mode <= n_yt
+        radio_idx = n_yt + 1
+        podcast_idx = n_yt + 2
+
+        self.stream_panel.Show(mode == 0)
+        self.ytdlp_panel.Show(is_ytdlp)
+        self.radio_panel.Show(mode == radio_idx)
+        self.podcast_panel.Show(mode == podcast_idx)
+
+        if is_ytdlp:
+            _, search_prefix = self.YT_SOURCES[mode - 1]
+            has_search = search_prefix is not None
+            self.ytdlp_search_box.Show(has_search)
+            self.ytdlp_panel.Layout()
+
         self.Layout()
         self.GetParent().Layout()
-        # Move focus to the first control in the visible panel
-        focus_targets = {
-            0: self.media_path,
-            1: self.yt_url,
-            2: self.radio_choice,
-            3: self.podcast_search,
-            4: self.twitch_url,
-        }
-        target = focus_targets.get(mode)
-        if target:
-            target.SetFocus()
 
-    # --- YouTube search (yt-dlp) ---
+        if mode == 0:
+            self.media_path.SetFocus()
+        elif is_ytdlp:
+            _, search_prefix = self.YT_SOURCES[mode - 1]
+            (self.ytdlp_search if search_prefix else self.ytdlp_url).SetFocus()
+        elif mode == radio_idx:
+            self.radio_choice.SetFocus()
+        elif mode == podcast_idx:
+            self.podcast_search.SetFocus()
+
+    # --- Unified yt-dlp search ---
+
+    def _current_ytdlp_source(self):
+        """Returns (source_name, search_prefix) for the active yt-dlp mode."""
+        mode = self.stream_mode.GetSelection()
+        idx = mode - 1
+        if 0 <= idx < len(self.YT_SOURCES):
+            return self.YT_SOURCES[idx]
+        return ("Stream", None)
 
     def on_ytdlp_search(self, _event):
-        term = self.yt_search.GetValue().strip()
+        term = self.ytdlp_search.GetValue().strip()
         if not term:
             self.frame.set_status("Bitte Suchbegriff eingeben")
             return
         ytdlp = self._find_yt_dlp()
         if not ytdlp:
             self.frame.set_status("yt-dlp nicht gefunden (binary fehlt)")
-            self.yt_status.SetLabel("Status: yt-dlp fehlt")
+            self.ytdlp_status.SetLabel("Status: yt-dlp fehlt")
+            return
+        source_name, search_prefix = self._current_ytdlp_source()
+        if not search_prefix:
             return
 
-        self.yt_search_btn.Disable()
-        self.yt_status.SetLabel("Status: Suche läuft...")
+        self.ytdlp_search_btn.Disable()
+        self.ytdlp_status.SetLabel("Status: Suche läuft...")
 
         def worker():
             try:
-                cmd = [
-                    ytdlp,
-                    "--dump-json",
-                    "--no-playlist",
-                    f"ytsearch10:{term}",
-                ]
-                proc = subprocess.run(cmd, capture_output=True, text=True)
+                cmd = [ytdlp, "--dump-json", "--no-playlist", f"{search_prefix}10:{term}"]
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
                 if proc.returncode != 0:
                     err = (proc.stderr or proc.stdout or "Unbekannter Fehler").strip()
-                    wx.CallAfter(self._ytdlp_search_failed, err)
+                    wx.CallAfter(self._ytdlp_search_failed, err, source_name)
                     return
                 items = []
                 parsed = []
@@ -737,46 +717,46 @@ class MediaTab(wx.Panel):
                         data = json.loads(line)
                     except Exception:
                         continue
-                    title = data.get("title") or "Video"
-                    channel = data.get("uploader") or ""
+                    title = data.get("title") or "Unbekannt"
+                    uploader = data.get("uploader") or data.get("channel") or ""
                     duration = data.get("duration")
                     url = data.get("webpage_url") or data.get("url") or ""
                     label = title
-                    if channel:
-                        label += f" — {channel}"
+                    if uploader:
+                        label += f" — {uploader}"
                     if duration:
                         mins = int(duration) // 60
                         secs = int(duration) % 60
                         label += f" — {mins}:{secs:02d}"
                     items.append(label)
-                    parsed.append({"title": title, "channel": channel, "duration": duration, "url": url})
-                wx.CallAfter(self._ytdlp_search_ready, items, parsed)
+                    parsed.append({"title": title, "uploader": uploader, "duration": duration, "url": url})
+                wx.CallAfter(self._ytdlp_search_ready, items, parsed, source_name)
             except Exception as exc:
-                wx.CallAfter(self._ytdlp_search_failed, str(exc))
+                wx.CallAfter(self._ytdlp_search_failed, str(exc), source_name)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _ytdlp_search_ready(self, items, parsed):
-        self.yt_search_btn.Enable()
+    def _ytdlp_search_ready(self, items, parsed, source_name: str):
+        self.ytdlp_search_btn.Enable()
         self._yt_results = parsed
-        self.yt_results.Set(items)
+        self.ytdlp_results.Set(items)
         if items:
-            self.yt_results.SetSelection(0)
+            self.ytdlp_results.SetSelection(0)
             self.on_ytdlp_select(None)
-        self.yt_status.SetLabel(f"Status: {len(items)} Treffer")
+        self.ytdlp_status.SetLabel(f"Status: {len(items)} Treffer")
 
-    def _ytdlp_search_failed(self, message: str):
-        self.yt_search_btn.Enable()
-        self.yt_status.SetLabel("Status: Suche fehlgeschlagen")
-        self.frame.set_status(f"YouTube-Suche fehlgeschlagen: {message}")
+    def _ytdlp_search_failed(self, message: str, source_name: str):
+        self.ytdlp_search_btn.Enable()
+        self.ytdlp_status.SetLabel("Status: Suche fehlgeschlagen")
+        self.frame.set_status(f"{source_name}-Suche fehlgeschlagen: {message}")
 
     def on_ytdlp_select(self, _event):
-        idx = self.yt_results.GetSelection()
+        idx = self.ytdlp_results.GetSelection()
         if idx == wx.NOT_FOUND or idx >= len(self._yt_results):
             return
         url = self._yt_results[idx].get("url") or ""
         if url:
-            self.yt_url.SetValue(url)
+            self.ytdlp_url.SetValue(url)
 
     # --- Podcasts ---
 
@@ -989,7 +969,7 @@ class MediaTab(wx.Panel):
         else:
             self.frame.set_status("Podcast-Streaming konnte nicht gestartet werden")
 
-    # --- YouTube streaming (yt-dlp) ---
+    # --- Unified yt-dlp streaming ---
 
     def _find_yt_dlp(self) -> Optional[str]:
         exe_name = "yt-dlp.exe" if sys.platform == "win32" else "yt-dlp"
@@ -1007,74 +987,55 @@ class MediaTab(wx.Panel):
         return shutil.which(exe_name) or shutil.which("yt-dlp")
 
     def on_ytdlp_stream(self, _event):
-        url = self.yt_url.GetValue().strip()
+        url = self.ytdlp_url.GetValue().strip()
         if not url:
-            self.frame.set_status("Bitte einen YouTube-Link eingeben")
+            self.frame.set_status("Bitte einen Link eingeben")
             return
         ytdlp = self._find_yt_dlp()
         if not ytdlp:
             self.frame.set_status("yt-dlp nicht gefunden (binary fehlt)")
-            self.yt_status.SetLabel("Status: yt-dlp fehlt")
+            self.ytdlp_status.SetLabel("Status: yt-dlp fehlt")
             return
 
-        self.yt_btn.Disable()
-        self.yt_status.SetLabel("Status: Download läuft...")
-        self.frame.set_status("YouTube-Download gestartet")
+        source_name, _ = self._current_ytdlp_source()
+        self.ytdlp_stream_btn.Disable()
+        self.ytdlp_status.SetLabel("Status: Stream wird vorbereitet...")
+        self.frame.set_status(f"{source_name}-Stream wird gestartet")
 
         def worker():
             try:
-                if self._yt_tempdir is None:
-                    self._yt_tempdir = Path(tempfile.mkdtemp(prefix="tt_ytdlp_"))
-                out_template = str(self._yt_tempdir / "ytstream.%(ext)s")
-
-                cmd = [
-                    ytdlp,
-                    "-f", "bestaudio/best",
-                    "--no-playlist",
-                    "--no-progress",
-                    "-o", out_template,
-                    url,
-                ]
-                proc = subprocess.run(cmd, capture_output=True, text=True)
+                cmd = [ytdlp, "-g", "-f", "bestaudio/best", "--no-playlist", url]
+                proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
                 if proc.returncode != 0:
                     err = (proc.stderr or proc.stdout or "Unbekannter Fehler").strip()
-                    wx.CallAfter(self._ytdlp_failed, err)
+                    wx.CallAfter(self._ytdlp_failed, err, source_name)
                     return
-
-                # find output file
-                candidates = sorted(self._yt_tempdir.glob("ytstream.*"), key=lambda p: p.stat().st_mtime, reverse=True)
-                if not candidates:
-                    wx.CallAfter(self._ytdlp_failed, "Keine Ausgabedatei gefunden")
+                stream_url = (proc.stdout or "").splitlines()[0].strip()
+                if not stream_url:
+                    wx.CallAfter(self._ytdlp_failed, "Keine Stream-URL gefunden", source_name)
                     return
-                self._yt_output_path = candidates[0]
-                wx.CallAfter(self._ytdlp_ready, str(self._yt_output_path))
+                wx.CallAfter(self._ytdlp_ready, stream_url, source_name)
             except Exception as exc:
-                wx.CallAfter(self._ytdlp_failed, str(exc))
+                wx.CallAfter(self._ytdlp_failed, str(exc), source_name)
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _ytdlp_failed(self, message: str):
-        self.yt_btn.Enable()
-        self.yt_status.SetLabel("Status: Fehler")
-        self.frame.set_status(f"YouTube-Download fehlgeschlagen: {message}")
+    def _ytdlp_failed(self, message: str, source_name: str = "Stream"):
+        self.ytdlp_stream_btn.Enable()
+        self.ytdlp_status.SetLabel("Status: Fehler")
+        self.frame.set_status(f"{source_name}-Streaming fehlgeschlagen: {message}")
 
-    def _ytdlp_ready(self, path: str):
-        self.yt_btn.Enable()
-        self.yt_status.SetLabel("Status: Download fertig")
-        self.media_path.SetValue(path)
-        info = self.frame.client.get_media_file_info(path)
-        if info:
-            secs = int(info.uDurationMSec) // 1000
-            minutes = secs // 60
-            self.media_info.SetLabel(f"Dauer: {minutes}:{secs % 60:02d}")
-            self._stream_duration_ms = int(info.uDurationMSec)
-            self.seek_slider.SetMax(max(1, secs))
-        ok = self.frame.client.start_streaming_media_to_channel(path, preamp_gain=self._get_stream_gain())
+    def _ytdlp_ready(self, stream_url: str, source_name: str = "Stream"):
+        self.ytdlp_stream_btn.Enable()
+        self.ytdlp_status.SetLabel("Status: Stream bereit")
+        ok = self.frame.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._get_stream_gain())
         if ok:
             self._streaming = True
-            self.frame.set_status("YouTube-Streaming gestartet")
+            self.media_path.SetValue(stream_url)
+            self.media_info.SetLabel("Dauer: Live-Stream")
+            self.frame.set_status(f"{source_name}-Streaming gestartet")
         else:
-            self.frame.set_status("YouTube-Streaming konnte nicht gestartet werden")
+            self.frame.set_status(f"{source_name}-Streaming konnte nicht gestartet werden")
 
     def _cleanup_ytdlp_tempdir(self):
         if not self._yt_tempdir:
@@ -1084,63 +1045,6 @@ class MediaTab(wx.Panel):
         finally:
             self._yt_tempdir = None
             self._yt_output_path = None
-
-    # --- Twitch streaming (yt-dlp) ---
-
-    def on_twitch_stream(self, _event):
-        url = self.twitch_url.GetValue().strip()
-        if not url:
-            self.frame.set_status("Bitte einen Twitch-Link eingeben")
-            return
-        ytdlp = self._find_yt_dlp()
-        if not ytdlp:
-            self.frame.set_status("yt-dlp nicht gefunden (binary fehlt)")
-            self.twitch_status.SetLabel("Status: yt-dlp fehlt")
-            return
-
-        self.twitch_btn.Disable()
-        self.twitch_status.SetLabel("Status: Stream wird vorbereitet...")
-        self.frame.set_status("Twitch-Stream wird gestartet")
-
-        def worker():
-            try:
-                cmd = [
-                    ytdlp,
-                    "-g",
-                    "--no-playlist",
-                    url,
-                ]
-                proc = subprocess.run(cmd, capture_output=True, text=True)
-                if proc.returncode != 0:
-                    err = (proc.stderr or proc.stdout or "Unbekannter Fehler").strip()
-                    wx.CallAfter(self._twitch_failed, err)
-                    return
-                stream_url = (proc.stdout or "").splitlines()[0].strip()
-                if not stream_url:
-                    wx.CallAfter(self._twitch_failed, "Keine Stream-URL gefunden")
-                    return
-                wx.CallAfter(self._twitch_ready, stream_url)
-            except Exception as exc:
-                wx.CallAfter(self._twitch_failed, str(exc))
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    def _twitch_failed(self, message: str):
-        self.twitch_btn.Enable()
-        self.twitch_status.SetLabel("Status: Fehler")
-        self.frame.set_status(f"Twitch-Streaming fehlgeschlagen: {message}")
-
-    def _twitch_ready(self, stream_url: str):
-        self.twitch_btn.Enable()
-        self.twitch_status.SetLabel("Status: Stream bereit")
-        ok = self.frame.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._get_stream_gain())
-        if ok:
-            self._streaming = True
-            self.media_path.SetValue(stream_url)
-            self.media_info.SetLabel("Dauer: Live-Stream")
-            self.frame.set_status("Twitch-Streaming gestartet")
-        else:
-            self.frame.set_status("Twitch-Streaming konnte nicht gestartet werden")
 
     # --- Webradio ---
 

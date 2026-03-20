@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.6)
+- Medien-Streaming: Einheitliches yt-dlp-Panel für alle Streaming-Quellen.
+    - Streaming-Quelle-Menü erweitert: YouTube, SoundCloud, Twitch, Bandcamp,
+      Vimeo, Mixcloud (neu) sowie Webradio und Podcasts bleiben erhalten.
+    - Alle yt-dlp-Quellen nutzen ein einheitliches Panel mit Suchfeld (für
+      Quellen mit yt-dlp-Suchunterstützung: YouTube via ytsearch, SoundCloud
+      via scsearch), Ergebnisliste und URL-Eingabe.
+    - Streaming via yt-dlp -g (direkter Stream-URL, kein Download-Warten mehr).
+    - Pause, Stopp und Lautstärke funktionieren für alle Quellen gleich.
+- Versionierung: App-Version auf 0.10.6 angehoben.
+
 2026-03-20 (v0.10.5)
 - Sound-Ereignisse:
     - Offizielles TeamTalk5-Sound-Pack (BearWare/TeamTalk5, Setup/Client/Sounds)
