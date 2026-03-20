@@ -30,11 +30,11 @@ class AdminTab(wx.Panel):
         acc_box = wx.StaticBox(self, label="Benutzerkonten")
         acc_sizer = wx.StaticBoxSizer(acc_box, wx.VERTICAL)
 
-        self.account_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        acc_header = wx.StaticText(acc_box, label="Benutzername | Typ | Notiz")
+        acc_header.SetName("Benutzerkonten Kopfzeile")
+        acc_sizer.Add(acc_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+        self.account_list = wx.ListBox(self)
         self.account_list.SetName("Benutzerkonten")
-        self.account_list.InsertColumn(0, "Benutzername", width=160)
-        self.account_list.InsertColumn(1, "Typ", width=80)
-        self.account_list.InsertColumn(2, "Notiz", width=200)
         acc_sizer.Add(self.account_list, 1, wx.ALL | wx.EXPAND, 4)
 
         acc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -58,11 +58,11 @@ class AdminTab(wx.Panel):
         ban_box = wx.StaticBox(self, label="Sperren")
         ban_sizer = wx.StaticBoxSizer(ban_box, wx.VERTICAL)
 
-        self.ban_list = wx.ListCtrl(self, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        ban_header = wx.StaticText(ban_box, label="IP-Adresse | Benutzername | Zeitpunkt")
+        ban_header.SetName("Sperrliste Kopfzeile")
+        ban_sizer.Add(ban_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+        self.ban_list = wx.ListBox(self)
         self.ban_list.SetName("Sperrliste")
-        self.ban_list.InsertColumn(0, "IP-Adresse", width=140)
-        self.ban_list.InsertColumn(1, "Benutzername", width=120)
-        self.ban_list.InsertColumn(2, "Zeitpunkt", width=140)
         ban_sizer.Add(self.ban_list, 1, wx.ALL | wx.EXPAND, 4)
 
         ban_btn_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -134,7 +134,7 @@ class AdminTab(wx.Panel):
         self.load_accounts_btn.Disable()
         self.add_account_btn.Disable()
         self.del_account_btn.Disable()
-        self.account_list.DeleteAllItems()
+        self.account_list.Clear()
         self._accounts = []
         self.frame.set_status("Benutzerkonten werden geladen...")
 
@@ -155,10 +155,9 @@ class AdminTab(wx.Panel):
         tt_str = self.frame.tt_str
         self._accounts.append(account)
         tt = self.frame.client.tt
-        idx = self.account_list.InsertItem(self.account_list.GetItemCount(), tt_str(account.szUsername))
         utype = "Administrator" if account.uUserType & tt.UserType.USERTYPE_ADMIN else "Standard"
-        self.account_list.SetItem(idx, 1, utype)
-        self.account_list.SetItem(idx, 2, tt_str(account.szNote))
+        label = f"{tt_str(account.szUsername)} | {utype} | {tt_str(account.szNote)}"
+        self.account_list.Append(label)
 
     def on_add_account(self, _event):
         dlg = _NewAccountDialog(self)
@@ -198,8 +197,8 @@ class AdminTab(wx.Panel):
             dlg.Destroy() # Destroy dialog if it's not OK.
 
     def on_del_account(self, _event):
-        sel = self.account_list.GetFirstSelected()
-        if sel < 0 or sel >= len(self._accounts):
+        sel = self.account_list.GetSelection()
+        if sel == wx.NOT_FOUND or sel >= len(self._accounts):
             self.frame.set_status("Bitte ein Konto auswählen")
             return
         username = self.frame.tt_str(self._accounts[sel].szUsername)
@@ -236,7 +235,7 @@ class AdminTab(wx.Panel):
     def on_load_bans(self, _event):
         self.load_bans_btn.Disable()
         self.unban_btn.Disable()
-        self.ban_list.DeleteAllItems()
+        self.ban_list.Clear()
         self._bans = []
         self.frame.set_status("Sperren werden geladen...")
 
@@ -255,13 +254,12 @@ class AdminTab(wx.Panel):
     def add_ban_to_list(self, ban):
         tt_str = self.frame.tt_str
         self._bans.append(ban)
-        idx = self.ban_list.InsertItem(self.ban_list.GetItemCount(), tt_str(ban.szIPAddress))
-        self.ban_list.SetItem(idx, 1, tt_str(ban.szUsername))
-        self.ban_list.SetItem(idx, 2, tt_str(ban.szBanTime))
+        label = f"{tt_str(ban.szIPAddress)} | {tt_str(ban.szUsername)} | {tt_str(ban.szBanTime)}"
+        self.ban_list.Append(label)
 
     def on_unban(self, _event):
-        sel = self.ban_list.GetFirstSelected()
-        if sel < 0 or sel >= len(self._bans):
+        sel = self.ban_list.GetSelection()
+        if sel == wx.NOT_FOUND or sel >= len(self._bans):
             self.frame.set_status("Bitte eine Sperre auswählen")
             return
         ip = self.frame.tt_str(self._bans[sel].szIPAddress)

@@ -76,7 +76,7 @@ class SystemTab(wx.Panel):
 
         grid.Add(wx.StaticText(self, label="Sprechtempo"), 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_rate = wx.Slider(self, value=175, minValue=80, maxValue=400)
-        self.tts_rate.SetName("TTS Rate")
+        self.tts_rate.SetName("TTS Sprechtempo")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
 
         grid.Add(wx.StaticText(self, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL)

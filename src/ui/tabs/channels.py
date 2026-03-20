@@ -34,17 +34,21 @@ class ChannelsTab(wx.Panel):
         self.channel_tree.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_channel_selected)
         self.channel_tree.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.on_channel_activated)
 
-        self.user_list = wx.ListCtrl(splitter, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        # ListBox ist fuer VoiceOver verlaesslicher als ListCtrl auf macOS.
+        right_panel = wx.Panel(splitter)
+        right_sizer = wx.BoxSizer(wx.VERTICAL)
+        user_header = wx.StaticText(right_panel, label="Nickname | Benutzername | Status")
+        user_header.SetName("Nutzerliste Kopfzeile")
+        right_sizer.Add(user_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+        self.user_list = wx.ListBox(right_panel)
         self.user_list.SetName("Nutzerliste im Kanal")
-        self.user_list.InsertColumn(0, "Nickname")
-        self.user_list.InsertColumn(1, "Benutzername")
-        self.user_list.InsertColumn(2, "Status")
-        self.user_list.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_user_selected)
-        self.user_list.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_user_deselected)
-        self.user_list.Bind(wx.EVT_LIST_ITEM_RIGHT_CLICK, self.on_user_right_click)
+        self.user_list.Bind(wx.EVT_LISTBOX, self.on_user_selected)
+        self.user_list.Bind(wx.EVT_RIGHT_DOWN, self._on_user_list_right_click)
         self.user_list.Bind(wx.EVT_KEY_DOWN, self._on_user_list_key)
+        right_sizer.Add(self.user_list, 1, wx.ALL | wx.EXPAND, 4)
+        right_panel.SetSizer(right_sizer)
 
-        splitter.SplitVertically(self.channel_tree, self.user_list, sashPosition=260)
+        splitter.SplitVertically(self.channel_tree, right_panel, sashPosition=260)
         splitter.SetMinimumPaneSize(180)
         splitter.SetSashGravity(0.5)
 
@@ -173,15 +177,17 @@ class ChannelsTab(wx.Panel):
         client = self.frame.client
         tt_str = self.frame.tt_str
         actual = channel_id or client.get_my_channel_id()
-        self.user_list.DeleteAllItems()
         users = list(client.get_channel_users(actual))
         self._current_users = users
         self._private_user_ids = []
+        items = []
         for user in users:
-            idx = self.user_list.InsertItem(self.user_list.GetItemCount(), tt_str(user.szNickname))
-            self.user_list.SetItem(idx, 1, tt_str(user.szUsername))
-            self.user_list.SetItem(idx, 2, str(user.nStatusMode))
+            nickname = tt_str(user.szNickname) or "-"
+            username = tt_str(user.szUsername) or "-"
+            status = str(user.nStatusMode)
+            items.append(f"{nickname} | {username} | {status}")
             self._private_user_ids.append(int(user.nUserID))
+        self.user_list.Set(items)
         self._refresh_channel_list(list(client.get_server_channels()), self._count_users_by_channel())
         self._update_channel_members(users, actual)
         # Sync private user choice in chat tab
@@ -259,9 +265,11 @@ class ChannelsTab(wx.Panel):
             return
         self.frame.join_channel(self._channel_list_ids[idx])
 
-    def on_user_selected(self, event):
-        idx = event.GetIndex()
-        if idx < 0 or idx >= len(self._current_users):
+    def on_user_selected(self, _event):
+        idx = self.user_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._current_users):
+            self._selected_user_id = None
+            self.frame.chat_tab.update_chat_target()
             return
         self._selected_user_id = int(self._current_users[idx].nUserID)
         self.frame.chat_tab.update_chat_target()
@@ -269,10 +277,6 @@ class ChannelsTab(wx.Panel):
             if uid == self._selected_user_id:
                 self.frame.chat_tab.private_user.SetSelection(i)
                 break
-
-    def on_user_deselected(self, _event):
-        self._selected_user_id = None
-        self.frame.chat_tab.update_chat_target()
 
     def _get_user_by_id(self, user_id: int):
         for user in self._current_users:
@@ -287,23 +291,28 @@ class ChannelsTab(wx.Panel):
         return None
 
     # ------------------------------------------------------------------
-    # User context menu (right-click)
+    # User context menu (right-click / keyboard)
     # ------------------------------------------------------------------
 
     def _on_user_list_key(self, event):
         key = event.GetKeyCode()
         if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
-            idx = self.user_list.GetFirstSelected()
-            if idx >= 0:
-                class _FakeEvent:
-                    def GetIndex(self):
-                        return idx
-                self.on_user_right_click(_FakeEvent())
+            idx = self.user_list.GetSelection()
+            if idx != wx.NOT_FOUND:
+                self._show_user_context_menu(idx)
                 return
         event.Skip()
 
-    def on_user_right_click(self, event):
-        idx = event.GetIndex()
+    def _on_user_list_right_click(self, event):
+        idx = self.user_list.HitTest(event.GetPosition())
+        if idx != wx.NOT_FOUND:
+            self.user_list.SetSelection(idx)
+            self._selected_user_id = int(self._current_users[idx].nUserID) if idx < len(self._current_users) else None
+            self.frame.chat_tab.update_chat_target()
+            self._show_user_context_menu(idx)
+        event.Skip()
+
+    def _show_user_context_menu(self, idx: int):
         if idx < 0 or idx >= len(self._current_users):
             return
         user = self._current_users[idx]
@@ -312,7 +321,7 @@ class ChannelsTab(wx.Panel):
 
         menu = wx.Menu()
 
-        self.user_list.Select(idx)
+        self.user_list.SetSelection(idx)
         self._selected_user_id = user_id
         self.frame.chat_tab.update_chat_target()
 

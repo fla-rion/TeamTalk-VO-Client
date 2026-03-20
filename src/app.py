@@ -110,6 +110,7 @@ class ServerCheckDialog(wx.Dialog):
         root.Add(info, 0, wx.ALL, 10)
 
         table = dv.DataViewListCtrl(panel, style=wx.BORDER_SUNKEN)
+        table.SetName("Server-Status Tabelle")
         table.AppendTextColumn("Server", width=220)
         table.AppendTextColumn("TLS", width=110)
         table.AppendTextColumn("Ergebnis", width=120)
