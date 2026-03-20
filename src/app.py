@@ -2780,7 +2780,6 @@ class MainFrame(wx.Frame):
         self.set_status(result.message)
         if result.ok:
             self._reconnect_attempts = 0
-            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()
@@ -3463,13 +3462,20 @@ class MainFrame(wx.Frame):
             tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT,
             tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE,
         ):
+            # Werte sofort im Event-Thread erfassen, bevor SDK-Puffer überschrieben wird
+            _ev = event
+            _user = getattr(msg, "user", None)
+            _user_id = int(getattr(_user, "nUserID", 0) or 0) if _user else 0
+            _user_ch = int(getattr(_user, "nChannelID", 0) or 0) if _user else 0
+            _source = int(getattr(msg, "nSource", 0) or 0)
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
-            wx.CallAfter(self._play_user_event_sound, msg, tt)
+            wx.CallAfter(self._play_user_event_sound, _ev, _user_id, _user_ch, _source, tt)
             if self._user_recording_enabled:
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+            self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
             self._handle_text_message(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:
@@ -3557,24 +3563,24 @@ class MainFrame(wx.Frame):
         self.emit_system_message(text, speak=False)
         self._send_notification("Status", text)
 
-    def _play_user_event_sound(self, msg, tt) -> None:
-        event = msg.nClientEvent
-        user = getattr(msg, "user", None)
+    def _play_user_event_sound(self, event, user_id: int, user_ch: int, source_ch: int, tt) -> None:
+        """Wird auf dem Haupt-Thread ausgeführt; Werte wurden im Event-Thread erfasst."""
         se = self.settings_store.settings.sound_events
         my_id = int(self.client.get_my_user_id() or 0)
-        user_id = int(getattr(user, "nUserID", 0) or 0) if user else 0
+        my_ch = int(self.client.get_my_channel_id() or 0)
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
-            my_ch = self.client.get_my_channel_id()
-            user_ch = int(getattr(user, "nChannelID", 0) or 0) if user else 0
             if my_id and user_id == my_id:
                 # Ich selbst habe einen Kanal betreten
                 self.sound_manager.play("channel_join", se.get("channel_join"))
-            elif my_ch and user_ch == int(my_ch):
+            elif my_ch and user_ch == my_ch:
                 # Anderer Benutzer betritt meinen Kanal
                 self.sound_manager.play("user_join", se.get("user_join"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
-            if not (my_id and user_id == my_id):
+            if my_id and user_id == my_id:
+                pass  # eigenes Verlassen: kein Ton
+            elif my_ch and source_ch == my_ch:
+                # Anderer Benutzer verlässt meinen Kanal
                 self.sound_manager.play("user_leave", se.get("user_leave"))
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
             self.sound_manager.play("user_login", se.get("user_login"))
