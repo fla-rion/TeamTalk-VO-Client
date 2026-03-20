@@ -38,6 +38,7 @@ class OnlineUsersDialog(wx.Dialog):
         super().__init__(parent, title="Online-Benutzer", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.frame = frame
         self.SetName("Online-Benutzer")
+        self._users: List = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -48,7 +49,10 @@ class OnlineUsersDialog(wx.Dialog):
         self.user_list = wx.ListBox(self)
         self.user_list.SetName("Online-Benutzer Liste")
         setup_list_accessible(self.user_list)
-        self.user_list.SetMinSize((520, 260))
+        self.user_list.SetMinSize((520, 300))
+        self.user_list.Bind(wx.EVT_RIGHT_DOWN, self._on_right_click)
+        self.user_list.Bind(wx.EVT_KEY_DOWN, self._on_key_down)
+        self.user_list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_dbl_click)
         sizer.Add(self.user_list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.count_label = wx.StaticText(self, label="")
@@ -73,6 +77,7 @@ class OnlineUsersDialog(wx.Dialog):
 
     def refresh(self) -> None:
         users = list(self.frame.client.get_server_users())
+        self._users = users
         items: List[str] = []
         tt_str = self.frame.tt_str
         for user in users:
@@ -87,6 +92,200 @@ class OnlineUsersDialog(wx.Dialog):
             items.append(f"{nickname} | {username} | {channel}")
         self.user_list.Set(items)
         self.count_label.SetLabel(f"{len(items)} Benutzer online")
+
+    # ------------------------------------------------------------------
+    # Input events
+    # ------------------------------------------------------------------
+
+    def _on_key_down(self, event):
+        key = event.GetKeyCode()
+        if key == wx.WXK_WINDOWS_MENU or (key == wx.WXK_F10 and event.ShiftDown()):
+            idx = self.user_list.GetSelection()
+            if idx != wx.NOT_FOUND:
+                self._show_context_menu(idx)
+            return
+        event.Skip()
+
+    def _on_right_click(self, event):
+        idx = self.user_list.HitTest(event.GetPosition())
+        if idx != wx.NOT_FOUND:
+            self.user_list.SetSelection(idx)
+            self._show_context_menu(idx)
+        event.Skip()
+
+    def _on_dbl_click(self, _event):
+        self._do_private_message()
+
+    # ------------------------------------------------------------------
+    # Context menu
+    # ------------------------------------------------------------------
+
+    def _get_selected_user(self):
+        idx = self.user_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._users):
+            return None
+        return self._users[idx]
+
+    def _show_context_menu(self, idx: int):
+        if idx < 0 or idx >= len(self._users):
+            return
+        user = self._users[idx]
+
+        menu = wx.Menu()
+        info_item = menu.Append(wx.ID_ANY, "Benutzerinfo...")
+        menu.AppendSeparator()
+        pm_item = menu.Append(wx.ID_ANY, "Privatnachricht senden...")
+        menu.AppendSeparator()
+        move_item = menu.Append(wx.ID_ANY, "Benutzer verschieben...")
+        kick_ch_item = menu.Append(wx.ID_ANY, "Aus Kanal kicken")
+        kick_srv_item = menu.Append(wx.ID_ANY, "Vom Server kicken")
+        ban_item = menu.Append(wx.ID_ANY, "Bannen...")
+        kick_ban_item = menu.Append(wx.ID_ANY, "Kicken + Bannen")
+
+        user_id = int(user.nUserID)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_user_info(user_id), info_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_private_message(), pm_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_move(user_id), move_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_kick_channel(user), kick_ch_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_kick_server(user_id), kick_srv_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_ban(user), ban_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._do_kick_ban(user), kick_ban_item)
+
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    # ------------------------------------------------------------------
+    # Actions
+    # ------------------------------------------------------------------
+
+    def _do_user_info(self, user_id: int):
+        user = next((u for u in self._users if int(u.nUserID) == user_id), None)
+        if not user:
+            return
+        tt_str = self.frame.tt_str
+        ch_id = int(getattr(user, "nChannelID", 0) or 0)
+        channel = "-"
+        if ch_id:
+            ch = self.frame.client.get_channel(ch_id)
+            if ch is not None:
+                channel = tt_str(ch.szName) or f"#{ch_id}"
+        details = [
+            f"Nickname: {tt_str(user.szNickname)}",
+            f"Benutzername: {tt_str(user.szUsername)}",
+            f"ID: {user_id}",
+            f"Kanal: {channel}",
+            f"Status: {int(user.nStatusMode)}",
+        ]
+        dlg = wx.MessageDialog(self, "\n".join(details), "Benutzerinfo", wx.OK | wx.ICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _do_private_message(self):
+        user = self._get_selected_user()
+        if not user:
+            return
+        tt_str = self.frame.tt_str
+        nick = tt_str(user.szNickname) or tt_str(user.szUsername) or "Benutzer"
+        dlg = wx.TextEntryDialog(self, f"Nachricht an {nick}:", "Privatnachricht senden")
+        if dlg.ShowModal() == wx.ID_OK:
+            msg = dlg.GetValue().strip()
+            if msg:
+                if self.frame.client.send_user_message(int(user.nUserID), msg):
+                    self.frame.chat_tab.append_chat(f"An {nick}: {msg}", kind="own")
+                else:
+                    wx.MessageBox(
+                        "Nachricht konnte nicht gesendet werden", "Fehler",
+                        wx.OK | wx.ICON_ERROR, self,
+                    )
+        dlg.Destroy()
+
+    def _do_move(self, user_id: int):
+        channels = list(self.frame.client.get_server_channels())
+        if not channels:
+            return
+        options = []
+        ids = []
+        for ch in channels:
+            cid = int(ch.nChannelID)
+            try:
+                path = self.frame.tt_str(self.frame.client.get_channel_path(cid))
+            except Exception:
+                path = ""
+            label = path or self.frame.tt_str(ch.szName) or f"Kanal {cid}"
+            options.append(label)
+            ids.append(cid)
+        dlg = wx.SingleChoiceDialog(self, "Zielkanal wählen", "Benutzer verschieben", options)
+        if dlg.ShowModal() == wx.ID_OK:
+            idx = dlg.GetSelection()
+            if idx != wx.NOT_FOUND:
+                self.frame.client.do_move_user(user_id, ids[idx])
+        dlg.Destroy()
+
+    def _do_kick_channel(self, user):
+        ch_id = int(getattr(user, "nChannelID", 0) or 0)
+        if not ch_id:
+            wx.MessageBox("Benutzer ist in keinem Kanal.", "Kicken", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        dlg = wx.MessageDialog(
+            self, "Benutzer wirklich aus dem Kanal kicken?",
+            "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetYesNoLabels("Ja", "Nein")
+        if dlg.ShowModal() == wx.ID_YES:
+            self.frame.client.do_kick_user(int(user.nUserID), ch_id)
+        dlg.Destroy()
+
+    def _do_kick_server(self, user_id: int):
+        dlg = wx.MessageDialog(
+            self, "Benutzer wirklich vom Server kicken?",
+            "Vom Server kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetYesNoLabels("Ja", "Nein")
+        if dlg.ShowModal() == wx.ID_YES:
+            self.frame.client.do_kick_user(user_id, 0)
+        dlg.Destroy()
+
+    def _do_ban(self, user):
+        ban_types = self._ask_ban_types(user)
+        if ban_types is None:
+            return
+        self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)
+
+    def _do_kick_ban(self, user):
+        ban_types = self._ask_ban_types(user)
+        if ban_types is None:
+            return
+        self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)
+        ch_id = int(getattr(user, "nChannelID", 0) or 0)
+        if ch_id:
+            self.frame.client.do_kick_user(int(user.nUserID), ch_id)
+
+    def _ask_ban_types(self, user):
+        tt = self.frame.client.tt
+        in_channel = int(getattr(user, "nChannelID", 0) or 0) > 0
+        choices = []
+        types = []
+        if in_channel:
+            choices.extend([
+                "IP-Adresse (Kanal)", "Benutzername (Kanal)",
+                "IP-Adresse (Server)", "Benutzername (Server)",
+            ])
+            types.extend([
+                int(tt.BanType.BANTYPE_CHANNEL | tt.BanType.BANTYPE_IPADDR),
+                int(tt.BanType.BANTYPE_CHANNEL | tt.BanType.BANTYPE_USERNAME),
+                int(tt.BanType.BANTYPE_IPADDR),
+                int(tt.BanType.BANTYPE_USERNAME),
+            ])
+        else:
+            choices.extend(["IP-Adresse (Server)", "Benutzername (Server)"])
+            types.extend([int(tt.BanType.BANTYPE_IPADDR), int(tt.BanType.BANTYPE_USERNAME)])
+        dlg = wx.SingleChoiceDialog(self, "Ban-Art auswählen", "Bannen", choices)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return None
+        idx = dlg.GetSelection()
+        dlg.Destroy()
+        return types[idx] if idx != wx.NOT_FOUND else None
 
 
 class ServerStatisticsDialog(wx.Dialog):

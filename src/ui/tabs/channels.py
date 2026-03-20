@@ -75,15 +75,6 @@ class ChannelsTab(wx.Panel):
         list_sizer.Add(ch_row, 0, wx.ALL | wx.EXPAND, 8)
         sizer.Add(list_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        # --- Members ---
-        members_box = wx.StaticBox(self, label="Mitglieder im aktuellen Kanal")
-        members_sizer = wx.StaticBoxSizer(members_box, wx.VERTICAL)
-        self.channel_members = wx.ListBox(members_box)
-        self.channel_members.SetName("Kanal-Mitglieder")
-        setup_list_accessible(self.channel_members)
-        self.channel_members.SetMinSize((-1, 120))
-        members_sizer.Add(self.channel_members, 1, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(members_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
 
@@ -194,7 +185,7 @@ class ChannelsTab(wx.Panel):
             self._private_user_ids.append(int(user.nUserID))
         self.user_list.Set(items)
         self._refresh_channel_list(list(client.get_server_channels()), self._count_users_by_channel())
-        self._update_channel_members(users, actual)
+        self._announce_channel_members(users, actual)
         # Sync private user choice in chat tab
         chat_tab = self.frame.chat_tab
         if chat_tab:
@@ -220,10 +211,9 @@ class ChannelsTab(wx.Panel):
             return f"{name} ({', '.join(flags)})"
         return name
 
-    def _update_channel_members(self, users, channel_id: int):
+    def _announce_channel_members(self, users, channel_id: int):
         names = [self._format_member_label(u) for u in users]
         self.frame.logger.write(f"Channel members update: channel_id={channel_id} count={len(names)}")
-        self.channel_members.Set(names)
         try:
             channel = self.frame.client.get_channel(channel_id)
             ch_name = self.frame.tt_str(channel.szName)

@@ -187,7 +187,11 @@ class MediaTab(wx.Panel):
 
         sizer.Add(convo_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        # --- Streaming source selector ---
+        # --- Streaming section ---
+        streaming_box = wx.StaticBox(self, label="Medien-Streaming")
+        streaming_sizer = wx.StaticBoxSizer(streaming_box, wx.VERTICAL)
+
+        # Source selector row
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         _yt_names = [name for name, _ in self.YT_SOURCES]
@@ -196,11 +200,11 @@ class MediaTab(wx.Panel):
         self.stream_mode.SetSelection(0)
         self.stream_mode.Bind(wx.EVT_CHOICE, self.on_stream_mode)
         mode_row.Add(self.stream_mode, 1, wx.EXPAND)
-        sizer.Add(mode_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        streaming_sizer.Add(mode_row, 0, wx.ALL | wx.EXPAND, 4)
 
         # --- Media streaming (File) ---
         self.stream_panel = wx.Panel(self)
-        stream_box = wx.StaticBox(self.stream_panel, label="Medien-Streaming")
+        stream_box = wx.StaticBox(self.stream_panel, label="Datei")
         stream_sizer = wx.StaticBoxSizer(stream_box, wx.VERTICAL)
 
         file_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -247,7 +251,7 @@ class MediaTab(wx.Panel):
         stream_sizer.Add(gain_row, 0, wx.ALL | wx.EXPAND, 4)
 
         self.stream_panel.SetSizer(stream_sizer)
-        sizer.Add(self.stream_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        streaming_sizer.Add(self.stream_panel, 0, wx.ALL | wx.EXPAND, 4)
 
         # --- Unified yt-dlp streaming panel ---
         self.ytdlp_panel = wx.Panel(self)
@@ -315,7 +319,7 @@ class MediaTab(wx.Panel):
         ytdlp_sizer.Add(ytdlp_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
 
         self.ytdlp_panel.SetSizer(ytdlp_sizer)
-        sizer.Add(self.ytdlp_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        streaming_sizer.Add(self.ytdlp_panel, 0, wx.ALL | wx.EXPAND, 4)
 
         # --- Webradio ---
         self.radio_panel = wx.Panel(self)
@@ -377,7 +381,7 @@ class MediaTab(wx.Panel):
         radio_sizer.Add(radio_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
 
         self.radio_panel.SetSizer(radio_sizer)
-        sizer.Add(self.radio_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        streaming_sizer.Add(self.radio_panel, 0, wx.ALL | wx.EXPAND, 4)
 
         # --- Podcasts ---
         self.podcast_panel = wx.Panel(self)
@@ -443,7 +447,9 @@ class MediaTab(wx.Panel):
         podcast_sizer.Add(pod_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
 
         self.podcast_panel.SetSizer(podcast_sizer)
-        sizer.Add(self.podcast_panel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        streaming_sizer.Add(self.podcast_panel, 0, wx.ALL | wx.EXPAND, 4)
+
+        sizer.Add(streaming_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
         self._load_radio_list()

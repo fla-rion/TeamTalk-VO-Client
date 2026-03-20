@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.7)
+- Online-Benutzer (Server-Menü → "Online-Benutzer..."):
+    - Zeigt alle aktuell mit dem Server verbundenen Nutzer (Nickname, Benutzername,
+      Kanal) an – serverweite Ansicht, unabhängig vom eigenen Kanal.
+    - Kontextmenü per Rechtsklick oder Shift+F10 mit Aktionen:
+        - Benutzerinfo: Nickname, Benutzername, ID, Kanal, Status.
+        - Privatnachricht senden: Direkte Nachricht an beliebigen Server-Nutzer
+          (auch außerhalb des eigenen Kanals).
+        - Benutzer verschieben: Zielkanal aus Kanalliste auswählen.
+        - Aus Kanal kicken / Vom Server kicken.
+        - Bannen (IP oder Benutzername, Kanal- oder Server-Ebene).
+        - Kicken + Bannen kombiniert.
+    - Doppelklick auf einen Nutzer öffnet direkt den Privatnachricht-Dialog.
+- Tab "Kanäle" aufgeräumt: Redundante Liste "Mitglieder im aktuellen Kanal"
+  entfernt; dieselben Informationen sind in der Kanalliste und Nutzerliste
+  sowie über die Statusleiste zugänglich.
+- Tab "Aufnahme & Medien": Streaming-Bereich visuell in einer eigenen Gruppe
+  "Medien-Streaming" zusammengefasst für klare Trennung von den Aufnahme-
+  Optionen (bereits in 0.10.6 vorbereitet, jetzt vollständig).
+- Versionierung: App-Version auf 0.10.7 angehoben.
+
 2026-03-20 (v0.10.6)
 - Medien-Streaming: Einheitliches yt-dlp-Panel für alle Streaming-Quellen.
     - Streaming-Quelle-Menü erweitert: YouTube, SoundCloud, Twitch, Bandcamp,
