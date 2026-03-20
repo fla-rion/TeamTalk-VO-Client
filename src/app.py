@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "0.10.10"
+APP_VERSION = "0.10.11"
 
 
 def _init_startup_logging() -> None:
@@ -325,18 +325,18 @@ class MainFrame(wx.Frame):
 
         qa_sizer.AddSpacer(16)
 
-        # Master volume slider (output)
+        # Master volume spin (output)
         qa_sizer.Add(wx.StaticText(qa_panel, label="Ausgabe:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
-        self.master_volume_slider = wx.Slider(qa_panel, value=100, minValue=0, maxValue=200, style=wx.SL_HORIZONTAL)
+        self.master_volume_slider = wx.SpinCtrl(qa_panel, value="100", min=0, max=200)
         self.master_volume_slider.SetName("Ausgabelautstärke")
-        self.master_volume_slider.SetMinSize((100, -1))
+        self.master_volume_slider.SetMinSize((70, -1))
         qa_sizer.Add(self.master_volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
 
-        # Mic gain slider
+        # Mic gain spin
         qa_sizer.Add(wx.StaticText(qa_panel, label="Mikrofon:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
-        self.mic_gain_slider = wx.Slider(qa_panel, value=100, minValue=0, maxValue=200, style=wx.SL_HORIZONTAL)
+        self.mic_gain_slider = wx.SpinCtrl(qa_panel, value="100", min=0, max=200)
         self.mic_gain_slider.SetName("Mikrofon-Gain")
-        self.mic_gain_slider.SetMinSize((100, -1))
+        self.mic_gain_slider.SetMinSize((70, -1))
         qa_sizer.Add(self.mic_gain_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
 
         # VU meter
@@ -455,8 +455,8 @@ class MainFrame(wx.Frame):
         self.tb_mute.Bind(wx.EVT_CHECKBOX, self._on_tb_mute)
         self.tb_record.Bind(wx.EVT_CHECKBOX, self._on_tb_record)
         self.tb_question.Bind(wx.EVT_CHECKBOX, self._on_tb_question)
-        self.master_volume_slider.Bind(wx.EVT_SLIDER, self._on_master_volume_slider)
-        self.mic_gain_slider.Bind(wx.EVT_SLIDER, self._on_mic_gain_slider)
+        self.master_volume_slider.Bind(wx.EVT_SPINCTRL, self._on_master_volume_slider)
+        self.mic_gain_slider.Bind(wx.EVT_SPINCTRL, self._on_mic_gain_slider)
         # VU meter timer
         self._vu_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
@@ -527,7 +527,7 @@ class MainFrame(wx.Frame):
         sdk_level = int(level * 160)
         try:
             self.client.set_sound_output_volume(sdk_level)
-            self.audio_tab.output_volume.SetValue(level)
+            self.audio_tab.output_volume.SetValue(sdk_level)
         except Exception:
             pass
 
@@ -536,7 +536,7 @@ class MainFrame(wx.Frame):
         sdk_level = int(level * 160)
         try:
             self.client.set_sound_input_gain(sdk_level)
-            self.audio_tab.input_gain.SetValue(level)
+            self.audio_tab.input_gain.SetValue(sdk_level)
         except Exception:
             pass
 

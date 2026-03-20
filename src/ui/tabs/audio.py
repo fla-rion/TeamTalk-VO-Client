@@ -54,15 +54,15 @@ class AudioTab(wx.Panel):
         self.voice_activation.SetName("Sprachaktivierung")
         self.voice_activation.Bind(wx.EVT_CHECKBOX, self.on_voice_activation)
 
-        lbl_vl = wx.StaticText(self, label="Aktivierungspegel")
-        self.voice_level = wx.Slider(self, value=30, minValue=0, maxValue=100)
+        lbl_vl = wx.StaticText(self, label="Aktivierungspegel (0–100)")
+        self.voice_level = wx.SpinCtrl(self, value="30", min=0, max=100)
         self.voice_level.SetName("Aktivierungspegel")
-        self.voice_level.Bind(wx.EVT_SLIDER, self.on_voice_level)
+        self.voice_level.Bind(wx.EVT_SPINCTRL, self.on_voice_level)
 
-        lbl_delay = wx.StaticText(self, label="Nachlauf (ms)")
-        self.va_delay = wx.Slider(self, value=0, minValue=0, maxValue=5000)
+        lbl_delay = wx.StaticText(self, label="Nachlauf (ms, 0–5000)")
+        self.va_delay = wx.SpinCtrl(self, value="0", min=0, max=5000)
         self.va_delay.SetName("Sprachaktivierung Nachlauf")
-        self.va_delay.Bind(wx.EVT_SLIDER, self.on_va_delay)
+        self.va_delay.Bind(wx.EVT_SPINCTRL, self.on_va_delay)
 
         va_form.Add(lbl_va, 0, wx.ALIGN_CENTER_VERTICAL)
         va_form.Add(self.voice_activation, 0)
@@ -79,15 +79,15 @@ class AudioTab(wx.Panel):
         levels_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         levels_form.AddGrowableCol(1)
 
-        lbl_ig = wx.StaticText(self, label="Mikrofonverstärkung")
-        self.input_gain = wx.Slider(self, value=2000, minValue=0, maxValue=32000)
+        lbl_ig = wx.StaticText(self, label="Mikrofonverstärkung (0–32000)")
+        self.input_gain = wx.SpinCtrl(self, value="2000", min=0, max=32000)
         self.input_gain.SetName("Mikrofonverstärkung")
-        self.input_gain.Bind(wx.EVT_SLIDER, self.on_input_gain)
+        self.input_gain.Bind(wx.EVT_SPINCTRL, self.on_input_gain)
 
-        lbl_ov = wx.StaticText(self, label="Ausgabe-Lautstärke")
-        self.output_volume = wx.Slider(self, value=1000, minValue=0, maxValue=32000)
+        lbl_ov = wx.StaticText(self, label="Ausgabe-Lautstärke (0–32000)")
+        self.output_volume = wx.SpinCtrl(self, value="1000", min=0, max=32000)
         self.output_volume.SetName("Ausgabe-Lautstärke")
-        self.output_volume.Bind(wx.EVT_SLIDER, self.on_output_volume)
+        self.output_volume.Bind(wx.EVT_SPINCTRL, self.on_output_volume)
 
         levels_form.Add(lbl_ig, 0, wx.ALIGN_CENTER_VERTICAL)
         levels_form.Add(self.input_gain, 1, wx.EXPAND)

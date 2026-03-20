@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-20 (v0.10.11)
+- Alle Regler (wx.Slider) durch Zahleingabefelder (wx.SpinCtrl) ersetzt:
+    - Audio-Tab: Aktivierungspegel, Nachlauf, Mikrofonverstärkung,
+      Ausgabe-Lautstärke.
+    - Sprechen-Tab (ElevenLabs): Stabilität, Ähnlichkeit, Stil.
+    - Einstellungen-Tab: Sound-Lautstärke.
+    - Schnellzugriff-Leiste: Ausgabe- und Mikrofon-Regler.
+  SpinCtrl zeigt den exakten Zahlenwert, ist per Pfeiltasten bedienbar
+  und wird von VoiceOver (macOS) sowie NVDA/JAWS (Windows) identisch
+  und korrekt angesagt – keine plattformabhängigen Unterschiede mehr.
+
 2026-03-20 (v0.10.10)
 - "Über"-Dialog: Korrekturen und Ergänzungen:
     - Name korrigiert: "Karo" → "Garo".

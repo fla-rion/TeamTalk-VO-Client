@@ -319,9 +319,9 @@ class SettingsTab(wx.Panel):
 
         vol_row = wx.BoxSizer(wx.HORIZONTAL)
         vol_row.Add(wx.StaticText(panel, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._sound_volume = wx.Slider(panel, minValue=0, maxValue=100, value=100)
+        self._sound_volume = wx.SpinCtrl(panel, value="100", min=0, max=100)
         self._sound_volume.SetName("Sound-Lautstärke")
-        vol_row.Add(self._sound_volume, 1, wx.EXPAND)
+        vol_row.Add(self._sound_volume, 0)
         bottom_sizer.Add(vol_row, 0, wx.ALL | wx.EXPAND, 8)
 
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
