@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 
 
 def _init_startup_logging() -> None:
@@ -2807,6 +2807,15 @@ class MainFrame(wx.Frame):
             "  Gespeicherte Audioeinstellungen anwenden: Gespeicherte Werte laden.\n"
             "  Gespeicherte Audioeinstellungen löschen: Gespeicherte Werte entfernen.\n"
             "\n"
+            "Bereich 'Lokale Wiedergabe'\n"
+            "  Spielt eine Audiodatei lokal ab – nur Sie selbst hören die Wiedergabe,\n"
+            "  nichts wird in den Kanal gestreamt. Für alle Benutzer verfügbar.\n"
+            "  Datei:        Pfad zur Audiodatei (Durchsuchen-Schaltfläche öffnet Dateidialog).\n"
+            "  Abspielen:    Wiedergabe starten (unterstützte Formate: MP3, WAV, OGG, FLAC, M4A).\n"
+            "  Pause /\n"
+            "  Fortsetzen:   Wiedergabe anhalten und wieder aufnehmen.\n"
+            "  Stopp:        Wiedergabe beenden.\n"
+            "\n"
             "\n"
             "7. Tab Aufnahme & Medien\n"
             "========================\n"
@@ -2885,8 +2894,10 @@ class MainFrame(wx.Frame):
             "\n"
             "Bereich 'Sperren'\n"
             "  Spalten: IP-Adresse, Benutzername, Zeitpunkt.\n"
-            "  Sperren laden: Sperrliste vom Server laden.\n"
-            "  Entsperren: Ausgewählte Sperre aufheben.\n"
+            "  Sperren laden:         Sperrliste vom Server laden.\n"
+            "  Entsperren:            Ausgewählte Sperre aufheben.\n"
+            "  IP-Adresse bannen...:  IP-Adresse direkt sperren ohne dass der Benutzer\n"
+            "                         gerade verbunden sein muss. Texteingabedialog.\n"
             "\n"
             "Bereich 'Servereigenschaften'\n"
             "  Servername, MOTD (Willkommensnachricht), Max. Benutzer.\n"
@@ -3053,6 +3064,9 @@ class MainFrame(wx.Frame):
             "\n"
             "Menü 'Server'\n"
             "  Online-Benutzer:       Liste aller verbundenen Benutzer.\n"
+            "                         Enthält ein Suchfeld: Benutzernamen eingeben und\n"
+            "                         Enter drücken oder 'Suchen' klicken – der Eintrag\n"
+            "                         wird in der Liste markiert und angesprungen.\n"
             "  Broadcast-Nachricht:   Nachricht an alle Benutzer senden (Admin).\n"
             "  Serverstatistiken:     Server-Kennzahlen anzeigen.\n"
             "  Serversperren:         IP-Sperrliste des Servers anzeigen.\n"

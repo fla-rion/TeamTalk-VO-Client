@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-03-21 (v1.1.2)
+- Handbuch aktualisiert: Lokale Wiedergabe (Audio-Tab), IP-Adresse bannen
+  (Admin-Tab), Benutzersuche im Online-Benutzer-Dialog dokumentiert.
+
 2026-03-21 (v1.1.1)
 - Korrektur: Lokale Wiedergabe aus dem Admin-Tab in den Audio-Tab (Tab 4)
   verschoben – die Funktion spielt Dateien nur lokal ab (nur du hörst es,
