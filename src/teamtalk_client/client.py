@@ -106,10 +106,13 @@ class TeamTalkClient:
         self._drain_message_queue()
 
     def _recreate_client(self) -> None:
-        try:
-            self.client.closeTeamTalk()
-        except Exception:
-            pass
+        # Do NOT call closeTeamTalk() explicitly here.
+        # The old TeamTalk object's __del__ calls closeTeamTalk() once when its
+        # refcount drops to zero after the reassignment below.  Calling it
+        # explicitly first and then letting __del__ call it again causes a
+        # double-close: if the allocator reuses the same pointer for the new
+        # instance, the second close destroys the brand-new client before
+        # connect() is even called.
         self.client = self.tt.TeamTalk()
         self._connected = False
         self._drain_message_queue()

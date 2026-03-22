@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-22 (v1.2.3)
+- Bugfix: Nach manuellem Trennen ("Trennen" im Menü) konnte keine neue
+  Verbindung mehr aufgebaut werden. Ursache war ein Double-Close des
+  internen TeamTalk-SDK-Handles in _recreate_client(): der explizite
+  closeTeamTalk()-Aufruf gefolgt vom automatischen __del__-Aufruf schließt
+  bei Pointer-Wiederverwendung das soeben neu erstellte SDK-Objekt, weshalb
+  connect() dauerhaft False zurückgab. Fix: expliziten closeTeamTalk()-Aufruf
+  entfernt – Python's Refcount-GC übernimmt das korrekte einmalige Schließen.
+
 2026-03-22 (v1.2.2)
 - Bugfix: Falscher Fehlercode für passwortgeschützte Kanäle korrigiert.
   Der tatsächliche SDK-Fehler ist CMDERR_INCORRECT_CHANNEL_PASSWORD (2001),
