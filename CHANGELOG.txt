@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-22 (v1.2.5)
+- Bugfix: Audio-Tab on_apply_audio / on_loopback_toggle: fehlende obere
+  Schrankenprüfung für Geräte-Index (nur NOT_FOUND wurde geprüft, nicht
+  ob Index < Listenlänge). Kann bei einem Listensync-Problem zu IndexError
+  führen.
+- Robustheit: connection.py _set_tab_order() ebenfalls per try/except
+  abgesichert (wie media.py), damit MoveAfterInTabOrder-Fehler die Tab-
+  Initialisierung nicht blockieren.
+
 2026-03-22 (v1.2.4)
 - Bugfix: Soundgeräte-Menü (Eingabe/Ausgabe) löste AttributeError aus, weil
   wx.Menu keine Clear()-Methode besitzt. Ersetzt durch DestroyItem()-Schleife.

@@ -434,7 +434,8 @@ class AudioTab(wx.Panel):
         client = self.frame.client
         in_idx = self.input_device.GetSelection()
         out_idx = self.output_device.GetSelection()
-        if in_idx == wx.NOT_FOUND or out_idx == wx.NOT_FOUND:
+        if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
+                or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
             self.frame.set_status("Bitte Ein- und Ausgabegerät wählen")
             return
         indev = self._input_devices[in_idx]
@@ -551,7 +552,8 @@ class AudioTab(wx.Panel):
         if self.loopback_toggle.GetValue():
             in_idx = self.input_device.GetSelection()
             out_idx = self.output_device.GetSelection()
-            if in_idx == wx.NOT_FOUND or out_idx == wx.NOT_FOUND:
+            if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
+                    or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
                 self.frame.set_status("Bitte zuerst Geräte wählen")
                 self.loopback_toggle.SetValue(False)
                 return

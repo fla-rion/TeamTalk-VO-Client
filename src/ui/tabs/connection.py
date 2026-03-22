@@ -409,8 +409,11 @@ class ConnectionTab(wx.Panel):
             self.connect_btn, self.reconnect_btn, self.server_check_btn,
             self.join_root_btn, self.leave_btn, self.logout_btn, self.auto_reconnect,
         ]
-        for i in range(1, len(order)):
-            order[i].MoveAfterInTabOrder(order[i - 1])
+        try:
+            for i in range(1, len(order)):
+                order[i].MoveAfterInTabOrder(order[i - 1])
+        except Exception:
+            pass
 
     # --- Filter ---
 
