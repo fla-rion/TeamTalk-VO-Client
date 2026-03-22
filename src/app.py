@@ -38,7 +38,7 @@ from sound_manager import SoundManager
 from platform_paths import log_dir as _log_dir # Moved this import up
 
 
-APP_VERSION = "1.2.3"
+APP_VERSION = "1.2.4"
 
 
 def _init_startup_logging() -> None:
@@ -2431,7 +2431,8 @@ class MainFrame(wx.Frame):
         event.Skip()
 
     def _populate_sound_device_menu(self, menu: wx.Menu, kind: str) -> None:
-        menu.Clear()
+        while menu.GetMenuItemCount() > 0:
+            menu.DestroyItem(menu.FindItemByPosition(0))
         self._sound_menu_device_map.clear()
         try:
             self.audio_tab.refresh_audio_devices(
@@ -4182,7 +4183,13 @@ class MainFrame(wx.Frame):
             "admin": "admin_tab",
         }
         label = label_map[key]
-        new_tab = factory(self.content_panel, self)
+        try:
+            new_tab = factory(self.content_panel, self)
+        except Exception as exc:
+            # Mark as done so we don't retry on every tab switch.
+            self._lazy_pages[key] = None
+            self.set_status(f"Fehler beim Laden des Tabs '{label}': {exc}")
+            return
         setattr(self, attr_map[key], new_tab)
         self._panels[label] = new_tab
         sizer = self.content_panel.GetSizer()

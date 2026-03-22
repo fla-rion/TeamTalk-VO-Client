@@ -693,6 +693,12 @@ class MediaTab(wx.Panel):
         return max(0.1, float(val) / 100.0)
 
     def _set_tab_order(self):
+        try:
+            self._do_set_tab_order()
+        except Exception:
+            pass  # Tab order is cosmetic; don't let it prevent the tab from loading.
+
+    def _do_set_tab_order(self):
         # Top-level controls (direct children of self)
         top_order = [
             self.rec_format, self.rec_start_btn, self.rec_stop_btn,

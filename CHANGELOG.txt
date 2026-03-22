@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-22 (v1.2.4)
+- Bugfix: Soundgeräte-Menü (Eingabe/Ausgabe) löste AttributeError aus, weil
+  wx.Menu keine Clear()-Methode besitzt. Ersetzt durch DestroyItem()-Schleife.
+- Bugfix: Tab "Aufnahme & Medien" konnte nicht geöffnet werden – ein
+  wxAssertionError in _set_tab_order() (MoveAfterInTabOrder: win is not a
+  sibling) brach die Tab-Initialisierung ab. Fehler wird nun abgefangen,
+  da die Tab-Reihenfolge kosmetisch ist und das Tab-Laden nicht blockieren
+  darf. Zudem verhindert eine Schutzmaßnahme in _replace_lazy_tab, dass
+  der Fehler bei jedem Tab-Wechsel wiederholt ausgelöst wird.
+
 2026-03-22 (v1.2.3)
 - Bugfix: Nach manuellem Trennen ("Trennen" im Menü) konnte keine neue
   Verbindung mehr aufgebaut werden. Ursache war ein Double-Close des
