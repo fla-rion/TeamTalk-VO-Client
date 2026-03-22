@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-21 (v1.2.0)
+- Neu: Playlist-Streaming im Medien-Tab (Streaming-Quelle "Playlist").
+  - Mehrere lokale Dateien per Mehrfachauswahl hinzufügen.
+  - M3U / M3U8-Datei importieren (relative Pfade werden korrekt aufgelöst).
+  - Reihenfolge per "Nach oben" / "Nach unten" anpassen.
+  - Einzelne Titel entfernen oder gesamte Playlist leeren.
+  - Playlist als .m3u-Datei exportieren.
+  - Option "Automatisch weiter": Nach Ende jedes Titels springt der Client
+    selbständig zum nächsten Eintrag.
+  - Streaming-Lautstärke separat einstellbar.
+- Neu: Menüeintrag "Playlist streamen..." unter Kanal → Streaming.
+- Handbuch: Playlist-Abschnitt vollständig dokumentiert.
+
 2026-03-21 (v1.1.2)
 - Handbuch aktualisiert: Lokale Wiedergabe (Audio-Tab), IP-Adresse bannen
   (Admin-Tab), Benutzersuche im Online-Benutzer-Dialog dokumentiert.

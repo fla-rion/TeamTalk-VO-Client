@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
+import os
 import shutil
 import subprocess
 import threading
@@ -111,6 +112,9 @@ class MediaTab(wx.Panel):
         self._podcast_results = []
         self._podcast_episodes = []
         self._twitch_stream_url: Optional[str] = None
+        self._playlist_tracks: List[str] = []
+        self._playlist_current: int = -1
+        self._pl_streaming: bool = False
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -195,7 +199,7 @@ class MediaTab(wx.Panel):
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         _yt_names = [name for name, _ in self.YT_SOURCES]
-        self.stream_mode = wx.Choice(self, choices=["Datei"] + _yt_names + ["Webradio", "Podcasts"])
+        self.stream_mode = wx.Choice(self, choices=["Datei"] + _yt_names + ["Webradio", "Podcasts", "Playlist"])
         self.stream_mode.SetName("Streaming-Quelle")
         self.stream_mode.SetSelection(0)
         self.stream_mode.Bind(wx.EVT_CHOICE, self.on_stream_mode)
@@ -449,6 +453,79 @@ class MediaTab(wx.Panel):
         self.podcast_panel.SetSizer(podcast_sizer)
         streaming_sizer.Add(self.podcast_panel, 0, wx.ALL | wx.EXPAND, 4)
 
+        # --- Playlist ---
+        self.playlist_panel = wx.Panel(self)
+        pl_box = wx.StaticBox(self.playlist_panel, label="Playlist")
+        pl_sizer = wx.StaticBoxSizer(pl_box, wx.VERTICAL)
+
+        pl_list_lbl = wx.StaticText(self.playlist_panel, label="Titel, Pfad")
+        pl_list_lbl.SetName("Playlist Kopfzeile")
+        pl_sizer.Add(pl_list_lbl, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+
+        self.pl_list = wx.ListBox(self.playlist_panel, style=wx.LB_SINGLE)
+        self.pl_list.SetName("Playlist")
+        setup_list_accessible(self.pl_list)
+        self.pl_list.SetMinSize((-1, 140))
+        pl_sizer.Add(self.pl_list, 1, wx.ALL | wx.EXPAND, 4)
+
+        pl_edit_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.pl_add_btn = wx.Button(self.playlist_panel, label="&Hinzufügen...")
+        self.pl_add_btn.SetName("Dateien zur Playlist hinzufügen")
+        self.pl_add_btn.Bind(wx.EVT_BUTTON, self._on_pl_add)
+        self.pl_load_btn = wx.Button(self.playlist_panel, label="M3U &laden...")
+        self.pl_load_btn.SetName("M3U-Datei laden")
+        self.pl_load_btn.Bind(wx.EVT_BUTTON, self._on_pl_load_m3u)
+        self.pl_remove_btn = wx.Button(self.playlist_panel, label="&Entfernen")
+        self.pl_remove_btn.SetName("Ausgewählten Titel entfernen")
+        self.pl_remove_btn.Bind(wx.EVT_BUTTON, self._on_pl_remove)
+        self.pl_up_btn = wx.Button(self.playlist_panel, label="Nach &oben")
+        self.pl_up_btn.SetName("Titel nach oben verschieben")
+        self.pl_up_btn.Bind(wx.EVT_BUTTON, self._on_pl_move_up)
+        self.pl_down_btn = wx.Button(self.playlist_panel, label="Nach &unten")
+        self.pl_down_btn.SetName("Titel nach unten verschieben")
+        self.pl_down_btn.Bind(wx.EVT_BUTTON, self._on_pl_move_down)
+        self.pl_export_btn = wx.Button(self.playlist_panel, label="Als M3U e&xportieren...")
+        self.pl_export_btn.SetName("Playlist als M3U exportieren")
+        self.pl_export_btn.Bind(wx.EVT_BUTTON, self._on_pl_export)
+        self.pl_clear_btn = wx.Button(self.playlist_panel, label="&Leeren")
+        self.pl_clear_btn.SetName("Playlist leeren")
+        self.pl_clear_btn.Bind(wx.EVT_BUTTON, self._on_pl_clear)
+        for btn in (self.pl_add_btn, self.pl_load_btn, self.pl_remove_btn,
+                    self.pl_up_btn, self.pl_down_btn, self.pl_export_btn, self.pl_clear_btn):
+            pl_edit_row.Add(btn, 0, wx.RIGHT, 4)
+        pl_sizer.Add(pl_edit_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        self.pl_auto_next = wx.CheckBox(self.playlist_panel, label="&Automatisch weiter (nächster Titel nach Ende)")
+        self.pl_auto_next.SetName("Automatisch weiter")
+        self.pl_auto_next.SetValue(True)
+        pl_sizer.Add(self.pl_auto_next, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        pl_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.pl_play_btn = wx.Button(self.playlist_panel, label="A&bspielen")
+        self.pl_play_btn.SetName("Playlist abspielen")
+        self.pl_play_btn.Bind(wx.EVT_BUTTON, self._on_pl_play)
+        self.pl_pause_btn = wx.Button(self.playlist_panel, label="Pa&use")
+        self.pl_pause_btn.SetName("Playlist pausieren")
+        self.pl_pause_btn.Bind(wx.EVT_BUTTON, self.on_pause)
+        self.pl_stop_btn = wx.Button(self.playlist_panel, label="St&opp")
+        self.pl_stop_btn.SetName("Playlist stoppen")
+        self.pl_stop_btn.Bind(wx.EVT_BUTTON, self.on_stop)
+        pl_ctrl_row.Add(self.pl_play_btn, 0, wx.RIGHT, 8)
+        pl_ctrl_row.Add(self.pl_pause_btn, 0, wx.RIGHT, 8)
+        pl_ctrl_row.Add(self.pl_stop_btn, 0)
+        pl_sizer.Add(pl_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        pl_gain_row = wx.BoxSizer(wx.HORIZONTAL)
+        pl_gain_row.Add(wx.StaticText(self.playlist_panel, label="Streaming-Lautstärke (25–400)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.pl_stream_gain = wx.SpinCtrl(self.playlist_panel, value="100", min=25, max=400)
+        self.pl_stream_gain.SetName("Playlist-Lautstärke")
+        self.pl_stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
+        pl_gain_row.Add(self.pl_stream_gain, 1, wx.EXPAND)
+        pl_sizer.Add(pl_gain_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+
+        self.playlist_panel.SetSizer(pl_sizer)
+        streaming_sizer.Add(self.playlist_panel, 0, wx.ALL | wx.EXPAND, 4)
+
         sizer.Add(streaming_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
@@ -574,6 +651,7 @@ class MediaTab(wx.Panel):
             self._streaming = False
             self.seek_slider.SetValue(0)
             self.frame.set_status("Streaming gestoppt")
+        self._pl_streaming = False
         self._cleanup_ytdlp_tempdir()
 
     def on_seek(self, _event):
@@ -585,12 +663,17 @@ class MediaTab(wx.Panel):
         elapsed = int(media_file_info.uElapsedMSec)
         duration = int(media_file_info.uDurationMSec)
         if duration > 0:
-            secs = elapsed // 1000
-            self.seek_slider.SetValue(min(secs, self.seek_slider.GetMax()))
+            if self.stream_panel.IsShown():
+                secs = elapsed // 1000
+                self.seek_slider.SetValue(min(secs, self.seek_slider.GetMax()))
             if elapsed >= duration and self._streaming:
                 self._streaming = False
-                self.frame.set_status("Streaming beendet")
-                self._cleanup_ytdlp_tempdir()
+                if self._pl_streaming and self.pl_auto_next.GetValue():
+                    wx.CallAfter(self._pl_advance)
+                else:
+                    self._pl_streaming = False
+                    self.frame.set_status("Streaming beendet")
+                    self._cleanup_ytdlp_tempdir()
 
     def on_stream_gain(self, _event):
         if self._streaming:
@@ -603,6 +686,8 @@ class MediaTab(wx.Panel):
             val = self.radio_stream_gain.GetValue()
         elif self.podcast_panel.IsShown():
             val = self.podcast_stream_gain.GetValue()
+        elif self.playlist_panel.IsShown():
+            val = self.pl_stream_gain.GetValue()
         else:
             val = self.stream_gain.GetValue()
         return max(0.1, float(val) / 100.0)
@@ -643,6 +728,14 @@ class MediaTab(wx.Panel):
         ]
         for i in range(1, len(pod_order)):
             pod_order[i].MoveAfterInTabOrder(pod_order[i - 1])
+        pl_order = [
+            self.pl_list, self.pl_add_btn, self.pl_load_btn, self.pl_remove_btn,
+            self.pl_up_btn, self.pl_down_btn, self.pl_export_btn, self.pl_clear_btn,
+            self.pl_auto_next, self.pl_play_btn, self.pl_pause_btn, self.pl_stop_btn,
+            self.pl_stream_gain,
+        ]
+        for i in range(1, len(pl_order)):
+            pl_order[i].MoveAfterInTabOrder(pl_order[i - 1])
 
     def on_stream_mode(self, _event):
         self._update_stream_mode()
@@ -653,11 +746,13 @@ class MediaTab(wx.Panel):
         is_ytdlp = 1 <= mode <= n_yt
         radio_idx = n_yt + 1
         podcast_idx = n_yt + 2
+        playlist_idx = n_yt + 3
 
         self.stream_panel.Show(mode == 0)
         self.ytdlp_panel.Show(is_ytdlp)
         self.radio_panel.Show(mode == radio_idx)
         self.podcast_panel.Show(mode == podcast_idx)
+        self.playlist_panel.Show(mode == playlist_idx)
 
         if is_ytdlp:
             _, search_prefix = self.YT_SOURCES[mode - 1]
@@ -677,6 +772,8 @@ class MediaTab(wx.Panel):
             self.radio_choice.SetFocus()
         elif mode == podcast_idx:
             self.podcast_search.SetFocus()
+        elif mode == playlist_idx:
+            self.pl_list.SetFocus()
 
     # --- Unified yt-dlp search ---
 
@@ -1137,3 +1234,161 @@ class MediaTab(wx.Panel):
             self.frame.set_status("Webradio-Streaming gestartet")
         else:
             self.frame.set_status("Webradio-Streaming konnte nicht gestartet werden")
+
+    # ------------------------------------------------------------------
+    # Playlist
+    # ------------------------------------------------------------------
+
+    def _pl_display_name(self, path: str) -> str:
+        return os.path.splitext(os.path.basename(path))[0]
+
+    def _pl_refresh_list(self):
+        self.pl_list.Set([self._pl_display_name(p) for p in self._playlist_tracks])
+
+    def _on_pl_add(self, _event):
+        with wx.FileDialog(
+            self, "Dateien zur Playlist hinzufügen",
+            wildcard="Audio/Video|*.mp3;*.wav;*.ogg;*.flac;*.m4a;*.opus;*.mp4;*.avi;*.mkv|Alle|*.*",
+            style=wx.FD_OPEN | wx.FD_MULTIPLE | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            paths = dlg.GetPaths()
+        for p in paths:
+            self._playlist_tracks.append(p)
+        self._pl_refresh_list()
+        self.frame.set_status(f"{len(paths)} Datei(en) hinzugefügt, {len(self._playlist_tracks)} in Playlist")
+
+    def _on_pl_load_m3u(self, _event):
+        with wx.FileDialog(
+            self, "M3U-Datei laden",
+            wildcard="M3U-Playlist (*.m3u;*.m3u8)|*.m3u;*.m3u8|Alle|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        tracks = self._parse_m3u(path)
+        if not tracks:
+            wx.MessageBox("Keine abspielbaren Pfade in der M3U-Datei gefunden.",
+                          "M3U laden", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        self._playlist_tracks = tracks
+        self._pl_refresh_list()
+        if self._playlist_tracks:
+            self.pl_list.SetSelection(0)
+        self.frame.set_status(f"M3U geladen: {len(tracks)} Titel")
+
+    def _on_pl_remove(self, _event):
+        idx = self.pl_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._playlist_tracks):
+            return
+        del self._playlist_tracks[idx]
+        self._pl_refresh_list()
+        new_sel = min(idx, len(self._playlist_tracks) - 1)
+        if new_sel >= 0:
+            self.pl_list.SetSelection(new_sel)
+        self.frame.set_status(f"Titel entfernt, {len(self._playlist_tracks)} verbleibend")
+
+    def _on_pl_move_up(self, _event):
+        idx = self.pl_list.GetSelection()
+        if idx <= 0 or idx >= len(self._playlist_tracks):
+            return
+        self._playlist_tracks[idx - 1], self._playlist_tracks[idx] = \
+            self._playlist_tracks[idx], self._playlist_tracks[idx - 1]
+        self._pl_refresh_list()
+        self.pl_list.SetSelection(idx - 1)
+
+    def _on_pl_move_down(self, _event):
+        idx = self.pl_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._playlist_tracks) - 1:
+            return
+        self._playlist_tracks[idx], self._playlist_tracks[idx + 1] = \
+            self._playlist_tracks[idx + 1], self._playlist_tracks[idx]
+        self._pl_refresh_list()
+        self.pl_list.SetSelection(idx + 1)
+
+    def _on_pl_export(self, _event):
+        if not self._playlist_tracks:
+            wx.MessageBox("Playlist ist leer.", "M3U exportieren", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        with wx.FileDialog(
+            self, "Playlist als M3U exportieren",
+            wildcard="M3U-Playlist (*.m3u)|*.m3u",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile="playlist.m3u",
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        self._export_m3u(path, self._playlist_tracks)
+        self.frame.set_status(f"Playlist exportiert: {path}")
+
+    def _on_pl_clear(self, _event):
+        if not self._playlist_tracks:
+            return
+        dlg = wx.MessageDialog(self, "Playlist wirklich leeren?", "Leeren",
+                               wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
+        dlg.SetYesNoLabels("Ja", "Nein")
+        if dlg.ShowModal() == wx.ID_YES:
+            self._playlist_tracks = []
+            self._pl_refresh_list()
+            self.frame.set_status("Playlist geleert")
+        dlg.Destroy()
+
+    def _on_pl_play(self, _event):
+        if not self._playlist_tracks:
+            self.frame.set_status("Playlist ist leer")
+            return
+        idx = self.pl_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            idx = 0
+        self._pl_streaming = True
+        self._pl_play_track(idx)
+
+    def _pl_play_track(self, idx: int):
+        if idx < 0 or idx >= len(self._playlist_tracks):
+            self._pl_streaming = False
+            self.frame.set_status("Playlist beendet")
+            return
+        self._playlist_current = idx
+        self.pl_list.SetSelection(idx)
+        path = self._playlist_tracks[idx]
+        name = self._pl_display_name(path)
+        ok = self.frame.client.start_streaming_media_to_channel(
+            path, preamp_gain=self._get_stream_gain()
+        )
+        if ok:
+            self._streaming = True
+            self.frame.set_status(f"Playlist [{idx + 1}/{len(self._playlist_tracks)}]: {name}")
+        else:
+            self.frame.set_status(f"Fehler bei: {name} – überspringe")
+            self._pl_advance()
+
+    def _pl_advance(self):
+        if self._pl_streaming:
+            self._pl_play_track(self._playlist_current + 1)
+
+    @staticmethod
+    def _parse_m3u(filepath: str) -> List[str]:
+        tracks = []
+        base_dir = os.path.dirname(os.path.abspath(filepath))
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if not os.path.isabs(line) and not line.startswith("http"):
+                        line = os.path.join(base_dir, line)
+                    tracks.append(line)
+        except OSError:
+            pass
+        return tracks
+
+    @staticmethod
+    def _export_m3u(filepath: str, tracks: List[str]) -> None:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write("#EXTM3U\n")
+            for track in tracks:
+                f.write(track + "\n")
