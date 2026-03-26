@@ -39,7 +39,12 @@ from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 
 
-APP_VERSION = "1.3.1"
+APP_VERSION = "1.3.2"
+
+TT_TRANSMITUSERS_MAX = 128
+TT_TRANSMITUSERS_FREEFORALL = 0xFFF
+TT_TRANSMITUSERS_USERID_INDEX = 0
+TT_TRANSMITUSERS_STREAMTYPE_INDEX = 1
 
 
 def _init_startup_logging() -> None:
@@ -162,6 +167,7 @@ class SettingsWindow(wx.Frame):
         panel.SetSizer(sizer)
         self.Bind(wx.EVT_CLOSE, self._on_close)
         self.Bind(wx.EVT_SHOW, self._on_show)
+        self.Bind(wx.EVT_CHAR_HOOK, self._on_char_hook)
         self._bind_shortcuts()
 
     def _on_close(self, event):
@@ -190,6 +196,12 @@ class SettingsWindow(wx.Frame):
     def _on_menu_close(self, _event) -> None:
         self.Hide()
         self.settings_tab.audio_tab.set_active(False)
+
+    def _on_char_hook(self, event) -> None:
+        if event.CmdDown() and event.GetKeyCode() in (ord("W"), ord("w")):
+            self._on_menu_close(None)
+            return
+        event.Skip()
 
 
 class ConnectionWindow(wx.Frame):
@@ -254,6 +266,7 @@ class MainFrame(wx.Frame):
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_volume_levels: Dict[int, int] = {}
+        self._channel_message_log: List[str] = []
         self._sound_input_menu: Optional[wx.Menu] = None
         self._sound_output_menu: Optional[wx.Menu] = None
         self._sound_menu_device_map: Dict[int, Tuple[str, int]] = {}
@@ -769,6 +782,7 @@ class MainFrame(wx.Frame):
         chan_tt_url = chan_menu.Append(wx.ID_ANY, "TT-URL für Kanal kopieren")
         chan_bans = chan_menu.Append(wx.ID_ANY, "Sperren im Kanal anzeigen...")
         chan_msg = chan_menu.Append(wx.ID_ANY, "Kanalnachricht senden...")
+        chan_view_msgs = chan_menu.Append(wx.ID_ANY, "Kanalnachrichten anzeigen...")
         chan_menu.AppendSeparator()
         chan_files_menu = wx.Menu()
         chan_file_upload = chan_files_menu.Append(wx.ID_ANY, "Datei hochladen...")
@@ -805,6 +819,20 @@ class MainFrame(wx.Frame):
         user_vol_down = user_adv.Append(wx.ID_ANY, "Leiser\tCtrl+Left")
         user_relay_voice = user_adv.Append(wx.ID_ANY, "Sprachstream weiterleiten")
         user_relay_media = user_adv.Append(wx.ID_ANY, "Medienstream weiterleiten")
+        user_position = user_adv.Append(wx.ID_ANY, "Benutzer positionieren...")
+        user_allow_menu = wx.Menu()
+        user_allow_voice = user_allow_menu.Append(wx.ID_ANY, "Sprache erlauben")
+        user_allow_video = user_allow_menu.Append(wx.ID_ANY, "Video erlauben")
+        user_allow_desktop = user_allow_menu.Append(wx.ID_ANY, "Desktop erlauben")
+        user_allow_media = user_allow_menu.Append(wx.ID_ANY, "Mediendatei erlauben")
+        user_allow_text = user_allow_menu.Append(wx.ID_ANY, "Kanalnachricht erlauben")
+        user_allow_menu.AppendSeparator()
+        user_allow_all_voice = user_allow_menu.Append(wx.ID_ANY, "Alle Sprache erlauben")
+        user_allow_all_video = user_allow_menu.Append(wx.ID_ANY, "Alle Video erlauben")
+        user_allow_all_desktop = user_allow_menu.Append(wx.ID_ANY, "Alle Desktop erlauben")
+        user_allow_all_media = user_allow_menu.Append(wx.ID_ANY, "Alle Mediendatei erlauben")
+        user_allow_all_text = user_allow_menu.Append(wx.ID_ANY, "Alle Kanalnachrichten erlauben")
+        user_adv.AppendSubMenu(user_allow_menu, "Uebertragung erlauben")
         user_menu.AppendSubMenu(user_adv, "Erweitert")
         user_menu.AppendSeparator()
         user_op = user_menu.Append(wx.ID_ANY, "Operator geben/nehmen")
@@ -822,6 +850,7 @@ class MainFrame(wx.Frame):
         user_tx_desktop = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Desktop senden")
         user_tx_media = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Mediendatei senden")
         user_tx_msg = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Kanalnachricht senden")
+        user_tx_desktop_access = user_tx_menu.AppendCheckItem(wx.ID_ANY, "Desktopzugriff erlauben")
         user_menu.AppendSubMenu(user_tx_menu, "Sendekontrolle")
         user_menu.AppendSeparator()
         user_subs = user_menu.Append(wx.ID_ANY, "Abonnements...")
@@ -958,6 +987,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(7, e), chan_stream_radio)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(8, e), chan_stream_podcast)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(9, e), chan_stream_playlist)
+        self.Bind(wx.EVT_MENU, self.on_menu_channel_view_messages, chan_view_msgs)
 
         self.Bind(wx.EVT_MENU, self.on_menu_user_info, user_info)
         self.Bind(wx.EVT_MENU, self.on_menu_user_info_speak, user_info_speak)
@@ -969,6 +999,17 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_user_volume_down, user_vol_down)
         self.Bind(wx.EVT_MENU, self.on_menu_user_relay_voice, user_relay_voice)
         self.Bind(wx.EVT_MENU, self.on_menu_user_relay_media, user_relay_media)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_position, user_position)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_voice, user_allow_voice)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_video, user_allow_video)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_desktop, user_allow_desktop)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_media, user_allow_media)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_text, user_allow_text)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_all_voice, user_allow_all_voice)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_all_video, user_allow_all_video)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_all_desktop, user_allow_all_desktop)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_all_media, user_allow_all_media)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_all_text, user_allow_all_text)
         self.Bind(wx.EVT_MENU, self.on_menu_user_operator, user_op)
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick, user_kick)
         self.Bind(wx.EVT_MENU, self.on_menu_user_kick_ban, user_kick_ban)
@@ -980,6 +1021,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("desktop", e), user_tx_desktop)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("media", e), user_tx_media)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_user_tx_toggle("msg", e), user_tx_msg)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_allow_desktop_access, user_tx_desktop_access)
         self.Bind(wx.EVT_MENU, self.on_menu_user_subscriptions, user_subs)
         self.Bind(wx.EVT_MENU, self.on_menu_user_move, user_move)
         self.Bind(wx.EVT_MENU, self.on_menu_store_move_target, user_store_move)
@@ -2091,6 +2133,37 @@ class MainFrame(wx.Frame):
         else:
             self.set_status("Senden fehlgeschlagen")
 
+    def on_menu_channel_view_messages(self, _event):
+        if not self._channel_message_log:
+            dlg = wx.MessageDialog(self, "Keine Kanalnachrichten gespeichert.", "Kanalnachrichten", wx.OK | wx.ICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        dlg = wx.Dialog(self, title="Kanalnachrichten", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((640, 420))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        root = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
+        text.SetValue("\n".join(self._channel_message_log))
+        root.Add(text, 1, wx.ALL | wx.EXPAND, 10)
+        btns = wx.BoxSizer(wx.HORIZONTAL)
+        clear_btn = wx.Button(dlg, label="Leeren")
+        ok_btn = wx.Button(dlg, id=wx.ID_OK, label="OK")
+        btns.Add(clear_btn, 0, wx.RIGHT, 8)
+        btns.Add(ok_btn, 0)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        def on_clear(_evt):
+            self._channel_message_log.clear()
+            text.SetValue("")
+
+        clear_btn.Bind(wx.EVT_BUTTON, on_clear)
+        dlg.SetSizerAndFit(root)
+        dlg.ShowModal()
+        dlg.Destroy()
+
     def on_menu_channel_file_upload(self, _event):
         if not self._require_connected("Datei hochladen"):
             return
@@ -2447,6 +2520,96 @@ class MainFrame(wx.Frame):
         self.client.do_channel_user_transmit(int(user.nUserID), int(my_ch), stream_type)
         self.set_status(f"Sendekontrolle ({kind}) umgeschaltet")
 
+    def on_menu_user_position(self, _event):
+        if not self._require_connected("Benutzer positionieren"):
+            return
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        tt = self.client.tt
+        choices = [
+            ("Sprache", int(tt.StreamType.STREAMTYPE_VOICE)),
+        ]
+        media_st = getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE", None)
+        if media_st is None:
+            media_st = getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE_AUDIO", None)
+        if media_st is not None:
+            choices.append(("Mediendatei", int(media_st)))
+        choices.append(("Sprache + Medien", 0))
+        dlg = wx.Dialog(self, title="Benutzer positionieren", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        root = wx.BoxSizer(wx.VERTICAL)
+        root.Add(wx.StaticText(dlg, label="Stream-Typ:"), 0, wx.ALL, 6)
+        choice = wx.Choice(dlg, choices=[label for label, _ in choices])
+        choice.SetSelection(0)
+        root.Add(choice, 0, wx.ALL | wx.EXPAND, 6)
+        grid = wx.FlexGridSizer(3, 2, 8, 12)
+        grid.AddGrowableCol(1, 1)
+        x_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        y_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        z_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        grid.Add(wx.StaticText(dlg, label="X:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(x_ctrl, 1, wx.EXPAND)
+        grid.Add(wx.StaticText(dlg, label="Y:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(y_ctrl, 1, wx.EXPAND)
+        grid.Add(wx.StaticText(dlg, label="Z:"), 0, wx.ALIGN_CENTER_VERTICAL)
+        grid.Add(z_ctrl, 1, wx.EXPAND)
+        root.Add(grid, 0, wx.ALL | wx.EXPAND, 6)
+        btns = dlg.CreateButtonSizer(wx.OK | wx.CANCEL)
+        root.Add(btns, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+        dlg.SetSizerAndFit(root)
+        if dlg.ShowModal() == wx.ID_OK:
+            idx = choice.GetSelection()
+            stream_type = choices[idx][1] if 0 <= idx < len(choices) else 0
+            x = float(x_ctrl.GetValue())
+            y = float(y_ctrl.GetValue())
+            z = float(z_ctrl.GetValue())
+            success = True
+            if stream_type == 0:
+                success = self.client.set_user_position(int(user.nUserID), int(tt.StreamType.STREAMTYPE_VOICE), x, y, z)
+                if media_st is not None:
+                    success = self.client.set_user_position(int(user.nUserID), int(media_st), x, y, z) and success
+            else:
+                success = self.client.set_user_position(int(user.nUserID), int(stream_type), x, y, z)
+            if success:
+                self.set_status("Position aktualisiert")
+            else:
+                self.set_status("Position setzen fehlgeschlagen")
+        dlg.Destroy()
+
+    def on_menu_user_allow_voice(self, _event):
+        self._toggle_allow_stream_for_user("Sprache", self._stream_type_voice())
+
+    def on_menu_user_allow_video(self, _event):
+        self._toggle_allow_stream_for_user("Video", self._stream_type_video())
+
+    def on_menu_user_allow_desktop(self, _event):
+        self._toggle_allow_stream_for_user("Desktop", self._stream_type_desktop())
+
+    def on_menu_user_allow_media(self, _event):
+        self._toggle_allow_stream_for_user("Mediendatei", self._stream_type_media())
+
+    def on_menu_user_allow_text(self, _event):
+        self._toggle_allow_stream_for_user("Kanalnachricht", self._stream_type_channel_msg())
+
+    def on_menu_user_allow_all_voice(self, _event):
+        self._toggle_allow_stream_for_all("Alle Sprache", self._stream_type_voice())
+
+    def on_menu_user_allow_all_video(self, _event):
+        self._toggle_allow_stream_for_all("Alle Video", self._stream_type_video())
+
+    def on_menu_user_allow_all_desktop(self, _event):
+        self._toggle_allow_stream_for_all("Alle Desktop", self._stream_type_desktop())
+
+    def on_menu_user_allow_all_media(self, _event):
+        self._toggle_allow_stream_for_all("Alle Mediendatei", self._stream_type_media())
+
+    def on_menu_user_allow_all_text(self, _event):
+        self._toggle_allow_stream_for_all("Alle Kanalnachrichten", self._stream_type_channel_msg())
+
     def on_menu_user_subscriptions(self, _event):
         if not self._require_connected("Abonnements"):
             return
@@ -2463,6 +2626,7 @@ class MainFrame(wx.Frame):
             ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
             ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
             ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
+            ("Desktopzugriff", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
             ("Benutzernachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
             ("Kanalnachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
             ("Sprache abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
@@ -2548,6 +2712,153 @@ class MainFrame(wx.Frame):
         else:
             self.client.do_subscribe(int(user.nUserID), flag)
             self.set_status("Desktop-Zugriff erlaubt")
+
+    def _stream_type_voice(self) -> int:
+        return int(self.client.tt.StreamType.STREAMTYPE_VOICE)
+
+    def _stream_type_video(self) -> int:
+        return int(self.client.tt.StreamType.STREAMTYPE_VIDEOCAPTURE)
+
+    def _stream_type_desktop(self) -> int:
+        return int(self.client.tt.StreamType.STREAMTYPE_DESKTOP)
+
+    def _stream_type_media(self) -> int:
+        tt = self.client.tt
+        st = getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE", None)
+        if st is None:
+            st = getattr(tt.StreamType, "STREAMTYPE_MEDIAFILE_AUDIO", None)
+        return int(st or 0)
+
+    def _stream_type_channel_msg(self) -> int:
+        tt = self.client.tt
+        st = getattr(tt.StreamType, "STREAMTYPE_CHANNELMSG", None)
+        return int(st or 0)
+
+    def _is_classroom_channel(self, channel) -> bool:
+        try:
+            return bool(int(channel.uChannelType or 0) & int(self.client.tt.ChannelType.CHANNEL_CLASSROOM))
+        except Exception:
+            return False
+
+    def _can_modify_channel(self, channel_id: int) -> bool:
+        try:
+            rights = int(self.client.get_my_user_rights() or 0)
+        except Exception:
+            rights = 0
+        if rights & int(self.client.tt.UserRight.USERRIGHT_MODIFY_CHANNELS):
+            return True
+        my_id = int(self.client.get_my_user_id() or 0)
+        if my_id and self.client.is_channel_operator(int(channel_id), int(my_id)):
+            return True
+        return False
+
+    def _get_transmit_users_map(self, channel) -> Dict[int, int]:
+        transmit: Dict[int, int] = {}
+        arr = getattr(channel, "transmitUsers", None)
+        if arr is None:
+            return transmit
+        for i in range(TT_TRANSMITUSERS_MAX):
+            try:
+                uid = int(arr[i][TT_TRANSMITUSERS_USERID_INDEX])
+                st = int(arr[i][TT_TRANSMITUSERS_STREAMTYPE_INDEX])
+            except Exception:
+                try:
+                    base = i * 2
+                    uid = int(arr[base])
+                    st = int(arr[base + 1])
+                except Exception:
+                    break
+            if uid == 0:
+                break
+            transmit[uid] = st
+        return transmit
+
+    def _set_transmit_user_entry(self, channel, idx: int, user_id: int, stream_type: int) -> bool:
+        try:
+            channel.transmitUsers[idx][TT_TRANSMITUSERS_USERID_INDEX] = int(user_id)
+            channel.transmitUsers[idx][TT_TRANSMITUSERS_STREAMTYPE_INDEX] = int(stream_type)
+            return True
+        except Exception:
+            try:
+                base = idx * 2
+                channel.transmitUsers[base] = int(user_id)
+                channel.transmitUsers[base + 1] = int(stream_type)
+                return True
+            except Exception:
+                return False
+
+    def _set_transmit_users_from_map(self, channel, transmit: Dict[int, int]) -> bool:
+        items = sorted(transmit.items(), key=lambda kv: kv[0])
+        if len(items) > TT_TRANSMITUSERS_MAX:
+            self.set_status(f"Max. {TT_TRANSMITUSERS_MAX} Benutzer erlauben")
+            return False
+        for i in range(TT_TRANSMITUSERS_MAX):
+            if i < len(items):
+                uid, st = items[i]
+                if not self._set_transmit_user_entry(channel, i, uid, st):
+                    return False
+            else:
+                if not self._set_transmit_user_entry(channel, i, 0, 0):
+                    return False
+        return True
+
+    def _toggle_allow_stream(self, label: str, user_id: int, stream_type: int, require_user: bool = True) -> None:
+        if not self._require_connected("Uebertragung erlauben"):
+            return
+        if stream_type == 0:
+            self.set_status("Stream-Typ nicht verfügbar")
+            return
+        user = self._get_selected_user() if require_user else None
+        if require_user and not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        channel_id = 0
+        if user is not None:
+            channel_id = int(getattr(user, "nChannelID", 0) or 0)
+        if not channel_id:
+            channel_id = int(self.client.get_my_channel_id() or 0) or int(self._get_selected_channel_id() or 0)
+        if not channel_id:
+            self.set_status("Kein Kanal ausgewählt")
+            return
+        channel = self.client.get_channel(int(channel_id))
+        if not channel:
+            self.set_status("Kanal nicht gefunden")
+            return
+        if not self._is_classroom_channel(channel):
+            self.set_status("Nur in Klassenzimmer-Kanälen verfügbar")
+            return
+        if not self._can_modify_channel(int(channel_id)):
+            self.set_status("Keine Rechte für Uebertragung erlauben")
+            return
+        transmit = self._get_transmit_users_map(channel)
+        current = int(transmit.get(user_id, 0))
+        allowed = bool(current & stream_type)
+        if allowed:
+            new_val = current & ~stream_type
+        else:
+            new_val = current | stream_type
+        if new_val:
+            transmit[user_id] = new_val
+        else:
+            transmit.pop(user_id, None)
+        if not self._set_transmit_users_from_map(channel, transmit):
+            return
+        result = self.client.update_channel(channel)
+        if result.ok:
+            state = "erlaubt" if not allowed else "entzogen"
+            self.set_status(f"{label} {state}")
+        else:
+            self.set_status(result.message)
+
+    def _toggle_allow_stream_for_user(self, label: str, stream_type: int) -> None:
+        user = self._get_selected_user()
+        if not user:
+            self.set_status("Kein Benutzer ausgewählt")
+            return
+        self._toggle_allow_stream(label, int(user.nUserID), stream_type, require_user=True)
+
+    def _toggle_allow_stream_for_all(self, label: str, stream_type: int) -> None:
+        self._toggle_allow_stream(label, TT_TRANSMITUSERS_FREEFORALL, stream_type, require_user=False)
 
     def on_menu_audio_settings(self, _event):
         if not self.settings_window.IsShown():
@@ -2879,6 +3190,11 @@ class MainFrame(wx.Frame):
             "\n"
             "Nachricht eingeben: Eingabefeld + Senden-Schaltfläche (oder Enter).\n"
             "\n"
+            "Chat-Verlauf:\n"
+            "  Verlauf exportieren: Aktuellen Chat als TXT-Datei speichern.\n"
+            "  Verlauf leeren: Chatverlauf löschen (optional inkl. gespeicherter Datei).\n"
+            "  Chat-Verlauf speichern (Einstellungen): Speichert pro Server bis zu 200 Einträge.\n"
+            "\n"
             "\n"
             "6. Tab Audio\n"
             "============\n"
@@ -3110,6 +3426,8 @@ class MainFrame(wx.Frame):
             "  Geschlecht:          Wird dem Server gemeldet (Männlich/Weiblich/Neutral).\n"
             "  Abwesenheits-Timer:  Nach X Minuten Inaktivität automatisch 'Abwesend' setzen.\n"
             "  BearWare-Konto:      BearWare-ID und Token für registrierte Nutzer.\n"
+            "  Chat-Verlauf speichern: Verlauf pro Server sichern und beim nächsten Verbinden laden.\n"
+            "  Letzten Kanal automatisch beitreten: Nach dem Verbinden automatisch in den letzten Kanal.\n"
             "\n"
             "Bereich 'Anzeige'\n"
             "  Tray-Icon:          Programm im System-Tray minimieren.\n"
@@ -3161,6 +3479,10 @@ class MainFrame(wx.Frame):
             "  Alles stummschalten:          Alle Benutzer stummschalten/reaktivieren.\n"
             "  Sprachaktivierung umschalten: VA ein-/ausschalten.\n"
             "  Video senden umschalten:      Video-Übertragung starten/stoppen.\n"
+            "\n"
+            "Globale Hotkeys (macOS, systemweit):\n"
+            "  PTT und Stummschalten funktionieren auch im Hintergrund.\n"
+            "  Aktivieren und dann Tasten aufnehmen.\n"
             "\n"
             "Hotkey aufnehmen: Schaltfläche drücken, dann gewünschte Taste betätigen.\n"
             "ESC = Aufnahme abbrechen.\n"
@@ -4630,6 +4952,22 @@ class MainFrame(wx.Frame):
                 kind = "system"
             else:
                 kind = "chat"
+            if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
+                timestamp = time.strftime("%H:%M:%S")
+                channel_name = ""
+                try:
+                    chan = self.client.get_channel(int(msg.textmessage.nChannelID))
+                    if chan:
+                        channel_name = self.tt_str(getattr(chan, "szName", "")) or ""
+                except Exception:
+                    channel_name = ""
+                if channel_name:
+                    entry = f"[{timestamp}] {channel_name} {from_user}: {content}"
+                else:
+                    entry = f"[{timestamp}] {from_user}: {content}"
+                self._channel_message_log.append(entry)
+                if len(self._channel_message_log) > 200:
+                    self._channel_message_log = self._channel_message_log[-200:]
             wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
             self._message_buffers.pop(key, None)
             # Sound-Ereignisse

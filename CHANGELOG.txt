@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-26 (v1.3.2)
+- Benutzer:
+    - Desktopzugriff erlauben (Desktop-Input abonnieren).
+    - Positionieren: Benutzerposition (3D) setzen.
+    - Uebertragung erlauben: Sprache/Video/Desktop/Medien/Kanaltext + Alle.
+- Abonnements:
+    - Desktopzugriff (SUBSCRIBE_DESKTOPINPUT) ergaenzt.
+- Kanal:
+    - Kanalnachrichten anzeigen (Dialog).
+
 2026-03-22 (v1.3.1)
 - Feature: Chat-Verlauf exportieren – neuer Button "Verlauf exportieren"
   im Chat-Bereich speichert den aktuellen Verlauf als TXT-Datei.

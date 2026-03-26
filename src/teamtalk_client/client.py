@@ -933,6 +933,9 @@ class TeamTalkClient:
     def set_user_mute(self, user_id: int, stream_type: int, mute: bool) -> bool:
         return self.tt._SetUserMute(self.client._tt, user_id, stream_type, mute, 0)
 
+    def set_user_position(self, user_id: int, stream_type: int, x: float, y: float, z: float) -> bool:
+        return self.tt._SetUserPosition(self.client._tt, int(user_id), int(stream_type), float(x), float(y), float(z))
+
     # ------------------------------------------------------------------
     # Subscriptions
     # ------------------------------------------------------------------
