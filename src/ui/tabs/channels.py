@@ -37,13 +37,12 @@ class ChannelsTab(wx.Panel):
         self._selected_user_id: Optional[int] = None
         self._cached_channels: List = []
 
-        # --- Einziger TreeCtrl füllt den Tab ---
+        # TreeCtrl direkt im Panel – kein StaticBox-Wrapper (verhindert Render-Probleme
+        # wenn ChannelsTab in einem äußeren SplitterWindow sitzt)
         sizer = wx.BoxSizer(wx.VERTICAL)
-        box = wx.StaticBox(self, label="Kanalstruktur und Nutzer")
-        box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
         self.channel_tree = wx.TreeCtrl(
-            box,
+            self,
             style=wx.TR_HAS_BUTTONS | wx.TR_LINES_AT_ROOT | wx.TR_SINGLE,
         )
         self.channel_tree.SetName("Kanalliste")
@@ -52,17 +51,14 @@ class ChannelsTab(wx.Panel):
         self.channel_tree.Bind(wx.EVT_RIGHT_DOWN, self._on_tree_right_click)
         self.channel_tree.Bind(wx.EVT_KEY_DOWN, self._on_tree_key)
 
-        box_sizer.Add(self.channel_tree, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(self.channel_tree, 1, wx.ALL | wx.EXPAND, 4)
 
-        # Beitreten-Button als barrierefreie Alternative zum Doppelklick
-        btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self.join_btn = wx.Button(box, label="&Kanal beitreten")
+        # Beitreten-Button als barrierefreie Alternative zum Doppelklick/Enter
+        self.join_btn = wx.Button(self, label="&Kanal beitreten")
         self.join_btn.SetName("Kanal beitreten")
         self.join_btn.Bind(wx.EVT_BUTTON, self._on_join_btn)
-        btn_row.Add(self.join_btn, 0)
-        box_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(self.join_btn, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
 
-        sizer.Add(box_sizer, 1, wx.ALL | wx.EXPAND, 8)
         self.SetSizer(sizer)
 
     # ------------------------------------------------------------------
