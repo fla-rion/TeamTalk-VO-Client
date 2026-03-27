@@ -74,28 +74,39 @@ class ChannelsTab(wx.Panel):
         tt_str = self.frame.tt_str
         logger = self.frame.logger
 
-        channels = list(client.get_server_channels())
+        try:
+            channels = list(client.get_server_channels() or [])
+        except Exception as exc:
+            logger.write(f"get_server_channels failed: {exc}")
+            channels = []
         self._cached_channels = channels
         logger.write(f"Channels received: {len(channels)}")
 
-        all_users = list(client.get_server_users())
+        try:
+            all_users = list(client.get_server_users() or [])
+        except Exception as exc:
+            logger.write(f"get_server_users failed: {exc}")
+            all_users = []
         self._all_users = all_users
 
         # Nutzer nach Kanal gruppieren
         users_by_channel: Dict[int, List] = {}
         for u in all_users:
-            cid = int(u.nChannelID)
-            users_by_channel.setdefault(cid, []).append(u)
+            try:
+                cid = int(u.nChannelID)
+                users_by_channel.setdefault(cid, []).append(u)
+            except Exception:
+                pass
 
-        # Vorherige Auswahl merken
-        prev_type = None
-        prev_id = None
-        sel = self.channel_tree.GetSelection()
-        if sel.IsOk():
-            data = self.channel_tree.GetItemData(sel)
-            if isinstance(data, dict):
-                prev_type = data.get("type")
-                prev_id = data.get("id")
+        # Vorherige Auswahl merken (robust gegen ungültige Items)
+        prev_type: Optional[str] = None
+        prev_id: Optional[int] = None
+        try:
+            sel = self.channel_tree.GetSelection()
+            if sel.IsOk():
+                prev_type, prev_id = self._node_info_from_item(sel)
+        except Exception:
+            pass
 
         self.channel_tree.DeleteAllItems()
         self._channel_items.clear()
@@ -105,7 +116,10 @@ class ChannelsTab(wx.Panel):
             return
 
         # Root-Kanal ermitteln
-        root_id = int(client.get_root_channel_id() or 0)
+        try:
+            root_id = int(client.get_root_channel_id() or 0)
+        except Exception:
+            root_id = 0
         channel_ids = {c.nChannelID for c in channels}
         parent_ids = {c.nParentID for c in channels}
         if root_id <= 0 or root_id not in channel_ids:
@@ -120,7 +134,10 @@ class ChannelsTab(wx.Panel):
         root_name = tt_str(root_channel.szName) if root_channel else "Root"
         root_label = self._make_channel_label(root_name, root_channel, users_by_channel.get(root_id, []))
         root_item = self.channel_tree.AddRoot(root_label)
-        self.channel_tree.SetItemData(root_item, {"type": _NODE_CHANNEL, "id": root_id})
+        try:
+            self.channel_tree.SetItemData(root_item, {"type": _NODE_CHANNEL, "id": root_id})
+        except Exception:
+            pass
         self._channel_items[root_id] = root_item
         self._add_user_nodes(root_item, users_by_channel.get(root_id, []))
 
@@ -133,21 +150,33 @@ class ChannelsTab(wx.Panel):
                 parent_item = self._channel_items.get(chan.nParentID)
                 if parent_item is None:
                     continue
-                name = tt_str(chan.szName)
-                label = self._make_channel_label(name, chan, users_by_channel.get(chan_id, []))
-                item = self.channel_tree.AppendItem(parent_item, label)
-                self.channel_tree.SetItemData(item, {"type": _NODE_CHANNEL, "id": chan_id})
-                self._channel_items[chan_id] = item
-                self._add_user_nodes(item, users_by_channel.get(chan_id, []))
+                try:
+                    name = tt_str(chan.szName)
+                    label = self._make_channel_label(name, chan, users_by_channel.get(chan_id, []))
+                    item = self.channel_tree.AppendItem(parent_item, label)
+                    try:
+                        self.channel_tree.SetItemData(item, {"type": _NODE_CHANNEL, "id": chan_id})
+                    except Exception:
+                        pass
+                    self._channel_items[chan_id] = item
+                    self._add_user_nodes(item, users_by_channel.get(chan_id, []))
+                except Exception as exc:
+                    logger.write(f"Fehler beim Einbauen von Kanal {chan_id}: {exc}")
                 pending.pop(chan_id)
                 progressed = True
             if not progressed:
                 break
 
-        self.channel_tree.ExpandAll()
+        try:
+            self.channel_tree.ExpandAll()
+        except Exception:
+            pass
 
         # Eigenen Kanal und Nutzer aktualisieren
-        my_ch = int(client.get_my_channel_id() or 0)
+        try:
+            my_ch = int(client.get_my_channel_id() or 0)
+        except Exception:
+            my_ch = 0
         if my_ch:
             self._selected_channel_id = my_ch
             my_users = users_by_channel.get(my_ch, [])
@@ -156,7 +185,10 @@ class ChannelsTab(wx.Panel):
             self._announce_channel_members(my_users, my_ch)
         chat_tab = self.frame.chat_tab
         if chat_tab and self._current_users is not None:
-            chat_tab.refresh_private_user_choice(self._current_users)
+            try:
+                chat_tab.refresh_private_user_choice(self._current_users)
+            except Exception:
+                pass
 
         # Vorherige Auswahl wiederherstellen
         restore_item = None
@@ -164,12 +196,15 @@ class ChannelsTab(wx.Panel):
             restore_item = self._channel_items.get(prev_id)
         elif prev_type == _NODE_USER and prev_id is not None:
             restore_item = self._user_items.get(prev_id)
-        if restore_item and restore_item.IsOk():
-            self.channel_tree.SelectItem(restore_item)
-        elif my_ch and my_ch in self._channel_items:
-            self.channel_tree.SelectItem(self._channel_items[my_ch])
-        elif root_item.IsOk():
-            self.channel_tree.SelectItem(root_item)
+        try:
+            if restore_item and restore_item.IsOk():
+                self.channel_tree.SelectItem(restore_item)
+            elif my_ch and my_ch in self._channel_items:
+                self.channel_tree.SelectItem(self._channel_items[my_ch])
+            elif root_item.IsOk():
+                self.channel_tree.SelectItem(root_item)
+        except Exception:
+            pass
 
     def _make_channel_label(self, name: str, chan, users: List) -> str:
         parts = [name]
@@ -184,22 +219,32 @@ class ChannelsTab(wx.Panel):
 
     def _add_user_nodes(self, parent_item: wx.TreeItemId, users: List) -> None:
         for user in users:
-            label = self._format_user_label(user)
-            item = self.channel_tree.AppendItem(parent_item, label)
-            uid = int(user.nUserID)
-            self.channel_tree.SetItemData(item, {"type": _NODE_USER, "id": uid})
-            self._user_items[uid] = item
+            try:
+                label = self._format_user_label(user)
+                item = self.channel_tree.AppendItem(parent_item, label)
+                uid = int(user.nUserID)
+                try:
+                    self.channel_tree.SetItemData(item, {"type": _NODE_USER, "id": uid})
+                except Exception:
+                    pass
+                self._user_items[uid] = item
+            except Exception:
+                pass
 
     def _format_user_label(self, user) -> str:
-        tt = self.frame.client.tt
-        name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Benutzer"
+        try:
+            name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Benutzer"
+        except Exception:
+            name = "Benutzer"
         flags = []
         try:
+            tt = self.frame.client.tt
             if user.uUserType & tt.UserType.USERTYPE_ADMIN:
                 flags.append("Admin")
         except Exception:
             pass
         try:
+            tt = self.frame.client.tt
             if user.uUserState & tt.UserState.USERSTATE_VOICE:
                 flags.append("Spricht")
             elif user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE:
