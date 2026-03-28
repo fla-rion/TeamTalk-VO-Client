@@ -133,6 +133,10 @@ class ChatTab(wx.Panel):
         # Keyword highlight marker
         if kind not in ("system", "own") and self._has_highlight_keyword(text):
             text = "[!] " + text
+        # Optional timestamp prefix
+        if getattr(self.frame.settings_store.settings, "chat_show_timestamps", False):
+            from datetime import datetime as _dt
+            text = f"[{_dt.now().strftime('%H:%M:%S')}] {text}"
         if self.chat_log.GetLastPosition() > 0:
             self.chat_log.AppendText("\n")
         if kind == "system":

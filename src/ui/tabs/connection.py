@@ -30,6 +30,7 @@ class ConnectionTab(wx.Panel):
 
         self._all_server_names: List[str] = [p.name for p in frame.store.items()]
         self._filtered_indices: List[int] = list(range(len(self._all_server_names)))
+        self._server_status: Dict[int, Optional[bool]] = {}
 
         # v3.0.0 – Gruppen-Filter
         group_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -85,8 +86,12 @@ class ConnectionTab(wx.Panel):
         btn_row.Add(self.server_add, 0, wx.RIGHT, 8)
         btn_row.Add(self.server_edit, 0, wx.RIGHT, 8)
         btn_row.Add(self.server_remove, 0, wx.RIGHT, 8)
+        self.status_check_btn = wx.Button(self, label="Status &prüfen")
+        self.status_check_btn.SetName("Server-Status prüfen")
+        self.status_check_btn.Bind(wx.EVT_BUTTON, self._on_check_server_status)
         btn_row.Add(self.join_code_btn, 0, wx.RIGHT, 8)
-        btn_row.Add(self.public_servers_btn, 0)
+        btn_row.Add(self.public_servers_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.status_check_btn, 0)
 
         server_sizer.Add(self.server_list, 0, wx.ALL | wx.EXPAND, 8)
         server_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -231,7 +236,40 @@ class ConnectionTab(wx.Panel):
         filt = self.server_filter.GetValue().strip().lower() if hasattr(self, "server_filter") else ""
         if filt:
             self._filtered_indices = [i for i, n in enumerate(self._all_server_names) if filt in n.lower()]
-        self.server_list.Set([self._all_server_names[i] for i in self._filtered_indices])
+
+        def _label(i: int) -> str:
+            st = self._server_status.get(i)
+            prefix = "✓ " if st is True else "✗ " if st is False else ""
+            return prefix + self._all_server_names[i]
+
+        self.server_list.Set([_label(i) for i in self._filtered_indices])
+
+    def _on_check_server_status(self, _event) -> None:
+        import socket
+        profiles = self.frame.store.items()
+        if not profiles:
+            return
+        self._server_status = {}
+        self.status_check_btn.Disable()
+        self.frame.set_status("Server-Status wird geprüft…")
+
+        def worker():
+            for i, profile in enumerate(profiles):
+                try:
+                    conn = socket.create_connection(
+                        (profile.host, int(profile.tcp_port or 10333)), timeout=3
+                    )
+                    conn.close()
+                    self._server_status[i] = True
+                except Exception:
+                    self._server_status[i] = False
+            reachable = sum(1 for v in self._server_status.values() if v)
+            total = len(self._server_status)
+            wx.CallAfter(self.reload_server_list)
+            wx.CallAfter(self.status_check_btn.Enable)
+            wx.CallAfter(self.frame.set_status, f"Server-Status: {reachable}/{total} erreichbar")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # --- events ---
 

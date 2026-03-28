@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-28 (v3.1.0)
+- Suchfeld in Einstellungen: Bereichsnamen tippen zum direkten Springen
+- Server-Status-Indikator: "Status prüfen"-Taste prüft TCP-Erreichbarkeit aller
+  Server und markiert sie mit ✓ / ✗ in der Liste
+- Chat-Zeitstempel: optionaler [HH:MM:SS]-Prefix in Chat-Nachrichten
+  (Einstellungen → Allgemein → Zeitstempel im Chat anzeigen)
+- TTS abbrechen: konfigurierbarer Hotkey stoppt laufende Ansage und leert
+  die Warteschlange (Einstellungen → Tastenkürzel)
+
+2026-03-28 (v3.0.1)
+- Einstellungsmenü aufgeräumt: 13 Bereiche auf 9 zusammengelegt
+  (Audio & Aufnahme, TTS, Chat & Automation, KI & Integration)
+
 2026-03-28 (v3.0.0)
 - Server-Gruppen: Server in der Verbindungsansicht nach Gruppen filtern
   (Gruppe verwalten-Button; Gruppen werden in Einstellungen gespeichert)

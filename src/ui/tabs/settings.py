@@ -63,20 +63,30 @@ class SettingsTab(wx.Panel):
         top_row = wx.BoxSizer(wx.HORIZONTAL)
         top_row.Add(wx.StaticText(self, label="Bereich"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.section_choice = wx.Choice(self, choices=[
-            "Allgemein", "Anzeige", "Verbindung", "Sound-Ereignisse",
-            "Audio", "Video", "Tastenkürzel", "System & TTS", "ElevenLabs",
-            "KI & Barrierefreiheit", "TTS-Kontexte & Aussprache",
-            "Lesezeichen", "Automation",
-            "Aufnahme & Audio-Extras", "Chat & Status",
-            "Verbindung & Anzeige", "Integration & API",
-            "Nutzer-Notizen", "PTT & Erweitert", "Stichwort-Alarm",
-            "Plugins",
+            "Allgemein",
+            "Verbindung",
+            "Sound-Ereignisse",
+            "Audio & Aufnahme",
+            "Video",
+            "Tastenkürzel",
+            "TTS",
+            "Chat & Automation",
+            "KI & Integration",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
         self.section_choice.Bind(wx.EVT_CHOICE, self._on_section_changed)
         top_row.Add(self.section_choice, 1, wx.EXPAND)
         root.Add(top_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        # --- Suchfeld ---
+        search_row = wx.BoxSizer(wx.HORIZONTAL)
+        search_row.Add(wx.StaticText(self, label="Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._section_search = wx.TextCtrl(self)
+        self._section_search.SetName("Einstellungsbereich suchen")
+        self._section_search.Bind(wx.EVT_TEXT, self._on_section_search)
+        search_row.Add(self._section_search, 1, wx.EXPAND)
+        root.Add(search_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # --- Log sharing ---
         log_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -87,69 +97,58 @@ class SettingsTab(wx.Panel):
         log_row.Add(wx.StaticText(self, label="Sende deine Logs an den Entwickler"), 0, wx.ALIGN_CENTER_VERTICAL)
         root.Add(log_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        # --- Existing section panels ---
+        # --- Class-based tabs (unchanged) ---
         self.audio_tab = AudioTab(self, frame)
         self.video_tab = VideoTab(self, frame)
         self.shortcuts_tab = ShortcutsTab(self, frame)
         self.system_tab = SystemTab(self, frame)
 
-        # --- New section panels ---
-        self.general_tab = self._build_general_tab()
-        self.display_tab = self._build_display_tab()
-        self.connection_tab_settings = self._build_connection_tab()
+        # --- Combined section panels ---
+        self.general_combined_tab = self._build_combined_general_tab()
+        self.connection_combined_tab = self._build_combined_connection_tab()
         self.sound_events_tab = self._build_sound_events_tab()
-        self.elevenlabs_tab = self._build_elevenlabs_tab()
-        self.ai_tab = self._build_ai_tab()
-        self.tts_ctx_tab = self._build_tts_ctx_tab()
-        self.bookmarks_tab = self._build_bookmarks_tab()
-        self.automation_tab = self._build_automation_tab()
-        self.recording_tab = self._build_recording_tab()
-        self.chat_status_tab = self._build_chat_status_tab()
-        self.extra_connection_tab = self._build_extra_connection_tab()
-        self.integration_tab = self._build_integration_tab()
-        self.user_notes_tab = self._build_user_notes_tab()
-        self.ptt_advanced_tab = self._build_ptt_advanced_tab()
-        self.keyword_alert_tab = self._build_keyword_alert_tab()
-        self.plugins_tab = self._build_plugins_tab()
+        self.recording_combined_tab = self._build_combined_recording_tab()
+        self.tts_extended_tab = self._build_tts_extended_tab()
+        self.ki_integration_tab = self._build_combined_ki_integration_tab()
+        self.chat_automation_tab = self._build_combined_chat_automation_tab()
 
         self._sections = {
-            "Allgemein": self.general_tab,
-            "Anzeige": self.display_tab,
-            "Verbindung": self.connection_tab_settings,
-            "Sound-Ereignisse": self.sound_events_tab,
-            "Audio": self.audio_tab,
-            "Video": self.video_tab,
-            "Tastenkürzel": self.shortcuts_tab,
-            "System & TTS": self.system_tab,
-            "ElevenLabs": self.elevenlabs_tab,
-            "KI & Barrierefreiheit": self.ai_tab,
-            "TTS-Kontexte & Aussprache": self.tts_ctx_tab,
-            "Lesezeichen": self.bookmarks_tab,
-            "Automation": self.automation_tab,
-            "Aufnahme & Audio-Extras": self.recording_tab,
-            "Chat & Status": self.chat_status_tab,
-            "Verbindung & Anzeige": self.extra_connection_tab,
-            "Integration & API": self.integration_tab,
-            "Nutzer-Notizen": self.user_notes_tab,
-            "PTT & Erweitert": self.ptt_advanced_tab,
-            "Stichwort-Alarm": self.keyword_alert_tab,
-            "Plugins": self.plugins_tab,
+            "Allgemein": [self.general_combined_tab],
+            "Verbindung": [self.connection_combined_tab],
+            "Sound-Ereignisse": [self.sound_events_tab],
+            "Audio & Aufnahme": [self.audio_tab, self.recording_combined_tab],
+            "Video": [self.video_tab],
+            "Tastenkürzel": [self.shortcuts_tab],
+            "TTS": [self.system_tab, self.tts_extended_tab],
+            "Chat & Automation": [self.chat_automation_tab],
+            "KI & Integration": [self.ki_integration_tab],
         }
 
-        for panel in self._sections.values():
-            root.Add(panel, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        # Add each unique panel to the root sizer once
+        _seen = set()
+        for panels in self._sections.values():
+            for panel in panels:
+                if id(panel) not in _seen:
+                    root.Add(panel, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+                    _seen.add(id(panel))
 
         self.SetSizer(root)
         self._show_section("Allgemein")
 
     # ------------------------------------------------------------------
-    # Build helpers for new panels
+    # Combined build methods
     # ------------------------------------------------------------------
 
-    def _build_general_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
+    def _build_combined_general_tab(self) -> wx.ScrolledWindow:
+        """Allgemein + Anzeige combined."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
         sizer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
+
+        # ---- Allgemein StaticBox ----
+        gen_box = wx.StaticBox(panel, label="Allgemein")
+        gen_sizer = wx.StaticBoxSizer(gen_box, wx.VERTICAL)
 
         # Gender
         gender_choices = ["Männlich", "Weiblich", "Keine Angabe"]
@@ -160,7 +159,7 @@ class SettingsTab(wx.Panel):
             self._gender_radio.SetSelection(gender_choices.index(current_gender))
         else:
             self._gender_radio.SetSelection(2)
-        sizer.Add(self._gender_radio, 0, wx.ALL | wx.EXPAND, 8)
+        gen_sizer.Add(self._gender_radio, 0, wx.ALL | wx.EXPAND, 8)
 
         # Away timer
         away_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -169,7 +168,7 @@ class SettingsTab(wx.Panel):
         self._away_timer.SetName("Abwesenheits-Timer")
         away_row.Add(away_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         away_row.Add(self._away_timer, 0)
-        sizer.Add(away_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(away_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         # BearWare
         bearware_box = wx.StaticBox(panel, label="BearWare Web-Login")
@@ -190,38 +189,43 @@ class SettingsTab(wx.Panel):
         self._bearware_pass.SetName("BearWare Passwort")
         bw_form.Add(self._bearware_pass, 1, wx.EXPAND)
         bearware_sizer.Add(bw_form, 0, wx.ALL | wx.EXPAND, 4)
-        sizer.Add(bearware_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        gen_sizer.Add(bearware_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        # v1.3.0 feature checkboxes
+        # Feature checkboxes
         self._save_chat_history = wx.CheckBox(panel, label="&Chat-Verlauf speichern (pro Server)")
         self._save_chat_history.SetName("Chat-Verlauf speichern")
         self._save_chat_history.SetValue(bool(s.save_chat_history))
-        sizer.Add(self._save_chat_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._save_chat_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._auto_join_last_channel = wx.CheckBox(panel, label="&Letzten Kanal automatisch beitreten")
         self._auto_join_last_channel.SetName("Letzten Kanal automatisch beitreten")
         self._auto_join_last_channel.SetValue(bool(s.auto_join_last_channel))
-        sizer.Add(self._auto_join_last_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._auto_join_last_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._save_private_history = wx.CheckBox(panel, label="&Privatnachrichten-Verlauf speichern")
         self._save_private_history.SetName("Privatnachrichten-Verlauf speichern")
         self._save_private_history.SetValue(bool(s.save_private_chat_history))
-        sizer.Add(self._save_private_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._save_private_history, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._update_check = wx.CheckBox(panel, label="Beim &Start auf Updates prüfen")
         self._update_check.SetName("Auf Updates prüfen")
         self._update_check.SetValue(bool(s.update_check_on_start))
-        sizer.Add(self._update_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._update_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._chat_show_timestamps = wx.CheckBox(panel, label="&Zeitstempel im Chat anzeigen")
+        self._chat_show_timestamps.SetName("Zeitstempel im Chat anzeigen")
+        self._chat_show_timestamps.SetValue(bool(getattr(s, "chat_show_timestamps", False)))
+        gen_sizer.Add(self._chat_show_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._braille_compact = wx.CheckBox(panel, label="&Braillezeilen-Kompaktmodus (kürzere Labels)")
         self._braille_compact.SetName("Braillezeilen-Kompaktmodus")
         self._braille_compact.SetValue(bool(s.braille_compact_mode))
-        sizer.Add(self._braille_compact, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._braille_compact, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._save_channel_passwords = wx.CheckBox(panel, label="Kanalpasswörter in &Keychain speichern")
         self._save_channel_passwords.SetName("Kanalpasswörter in Keychain speichern")
         self._save_channel_passwords.SetValue(bool(s.save_channel_passwords))
-        sizer.Add(self._save_channel_passwords, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        gen_sizer.Add(self._save_channel_passwords, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         # Chat filter
         filter_box = wx.StaticBox(panel, label="Chat-Filter")
@@ -239,33 +243,24 @@ class SettingsTab(wx.Panel):
         self._muted_users.SetHelpText("Komma-getrennte Nutzernamen, deren Nachrichten ausgeblendet werden")
         filter_form.Add(self._muted_users, 1, wx.EXPAND)
         filter_sizer.Add(filter_form, 0, wx.ALL | wx.EXPAND, 6)
-        sizer.Add(filter_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        gen_sizer.Add(filter_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
-        # Save button
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Allgemein speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_general)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+        sizer.Add(gen_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
-    def _build_display_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
+        # ---- Anzeige StaticBox ----
+        disp_box = wx.StaticBox(panel, label="Anzeige")
+        disp_sizer = wx.StaticBoxSizer(disp_box, wx.VERTICAL)
 
         self._minimize_to_tray = wx.CheckBox(panel, label="&Im Tray minimieren (statt schließen)")
         self._minimize_to_tray.SetName("Im Tray minimieren")
         self._minimize_to_tray.SetValue(bool(s.minimize_to_tray))
-        sizer.Add(self._minimize_to_tray, 0, wx.ALL, 8)
+        disp_sizer.Add(self._minimize_to_tray, 0, wx.ALL, 8)
 
         self._always_on_top = wx.CheckBox(panel, label="Immer im &Vordergrund")
         self._always_on_top.SetName("Immer im Vordergrund")
         self._always_on_top.SetValue(bool(s.always_on_top))
         self._always_on_top.Bind(wx.EVT_CHECKBOX, self._on_always_on_top_changed)
-        sizer.Add(self._always_on_top, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(self._always_on_top, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         chat_choices = ["Liste", "Textfeld"]
         self._chat_format = wx.RadioBox(panel, label="Chat-Verlauf Format", choices=chat_choices, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
@@ -273,64 +268,71 @@ class SettingsTab(wx.Panel):
         fmt = s.chat_history_format or "Liste"
         if fmt in chat_choices:
             self._chat_format.SetSelection(chat_choices.index(fmt))
-        sizer.Add(self._chat_format, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        disp_sizer.Add(self._chat_format, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self._show_vu_meter = wx.CheckBox(panel, label="VU-&Meter anzeigen")
         self._show_vu_meter.SetName("VU-Meter anzeigen")
         self._show_vu_meter.SetValue(bool(s.show_vu_meter))
         self._show_vu_meter.Bind(wx.EVT_CHECKBOX, self._on_vu_meter_changed)
-        sizer.Add(self._show_vu_meter, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(self._show_vu_meter, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._show_server_title = wx.CheckBox(panel, label="&Fenstertitel zeigt Server/Kanal")
         self._show_server_title.SetName("Fenstertitel zeigt Server/Kanal")
         self._show_server_title.SetValue(bool(s.show_server_in_title))
-        sizer.Add(self._show_server_title, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(self._show_server_title, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         note = wx.StaticText(panel, label="Hinweis: Toolbar und Protokoll sind standardmäßig versteckt\n(empfohlen für Screenreader/VoiceOver/NVDA).")
         note.SetName("Barrierefreiheitshinweis")
-        sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._show_toolbar = wx.CheckBox(panel, label="&Toolbar / Schnellaktionen anzeigen")
         self._show_toolbar.SetName("Toolbar anzeigen")
         self._show_toolbar.SetValue(bool(s.show_toolbar))
         self._show_toolbar.Bind(wx.EVT_CHECKBOX, self._on_toolbar_changed)
-        sizer.Add(self._show_toolbar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(self._show_toolbar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._show_event_log = wx.CheckBox(panel, label="&Ereignisprotokoll anzeigen")
         self._show_event_log.SetName("Ereignisprotokoll anzeigen")
         self._show_event_log.SetValue(bool(s.show_event_log))
         self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
-        sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        disp_sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        sizer.Add(disp_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Single save button
         save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Anzeige speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_display)
+        save_btn.SetName("Allgemein & Anzeige speichern")
+        save_btn.Bind(wx.EVT_BUTTON, lambda e: (self._on_save_general(e), self._on_save_display(e)))
         sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
 
         panel.SetSizer(sizer)
         panel.Show(False)
         return panel
 
-    def _build_connection_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
+    def _build_combined_connection_tab(self) -> wx.ScrolledWindow:
+        """Verbindung + Verbindung & Anzeige combined."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
         sizer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
+
+        # ---- Verbindung StaticBox ----
+        conn_box = wx.StaticBox(panel, label="Verbindung")
+        conn_sizer = wx.StaticBoxSizer(conn_box, wx.VERTICAL)
 
         # Default subscriptions
         subs_box = wx.StaticBox(panel, label="Standard-Abonnements")
         subs_sizer = wx.StaticBoxSizer(subs_box, wx.VERTICAL)
         self._sub_checkboxes: list = []
         current_subs = int(s.default_subscriptions or 0)
-        # We need the tt subscription constants - get them at save time
         for label, _flag_name in _SUBSCRIPTION_FLAGS:
             cb = wx.CheckBox(panel, label=label)
             cb.SetName(label)
-            cb.SetValue(False)  # will be updated when tt client is available
+            cb.SetValue(False)
             subs_sizer.Add(cb, 0, wx.ALL, 4)
             self._sub_checkboxes.append((cb, _flag_name))
-        # Store raw int for initial display
         self._default_subs_raw = current_subs
-        sizer.Add(subs_sizer, 0, wx.ALL | wx.EXPAND, 8)
+        conn_sizer.Add(subs_sizer, 0, wx.ALL | wx.EXPAND, 8)
 
         # Reconnect config
         reconnect_box = wx.StaticBox(panel, label="Automatische Wiederverbindung")
@@ -346,7 +348,7 @@ class SettingsTab(wx.Panel):
         self._reconnect_delay.SetName("Reconnect-Verzögerung")
         reconnect_form.Add(self._reconnect_delay, 0)
         reconnect_sizer.Add(reconnect_form, 0, wx.ALL | wx.EXPAND, 6)
-        sizer.Add(reconnect_sizer, 0, wx.ALL | wx.EXPAND, 8)
+        conn_sizer.Add(reconnect_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Port binding
         ports_box = wx.StaticBox(panel, label="Port-Bindung")
@@ -362,15 +364,581 @@ class SettingsTab(wx.Panel):
         self._udp_bind_port.SetName("UDP-Port Bindung")
         port_form.Add(self._udp_bind_port, 0)
         ports_sizer.Add(port_form, 0, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(ports_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        conn_sizer.Add(ports_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        sizer.Add(conn_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # ---- Qualität & Anzeige StaticBox ----
+        cq_box = wx.StaticBox(panel, label="Qualität & Anzeige")
+        cq_sizer = wx.StaticBoxSizer(cq_box, wx.VERTICAL)
+
+        self._cq_announce = wx.CheckBox(panel, label="&Schlechte Verbindungsqualität ansagen")
+        self._cq_announce.SetName("Verbindungsqualität ansagen")
+        self._cq_announce.SetValue(bool(getattr(s, "connection_quality_announce", False)))
+        cq_sizer.Add(self._cq_announce, 0, wx.ALL, 8)
+
+        cq_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        cq_thresh_row.Add(wx.StaticText(panel, label="Ping-Schwellenwert (ms):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._cq_threshold = wx.SpinCtrl(panel, min=50, max=5000,
+                                          initial=int(getattr(s, "connection_quality_threshold_ms", 200) or 200))
+        self._cq_threshold.SetName("Verbindungsqualität Schwellenwert ms")
+        cq_thresh_row.Add(self._cq_threshold, 0)
+        cq_sizer.Add(cq_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._server_info_titlebar = wx.CheckBox(panel, label="Nutzeranzahl und Ping in &Titelleiste anzeigen")
+        self._server_info_titlebar.SetName("Serverinfo in Titelleiste")
+        self._server_info_titlebar.SetValue(bool(getattr(s, "server_info_in_titlebar", False)))
+        cq_sizer.Add(self._server_info_titlebar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(cq_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(cq_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Single save button
         save_btn = wx.Button(panel, label="S&peichern")
         save_btn.SetName("Verbindung speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_connection)
+        save_btn.Bind(wx.EVT_BUTTON, lambda e: (self._on_save_connection(e), self._on_save_extra_connection(e)))
         sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
 
         panel.SetSizer(sizer)
         panel.Show(False)
+        return panel
+
+    def _build_combined_recording_tab(self) -> wx.ScrolledWindow:
+        """Aufnahme & Audio-Extras + PTT & Erweitert combined."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # ---- Aufnahme StaticBox ----
+        ng_box = wx.StaticBox(panel, label="Noise Gate / Rauschunterdrückung")
+        ng_sizer = wx.StaticBoxSizer(ng_box, wx.VERTICAL)
+
+        self._noise_gate_enabled = wx.CheckBox(panel, label="&Rauschunterdrückung aktivieren")
+        self._noise_gate_enabled.SetName("Rauschunterdrückung aktivieren")
+        self._noise_gate_enabled.SetValue(bool(getattr(s, "noise_gate_enabled", False)))
+        ng_sizer.Add(self._noise_gate_enabled, 0, wx.ALL, 8)
+
+        ng_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        ng_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert (0-10000):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._noise_gate_threshold = wx.SpinCtrl(panel, min=0, max=10000,
+                                                  initial=int(getattr(s, "noise_gate_threshold", 0) or 0))
+        self._noise_gate_threshold.SetName("Noise Gate Schwellenwert")
+        ng_thresh_row.Add(self._noise_gate_threshold, 0)
+        ng_sizer.Add(ng_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(ng_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # ---- PTT & VU-Meter StaticBox ----
+        ptt_box = wx.StaticBox(panel, label="PTT-Zeitlimit")
+        ptt_sizer = wx.StaticBoxSizer(ptt_box, wx.VERTICAL)
+        ptt_row = wx.BoxSizer(wx.HORIZONTAL)
+        ptt_row.Add(wx.StaticText(panel, label="PTT-Zeitlimit (Sekunden, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._ptt_max_seconds = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "ptt_max_seconds", 0) or 0))
+        self._ptt_max_seconds.SetName("PTT-Zeitlimit Sekunden")
+        ptt_row.Add(self._ptt_max_seconds, 0)
+        ptt_sizer.Add(ptt_row, 0, wx.ALL, 8)
+        sizer.Add(ptt_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        vu_box = wx.StaticBox(panel, label="VU-Pegel-Alarm")
+        vu_sizer = wx.StaticBoxSizer(vu_box, wx.VERTICAL)
+        self._vu_alert_enabled = wx.CheckBox(panel, label="&VU-Alarm aktivieren (bei zu hohem Eingangspegel)")
+        self._vu_alert_enabled.SetName("VU-Alarm aktivieren")
+        self._vu_alert_enabled.SetValue(bool(getattr(s, "vu_alert_enabled", False)))
+        vu_sizer.Add(self._vu_alert_enabled, 0, wx.ALL, 8)
+        vu_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
+        vu_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert % (0-100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._vu_alert_threshold = wx.SpinCtrl(panel, min=0, max=100, initial=int(getattr(s, "vu_alert_threshold", 90) or 90))
+        self._vu_alert_threshold.SetName("VU-Alarm Schwellenwert")
+        vu_thresh_row.Add(self._vu_alert_threshold, 0)
+        vu_sizer.Add(vu_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(vu_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        seg_box = wx.StaticBox(panel, label="Aufnahme-Segmentierung (0 = deaktiviert)")
+        seg_sizer = wx.StaticBoxSizer(seg_box, wx.VERTICAL)
+        seg_grid = wx.FlexGridSizer(2, 2, 8, 8)
+        seg_grid.AddGrowableCol(1)
+        seg_grid.Add(wx.StaticText(panel, label="Max. Dateigröße (MB, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._rec_max_size = wx.SpinCtrl(panel, min=0, max=10000, initial=int(getattr(s, "recording_max_size_mb", 0) or 0))
+        self._rec_max_size.SetName("Max. Aufnahmegröße MB")
+        seg_grid.Add(self._rec_max_size, 0)
+        seg_grid.Add(wx.StaticText(panel, label="Max. Dauer (Minuten, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._rec_max_minutes = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "recording_max_minutes", 0) or 0))
+        self._rec_max_minutes.SetName("Max. Aufnahmedauer Minuten")
+        seg_grid.Add(self._rec_max_minutes, 0)
+        seg_sizer.Add(seg_grid, 0, wx.ALL, 8)
+        sizer.Add(seg_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Single save button
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Aufnahme & PTT speichern")
+        save_btn.Bind(wx.EVT_BUTTON, lambda e: (self._on_save_recording(e), self._on_save_ptt_advanced(e)))
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _build_tts_extended_tab(self) -> wx.ScrolledWindow:
+        """TTS-Kontexte & Aussprache (renamed to TTS-Erweitert)."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # Per-Kontext-Raten
+        ctx_box = wx.StaticBox(panel, label="Sprechgeschwindigkeit je Kontext (0 = global)")
+        ctx_sizer = wx.StaticBoxSizer(ctx_box, wx.VERTICAL)
+        grid = wx.FlexGridSizer(3, 2, 8, 8)
+        grid.AddGrowableCol(1)
+
+        grid.Add(wx.StaticText(panel, label="Chat / Privat (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_chat_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_chat_rate", 0) or 0))
+        self._tts_chat_rate.SetName("Chat TTS Geschwindigkeit")
+        grid.Add(self._tts_chat_rate, 0)
+
+        grid.Add(wx.StaticText(panel, label="System-Meldungen (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_system_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_system_rate", 0) or 0))
+        self._tts_system_rate.SetName("System TTS Geschwindigkeit")
+        grid.Add(self._tts_system_rate, 0)
+
+        grid.Add(wx.StaticText(panel, label="Kanal-Thema (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._tts_channel_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_channel_rate", 0) or 0))
+        self._tts_channel_rate.SetName("Kanal TTS Geschwindigkeit")
+        grid.Add(self._tts_channel_rate, 0)
+
+        ctx_sizer.Add(grid, 0, wx.ALL, 8)
+
+        ctx_voice_row = wx.BoxSizer(wx.HORIZONTAL)
+        ctx_voice_row.Add(wx.StaticText(panel, label="Chat-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._tts_chat_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_chat_voice", "") or ""))
+        self._tts_chat_voice.SetName("Chat TTS Stimme")
+        ctx_voice_row.Add(self._tts_chat_voice, 1)
+        ctx_sizer.Add(ctx_voice_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        sys_voice_row = wx.BoxSizer(wx.HORIZONTAL)
+        sys_voice_row.Add(wx.StaticText(panel, label="System-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._tts_system_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_system_voice", "") or ""))
+        self._tts_system_voice.SetName("System TTS Stimme")
+        sys_voice_row.Add(self._tts_system_voice, 1)
+        ctx_sizer.Add(sys_voice_row, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ctx_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # Aussprache-Wörterbuch
+        pron_box = wx.StaticBox(panel, label="Aussprache-Wörterbuch (Suche → Ersatz, eine Zeile je Regel: Wort=Ersatz)")
+        pron_sizer = wx.StaticBoxSizer(pron_box, wx.VERTICAL)
+        rules = getattr(s, "pronunciation_dict", {}) or {}
+        rules_text = "\n".join(f"{k}={v}" for k, v in rules.items())
+        self._pronunciation_text = wx.TextCtrl(panel, value=rules_text,
+                                               style=wx.TE_MULTILINE, size=(-1, 120))
+        self._pronunciation_text.SetName("Aussprache-Wörterbuch")
+        pron_sizer.Add(self._pronunciation_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(pron_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("TTS-Erweitert speichern")
+        save_btn.Bind(wx.EVT_BUTTON, self._on_save_tts_ctx)
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        return panel
+
+    def _build_combined_ki_integration_tab(self) -> wx.ScrolledWindow:
+        """ElevenLabs + KI + Plugins + Webhook + HTTP-API combined."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # ---- ElevenLabs StaticBox ----
+        el_box = wx.StaticBox(panel, label="ElevenLabs Text-to-Speech")
+        el_sizer = wx.StaticBoxSizer(el_box, wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Tragen Sie hier Ihren ElevenLabs API-Schlüssel ein.\n"
+            "Er wird global für alle Serverprofile gespeichert."
+        ))
+        info.SetName("ElevenLabs Info")
+        el_sizer.Add(info, 0, wx.ALL, 8)
+
+        key_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        key_form.AddGrowableCol(1)
+        key_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._elevenlabs_key = wx.TextCtrl(panel, value=str(s.elevenlabs_api_key or ""), style=wx.TE_PASSWORD)
+        self._elevenlabs_key.SetName("ElevenLabs API-Schlüssel")
+        key_form.Add(self._elevenlabs_key, 1, wx.EXPAND)
+        el_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(el_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- KI & Barrierefreiheit StaticBox ----
+        # --- Claude API ---
+        claude_box = wx.StaticBox(panel, label="Claude KI (Anthropic)")
+        claude_sizer = wx.StaticBoxSizer(claude_box, wx.VERTICAL)
+
+        info_claude = wx.StaticText(panel, label=(
+            "Claude-API-Schlüssel für KI-Chat-Zusammenfassungen.\n"
+            "Alternativ: Umgebungsvariable ANTHROPIC_API_KEY setzen.\n"
+            "Ohne Schlüssel: Ollama (lokal) oder einfache Extraktion."
+        ))
+        info_claude.SetName("Claude Info")
+        claude_sizer.Add(info_claude, 0, wx.ALL, 8)
+
+        key_form2 = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        key_form2.AddGrowableCol(1)
+        key_form2.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._claude_api_key = wx.TextCtrl(
+            panel, value=str(getattr(s, "claude_api_key", "") or ""), style=wx.TE_PASSWORD
+        )
+        self._claude_api_key.SetName("Claude API-Schlüssel")
+        key_form2.Add(self._claude_api_key, 1, wx.EXPAND)
+        claude_sizer.Add(key_form2, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(claude_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Google Gemini ---
+        gemini_box = wx.StaticBox(panel, label="Google Gemini KI")
+        gemini_sizer = wx.StaticBoxSizer(gemini_box, wx.VERTICAL)
+
+        info_gemini = wx.StaticText(panel, label=(
+            "API-Key aus https://aistudio.google.com/app/apikey\n"
+            "oder Via Google anmelden (Browser-OAuth, kein Key nötig).\n"
+            "Für OAuth: client_secrets.json aus Google Cloud Console\n"
+            "in den App-Daten-Ordner legen."
+        ))
+        info_gemini.SetName("Gemini Info")
+        gemini_sizer.Add(info_gemini, 0, wx.ALL, 8)
+
+        gemini_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        gemini_form.AddGrowableCol(1)
+        gemini_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._gemini_api_key = wx.TextCtrl(
+            panel, value=str(getattr(s, "gemini_api_key", "") or ""), style=wx.TE_PASSWORD
+        )
+        self._gemini_api_key.SetName("Gemini API-Schlüssel")
+        gemini_form.Add(self._gemini_api_key, 1, wx.EXPAND)
+        gemini_sizer.Add(gemini_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        gemini_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._gemini_login_btn = wx.Button(panel, label="&Via Google anmelden")
+        self._gemini_login_btn.SetName("Via Google anmelden")
+        self._gemini_login_btn.Bind(wx.EVT_BUTTON, self._on_gemini_login)
+        self._gemini_logout_btn = wx.Button(panel, label="&Abmelden")
+        self._gemini_logout_btn.SetName("Google Abmelden")
+        self._gemini_logout_btn.Bind(wx.EVT_BUTTON, self._on_gemini_logout)
+        gemini_btn_row.Add(self._gemini_login_btn, 0, wx.RIGHT, 8)
+        gemini_btn_row.Add(self._gemini_logout_btn, 0, wx.RIGHT, 12)
+        self._gemini_status_label = wx.StaticText(panel, label="")
+        self._gemini_status_label.SetName("Gemini Auth-Status")
+        gemini_btn_row.Add(self._gemini_status_label, 1, wx.ALIGN_CENTER_VERTICAL)
+        gemini_sizer.Add(gemini_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(gemini_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        wx.CallAfter(self._refresh_gemini_status)
+
+        # --- Sprachsteuerung ---
+        vc_box = wx.StaticBox(panel, label="Sprachsteuerung (Whisper)")
+        vc_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
+
+        info_vc = wx.StaticText(panel, label=(
+            "Beim ersten Start wird das Whisper-Modell 'base' heruntergeladen (~150 MB)."
+        ))
+        info_vc.SetName("Sprachsteuerung Info")
+        vc_sizer.Add(info_vc, 0, wx.ALL, 8)
+
+        self._voice_control_enabled = wx.CheckBox(panel, label="&Sprachsteuerung beim Start aktivieren")
+        self._voice_control_enabled.SetName("Sprachsteuerung aktivieren")
+        self._voice_control_enabled.SetValue(bool(getattr(s, "voice_control_enabled", False)))
+        vc_sizer.Add(self._voice_control_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        vc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._vc_start_btn = wx.Button(panel, label="&Jetzt starten")
+        self._vc_start_btn.SetName("Sprachsteuerung jetzt starten")
+        self._vc_start_btn.Bind(wx.EVT_BUTTON, self._on_vc_start)
+        self._vc_stop_btn = wx.Button(panel, label="&Stoppen")
+        self._vc_stop_btn.SetName("Sprachsteuerung stoppen")
+        self._vc_stop_btn.Bind(wx.EVT_BUTTON, self._on_vc_stop)
+        vc_btn_row.Add(self._vc_start_btn, 0, wx.RIGHT, 8)
+        vc_btn_row.Add(self._vc_stop_btn, 0)
+        vc_sizer.Add(vc_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(vc_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Braille-Verbosität ---
+        braille_box = wx.StaticBox(panel, label="Braillezeilen-Ausgabe")
+        braille_sizer = wx.StaticBoxSizer(braille_box, wx.VERTICAL)
+
+        braille_row = wx.BoxSizer(wx.HORIZONTAL)
+        braille_row.Add(wx.StaticText(panel, label="Verbositätsstufe"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._braille_verbosity = wx.Choice(panel, choices=["kompakt", "normal", "ausführlich"])
+        self._braille_verbosity.SetName("Braille-Verbositätsstufe")
+        _vmap = {"compact": 0, "normal": 1, "verbose": 2}
+        self._braille_verbosity.SetSelection(_vmap.get(getattr(s, "braille_verbosity", "normal"), 1))
+        braille_row.Add(self._braille_verbosity, 0)
+        braille_sizer.Add(braille_row, 0, wx.ALL, 8)
+        sizer.Add(braille_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # --- Live-Transkription ---
+        trans_box = wx.StaticBox(panel, label="Live-Transkription")
+        trans_sizer = wx.StaticBoxSizer(trans_box, wx.VERTICAL)
+
+        info_trans = wx.StaticText(panel, label=(
+            "Transkribiert Kanal-Sprache und zeigt sie im Kanäle-Tab an."
+        ))
+        info_trans.SetName("Transkription Info")
+        trans_sizer.Add(info_trans, 0, wx.ALL, 8)
+
+        self._transcription_enabled = wx.CheckBox(panel, label="Live-&Transkription aktivieren")
+        self._transcription_enabled.SetName("Live-Transkription aktivieren")
+        self._transcription_enabled.SetValue(bool(getattr(s, "transcription_enabled", False)))
+        trans_sizer.Add(self._transcription_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(trans_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Plugins StaticBox ----
+        pl_box = wx.StaticBox(panel, label="Geladene Plugins")
+        pl_sizer = wx.StaticBoxSizer(pl_box, wx.VERTICAL)
+
+        self._plugins_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._plugins_list.SetName("Plugin-Liste")
+        self._plugins_list.Bind(wx.EVT_LISTBOX, self._on_plugin_selected)
+        pl_sizer.Add(self._plugins_list, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._plugin_info = wx.StaticText(panel, label="")
+        self._plugin_info.SetName("Plugin-Info")
+        pl_sizer.Add(self._plugin_info, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        pl_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._plugin_enable_btn = wx.Button(panel, label="&Aktivieren")
+        self._plugin_enable_btn.SetName("Plugin aktivieren")
+        self._plugin_enable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_enable)
+        self._plugin_disable_btn = wx.Button(panel, label="&Deaktivieren")
+        self._plugin_disable_btn.SetName("Plugin deaktivieren")
+        self._plugin_disable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_disable)
+        reload_btn = wx.Button(panel, label="Neu &laden")
+        reload_btn.SetName("Plugins neu laden")
+        reload_btn.Bind(wx.EVT_BUTTON, self._on_plugin_reload)
+        pl_btn_row.Add(self._plugin_enable_btn, 0, wx.RIGHT, 8)
+        pl_btn_row.Add(self._plugin_disable_btn, 0, wx.RIGHT, 8)
+        pl_btn_row.Add(reload_btn, 0)
+        pl_sizer.Add(pl_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(pl_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Webhook ----
+        wh_box = wx.StaticBox(panel, label="Webhook")
+        wh_sizer = wx.StaticBoxSizer(wh_box, wx.VERTICAL)
+
+        wh_url_row = wx.BoxSizer(wx.HORIZONTAL)
+        wh_url_row.Add(wx.StaticText(panel, label="Webhook-URL:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._webhook_url = wx.TextCtrl(panel, value=str(getattr(s, "webhook_url", "") or ""))
+        self._webhook_url.SetName("Webhook URL")
+        wh_url_row.Add(self._webhook_url, 1)
+        wh_sizer.Add(wh_url_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        wh_events_row = wx.BoxSizer(wx.HORIZONTAL)
+        wh_events_row.Add(wx.StaticText(panel, label="Ereignisse (Komma-getrennt):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        wh_events_val = ", ".join(list(getattr(s, "webhook_events", []) or []))
+        self._webhook_events = wx.TextCtrl(panel, value=wh_events_val)
+        self._webhook_events.SetName("Webhook Ereignisse")
+        self._webhook_events.SetHelpText("Mögliche Werte: private_msg, channel_msg, user_join, user_leave, connect, disconnect")
+        wh_events_row.Add(self._webhook_events, 1)
+        wh_sizer.Add(wh_events_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(wh_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- HTTP-API ----
+        api_box = wx.StaticBox(panel, label="HTTP-API")
+        api_sizer = wx.StaticBoxSizer(api_box, wx.VERTICAL)
+
+        self._http_api_enabled = wx.CheckBox(panel, label="&HTTP-API aktivieren")
+        self._http_api_enabled.SetName("HTTP-API aktivieren")
+        self._http_api_enabled.SetValue(bool(getattr(s, "http_api_enabled", False)))
+        api_sizer.Add(self._http_api_enabled, 0, wx.ALL, 8)
+
+        api_port_row = wx.BoxSizer(wx.HORIZONTAL)
+        api_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._http_api_port = wx.SpinCtrl(panel, min=1024, max=65535,
+                                           initial=int(getattr(s, "http_api_port", 8765) or 8765))
+        self._http_api_port.SetName("HTTP-API Port")
+        api_port_row.Add(self._http_api_port, 0)
+        api_sizer.Add(api_port_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(api_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Single save button
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("KI & Integration speichern")
+        save_btn.Bind(wx.EVT_BUTTON, lambda e: (
+            self._on_save_elevenlabs(e),
+            self._on_save_ai(e),
+            self._on_save_integration(e),
+        ))
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        self._refresh_plugin_list()
+        return panel
+
+    def _build_combined_chat_automation_tab(self) -> wx.ScrolledWindow:
+        """Chat & Status + Stichwort-Alarm + Nutzer-Notizen + Lesezeichen + Automation combined."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        s = self.frame.settings_store.settings
+
+        # ---- Chat & Status StaticBox ----
+        ar_box = wx.StaticBox(panel, label="Auto-Antwort auf Privatnachrichten")
+        ar_sizer = wx.StaticBoxSizer(ar_box, wx.VERTICAL)
+
+        self._auto_reply_enabled = wx.CheckBox(panel, label="&Auto-Antwort aktivieren")
+        self._auto_reply_enabled.SetName("Auto-Antwort aktivieren")
+        self._auto_reply_enabled.SetValue(bool(getattr(s, "auto_reply_enabled", False)))
+        ar_sizer.Add(self._auto_reply_enabled, 0, wx.ALL, 8)
+
+        ar_msg_row = wx.BoxSizer(wx.HORIZONTAL)
+        ar_msg_row.Add(wx.StaticText(panel, label="Nachricht:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._auto_reply_message = wx.TextCtrl(panel, value=str(getattr(s, "auto_reply_message", "") or ""))
+        self._auto_reply_message.SetName("Auto-Antwort Nachricht")
+        ar_msg_row.Add(self._auto_reply_message, 1)
+        ar_sizer.Add(ar_msg_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        sizer.Add(ar_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        tpl_box = wx.StaticBox(panel, label="Status-Vorlagen (eine Vorlage je Zeile, max. 3 per Hotkey)")
+        tpl_sizer = wx.StaticBoxSizer(tpl_box, wx.VERTICAL)
+        templates = list(getattr(s, "status_templates", []) or [])
+        tpl_text = "\n".join(str(t) for t in templates)
+        self._status_templates = wx.TextCtrl(panel, value=tpl_text,
+                                              style=wx.TE_MULTILINE, size=(-1, 100))
+        self._status_templates.SetName("Status-Vorlagen")
+        tpl_sizer.Add(self._status_templates, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(tpl_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Stichwort-Alarm StaticBox ----
+        kw_box = wx.StaticBox(panel, label="Stichwort-Alarm")
+        kw_sizer = wx.StaticBoxSizer(kw_box, wx.VERTICAL)
+        kw_sizer.Add(wx.StaticText(panel, label="Ein Stichwort je Zeile (Groß/Kleinschreibung egal):"), 0, wx.ALL, 8)
+        kws = list(getattr(s, "alert_keywords", []) or [])
+        self._kw_text = wx.TextCtrl(panel, value="\n".join(kws), style=wx.TE_MULTILINE, size=(-1, 120))
+        self._kw_text.SetName("Stichwörter")
+        kw_sizer.Add(self._kw_text, 1, wx.ALL | wx.EXPAND, 8)
+
+        self._kw_tts = wx.CheckBox(panel, label="&Stichwort via TTS ansagen")
+        self._kw_tts.SetName("Stichwort TTS ansagen")
+        self._kw_tts.SetValue(bool(getattr(s, "alert_keywords_tts", True)))
+        kw_sizer.Add(self._kw_tts, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(kw_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Nutzer-Notizen StaticBox ----
+        info_notes = wx.StaticText(panel, label=(
+            "Gespeicherte Notizen zu Nutzern. Notizen werden beim Betreten des Kanals\n"
+            "via TTS angesagt (Notiz: ...). Bearbeiten: Benutzer-Menü → Notiz bearbeiten."
+        ))
+        sizer.Add(info_notes, 0, wx.ALL, 8)
+
+        notes_box = wx.StaticBox(panel, label="Gespeicherte Nutzer-Notizen")
+        notes_sizer = wx.StaticBoxSizer(notes_box, wx.VERTICAL)
+        self._notes_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._notes_list.SetName("Nutzer-Notizen Liste")
+        notes_sizer.Add(self._notes_list, 1, wx.ALL | wx.EXPAND, 8)
+
+        notes_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        del_note_btn = wx.Button(panel, label="Notiz &löschen")
+        del_note_btn.SetName("Nutzer-Notiz löschen")
+        del_note_btn.Bind(wx.EVT_BUTTON, self._on_delete_note)
+        notes_btn_row.Add(del_note_btn, 0)
+        notes_sizer.Add(notes_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(notes_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Lesezeichen StaticBox ----
+        info_bm = wx.StaticText(panel, label=(
+            "Speichere bis zu 9 Kanal-Lesezeichen. Lesezeichen 1-3 können\n"
+            "per Hotkey (Tastenkürzel-Seite) direkt angesprungen werden."
+        ))
+        sizer.Add(info_bm, 0, wx.ALL, 8)
+
+        bm_box = wx.StaticBox(panel, label="Gespeicherte Lesezeichen")
+        bm_sizer = wx.StaticBoxSizer(bm_box, wx.VERTICAL)
+        self._bm_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._bm_list.SetName("Lesezeichen-Liste")
+        bm_sizer.Add(self._bm_list, 1, wx.ALL | wx.EXPAND, 8)
+
+        bm_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        add_bm_btn = wx.Button(panel, label="Aktuellen Kanal &hinzufügen")
+        add_bm_btn.SetName("Lesezeichen hinzufügen")
+        add_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_add)
+        del_bm_btn = wx.Button(panel, label="&Entfernen")
+        del_bm_btn.SetName("Lesezeichen entfernen")
+        del_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_remove)
+        jump_bm_btn = wx.Button(panel, label="&Springen")
+        jump_bm_btn.SetName("Zum Lesezeichen springen")
+        jump_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_jump)
+        bm_btn_row.Add(add_bm_btn, 0, wx.RIGHT, 8)
+        bm_btn_row.Add(del_bm_btn, 0, wx.RIGHT, 8)
+        bm_btn_row.Add(jump_bm_btn, 0)
+        bm_sizer.Add(bm_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(bm_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Auto-Kanal ----
+        ac_box = wx.StaticBox(panel, label="Auto-Kanal beim Verbinden")
+        ac_sizer = wx.StaticBoxSizer(ac_box, wx.VERTICAL)
+        ac_sizer.Add(wx.StaticText(panel, label=(
+            "Kanalname, dem nach dem Verbinden automatisch beigetreten wird.\n"
+            "Leer lassen = deaktiviert. Wird pro Server-Key gespeichert."
+        )), 0, wx.ALL, 8)
+        ac_row = wx.BoxSizer(wx.HORIZONTAL)
+        ac_row.Add(wx.StaticText(panel, label="Kanalname:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        server_key = getattr(self.frame, "_current_server_key", "") or ""
+        ajc = getattr(s, "auto_join_channel_per_server", {}) or {}
+        self._auto_join_channel = wx.TextCtrl(panel, value=ajc.get(server_key, ""))
+        self._auto_join_channel.SetName("Auto-Kanal Kanalname")
+        ac_row.Add(self._auto_join_channel, 1)
+        ac_sizer.Add(ac_row, 0, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ac_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Zeitgesteuerte Stille ----
+        ms_box = wx.StaticBox(panel, label="Zeitgesteuerte Stille")
+        ms_sizer = wx.StaticBoxSizer(ms_box, wx.VERTICAL)
+        ms_sizer.Add(wx.StaticText(panel, label=(
+            "Format: HH:MM-HH:MM Label (eine Zeile je Zeitfenster)\n"
+            "Beispiel:  12:00-13:00 Mittagspause\n"
+            "           22:00-07:00 Nachtruhe"
+        )), 0, wx.ALL, 8)
+        schedule = getattr(s, "mute_schedule", []) or []
+        sched_text = "\n".join(
+            f"{r.get('start','00:00')}-{r.get('end','00:00')} {r.get('label','')}"
+            for r in schedule
+        )
+        self._mute_schedule_text = wx.TextCtrl(panel, value=sched_text,
+                                               style=wx.TE_MULTILINE, size=(-1, 80))
+        self._mute_schedule_text.SetName("Zeitgesteuerte Stille Zeitfenster")
+        ms_sizer.Add(self._mute_schedule_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(ms_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Makros ----
+        mac_box = wx.StaticBox(panel, label="Makros")
+        mac_sizer = wx.StaticBoxSizer(mac_box, wx.VERTICAL)
+        mac_sizer.Add(wx.StaticText(panel, label=(
+            "Format je Makro (JSON, eine Zeile):\n"
+            '  {"name":"Begrüßung","hotkey":0,"actions":[{"type":"speak","value":"Hallo!"}]}\n'
+            "  Aktions-Typen: speak, channel, ptt_on, ptt_off, mute_toggle, status, wait"
+        )), 0, wx.ALL, 8)
+        macros = getattr(s, "macros", []) or []
+        import json as _json
+        mac_text = "\n".join(_json.dumps(m, ensure_ascii=False) for m in macros)
+        self._macros_text = wx.TextCtrl(panel, value=mac_text,
+                                        style=wx.TE_MULTILINE, size=(-1, 120))
+        self._macros_text.SetName("Makros JSON")
+        mac_sizer.Add(self._macros_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(mac_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # Single save button
+        save_btn = wx.Button(panel, label="&Speichern")
+        save_btn.SetName("Chat & Automation speichern")
+        save_btn.Bind(wx.EVT_BUTTON, lambda e: (
+            self._on_save_chat_status(e),
+            self._on_save_keyword_alert(e),
+            self._on_save_automation(e),
+        ))
+        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        self._refresh_notes_list()
+        self._refresh_bm_list()
         return panel
 
     def _build_sound_events_tab(self) -> wx.Panel:
@@ -468,7 +1036,7 @@ class SettingsTab(wx.Panel):
         return panel
 
     # ------------------------------------------------------------------
-    # Save handlers for new sections
+    # Save handlers
     # ------------------------------------------------------------------
 
     def _on_save_general(self, _event):
@@ -484,6 +1052,7 @@ class SettingsTab(wx.Panel):
         s.auto_join_last_channel = self._auto_join_last_channel.GetValue()
         s.save_private_chat_history = self._save_private_history.GetValue()
         s.update_check_on_start = self._update_check.GetValue()
+        s.chat_show_timestamps = self._chat_show_timestamps.GetValue()
         s.braille_compact_mode = self._braille_compact.GetValue()
         s.save_channel_passwords = self._save_channel_passwords.GetValue()
         s.chat_highlight_keywords = self._highlight_keywords.GetValue().strip()
@@ -671,185 +1240,12 @@ class SettingsTab(wx.Panel):
         self._sound_profile_choice.SetSelection(0)
         self.frame.set_status(f"Sound-Profil gelöscht: {name}")
 
-    def _build_elevenlabs_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        el_box = wx.StaticBox(panel, label="ElevenLabs Text-to-Speech")
-        el_sizer = wx.StaticBoxSizer(el_box, wx.VERTICAL)
-
-        info = wx.StaticText(panel, label=(
-            "Tragen Sie hier Ihren ElevenLabs API-Schlüssel ein.\n"
-            "Er wird global für alle Serverprofile gespeichert."
-        ))
-        info.SetName("ElevenLabs Info")
-        el_sizer.Add(info, 0, wx.ALL, 8)
-
-        key_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
-        key_form.AddGrowableCol(1)
-        key_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._elevenlabs_key = wx.TextCtrl(panel, value=str(s.elevenlabs_api_key or ""), style=wx.TE_PASSWORD)
-        self._elevenlabs_key.SetName("ElevenLabs API-Schlüssel")
-        key_form.Add(self._elevenlabs_key, 1, wx.EXPAND)
-        el_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        sizer.Add(el_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("ElevenLabs speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_elevenlabs)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
     def _on_save_elevenlabs(self, _event):
         key = self._elevenlabs_key.GetValue().strip()
         self.frame.settings_store.settings.elevenlabs_api_key = key
         self.frame.settings_store.save()
         self.frame._update_speak_tab(key)
         self.frame.set_status("ElevenLabs API-Schlüssel gespeichert")
-
-    # ------------------------------------------------------------------
-    # KI & Barrierefreiheit (v2.0.0)
-    # ------------------------------------------------------------------
-
-    def _build_ai_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        # --- Claude API ---
-        claude_box = wx.StaticBox(panel, label="Claude KI (Anthropic)")
-        claude_sizer = wx.StaticBoxSizer(claude_box, wx.VERTICAL)
-
-        info_claude = wx.StaticText(panel, label=(
-            "Claude-API-Schlüssel für KI-Chat-Zusammenfassungen.\n"
-            "Alternativ: Umgebungsvariable ANTHROPIC_API_KEY setzen.\n"
-            "Ohne Schlüssel: Ollama (lokal) oder einfache Extraktion."
-        ))
-        info_claude.SetName("Claude Info")
-        claude_sizer.Add(info_claude, 0, wx.ALL, 8)
-
-        key_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
-        key_form.AddGrowableCol(1)
-        key_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._claude_api_key = wx.TextCtrl(
-            panel, value=str(getattr(s, "claude_api_key", "") or ""), style=wx.TE_PASSWORD
-        )
-        self._claude_api_key.SetName("Claude API-Schlüssel")
-        key_form.Add(self._claude_api_key, 1, wx.EXPAND)
-        claude_sizer.Add(key_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-        sizer.Add(claude_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        # --- Google Gemini ---
-        gemini_box = wx.StaticBox(panel, label="Google Gemini KI")
-        gemini_sizer = wx.StaticBoxSizer(gemini_box, wx.VERTICAL)
-
-        info_gemini = wx.StaticText(panel, label=(
-            "API-Key aus https://aistudio.google.com/app/apikey\n"
-            "oder Via Google anmelden (Browser-OAuth, kein Key nötig).\n"
-            "Für OAuth: client_secrets.json aus Google Cloud Console\n"
-            "in den App-Daten-Ordner legen."
-        ))
-        info_gemini.SetName("Gemini Info")
-        gemini_sizer.Add(info_gemini, 0, wx.ALL, 8)
-
-        gemini_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
-        gemini_form.AddGrowableCol(1)
-        gemini_form.Add(wx.StaticText(panel, label="API-Schlüssel"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._gemini_api_key = wx.TextCtrl(
-            panel, value=str(getattr(s, "gemini_api_key", "") or ""), style=wx.TE_PASSWORD
-        )
-        self._gemini_api_key.SetName("Gemini API-Schlüssel")
-        gemini_form.Add(self._gemini_api_key, 1, wx.EXPAND)
-        gemini_sizer.Add(gemini_form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        gemini_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._gemini_login_btn = wx.Button(panel, label="&Via Google anmelden")
-        self._gemini_login_btn.SetName("Via Google anmelden")
-        self._gemini_login_btn.Bind(wx.EVT_BUTTON, self._on_gemini_login)
-        self._gemini_logout_btn = wx.Button(panel, label="&Abmelden")
-        self._gemini_logout_btn.SetName("Google Abmelden")
-        self._gemini_logout_btn.Bind(wx.EVT_BUTTON, self._on_gemini_logout)
-        gemini_btn_row.Add(self._gemini_login_btn, 0, wx.RIGHT, 8)
-        gemini_btn_row.Add(self._gemini_logout_btn, 0, wx.RIGHT, 12)
-        self._gemini_status_label = wx.StaticText(panel, label="")
-        self._gemini_status_label.SetName("Gemini Auth-Status")
-        gemini_btn_row.Add(self._gemini_status_label, 1, wx.ALIGN_CENTER_VERTICAL)
-        gemini_sizer.Add(gemini_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(gemini_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-        # Status initial befüllen
-        wx.CallAfter(self._refresh_gemini_status)
-
-        # --- Sprachsteuerung ---
-        vc_box = wx.StaticBox(panel, label="Sprachsteuerung (Whisper)")
-        vc_sizer = wx.StaticBoxSizer(vc_box, wx.VERTICAL)
-
-        info_vc = wx.StaticText(panel, label=(
-            "Beim ersten Start wird das Whisper-Modell 'base' heruntergeladen (~150 MB)."
-        ))
-        info_vc.SetName("Sprachsteuerung Info")
-        vc_sizer.Add(info_vc, 0, wx.ALL, 8)
-
-        self._voice_control_enabled = wx.CheckBox(panel, label="&Sprachsteuerung beim Start aktivieren")
-        self._voice_control_enabled.SetName("Sprachsteuerung aktivieren")
-        self._voice_control_enabled.SetValue(bool(getattr(s, "voice_control_enabled", False)))
-        vc_sizer.Add(self._voice_control_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
-        vc_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._vc_start_btn = wx.Button(panel, label="&Jetzt starten")
-        self._vc_start_btn.SetName("Sprachsteuerung jetzt starten")
-        self._vc_start_btn.Bind(wx.EVT_BUTTON, self._on_vc_start)
-        self._vc_stop_btn = wx.Button(panel, label="&Stoppen")
-        self._vc_stop_btn.SetName("Sprachsteuerung stoppen")
-        self._vc_stop_btn.Bind(wx.EVT_BUTTON, self._on_vc_stop)
-        vc_btn_row.Add(self._vc_start_btn, 0, wx.RIGHT, 8)
-        vc_btn_row.Add(self._vc_stop_btn, 0)
-        vc_sizer.Add(vc_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(vc_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        # --- Braille-Verbosität ---
-        braille_box = wx.StaticBox(panel, label="Braillezeilen-Ausgabe")
-        braille_sizer = wx.StaticBoxSizer(braille_box, wx.VERTICAL)
-
-        braille_row = wx.BoxSizer(wx.HORIZONTAL)
-        braille_row.Add(wx.StaticText(panel, label="Verbositätsstufe"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._braille_verbosity = wx.Choice(panel, choices=["kompakt", "normal", "ausführlich"])
-        self._braille_verbosity.SetName("Braille-Verbositätsstufe")
-        _vmap = {"compact": 0, "normal": 1, "verbose": 2}
-        self._braille_verbosity.SetSelection(_vmap.get(getattr(s, "braille_verbosity", "normal"), 1))
-        braille_row.Add(self._braille_verbosity, 0)
-        braille_sizer.Add(braille_row, 0, wx.ALL, 8)
-        sizer.Add(braille_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        # --- Live-Transkription ---
-        trans_box = wx.StaticBox(panel, label="Live-Transkription")
-        trans_sizer = wx.StaticBoxSizer(trans_box, wx.VERTICAL)
-
-        info_trans = wx.StaticText(panel, label=(
-            "Transkribiert Kanal-Sprache und zeigt sie im Kanäle-Tab an."
-        ))
-        info_trans.SetName("Transkription Info")
-        trans_sizer.Add(info_trans, 0, wx.ALL, 8)
-
-        self._transcription_enabled = wx.CheckBox(panel, label="Live-&Transkription aktivieren")
-        self._transcription_enabled.SetName("Live-Transkription aktivieren")
-        self._transcription_enabled.SetValue(bool(getattr(s, "transcription_enabled", False)))
-        trans_sizer.Add(self._transcription_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(trans_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        # --- Speichern ---
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("KI & Barrierefreiheit speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_ai)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
 
     def _on_save_ai(self, _event) -> None:
         s = self.frame.settings_store.settings
@@ -933,74 +1329,6 @@ class SettingsTab(wx.Panel):
         except Exception as exc:
             self.frame.set_status(f"Sprachsteuerung: {exc}")
 
-    # ------------------------------------------------------------------
-    # v2.2.0 – TTS-Kontexte & Aussprache
-    # ------------------------------------------------------------------
-
-    def _build_tts_ctx_tab(self) -> wx.Panel:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        # --- Per-Kontext-Raten ---
-        ctx_box = wx.StaticBox(panel, label="Sprechgeschwindigkeit je Kontext (0 = global)")
-        ctx_sizer = wx.StaticBoxSizer(ctx_box, wx.VERTICAL)
-        grid = wx.FlexGridSizer(3, 2, 8, 8)
-        grid.AddGrowableCol(1)
-
-        grid.Add(wx.StaticText(panel, label="Chat / Privat (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_chat_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_chat_rate", 0) or 0))
-        self._tts_chat_rate.SetName("Chat TTS Geschwindigkeit")
-        grid.Add(self._tts_chat_rate, 0)
-
-        grid.Add(wx.StaticText(panel, label="System-Meldungen (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_system_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_system_rate", 0) or 0))
-        self._tts_system_rate.SetName("System TTS Geschwindigkeit")
-        grid.Add(self._tts_system_rate, 0)
-
-        grid.Add(wx.StaticText(panel, label="Kanal-Thema (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_channel_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_channel_rate", 0) or 0))
-        self._tts_channel_rate.SetName("Kanal TTS Geschwindigkeit")
-        grid.Add(self._tts_channel_rate, 0)
-
-        ctx_sizer.Add(grid, 0, wx.ALL, 8)
-
-        ctx_voice_row = wx.BoxSizer(wx.HORIZONTAL)
-        ctx_voice_row.Add(wx.StaticText(panel, label="Chat-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._tts_chat_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_chat_voice", "") or ""))
-        self._tts_chat_voice.SetName("Chat TTS Stimme")
-        ctx_voice_row.Add(self._tts_chat_voice, 1)
-        ctx_sizer.Add(ctx_voice_row, 0, wx.ALL | wx.EXPAND, 8)
-
-        sys_voice_row = wx.BoxSizer(wx.HORIZONTAL)
-        sys_voice_row.Add(wx.StaticText(panel, label="System-Stimme (leer = global):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._tts_system_voice = wx.TextCtrl(panel, value=str(getattr(s, "tts_system_voice", "") or ""))
-        self._tts_system_voice.SetName("System TTS Stimme")
-        sys_voice_row.Add(self._tts_system_voice, 1)
-        ctx_sizer.Add(sys_voice_row, 0, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(ctx_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        # --- Aussprache-Wörterbuch ---
-        pron_box = wx.StaticBox(panel, label="Aussprache-Wörterbuch (Suche → Ersatz, eine Zeile je Regel: Wort=Ersatz)")
-        pron_sizer = wx.StaticBoxSizer(pron_box, wx.VERTICAL)
-        rules = getattr(s, "pronunciation_dict", {}) or {}
-        rules_text = "\n".join(f"{k}={v}" for k, v in rules.items())
-        self._pronunciation_text = wx.TextCtrl(panel, value=rules_text,
-                                               style=wx.TE_MULTILINE, size=(-1, 120))
-        self._pronunciation_text.SetName("Aussprache-Wörterbuch")
-        pron_sizer.Add(self._pronunciation_text, 1, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(pron_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("TTS-Kontexte speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_tts_ctx)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
     def _on_save_tts_ctx(self, _event) -> None:
         s = self.frame.settings_store.settings
         s.tts_chat_rate = int(self._tts_chat_rate.GetValue() or 0)
@@ -1028,48 +1356,6 @@ class SettingsTab(wx.Panel):
         self.frame._pronunciation.update_rules(rules)
         self.frame.settings_store.save()
         self.frame.set_status("TTS-Kontexte & Aussprache gespeichert")
-
-    # ------------------------------------------------------------------
-    # v2.2.0 – Lesezeichen
-    # ------------------------------------------------------------------
-
-    def _build_bookmarks_tab(self) -> wx.Panel:
-        panel = wx.Panel(self)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        info = wx.StaticText(panel, label=(
-            "Speichere bis zu 9 Kanal-Lesezeichen. Lesezeichen 1-3 können\n"
-            "per Hotkey (Tastenkürzel-Seite) direkt angesprungen werden."
-        ))
-        sizer.Add(info, 0, wx.ALL, 8)
-
-        # Lesezeichen-Liste
-        bm_box = wx.StaticBox(panel, label="Gespeicherte Lesezeichen")
-        bm_sizer = wx.StaticBoxSizer(bm_box, wx.VERTICAL)
-        self._bm_list = wx.ListBox(panel, style=wx.LB_SINGLE)
-        self._bm_list.SetName("Lesezeichen-Liste")
-        bm_sizer.Add(self._bm_list, 1, wx.ALL | wx.EXPAND, 8)
-
-        bm_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        add_bm_btn = wx.Button(panel, label="Aktuellen Kanal &hinzufügen")
-        add_bm_btn.SetName("Lesezeichen hinzufügen")
-        add_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_add)
-        del_bm_btn = wx.Button(panel, label="&Entfernen")
-        del_bm_btn.SetName("Lesezeichen entfernen")
-        del_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_remove)
-        jump_bm_btn = wx.Button(panel, label="&Springen")
-        jump_bm_btn.SetName("Zum Lesezeichen springen")
-        jump_bm_btn.Bind(wx.EVT_BUTTON, self._on_bm_jump)
-        bm_btn_row.Add(add_bm_btn, 0, wx.RIGHT, 8)
-        bm_btn_row.Add(del_bm_btn, 0, wx.RIGHT, 8)
-        bm_btn_row.Add(jump_bm_btn, 0)
-        bm_sizer.Add(bm_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(bm_sizer, 1, wx.ALL | wx.EXPAND, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        self._refresh_bm_list()
-        return panel
 
     def _refresh_bm_list(self) -> None:
         try:
@@ -1116,78 +1402,6 @@ class SettingsTab(wx.Panel):
         if idx == wx.NOT_FOUND:
             return
         self.frame._bookmarks.jump(self.frame, idx)
-
-    # ------------------------------------------------------------------
-    # v2.3.0 – Automation (Auto-Kanal, Zeitgesteuerte Stille, Makros)
-    # ------------------------------------------------------------------
-
-    def _build_automation_tab(self) -> wx.Panel:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        # --- Auto-Kanal ---
-        ac_box = wx.StaticBox(panel, label="Auto-Kanal beim Verbinden")
-        ac_sizer = wx.StaticBoxSizer(ac_box, wx.VERTICAL)
-        ac_sizer.Add(wx.StaticText(panel, label=(
-            "Kanalname, dem nach dem Verbinden automatisch beigetreten wird.\n"
-            "Leer lassen = deaktiviert. Wird pro Server-Key gespeichert."
-        )), 0, wx.ALL, 8)
-        ac_row = wx.BoxSizer(wx.HORIZONTAL)
-        ac_row.Add(wx.StaticText(panel, label="Kanalname:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        server_key = getattr(self.frame, "_current_server_key", "") or ""
-        ajc = getattr(s, "auto_join_channel_per_server", {}) or {}
-        self._auto_join_channel = wx.TextCtrl(panel, value=ajc.get(server_key, ""))
-        self._auto_join_channel.SetName("Auto-Kanal Kanalname")
-        ac_row.Add(self._auto_join_channel, 1)
-        ac_sizer.Add(ac_row, 0, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(ac_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        # --- Zeitgesteuerte Stille ---
-        ms_box = wx.StaticBox(panel, label="Zeitgesteuerte Stille")
-        ms_sizer = wx.StaticBoxSizer(ms_box, wx.VERTICAL)
-        ms_sizer.Add(wx.StaticText(panel, label=(
-            "Format: HH:MM-HH:MM Label (eine Zeile je Zeitfenster)\n"
-            "Beispiel:  12:00-13:00 Mittagspause\n"
-            "           22:00-07:00 Nachtruhe"
-        )), 0, wx.ALL, 8)
-        schedule = getattr(s, "mute_schedule", []) or []
-        sched_text = "\n".join(
-            f"{r.get('start','00:00')}-{r.get('end','00:00')} {r.get('label','')}"
-            for r in schedule
-        )
-        self._mute_schedule_text = wx.TextCtrl(panel, value=sched_text,
-                                               style=wx.TE_MULTILINE, size=(-1, 80))
-        self._mute_schedule_text.SetName("Zeitgesteuerte Stille Zeitfenster")
-        ms_sizer.Add(self._mute_schedule_text, 1, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(ms_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        # --- Makros ---
-        mac_box = wx.StaticBox(panel, label="Makros")
-        mac_sizer = wx.StaticBoxSizer(mac_box, wx.VERTICAL)
-        mac_sizer.Add(wx.StaticText(panel, label=(
-            "Format je Makro (JSON, eine Zeile):\n"
-            '  {"name":"Begrüßung","hotkey":0,"actions":[{"type":"speak","value":"Hallo!"}]}\n'
-            "  Aktions-Typen: speak, channel, ptt_on, ptt_off, mute_toggle, status, wait"
-        )), 0, wx.ALL, 8)
-        macros = getattr(s, "macros", []) or []
-        import json as _json
-        mac_text = "\n".join(_json.dumps(m, ensure_ascii=False) for m in macros)
-        self._macros_text = wx.TextCtrl(panel, value=mac_text,
-                                        style=wx.TE_MULTILINE, size=(-1, 120))
-        self._macros_text.SetName("Makros JSON")
-        mac_sizer.Add(self._macros_text, 1, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(mac_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Automation speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_automation)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
 
     def _on_save_automation(self, _event) -> None:
         import json as _json
@@ -1241,42 +1455,6 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame.set_status("Automation gespeichert")
 
-    # ------------------------------------------------------------------
-    # v2.4.0 – Aufnahme & Audio-Extras
-    # ------------------------------------------------------------------
-
-    def _build_recording_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        ng_box = wx.StaticBox(panel, label="Noise Gate / Rauschunterdrückung")
-        ng_sizer = wx.StaticBoxSizer(ng_box, wx.VERTICAL)
-
-        self._noise_gate_enabled = wx.CheckBox(panel, label="&Rauschunterdrückung aktivieren")
-        self._noise_gate_enabled.SetName("Rauschunterdrückung aktivieren")
-        self._noise_gate_enabled.SetValue(bool(getattr(s, "noise_gate_enabled", False)))
-        ng_sizer.Add(self._noise_gate_enabled, 0, wx.ALL, 8)
-
-        ng_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
-        ng_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert (0-10000):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._noise_gate_threshold = wx.SpinCtrl(panel, min=0, max=10000,
-                                                  initial=int(getattr(s, "noise_gate_threshold", 0) or 0))
-        self._noise_gate_threshold.SetName("Noise Gate Schwellenwert")
-        ng_thresh_row.Add(self._noise_gate_threshold, 0)
-        ng_sizer.Add(ng_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(ng_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Aufnahme & Audio-Extras speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_recording)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
     def _on_save_recording(self, _event) -> None:
         s = self.frame.settings_store.settings
         s.noise_gate_enabled = self._noise_gate_enabled.GetValue()
@@ -1284,51 +1462,6 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame._apply_noise_gate()
         self.frame.set_status("Aufnahme & Audio-Extras gespeichert")
-
-    # ------------------------------------------------------------------
-    # v2.5.0 – Chat & Status
-    # ------------------------------------------------------------------
-
-    def _build_chat_status_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        ar_box = wx.StaticBox(panel, label="Auto-Antwort auf Privatnachrichten")
-        ar_sizer = wx.StaticBoxSizer(ar_box, wx.VERTICAL)
-
-        self._auto_reply_enabled = wx.CheckBox(panel, label="&Auto-Antwort aktivieren")
-        self._auto_reply_enabled.SetName("Auto-Antwort aktivieren")
-        self._auto_reply_enabled.SetValue(bool(getattr(s, "auto_reply_enabled", False)))
-        ar_sizer.Add(self._auto_reply_enabled, 0, wx.ALL, 8)
-
-        ar_msg_row = wx.BoxSizer(wx.HORIZONTAL)
-        ar_msg_row.Add(wx.StaticText(panel, label="Nachricht:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._auto_reply_message = wx.TextCtrl(panel, value=str(getattr(s, "auto_reply_message", "") or ""))
-        self._auto_reply_message.SetName("Auto-Antwort Nachricht")
-        ar_msg_row.Add(self._auto_reply_message, 1)
-        ar_sizer.Add(ar_msg_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-        sizer.Add(ar_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        tpl_box = wx.StaticBox(panel, label="Status-Vorlagen (eine Vorlage je Zeile, max. 3 per Hotkey)")
-        tpl_sizer = wx.StaticBoxSizer(tpl_box, wx.VERTICAL)
-        templates = list(getattr(s, "status_templates", []) or [])
-        tpl_text = "\n".join(str(t) for t in templates)
-        self._status_templates = wx.TextCtrl(panel, value=tpl_text,
-                                              style=wx.TE_MULTILINE, size=(-1, 100))
-        self._status_templates.SetName("Status-Vorlagen")
-        tpl_sizer.Add(self._status_templates, 1, wx.ALL | wx.EXPAND, 8)
-        sizer.Add(tpl_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Chat & Status speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_chat_status)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
 
     def _on_save_chat_status(self, _event) -> None:
         s = self.frame.settings_store.settings
@@ -1345,47 +1478,6 @@ class SettingsTab(wx.Panel):
             pass
         self.frame.set_status("Chat & Status gespeichert")
 
-    # ------------------------------------------------------------------
-    # v2.6.0 – Verbindung & Anzeige (Extras)
-    # ------------------------------------------------------------------
-
-    def _build_extra_connection_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        cq_box = wx.StaticBox(panel, label="Verbindungsqualität")
-        cq_sizer = wx.StaticBoxSizer(cq_box, wx.VERTICAL)
-
-        self._cq_announce = wx.CheckBox(panel, label="&Schlechte Verbindungsqualität ansagen")
-        self._cq_announce.SetName("Verbindungsqualität ansagen")
-        self._cq_announce.SetValue(bool(getattr(s, "connection_quality_announce", False)))
-        cq_sizer.Add(self._cq_announce, 0, wx.ALL, 8)
-
-        cq_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
-        cq_thresh_row.Add(wx.StaticText(panel, label="Ping-Schwellenwert (ms):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._cq_threshold = wx.SpinCtrl(panel, min=50, max=5000,
-                                          initial=int(getattr(s, "connection_quality_threshold_ms", 200) or 200))
-        self._cq_threshold.SetName("Verbindungsqualität Schwellenwert ms")
-        cq_thresh_row.Add(self._cq_threshold, 0)
-        cq_sizer.Add(cq_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(cq_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        self._server_info_titlebar = wx.CheckBox(panel, label="Nutzeranzahl und Ping in &Titelleiste anzeigen")
-        self._server_info_titlebar.SetName("Serverinfo in Titelleiste")
-        self._server_info_titlebar.SetValue(bool(getattr(s, "server_info_in_titlebar", False)))
-        sizer.Add(self._server_info_titlebar, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Verbindung & Anzeige speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_extra_connection)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
     def _on_save_extra_connection(self, _event) -> None:
         s = self.frame.settings_store.settings
         s.connection_quality_announce = self._cq_announce.GetValue()
@@ -1394,62 +1486,6 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame._update_titlebar()
         self.frame.set_status("Verbindung & Anzeige gespeichert")
-
-    # ------------------------------------------------------------------
-    # v2.7.0 – Integration & API
-    # ------------------------------------------------------------------
-
-    def _build_integration_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        wh_box = wx.StaticBox(panel, label="Webhook")
-        wh_sizer = wx.StaticBoxSizer(wh_box, wx.VERTICAL)
-
-        wh_url_row = wx.BoxSizer(wx.HORIZONTAL)
-        wh_url_row.Add(wx.StaticText(panel, label="Webhook-URL:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._webhook_url = wx.TextCtrl(panel, value=str(getattr(s, "webhook_url", "") or ""))
-        self._webhook_url.SetName("Webhook URL")
-        wh_url_row.Add(self._webhook_url, 1)
-        wh_sizer.Add(wh_url_row, 0, wx.ALL | wx.EXPAND, 8)
-
-        wh_events_row = wx.BoxSizer(wx.HORIZONTAL)
-        wh_events_row.Add(wx.StaticText(panel, label="Ereignisse (Komma-getrennt):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        wh_events_val = ", ".join(list(getattr(s, "webhook_events", []) or []))
-        self._webhook_events = wx.TextCtrl(panel, value=wh_events_val)
-        self._webhook_events.SetName("Webhook Ereignisse")
-        self._webhook_events.SetHelpText("Mögliche Werte: private_msg, channel_msg, user_join, user_leave, connect, disconnect")
-        wh_events_row.Add(self._webhook_events, 1)
-        wh_sizer.Add(wh_events_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-        sizer.Add(wh_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        api_box = wx.StaticBox(panel, label="HTTP-API")
-        api_sizer = wx.StaticBoxSizer(api_box, wx.VERTICAL)
-
-        self._http_api_enabled = wx.CheckBox(panel, label="&HTTP-API aktivieren")
-        self._http_api_enabled.SetName("HTTP-API aktivieren")
-        self._http_api_enabled.SetValue(bool(getattr(s, "http_api_enabled", False)))
-        api_sizer.Add(self._http_api_enabled, 0, wx.ALL, 8)
-
-        api_port_row = wx.BoxSizer(wx.HORIZONTAL)
-        api_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._http_api_port = wx.SpinCtrl(panel, min=1024, max=65535,
-                                           initial=int(getattr(s, "http_api_port", 8765) or 8765))
-        self._http_api_port.SetName("HTTP-API Port")
-        api_port_row.Add(self._http_api_port, 0)
-        api_sizer.Add(api_port_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(api_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Integration & API speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_integration)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
 
     def _on_save_integration(self, _event) -> None:
         s = self.frame.settings_store.settings
@@ -1481,39 +1517,23 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame.set_status("Integration & API gespeichert")
 
-    # ------------------------------------------------------------------
-    # v2.8.0 – Nutzer-Notizen
-    # ------------------------------------------------------------------
+    def _on_save_ptt_advanced(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        s.ptt_max_seconds = int(self._ptt_max_seconds.GetValue())
+        s.vu_alert_enabled = self._vu_alert_enabled.GetValue()
+        s.vu_alert_threshold = int(self._vu_alert_threshold.GetValue())
+        s.recording_max_size_mb = int(self._rec_max_size.GetValue())
+        s.recording_max_minutes = int(self._rec_max_minutes.GetValue())
+        self.frame.settings_store.save()
+        self.frame.set_status("PTT & Erweitert gespeichert")
 
-    def _build_user_notes_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        info = wx.StaticText(panel, label=(
-            "Gespeicherte Notizen zu Nutzern. Notizen werden beim Betreten des Kanals\n"
-            "via TTS angesagt (Notiz: ...). Bearbeiten: Benutzer-Menü → Notiz bearbeiten."
-        ))
-        sizer.Add(info, 0, wx.ALL, 8)
-
-        notes_box = wx.StaticBox(panel, label="Gespeicherte Nutzer-Notizen")
-        notes_sizer = wx.StaticBoxSizer(notes_box, wx.VERTICAL)
-        self._notes_list = wx.ListBox(panel, style=wx.LB_SINGLE)
-        self._notes_list.SetName("Nutzer-Notizen Liste")
-        notes_sizer.Add(self._notes_list, 1, wx.ALL | wx.EXPAND, 8)
-
-        notes_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        del_note_btn = wx.Button(panel, label="Notiz &löschen")
-        del_note_btn.SetName("Nutzer-Notiz löschen")
-        del_note_btn.Bind(wx.EVT_BUTTON, self._on_delete_note)
-        notes_btn_row.Add(del_note_btn, 0)
-        notes_sizer.Add(notes_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(notes_sizer, 1, wx.ALL | wx.EXPAND, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        self._refresh_notes_list()
-        return panel
+    def _on_save_keyword_alert(self, _event) -> None:
+        s = self.frame.settings_store.settings
+        kws = [line.strip() for line in self._kw_text.GetValue().splitlines() if line.strip()]
+        s.alert_keywords = kws
+        s.alert_keywords_tts = self._kw_tts.GetValue()
+        self.frame.settings_store.save()
+        self.frame.set_status("Stichwort-Alarm gespeichert")
 
     def _refresh_notes_list(self) -> None:
         try:
@@ -1540,160 +1560,6 @@ class SettingsTab(wx.Panel):
             self.frame.set_status(f"Notiz für {username} gelöscht")
         except Exception as exc:
             self.frame.set_status(f"Fehler: {exc}")
-
-    # ------------------------------------------------------------------
-    # v2.8.0 – PTT & Erweitert (PTT-Zeitlimit, v2.9.0 VU-Alarm, Aufnahme-Segmentierung)
-    # ------------------------------------------------------------------
-
-    def _build_ptt_advanced_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        # PTT-Zeitlimit
-        ptt_box = wx.StaticBox(panel, label="PTT-Zeitlimit")
-        ptt_sizer = wx.StaticBoxSizer(ptt_box, wx.VERTICAL)
-        ptt_row = wx.BoxSizer(wx.HORIZONTAL)
-        ptt_row.Add(wx.StaticText(panel, label="PTT-Zeitlimit (Sekunden, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._ptt_max_seconds = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "ptt_max_seconds", 0) or 0))
-        self._ptt_max_seconds.SetName("PTT-Zeitlimit Sekunden")
-        ptt_row.Add(self._ptt_max_seconds, 0)
-        ptt_sizer.Add(ptt_row, 0, wx.ALL, 8)
-        sizer.Add(ptt_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        # VU-Pegel-Alarm (v2.9.0)
-        vu_box = wx.StaticBox(panel, label="VU-Pegel-Alarm")
-        vu_sizer = wx.StaticBoxSizer(vu_box, wx.VERTICAL)
-        self._vu_alert_enabled = wx.CheckBox(panel, label="&VU-Alarm aktivieren (bei zu hohem Eingangspegel)")
-        self._vu_alert_enabled.SetName("VU-Alarm aktivieren")
-        self._vu_alert_enabled.SetValue(bool(getattr(s, "vu_alert_enabled", False)))
-        vu_sizer.Add(self._vu_alert_enabled, 0, wx.ALL, 8)
-        vu_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
-        vu_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert % (0-100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._vu_alert_threshold = wx.SpinCtrl(panel, min=0, max=100, initial=int(getattr(s, "vu_alert_threshold", 90) or 90))
-        self._vu_alert_threshold.SetName("VU-Alarm Schwellenwert")
-        vu_thresh_row.Add(self._vu_alert_threshold, 0)
-        vu_sizer.Add(vu_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(vu_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        # Aufnahme-Segmentierung (v2.9.0)
-        seg_box = wx.StaticBox(panel, label="Aufnahme-Segmentierung (0 = deaktiviert)")
-        seg_sizer = wx.StaticBoxSizer(seg_box, wx.VERTICAL)
-        seg_grid = wx.FlexGridSizer(2, 2, 8, 8)
-        seg_grid.AddGrowableCol(1)
-        seg_grid.Add(wx.StaticText(panel, label="Max. Dateigröße (MB, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._rec_max_size = wx.SpinCtrl(panel, min=0, max=10000, initial=int(getattr(s, "recording_max_size_mb", 0) or 0))
-        self._rec_max_size.SetName("Max. Aufnahmegröße MB")
-        seg_grid.Add(self._rec_max_size, 0)
-        seg_grid.Add(wx.StaticText(panel, label="Max. Dauer (Minuten, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._rec_max_minutes = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "recording_max_minutes", 0) or 0))
-        self._rec_max_minutes.SetName("Max. Aufnahmedauer Minuten")
-        seg_grid.Add(self._rec_max_minutes, 0)
-        seg_sizer.Add(seg_grid, 0, wx.ALL, 8)
-        sizer.Add(seg_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("PTT & Erweitert speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_ptt_advanced)
-        sizer.Add(save_btn, 0, wx.LEFT | wx.BOTTOM, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
-    def _on_save_ptt_advanced(self, _event) -> None:
-        s = self.frame.settings_store.settings
-        s.ptt_max_seconds = int(self._ptt_max_seconds.GetValue())
-        s.vu_alert_enabled = self._vu_alert_enabled.GetValue()
-        s.vu_alert_threshold = int(self._vu_alert_threshold.GetValue())
-        s.recording_max_size_mb = int(self._rec_max_size.GetValue())
-        s.recording_max_minutes = int(self._rec_max_minutes.GetValue())
-        self.frame.settings_store.save()
-        self.frame.set_status("PTT & Erweitert gespeichert")
-
-    # ------------------------------------------------------------------
-    # v2.8.0 – Stichwort-Alarm
-    # ------------------------------------------------------------------
-
-    def _build_keyword_alert_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        s = self.frame.settings_store.settings
-
-        kw_box = wx.StaticBox(panel, label="Stichwort-Alarm")
-        kw_sizer = wx.StaticBoxSizer(kw_box, wx.VERTICAL)
-        kw_sizer.Add(wx.StaticText(panel, label="Ein Stichwort je Zeile (Groß/Kleinschreibung egal):"), 0, wx.ALL, 8)
-        kws = list(getattr(s, "alert_keywords", []) or [])
-        self._kw_text = wx.TextCtrl(panel, value="\n".join(kws), style=wx.TE_MULTILINE, size=(-1, 120))
-        self._kw_text.SetName("Stichwörter")
-        kw_sizer.Add(self._kw_text, 1, wx.ALL | wx.EXPAND, 8)
-
-        self._kw_tts = wx.CheckBox(panel, label="&Stichwort via TTS ansagen")
-        self._kw_tts.SetName("Stichwort TTS ansagen")
-        self._kw_tts.SetValue(bool(getattr(s, "alert_keywords_tts", True)))
-        kw_sizer.Add(self._kw_tts, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(kw_sizer, 0, wx.ALL | wx.EXPAND, 8)
-
-        save_btn = wx.Button(panel, label="&Speichern")
-        save_btn.SetName("Stichwort-Alarm speichern")
-        save_btn.Bind(wx.EVT_BUTTON, self._on_save_keyword_alert)
-        sizer.Add(save_btn, 0, wx.ALL, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        return panel
-
-    def _on_save_keyword_alert(self, _event) -> None:
-        s = self.frame.settings_store.settings
-        kws = [line.strip() for line in self._kw_text.GetValue().splitlines() if line.strip()]
-        s.alert_keywords = kws
-        s.alert_keywords_tts = self._kw_tts.GetValue()
-        self.frame.settings_store.save()
-        self.frame.set_status("Stichwort-Alarm gespeichert")
-
-    # ------------------------------------------------------------------
-    # v3.0.0 – Plugins
-    # ------------------------------------------------------------------
-
-    def _build_plugins_tab(self) -> wx.ScrolledWindow:
-        panel = wx.ScrolledWindow(self)
-        panel.SetScrollRate(0, 20)
-        sizer = wx.BoxSizer(wx.VERTICAL)
-
-        pl_box = wx.StaticBox(panel, label="Geladene Plugins")
-        pl_sizer = wx.StaticBoxSizer(pl_box, wx.VERTICAL)
-
-        self._plugins_list = wx.ListBox(panel, style=wx.LB_SINGLE)
-        self._plugins_list.SetName("Plugin-Liste")
-        self._plugins_list.Bind(wx.EVT_LISTBOX, self._on_plugin_selected)
-        pl_sizer.Add(self._plugins_list, 0, wx.ALL | wx.EXPAND, 8)
-
-        self._plugin_info = wx.StaticText(panel, label="")
-        self._plugin_info.SetName("Plugin-Info")
-        pl_sizer.Add(self._plugin_info, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-
-        pl_btn_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._plugin_enable_btn = wx.Button(panel, label="&Aktivieren")
-        self._plugin_enable_btn.SetName("Plugin aktivieren")
-        self._plugin_enable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_enable)
-        self._plugin_disable_btn = wx.Button(panel, label="&Deaktivieren")
-        self._plugin_disable_btn.SetName("Plugin deaktivieren")
-        self._plugin_disable_btn.Bind(wx.EVT_BUTTON, self._on_plugin_disable)
-        reload_btn = wx.Button(panel, label="Neu &laden")
-        reload_btn.SetName("Plugins neu laden")
-        reload_btn.Bind(wx.EVT_BUTTON, self._on_plugin_reload)
-        pl_btn_row.Add(self._plugin_enable_btn, 0, wx.RIGHT, 8)
-        pl_btn_row.Add(self._plugin_disable_btn, 0, wx.RIGHT, 8)
-        pl_btn_row.Add(reload_btn, 0)
-        pl_sizer.Add(pl_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
-        sizer.Add(pl_sizer, 1, wx.ALL | wx.EXPAND, 8)
-
-        panel.SetSizer(sizer)
-        panel.Show(False)
-        self._refresh_plugin_list()
-        return panel
 
     def _refresh_plugin_list(self) -> None:
         try:
@@ -1771,6 +1637,16 @@ class SettingsTab(wx.Panel):
     def _on_section_changed(self, _event):
         self._show_section(self.section_choice.GetStringSelection())
 
+    def _on_section_search(self, _event) -> None:
+        query = self._section_search.GetValue().strip().lower()
+        if not query:
+            return
+        for name in self._sections:
+            if query in name.lower():
+                self.section_choice.SetStringSelection(name)
+                self._show_section(name)
+                return
+
     def _on_share_logs_menu(self, _event):
         menu = wx.Menu()
         export_item = menu.Append(wx.ID_ANY, "Logs exportieren (ZIP)")
@@ -1840,6 +1716,8 @@ class SettingsTab(wx.Panel):
         self._copy_logs_to_clipboard()
 
     def _show_section(self, section: str) -> None:
-        for name, panel in self._sections.items():
-            panel.Show(name == section)
+        active = {id(p) for p in self._sections.get(section, [])}
+        for panels in self._sections.values():
+            for p in panels:
+                p.Show(id(p) in active)
         self.Layout()

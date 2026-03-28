@@ -44,6 +44,8 @@ class ShortcutsTab(wx.Panel):
         # v2.9.0
         self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost hoch", "hotkey_mic_boost_up", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Mikrofon-Boost runter", "hotkey_mic_boost_down", global_key=False))
+        # v3.1.0
+        self._rows.append(self._make_row(inapp_box, "TTS abbrechen", "hotkey_tts_cancel", global_key=False))
 
         for row in self._rows:
             inapp_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)

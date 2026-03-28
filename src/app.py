@@ -51,7 +51,7 @@ from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 
 
-APP_VERSION = "3.0.0"
+APP_VERSION = "3.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -3568,7 +3568,7 @@ class MainFrame(wx.Frame):
         if not self.settings_window.IsShown():
             self.settings_window.Show()
         self.settings_window.Raise()
-        self.settings_tab.show_section("Audio")
+        self.settings_tab.show_section("Audio & Aufnahme")
         wx.CallAfter(self.settings_tab.section_choice.SetFocus)
 
     def on_sound_menu_open(self, event):
@@ -5467,6 +5467,13 @@ class MainFrame(wx.Frame):
             if key and key == hk_boost_down:
                 self._mic_boost_change(-1000)
                 return
+            # v3.1.0 – TTS abbrechen
+            hk_tts_cancel = int(getattr(settings, "hotkey_tts_cancel", 0) or 0)
+            if key and key == hk_tts_cancel:
+                self.tts._stop_current()
+                self.tts.clear_queue()
+                self.set_status("TTS abgebrochen")
+                return
         event.Skip()
 
     def on_key_down(self, event):
@@ -5520,6 +5527,8 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_mic_boost_up = int(key)
                 elif target == "hotkey_mic_boost_down":
                     self.settings_store.settings.hotkey_mic_boost_down = int(key)
+                elif target == "hotkey_tts_cancel":
+                    self.settings_store.settings.hotkey_tts_cancel = int(key)
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
