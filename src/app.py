@@ -49,9 +49,10 @@ from macro_manager import MacroManager
 from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
+from i18n import _, set_language, current_language
 
 
-APP_VERSION = "3.5.0"
+APP_VERSION = "3.6.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -315,6 +316,9 @@ class MainFrame(wx.Frame):
             print("[v2.0.0] Einstellungen aus JSON nach SQLite migriert.")
         self.settings_store = SQLiteSettingsStore(self._settings_db)
         self.store = SQLiteServerStore(self._settings_db)
+        # v3.6.0 – Sprache initialisieren
+        _lang = getattr(self.settings_store.settings, "app_language", "de") or "de"
+        set_language(_lang)
 
         # JSON-Stores als Fallback (werden nicht mehr aktiv beschrieben)
         self._json_settings_store = SettingsStore(app_dir / "settings.json")
@@ -1394,9 +1398,9 @@ class MainFrame(wx.Frame):
         import_servers = file_menu.Append(wx.ID_ANY, "Serverliste importieren...")
         export_servers = file_menu.Append(wx.ID_ANY, "Serverliste exportieren...")
         file_menu.AppendSeparator()
-        quit_item = file_menu.Append(wx.ID_EXIT, "Beenden\tCtrl+Q")
+        quit_item = file_menu.Append(wx.ID_EXIT, _("Beenden") + "\tCtrl+Q")
 
-        menubar.Append(file_menu, "Datei")
+        menubar.Append(file_menu, _("Datei"))
 
         
 
@@ -1440,7 +1444,7 @@ class MainFrame(wx.Frame):
         self._recent_channels_menu = wx.Menu()
         chan_menu.AppendSubMenu(self._recent_channels_menu, "Letzte Kanäle")
         chan_stream_audio = chan_menu.Append(wx.ID_ANY, "Audio-Datei in Kanal streamen...")
-        menubar.Append(chan_menu, "Kanal")
+        menubar.Append(chan_menu, _("Kanal"))
 
         # Benutzer
         user_menu = wx.Menu()
@@ -1498,7 +1502,7 @@ class MainFrame(wx.Frame):
         user_move_stored = user_menu.Append(wx.ID_ANY, "In Zielkanal verschieben")
         user_menu.AppendSeparator()
         user_mute_all = user_menu.AppendCheckItem(wx.ID_ANY, "Alles stummschalten")
-        menubar.Append(user_menu, "Benutzer")
+        menubar.Append(user_menu, _("Benutzer"))
 
         # Server
         server_menu = wx.Menu()
@@ -1511,7 +1515,7 @@ class MainFrame(wx.Frame):
         server_save_config = server_menu.Append(wx.ID_ANY, "Konfiguration speichern")
         server_menu.AppendSeparator()
         server_speaking_log = server_menu.Append(wx.ID_ANY, "Wer-spricht-Protokoll...")
-        menubar.Append(server_menu, "Server")
+        menubar.Append(server_menu, _("Server"))
 
         # Profil
         profile_menu = wx.Menu()
@@ -1528,7 +1532,7 @@ class MainFrame(wx.Frame):
         notif_system = notif_menu.AppendCheckItem(wx.ID_ANY, "System vorlesen")
         notif_own = notif_menu.AppendCheckItem(wx.ID_ANY, "Eigene Nachrichten vorlesen")
         profile_menu.AppendSubMenu(notif_menu, "Benachrichtigungen")
-        menubar.Append(profile_menu, "Profil")
+        menubar.Append(profile_menu, _("Profil"))
 
         # Audio
         audio_menu = wx.Menu()
@@ -1549,8 +1553,8 @@ class MainFrame(wx.Frame):
         audio_menu.AppendSeparator()
         audio_mute_all = audio_menu.AppendCheckItem(wx.ID_ANY, "Alles stummschalten")
         audio_menu.AppendSeparator()
-        audio_eq_presets = audio_menu.Append(wx.ID_ANY, "Equalizer-Voreinstellungen...")
-        menubar.Append(audio_menu, "Audio")
+        audio_eq_presets = audio_menu.Append(wx.ID_ANY, _("Equalizer-Voreinstellungen..."))
+        menubar.Append(audio_menu, _("Audio"))
 
         # Video
         video_menu = wx.Menu()
@@ -1558,7 +1562,7 @@ class MainFrame(wx.Frame):
         video_menu.AppendSeparator()
         video_settings = video_menu.Append(wx.ID_ANY, "Video-Einstellungen...")
         video_refresh = video_menu.Append(wx.ID_ANY, "Video-Geräte aktualisieren")
-        menubar.Append(video_menu, "Video")
+        menubar.Append(video_menu, _("Video"))
 
         # Aufnahmen
         rec_menu = wx.Menu()
@@ -1568,16 +1572,16 @@ class MainFrame(wx.Frame):
         rec_stop = rec_menu.Append(wx.ID_ANY, "Aufnahme stoppen")
         rec_menu.AppendSeparator()
         rec_scheduled = rec_menu.Append(wx.ID_ANY, "Geplante Aufnahmen...")
-        rec_browser = rec_menu.Append(wx.ID_ANY, "Aufnahmen durchsuchen...")
-        menubar.Append(rec_menu, "Aufnahmen")
+        rec_browser = rec_menu.Append(wx.ID_ANY, _("Aufnahmen durchsuchen..."))
+        menubar.Append(rec_menu, _("Aufnahmen"))
 
         # Automation
         auto_menu = wx.Menu()
         auto_macro_editor = auto_menu.Append(wx.ID_ANY, "Makro-Editor...")
         auto_scheduled_macros = auto_menu.Append(wx.ID_ANY, "Geplante Makros...")
         auto_menu.AppendSeparator()
-        auto_trigger_editor = auto_menu.Append(wx.ID_ANY, "Trigger-Regeln...")
-        menubar.Append(auto_menu, "Automation")
+        auto_trigger_editor = auto_menu.Append(wx.ID_ANY, _("Trigger-Regeln..."))
+        menubar.Append(auto_menu, _("Automation"))
 
         # Hilfe
         help_menu = wx.Menu()
@@ -1590,8 +1594,8 @@ class MainFrame(wx.Frame):
         help_hotkeys = help_menu.Append(wx.ID_ANY, "Tastenkürzel-Referenz...")
         help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
-        help_about = help_menu.Append(wx.ID_ANY, "Über")
-        menubar.Append(help_menu, "Hilfe")
+        help_about = help_menu.Append(wx.ID_ANY, _("Über"))
+        menubar.Append(help_menu, _("Hilfe"))
 
         self.SetMenuBar(menubar)
 

@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-03-28 (v3.6.0)
+- Englische Sprachunterstützung: neues i18n-Modul mit DE/EN-Wörterbuch
+  für alle Menüleisten-Einträge und wichtige UI-Texte
+- Sprachauswahl in Einstellungen → Allgemein (Neustart erforderlich)
+- Menüleiste (Datei, Kanal, Benutzer, Server, Profil, Audio, Video,
+  Aufnahmen, Automation, Hilfe) vollständig übersetzt
+- Grundlage für weitere Übersetzungen in künftigen Versionen
+
 2026-03-28 (v3.5.0)
 - Neues Menü "Automation" mit drei Unterpunkten:
 - Makro-Editor: grafischer Editor zum Erstellen, Bearbeiten und Löschen
