@@ -89,9 +89,17 @@ class ConnectionTab(wx.Panel):
         self.status_check_btn = wx.Button(self, label="Status &prüfen")
         self.status_check_btn.SetName("Server-Status prüfen")
         self.status_check_btn.Bind(wx.EVT_BUTTON, self._on_check_server_status)
+        self.import_tt_btn = wx.Button(self, label=".tt &importieren")
+        self.import_tt_btn.SetName("Server aus TT-Datei importieren")
+        self.import_tt_btn.Bind(wx.EVT_BUTTON, self._on_import_tt_file)
+        self.export_tt_btn = wx.Button(self, label=".tt &exportieren")
+        self.export_tt_btn.SetName("Server als TT-Datei exportieren")
+        self.export_tt_btn.Bind(wx.EVT_BUTTON, self._on_export_selected_tt)
         btn_row.Add(self.join_code_btn, 0, wx.RIGHT, 8)
         btn_row.Add(self.public_servers_btn, 0, wx.RIGHT, 8)
-        btn_row.Add(self.status_check_btn, 0)
+        btn_row.Add(self.status_check_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.import_tt_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(self.export_tt_btn, 0)
 
         server_sizer.Add(self.server_list, 0, wx.ALL | wx.EXPAND, 8)
         server_sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -178,6 +186,7 @@ class ConnectionTab(wx.Panel):
         self._stats_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_stats_timer, self._stats_timer)
         self._stats_timer.Start(5000)
+        self._ping_history: list = []  # rolling last-10 UDP pings
 
     def destroy_timers(self):
         self._stats_timer.Stop()
@@ -468,7 +477,68 @@ class ConnectionTab(wx.Panel):
             return
         udp_ms = int(stats.nUdpPingTimeMs)
         tcp_ms = int(stats.nTcpPingTimeMs)
-        self.stats_label.SetLabel(f"UDP Ping: {udp_ms} ms, TCP Ping: {tcp_ms} ms")
+        # Ping-Verlauf (letzten 10 Messwerte)
+        self._ping_history.append(udp_ms)
+        if len(self._ping_history) > 10:
+            self._ping_history.pop(0)
+        avg_ms = int(sum(self._ping_history) / len(self._ping_history))
+        min_ms = min(self._ping_history)
+        max_ms = max(self._ping_history)
+        self.stats_label.SetLabel(
+            f"UDP Ping: {udp_ms} ms, TCP Ping: {tcp_ms} ms"
+            f"   |   Verlauf (letzte {len(self._ping_history)}): Ø {avg_ms} ms, min {min_ms} ms, max {max_ms} ms"
+        )
+
+    def _on_import_tt_file(self, _event) -> None:
+        from pathlib import Path as _Path
+        with wx.FileDialog(
+            self,
+            "TT-Datei importieren",
+            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = _Path(dlg.GetPath())
+        try:
+            parsed = parse_teamtalk_file(path)
+            if parsed is None:
+                self.frame.set_status("TT-Datei konnte nicht gelesen werden")
+                return
+            profile = parsed.profile
+            if not profile.name:
+                profile.name = path.stem
+            self.frame.store.add(profile)
+            self.reload_server_list()
+            self.fill_form(profile)
+            self.frame.set_status(f"Server importiert: {profile.name}")
+        except Exception as exc:
+            self.frame.set_status(f"Import fehlgeschlagen: {exc}")
+
+    def _on_export_selected_tt(self, _event) -> None:
+        real_idx = self._get_real_index()
+        if real_idx is None:
+            self.frame.set_status("Bitte einen Server auswählen")
+            return
+        profile = self.frame.store.items()[real_idx]
+        default_name = f"{profile.name or profile.host}.tt"
+        with wx.FileDialog(
+            self,
+            "Server als TT-Datei exportieren",
+            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            xml_text = build_teamtalk_xml(profile)
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(xml_text)
+            self.frame.set_status(f"Exportiert: {path}")
+        except Exception as exc:
+            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
 
     def _set_tab_order(self):
         order = [

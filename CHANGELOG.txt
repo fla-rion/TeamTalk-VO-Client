@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2026-03-28 (v3.2.0)
+- Server .tt-Import: Schaltfläche in Verbindungsliste importiert Server direkt
+  aus einer .tt-Datei und fügt ihn der Liste hinzu
+- Server .tt-Export: ausgewählten Server aus der Liste als .tt-Datei speichern
+  (kein aktiver Server nötig)
+- Ping-Verlauf: Verbindungsstatus zeigt Ø/min/max der letzten 10 Messungen
+
 2026-03-28 (v3.1.0)
 - Suchfeld in Einstellungen: Bereichsnamen tippen zum direkten Springen
 - Server-Status-Indikator: "Status prüfen"-Taste prüft TCP-Erreichbarkeit aller

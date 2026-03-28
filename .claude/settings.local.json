@@ -152,7 +152,13 @@
       "Bash(sed -i '' \"s/''''CFBundleShortVersionString'''': ''''2.9.0''''/''''CFBundleShortVersionString'''': ''''3.0.0''''/\" \"TeamTalk VO Client.spec\")",
       "Bash(sed -i '' \"s/''''CFBundleVersion'''': ''''2.9.0''''/''''CFBundleVersion'''': ''''3.0.0''''/\" \"TeamTalk VO Client.spec\")",
       "Bash(.venv/bin/python -c \"import ast; ast.parse\\(open\\('src/ui/tabs/settings.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
-      "Bash(.venv/bin/python -c \"\nimport ast\nfor f in ['src/ui/tabs/settings.py','src/ui/tabs/chat.py','src/ui/tabs/connection.py','src/ui/tabs/shortcuts.py','src/app.py']:\n    try:\n        ast.parse\\(open\\(f\\).read\\(\\)\\)\n        print\\(f'OK: {f}'\\)\n    except SyntaxError as e:\n        print\\(f'ERR {f}: {e}'\\)\n\")"
+      "Bash(.venv/bin/python -c \"\nimport ast\nfor f in ['src/ui/tabs/settings.py','src/ui/tabs/chat.py','src/ui/tabs/connection.py','src/ui/tabs/shortcuts.py','src/app.py']:\n    try:\n        ast.parse\\(open\\(f\\).read\\(\\)\\)\n        print\\(f'OK: {f}'\\)\n    except SyntaxError as e:\n        print\\(f'ERR {f}: {e}'\\)\n\")",
+      "Bash(brew list:*)",
+      "Bash(git credential-store:*)",
+      "Read(//Users/florianlichteblau/**)",
+      "Bash(printenv)",
+      "Bash(security find-internet-password:*)",
+      "Bash(.venv/bin/python -c \"import ast; ast.parse\\(open\\('src/ui/tabs/connection.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
     ]
   }
 }
