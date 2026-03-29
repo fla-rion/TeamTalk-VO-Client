@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-03-29 (v5.7.0)
+- UsageAnalytics (analytics.py): lokale Nutzungsmetriken ohne externes Tracking;
+  SessionRecord pro Verbindung; on_connect/on_disconnect/on_message_sent/
+  on_message_received/on_channel_switch/on_error
+- App-Start-Zähler und Gesamt-Verbindungszeit automatisch protokolliert
+- summary() und text_report() für lesbare Berichte; export_json(path)
+- purge_older_than_days() für automatische Bereinigung
+- Anbindung in handle_connect_result: Analytics.on_connect() bei Erfolg
+- frame._analytics als App-Schnittstelle
+
 2026-03-29 (v5.6.0)
 - VideoStatsCollector: Auflösung, FPS und Paketverlust je Teilnehmer;
   update(), summary_lines(), quality_label() (Gut/Mittel/Schlecht)

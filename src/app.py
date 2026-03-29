@@ -66,9 +66,10 @@ from companion_server import CompanionServer
 from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
 from file_manager import FileManager
 from video_manager import VideoStatsCollector, VideoRecorder
+from analytics import UsageAnalytics
 
 
-APP_VERSION = "5.6.0"
+APP_VERSION = "5.7.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -394,6 +395,8 @@ class MainFrame(wx.Frame):
         # v5.6.0 – Video-Erweiterungen
         self._video_stats = VideoStatsCollector()
         self._video_recorder = VideoRecorder(app_dir)
+        # v5.7.0 – Analytics
+        self._analytics = UsageAnalytics(app_dir)
         # v5.3.0 – macOS Desktop-Integration
         self._dark_mode_watcher = DarkModeWatcher(self._on_dark_mode_change)
         self._dark_mode_watcher.start()
@@ -7634,9 +7637,10 @@ class MainFrame(wx.Frame):
 
     def handle_connect_result(self, result: ConnectResult):
         self.set_status(result.message)
-        # v4.9.0 – Audit-Log
+        # v4.9.0 – Audit-Log; v5.7.0 – Analytics
         if result.ok:
             self._audit_log.log(A_SERVER_CONNECT, detail=self._get_server_key())
+            self._analytics.on_connect(self._get_server_key())
         if result.ok:
             self._reconnect_attempts = 0
             self._offline_buffering = False
