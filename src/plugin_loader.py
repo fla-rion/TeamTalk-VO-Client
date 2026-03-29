@@ -10,11 +10,16 @@ Optionales Modul-Attribut `metadata` (dict):
         "description": "Was das Plugin macht",
         "author": "Autor",
     }
+
+v4.1.0 – Fehlerhafte Plugins werden isoliert: Lade-Fehler werden in
+_errors gespeichert und stören andere Plugins nicht.
+Deaktivierte Plugins (disabled_plugins-Liste) werden übersprungen.
 """
 from __future__ import annotations
 
 import importlib.util
 import inspect
+import traceback
 from pathlib import Path
 from typing import Dict, List, Optional, TYPE_CHECKING
 
@@ -38,14 +43,25 @@ class PluginLoader:
         self._loaded: List[str] = []
         # filename -> metadata dict
         self._metadata: Dict[str, Dict[str, str]] = {}
+        # v4.1.0 – Fehler-Tracking: filename -> Fehlermeldung
+        self._errors: Dict[str, str] = {}
 
-    def load_all(self) -> int:
-        """Lädt alle Plugins aus dem Plugins-Verzeichnis. Gibt Anzahl zurück."""
+    def load_all(self, disabled: Optional[List[str]] = None) -> int:
+        """Lädt alle Plugins aus dem Plugins-Verzeichnis.
+
+        v4.1.0: disabled-Liste überspringt Plugins; Lade-Fehler werden
+        pro Plugin isoliert gespeichert (kein Abbruch der gesamten Ladephase).
+        Gibt Anzahl erfolgreich geladener Plugins zurück.
+        """
         if not self._dir.exists():
             return 0
+        disabled_set = set(disabled or [])
         count = 0
         for path in sorted(self._dir.glob("*.py")):
             if path.name.startswith("_"):
+                continue
+            if path.name in disabled_set:
+                print(f"[PluginLoader] Übersprungen (deaktiviert): {path.name}")
                 continue
             try:
                 spec = importlib.util.spec_from_file_location(f"plugin_{path.stem}", path)
@@ -68,6 +84,8 @@ class PluginLoader:
                     self._metadata[path.name] = meta
                     count += 1
             except Exception as exc:
+                tb = traceback.format_exc()
+                self._errors[path.name] = f"{exc}\n{tb}"
                 print(f"[PluginLoader] Fehler beim Laden von {path.name}: {exc}")
         return count
 
@@ -95,3 +113,11 @@ class PluginLoader:
     def all_metadata(self) -> Dict[str, Dict[str, str]]:
         """Gibt Metadaten aller geladenen Plugins zurück."""
         return {k: dict(v) for k, v in self._metadata.items()}
+
+    def get_errors(self) -> Dict[str, str]:
+        """v4.1.0 – Gibt Lade-Fehler zurück (filename → Traceback-String)."""
+        return dict(self._errors)
+
+    def has_error(self, filename: str) -> bool:
+        """v4.1.0 – True wenn das Plugin beim Laden fehlgeschlagen ist."""
+        return filename in self._errors

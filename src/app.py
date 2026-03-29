@@ -57,7 +57,7 @@ from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
 
 
-APP_VERSION = "4.0.1"
+APP_VERSION = "4.1.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -84,14 +84,32 @@ def _init_startup_logging() -> None:
         log_path.mkdir(parents=True, exist_ok=True)
 
     log_file = log_path / "startup.log"
+    # v4.1.0 – Strukturiertes JSON-Startup-Log parallel zum Text-Log
+    json_log_file = log_path / "startup.jsonl"
     try:
         stream = log_file.open("a", encoding="utf-8")
         sys.stdout = stream
         sys.stderr = stream
-        print("\n=== Startup", time.strftime("%Y-%m-%d %H:%M:%S"), "===")
+        ts = time.strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n=== Startup {ts} ===")
         print("sys.argv:", sys.argv)
         print("sys.frozen:", getattr(sys, "frozen", False))
         print("sys._MEIPASS:", getattr(sys, "_MEIPASS", None))
+        # JSON-Eintrag schreiben
+        try:
+            entry = {
+                "event": "startup",
+                "timestamp": ts,
+                "argv": sys.argv,
+                "frozen": getattr(sys, "frozen", False),
+                "meipass": str(getattr(sys, "_MEIPASS", "") or ""),
+                "platform": sys.platform,
+                "python": sys.version,
+            }
+            with json_log_file.open("a", encoding="utf-8") as jf:
+                jf.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
     except Exception:
         pass
 

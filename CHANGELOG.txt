@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-03-29 (v4.1.0)
+- Plugin-Loader Isolation: fehlerhafte Plugins werden pro Plugin isoliert
+  gefangen (Traceback in _errors gespeichert); kein Abbruch der Ladephase;
+  load_all() akzeptiert jetzt disabled-Liste zum Überspringen von Plugins
+- AsyncBusBridge Queue-Overflow-Handling: verworfene Events werden gezählt
+  (dropped_events-Property) und periodisch geloggt; kein Blockieren des
+  wx-Threads bei vollem Puffer
+- AsyncBusBridge Python-3.9-Fix: asyncio.Queue wird innerhalb des Loop-Threads
+  erstellt um Loop-Binding-Fehler zu vermeiden; threading.Event synchronisiert
+  Queue-Bereitschaft vor erstem Bus-Abonnement
+- Startup-Log JSON: strukturiertes JSONL-Protokoll (startup.jsonl) parallel
+  zum Text-Log; enthält Timestamp, argv, frozen, platform, Python-Version
+- Unittest-Grundgerüst: tests/ mit 25 Tests für EventBus, AsyncBusBridge und
+  PluginLoader; pytest wird als Dev-Abhängigkeit verwendet
+
 2026-03-29 (v4.0.1)
 - Bugfix: App startete nicht mehr (AttributeError: 'MainFrame' object has no
   attribute 'bus'); Ursache: AsyncBusBridge wurde in MainFrame.__init__
