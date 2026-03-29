@@ -301,6 +301,99 @@ def patch_button_accessibility() -> None:
         pass
 
 
+class FocusRestoreHelper:
+    """v4.4.0 – Hilfsobjekt um den Fokus nach Dialogen zuverlässig wiederherzustellen.
+
+    Verwendung::
+
+        helper = FocusRestoreHelper()
+        helper.save(my_list_box)
+        dlg = wx.TextEntryDialog(frame, ...)
+        dlg.ShowModal()
+        dlg.Destroy()
+        helper.restore()
+
+    Speichert das fokussierte Widget und stellt es nach einem Dialog wieder her.
+    Funktioniert auch wenn das Widget zwischenzeitlich neu befüllt wurde
+    (z. B. ListBox nach Refresh) – dann wird nur der Selektions-Index behalten.
+    """
+
+    def __init__(self) -> None:
+        self._widget: "wx.Window | None" = None
+        self._lb_selection: int = wx.NOT_FOUND
+
+    def save(self, widget: "wx.Window | None" = None) -> None:
+        """Speichert das angegebene Widget (oder das aktuell fokussierte)."""
+        try:
+            import wx as _wx
+            self._widget = widget
+            if isinstance(widget, _wx.ListBox):
+                self._lb_selection = widget.GetSelection()
+            else:
+                self._lb_selection = _wx.NOT_FOUND
+        except Exception:
+            self._widget = None
+            self._lb_selection = wx.NOT_FOUND
+
+    def restore(self) -> None:
+        """Stellt den Fokus und ggf. die Selektion wieder her."""
+        try:
+            import wx as _wx
+            w = self._widget
+            if w is None or not w:
+                return
+            if isinstance(w, _wx.ListBox):
+                count = w.GetCount()
+                sel = self._lb_selection
+                if sel != _wx.NOT_FOUND and 0 <= sel < count:
+                    w.SetSelection(sel)
+                elif count > 0:
+                    w.SetSelection(0)
+            try:
+                w.SetFocus()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+
+def bind_listbox_keyboard_nav(lb: "wx.ListBox") -> None:
+    """v4.4.0 – Bindet Home/End/PgUp/PgDn-Navigation an eine wx.ListBox.
+
+    wxPython implementiert diese Tasten auf macOS nicht zuverlässig.
+    Diese Funktion patcht sie für die angegebene Instanz.
+    """
+    import wx
+
+    def _on_key(event: wx.KeyEvent) -> None:
+        key = event.GetKeyCode()
+        count = lb.GetCount()
+        if count == 0:
+            event.Skip()
+            return
+        sel = lb.GetSelection()
+        if sel == wx.NOT_FOUND:
+            sel = 0
+
+        if key == wx.WXK_HOME:
+            lb.SetSelection(0)
+        elif key == wx.WXK_END:
+            lb.SetSelection(count - 1)
+        elif key in (wx.WXK_PAGEUP, wx.WXK_PRIOR):
+            lb.SetSelection(max(0, sel - 10))
+        elif key in (wx.WXK_PAGEDOWN, wx.WXK_NEXT):
+            lb.SetSelection(min(count - 1, sel + 10))
+        else:
+            event.Skip()
+            return
+        # Pseudo-Auswahl-Event feuern
+        evt = wx.CommandEvent(wx.EVT_LISTBOX.typeId, lb.GetId())
+        evt.SetInt(lb.GetSelection())
+        wx.PostEvent(lb, evt)
+
+    lb.Bind(wx.EVT_KEY_DOWN, _on_key)
+
+
 def post_voiceover_announcement(text: str) -> None:
     """Kündigt text über VoiceOver an (macOS, NSAccessibilityAnnouncementRequested)."""
     if sys.platform != "darwin":

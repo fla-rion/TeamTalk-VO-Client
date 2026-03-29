@@ -57,7 +57,7 @@ from ai_reply import AiReplyManager
 from async_bridge import AsyncBusBridge
 
 
-APP_VERSION = "4.3.0"
+APP_VERSION = "4.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b

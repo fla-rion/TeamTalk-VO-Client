@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-29 (v4.4.0)
+- Verbesserte VoiceOver-Ankündigungen: BrailleOutputManager.announce_channel_join()
+  und announce_channel_leave() liefern verbositätsabhängige Texte mit Nutzerzahl
+- Braillezeilen-Kürzel: konfigurierbare Abkürzungstabelle (add_abbreviation,
+  remove_abbreviation, apply_abbreviations); Standard-Kürzel für häufige
+  Begriffe (Admin, Verb, Getr, PM…); nur im compact-Modus aktiv
+- Fokus-Management: FocusRestoreHelper (ui/a11y.py) speichert das fokussierte
+  Widget vor einem Dialog und stellt es danach wieder her inkl. ListBox-Selektion
+- Tastaturnavigation: bind_listbox_keyboard_nav() bindet Home/End/PgUp/PgDn
+  an wx.ListBox-Instanzen (macOS-Workaround); feuert EVT_LISTBOX nach Sprung
+
 2026-03-29 (v4.3.0)
 - HTTP-API v3: SSE-Token-Authentifizierung via X-Api-Token-Header oder
   ?token=... Query-Param; HttpApiServer.set_token(token) konfiguriert ihn
