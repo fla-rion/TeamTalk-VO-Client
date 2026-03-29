@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-29 (v4.2.0)
+- Plugin-Hotkey-API: PluginAPI.register_hotkey(plugin_name, action_name, callback)
+  registriert App-interne Hotkeys für Plugins; unregister_hotkey() entfernt sie;
+  get_all_plugin_hotkeys() liefert die globale Hotkey-Tabelle
+- Plugin-DB-Einstellungen: PluginAPI.get_db_config(plugin_name) gibt einen
+  SQLite-basierten Store zurück (Tabelle plugin_settings in settings.db);
+  thread-safe, persistent, JSON-serialisiert
+- Plugin-Reload ohne Neustart: PluginLoader.reload_plugin(filename) lädt
+  ein einzelnes Plugin neu; Plugin-Manager-Dialog hat neuen "Neu laden"-Button
+- Plugin-Abhängigkeiten: requires-Feld in metadata; topologische Sortierung
+  stellt sicher, dass Abhängigkeiten vor abhängigen Plugins geladen werden
+- PluginAPI.set_status(text): setzt Text in der App-Statuszeile
+
 2026-03-29 (v4.1.0)
 - Plugin-Loader Isolation: fehlerhafte Plugins werden pro Plugin isoliert
   gefangen (Traceback in _errors gespeichert); kein Abbruch der Ladephase;
