@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-03-29 (v4.10.0)
+- .ttplugin-Paketformat: PluginPackage/plugin_package.py – ZIP mit manifest.json
+  und Haupt-Plugin-Datei; read_package(), install_package(), create_package();
+  Pflichtfelder: name, display_name, version, author
+- Plugin-Signierung: SHA-256-Hash der Haupt-Plugin-Datei in manifest.json
+  als "signature"; verify_signature() prüft beim Installieren; create_package()
+  berechnet automatisch die Signatur
+- In-App-Plugin-Browser: PluginMarketplace (plugin_marketplace.py) lädt
+  JSON-Katalog von Repository-URL; fetch_catalog(), search(), all_entries();
+  download_package() mit SHA-256-Verifizierung; install() automatisiert
+  Download + Signierungsprüfung + Installation
+- frame._marketplace als zugängliche Schnittstelle; plugins_dir = app_dir/plugins
+
 2026-03-29 (v4.9.0)
 - Keychain API-Key-Speicherung: save_api_key/get_api_key/delete_api_key in
   keychain.py; speichert claude_api_key und gemini_api_key sicher in der

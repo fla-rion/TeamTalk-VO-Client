@@ -60,9 +60,11 @@ from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
 from tls_verify import CertPinStore
+from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
+from plugin_marketplace import PluginMarketplace
 
 
-APP_VERSION = "4.9.0"
+APP_VERSION = "4.10.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -381,6 +383,8 @@ class MainFrame(wx.Frame):
         # v4.9.0 – Audit-Log, TLS-Pin-Store, gespeicherte Nachrichten ablaufen lassen
         self._audit_log = AuditLog(app_dir)
         self._cert_pins = CertPinStore(app_dir)
+        # v4.10.0 – Plugin-Marktplatz
+        self._marketplace = PluginMarketplace(plugins_dir=app_dir / "plugins")
         _expired = self._saved_messages.expire()
         if _expired > 0:
             self._audit_log.log(A_SAVED_MSG_EXPIRED, detail=str(_expired))
