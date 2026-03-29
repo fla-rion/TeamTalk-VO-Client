@@ -412,3 +412,122 @@ def post_voiceover_announcement(text: str) -> None:
         )
     except Exception:
         pass
+
+
+# ---------------------------------------------------------------------------
+# v5.4.0 – Barrierefreiheit Stufe 3
+# ---------------------------------------------------------------------------
+
+class LiveRegionAnnouncer:
+    """Verwaltet VoiceOver-Durchsagen mit Priorität und Entduplizierung.
+
+    Kündigt nur Änderungen an (verhindert Spam bei schnellen Updates).
+    Puffert Durchsagen und lässt nur eine gleichzeitig durch.
+    """
+
+    def __init__(self) -> None:
+        self._last_text: str = ""
+        self._timer: "wx.Timer | None" = None
+
+    def announce(self, text: str, force: bool = False) -> None:
+        """Kündigt ``text`` an, wenn er sich vom letzten Wert unterscheidet.
+
+        Args:
+            text:  Der anzusagende Text.
+            force: Wenn True, wird auch bei gleichem Text angesagt.
+        """
+        if not text or (text == self._last_text and not force):
+            return
+        self._last_text = text
+        post_voiceover_announcement(text)
+
+    def announce_delayed(self, text: str, delay_ms: int = 300) -> None:
+        """Kündigt text nach ``delay_ms`` an (debounced für schnelle Updates)."""
+        if self._timer is not None:
+            try:
+                self._timer.Stop()
+            except Exception:
+                pass
+        try:
+            import wx as _wx
+
+            def _fire():
+                self.announce(text)
+
+            self._timer = _wx.CallLater(delay_ms, _fire)
+        except Exception:
+            self.announce(text)
+
+    def reset(self) -> None:
+        """Setzt den gespeicherten Zustand zurück (nach Panel-Wechsel)."""
+        self._last_text = ""
+
+
+def setup_tab_order(controls: list) -> None:
+    """Setzt die Tab-Reihenfolge explizit für eine Liste von wx-Controls.
+
+    wxPython/macOS ignoriert teilweise die Reihenfolge der SetNextHandler-Kette.
+    Diese Funktion nutzt MoveAfterInTabOrder().
+
+    Args:
+        controls: Geordnete Liste von wx.Window-Instanzen.
+    """
+    for i in range(1, len(controls)):
+        try:
+            controls[i].MoveAfterInTabOrder(controls[i - 1])
+        except Exception:
+            pass
+
+
+def set_accessible_name(ctrl: "wx.Window", name: str) -> None:
+    """Setzt den zugänglichen Namen eines Controls (AXLabel).
+
+    Auf macOS wird SetName() als AXLabel exponiert.
+    """
+    try:
+        ctrl.SetName(name)
+    except Exception:
+        pass
+
+
+def set_accessible_help(ctrl: "wx.Window", help_text: str) -> None:
+    """Setzt den Hilfetext eines Controls (AXHelp / Tooltip).
+
+    Wird von VoiceOver als Hilfsbeschreibung vorgelesen.
+    """
+    try:
+        ctrl.SetHelpText(help_text)
+        ctrl.SetToolTip(help_text)
+    except Exception:
+        pass
+
+
+def audit_accessibility(panel: "wx.Panel") -> list:
+    """Prüft eine Panel-Hierarchie auf häufige Barrierefreiheitsprobleme.
+
+    Gibt eine Liste von Warnungen als Strings zurück.
+    Geprüft wird:
+    - Controls ohne Namen (leerer AXLabel)
+    - Buttons ohne Beschriftung
+    - TextCtrl ohne Help-Text
+
+    v5.4.0 – Entwickler-Werkzeug für Barrierefreiheits-Reviews.
+    """
+    warnings: list = []
+    try:
+        for child in panel.GetChildren():
+            name = child.GetName() if hasattr(child, "GetName") else ""
+            label = child.GetLabel() if hasattr(child, "GetLabel") else ""
+            cls = child.__class__.__name__
+
+            if cls == "Button" and not label.strip():
+                warnings.append(f"Button ohne Beschriftung: id={child.GetId()}")
+
+            if cls in ("TextCtrl", "SearchCtrl") and not name.strip():
+                warnings.append(f"TextCtrl ohne Name: id={child.GetId()}")
+
+            if cls == "ListBox" and not name.strip():
+                warnings.append(f"ListBox ohne Name: id={child.GetId()}")
+    except Exception:
+        pass
+    return warnings

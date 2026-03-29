@@ -66,7 +66,7 @@ from companion_server import CompanionServer
 from macos_integration import send_notification, set_dock_badge, DarkModeWatcher
 
 
-APP_VERSION = "5.3.0"
+APP_VERSION = "5.4.0"
 
 def _upd_tok() -> str:
     import base64 as _b
