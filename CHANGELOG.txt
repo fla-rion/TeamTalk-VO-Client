@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-03-29 (v4.8.0)
+- EN-Übersetzungen erweitert: ~50 neue Einträge für v4.1–v4.7-Features in
+  _TRANSLATIONS (Plugin-Reload, EQ-Presets, Chat-HTML, Braillezeilen-Modi…)
+- Französisch-Skeleton: _TRANSLATIONS_FR mit 80+ häufigen Begriffen;
+  set_language("fr") aktiviert Französisch; _(text) nutzt _TRANSLATIONS_FR
+- set_language akzeptiert jetzt 'de', 'en' und 'fr'
+- translation_stats(lang): gibt Übersetzungsstatistiken zurück (Anzahl Einträge)
+- v4.8.0-Einträge in i18n für spätere Live-Reload-Vorbereitung markiert
+
 2026-03-29 (v4.7.0)
 - EQ-Preset Import/Export: EqPresetsManager (eq_presets.py) verwaltet
   builtin- und benutzerdefinierte Presets; JSON-Export/Import;

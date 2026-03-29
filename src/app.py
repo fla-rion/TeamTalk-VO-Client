@@ -60,7 +60,7 @@ from startup_profiler import StartupProfiler
 from eq_presets import EqPresetsManager
 
 
-APP_VERSION = "4.7.0"
+APP_VERSION = "4.8.0"
 
 def _upd_tok() -> str:
     import base64 as _b
