@@ -64,7 +64,7 @@ from plugin_package import PluginPackage, read_package, install_package, PluginM
 from plugin_marketplace import PluginMarketplace
 
 
-APP_VERSION = "4.10.0"
+APP_VERSION = "5.0.0"
 
 def _upd_tok() -> str:
     import base64 as _b

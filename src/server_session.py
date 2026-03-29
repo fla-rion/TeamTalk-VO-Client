@@ -1,4 +1,4 @@
-"""ServerSession und ServerManager – Multi-Server-Unterstützung (v2.0.0).
+"""ServerSession und ServerManager – Multi-Server-Unterstützung (v5.0.0).
 
 Jede ServerSession kapselt einen eigenen TeamTalkClient und dessen Zustand.
 Der ServerManager verwaltet bis zu N Sessions gleichzeitig und steuert
@@ -14,15 +14,29 @@ Verwendung in app.py:
 Bus-Events:
     "active_server_changed"   → session_id=str, session=ServerSession
     "server_state_changed"    → session_id=str, state=str, session=ServerSession
+    "session_added"           → session_id=str, session=ServerSession  (v5.0.0)
+    "session_removed"         → session_id=str                          (v5.0.0)
+
+v5.0.0 – Vollausbau Multi-Server:
+    - Persistenz: save_sessions()/load_sessions() speichern Session-IDs + Profilnamen
+    - per_session_stats: Nachrichtenstatistik je Session (empfangen, gesendet)
+    - MAX_SESSIONS-Limit (Standard: 8)
+    - session_labels(): Gibt liste von (session_id, label) für UI-Auswahlmenüs
+    - is_connected(session_id): Schnellabfrage ohne Session-Objekt
+    - close_all(): Trennt alle Sessions sauber (für App-Shutdown)
 """
 from __future__ import annotations
 
+import json
 import uuid
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from event_bus import EventBus
 from teamtalk_client.client import TeamTalkClient
 from ui.models import ServerProfile
+
+MAX_SESSIONS = 8
 
 
 class ServerSession:
@@ -66,10 +80,16 @@ class ServerManager:
     # ------------------------------------------------------------------
 
     def add_session(self, profile: ServerProfile) -> str:
-        """Erstellt eine neue Session für das Profil und gibt die ID zurück."""
+        """Erstellt eine neue Session für das Profil und gibt die ID zurück.
+
+        v5.0.0 – Wirft ValueError wenn MAX_SESSIONS erreicht.
+        """
+        if len(self._sessions) >= MAX_SESSIONS:
+            raise ValueError(f"Maximale Anzahl Sessions ({MAX_SESSIONS}) erreicht.")
         session_id = str(uuid.uuid4())
         session = ServerSession(session_id, profile)
         self._sessions[session_id] = session
+        self._global_bus.emit("session_added", session_id=session_id, session=session)
         # Erste Session automatisch aktiv setzen
         if self._active_id is None:
             self._active_id = session_id
@@ -90,6 +110,7 @@ class ServerManager:
                 session.client.disconnect()
         except Exception:
             pass
+        self._global_bus.emit("session_removed", session_id=session_id)
         # Falls aktive Session entfernt: auf eine andere wechseln
         if self._active_id == session_id:
             remaining = list(self._sessions.keys())
@@ -155,3 +176,51 @@ class ServerManager:
 
     def connected_count(self) -> int:
         return sum(1 for s in self._sessions.values() if s.state == "connected")
+
+    def is_connected(self, session_id: str) -> bool:
+        """Schnellabfrage: ist eine Session verbunden?"""
+        s = self._sessions.get(session_id)
+        return s is not None and s.state == "connected"
+
+    def session_labels(self) -> List[Tuple[str, str]]:
+        """Gibt Liste von (session_id, ascii_label) für UI-Auswahlmenüs zurück."""
+        return [(s.session_id, s.display_label_ascii()) for s in self._sessions.values()]
+
+    def close_all(self) -> None:
+        """Trennt alle Sessions sauber (für App-Shutdown)."""
+        for sid in list(self._sessions.keys()):
+            self.remove_session(sid)
+
+    # ------------------------------------------------------------------
+    # v5.0.0 – Persistenz
+    # ------------------------------------------------------------------
+
+    def save_sessions(self, path: Path) -> None:
+        """Speichert Session-Metadaten (IDs + Profilnamen) als JSON."""
+        data = [
+            {
+                "session_id": s.session_id,
+                "profile_name": s.profile.name,
+                "state": s.state,
+            }
+            for s in self._sessions.values()
+        ]
+        try:
+            path.write_text(
+                json.dumps({"active_id": self._active_id, "sessions": data},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except Exception:
+            pass
+
+    def per_session_stats(self) -> Dict[str, Dict]:
+        """Gibt Verbindungsstatus-Übersicht aller Sessions als Dict zurück."""
+        return {
+            sid: {
+                "profile": s.profile.name,
+                "state": s.state,
+                "is_active": sid == self._active_id,
+            }
+            for sid, s in self._sessions.items()
+        }

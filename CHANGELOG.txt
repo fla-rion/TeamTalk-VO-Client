@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-29 (v5.0.0)
+- Multi-Server Vollausbau: ServerManager unterstützt jetzt bis zu 8 simultane
+  Sessions (MAX_SESSIONS); add_session() wirft ValueError wenn Limit erreicht
+- session_added / session_removed Bus-Events für UI-Reaktivität
+- session_labels() gibt (session_id, ascii_label)-Liste für Auswahlmenüs zurück
+- is_connected(session_id): Schnellabfrage des Verbindungsstatus
+- close_all(): Sauberes Trennen aller Sessions beim App-Shutdown
+- save_sessions(path): Persistenz von Session-Metadaten als JSON
+- per_session_stats(): Übersicht aller Sessions mit State und Aktivitätsinfo
+- MAX_SESSIONS als Modulkonstante exportiert
+
 2026-03-29 (v4.10.0)
 - .ttplugin-Paketformat: PluginPackage/plugin_package.py – ZIP mit manifest.json
   und Haupt-Plugin-Datei; read_package(), install_package(), create_package();
