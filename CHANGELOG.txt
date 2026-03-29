@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-29 (v4.3.0)
+- HTTP-API v3: SSE-Token-Authentifizierung via X-Api-Token-Header oder
+  ?token=... Query-Param; HttpApiServer.set_token(token) konfiguriert ihn
+- Neue REST-Endpunkte: GET /server (Serverinfo), GET /channels (Kanalliste),
+  GET /users (Nutzer im aktuellen Kanal)
+- OpenAPI-Dokumentation: GET /docs liefert eine HTML-Seite mit allen
+  Endpunkten, Parametern und Antwortformat
+- Webhook-Retry: Exponentieller Backoff (1s → 2s → 4s), max. 3 Versuche;
+  WebhookManager.sent_total / failed_total für Statistiken
+- SSE-Payload-Sicherheit: JSON-nicht-serialisierbare Bus-Event-Werte werden
+  automatisch in Strings konvertiert (kein 500-Fehler mehr)
+
 2026-03-29 (v4.2.0)
 - Plugin-Hotkey-API: PluginAPI.register_hotkey(plugin_name, action_name, callback)
   registriert App-interne Hotkeys für Plugins; unregister_hotkey() entfernt sie;
