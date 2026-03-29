@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-29 (v5.6.0)
+- VideoStatsCollector: Auflösung, FPS und Paketverlust je Teilnehmer;
+  update(), summary_lines(), quality_label() (Gut/Mittel/Schlecht)
+- VideoRecorder: Aufnahme-Verwaltung mit Metadaten-Persistenz in
+  video_recordings.json; start_recording(), stop_recording(), add_frame(),
+  is_recording(), history()
+- generate_video_alt_text(): barrierefreie Textbeschreibung eines Video-Streams
+  (Auflösung, FPS, Qualität) für VoiceOver-Nutzer
+- VideoRecording Dataclass mit duration_s Property
+- frame._video_stats und frame._video_recorder als App-Schnittstellen
+
 2026-03-29 (v5.5.0)
 - FileManager (file_manager.py): Download-/Upload-Verlauf als JSON persistiert
   (max 1000 Einträge); add(), mark_completed(), recent(n), by_category(),
