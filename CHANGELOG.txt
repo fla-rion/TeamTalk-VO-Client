@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-29 (v5.2.0)
+- KI-Antwortvorschläge kontextbewusst: suggest_replies(context=[...]) übergibt
+  bis zu 5 vorherige Nachrichten als Gesprächskontext an das Backend
+- KI-Zusammenfassung: AiReplyManager.summarize(messages) fasst bis zu 50
+  Kanal-Nachrichten in 2–4 Sätzen zusammen; alle drei Backends unterstützt
+- Absichtsklassifikation: classify_intent(text) klassifiziert Nachrichten in
+  frage/antwort/begruessung/verabschiedung/ankuendigung/hilfe/sonstiges
+- Keychain-Integration für API-Keys: _claude_key() und _gemini_key() lesen
+  Schlüssel bevorzugt aus der OS-Keychain (claude_api_key / gemini_api_key)
+- Backend-Methoden akzeptieren jetzt system und max_tokens Parameter
+- _gemini_key() extrahiert in eigene Methode (DRY, nutzt Keychain)
+
 2026-03-29 (v5.1.0)
 - Mobil-Companion-Server: CompanionServer (companion_server.py) startet auf
   localhost:19880; Endpunkte: GET /status, /channels, /users, GET /events (SSE),

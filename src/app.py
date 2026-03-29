@@ -65,7 +65,7 @@ from plugin_marketplace import PluginMarketplace
 from companion_server import CompanionServer
 
 
-APP_VERSION = "5.1.0"
+APP_VERSION = "5.2.0"
 
 def _upd_tok() -> str:
     import base64 as _b
