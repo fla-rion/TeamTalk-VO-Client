@@ -155,6 +155,9 @@ class ConnectionTab(wx.Panel):
         self.share_file_btn = wx.Button(self, label="TT-Datei s&peichern")
         self.share_file_btn.SetName("TT-Datei speichern")
         self.share_file_btn.Bind(wx.EVT_BUTTON, self.on_save_tt_file)
+        self.qr_btn = wx.Button(self, label="&QR-Code")
+        self.qr_btn.SetName("Server als QR-Code anzeigen")
+        self.qr_btn.Bind(wx.EVT_BUTTON, self.on_show_qr)
         self.auto_reconnect = wx.CheckBox(self, label="Auto&matisch neu verbinden")
         self.auto_reconnect.SetName("Automatisch neu verbinden")
         self.auto_reconnect.Bind(wx.EVT_CHECKBOX, self.on_auto_reconnect)
@@ -162,6 +165,7 @@ class ConnectionTab(wx.Panel):
         for btn in (
             self.connect_btn, self.reconnect_btn, self.server_check_btn, self.join_root_btn,
             self.leave_btn, self.logout_btn, self.share_url_btn, self.share_file_btn,
+            self.qr_btn,
         ):
             action_row.Add(btn, 0, wx.RIGHT, 8)
         action_row.Add(self.auto_reconnect, 0)
@@ -419,6 +423,77 @@ class ConnectionTab(wx.Panel):
             return self.frame.tt_str(path) if path else None
         except Exception:
             return None
+
+    def on_show_qr(self, _event) -> None:
+        """Zeigt den Server als QR-Code (tt://-URL)."""
+        profile = self.profile_from_form()
+        if not profile:
+            self.frame.set_status("Bitte Serverformular ausfüllen")
+            return
+        channel_path = self._get_channel_path_for_share()
+        url = build_teamtalk_url(profile, channel_path=channel_path)
+
+        dlg = wx.Dialog(self, title="Server QR-Code", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((480, 340))
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+
+        # QR-Code versuchen via qrcode-Bibliothek
+        qr_shown = False
+        try:
+            import qrcode  # type: ignore
+            import io
+            qr = qrcode.QRCode(box_size=6, border=2)
+            qr.add_data(url)
+            qr.make(fit=True)
+            img = qr.make_image(fill_color="black", back_color="white")
+            buf = io.BytesIO()
+            img.save(buf, format="PNG")
+            buf.seek(0)
+            wx_img = wx.Image(buf, wx.BITMAP_TYPE_PNG)
+            bmp = wx.StaticBitmap(dlg, bitmap=wx_img.ConvertToBitmap())
+            bmp.SetName("QR-Code Bild")
+            root.Add(bmp, 0, wx.ALL | wx.ALIGN_CENTER, 8)
+            qr_shown = True
+        except ImportError:
+            hint = wx.StaticText(
+                dlg,
+                label="(qrcode-Bibliothek nicht installiert – URL unten kopieren und\nin einem QR-Generator einfügen)",
+            )
+            hint.SetForegroundColour(wx.Colour(100, 100, 100))
+            root.Add(hint, 0, wx.ALL, 8)
+        except Exception:
+            pass
+
+        # URL immer als Text anzeigen
+        url_label = wx.StaticText(dlg, label="tt://-URL:")
+        root.Add(url_label, 0, wx.LEFT | wx.TOP, 8)
+        url_ctrl = wx.TextCtrl(dlg, value=url, style=wx.TE_READONLY)
+        url_ctrl.SetName("Server-URL")
+        root.Add(url_ctrl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        copy_btn = wx.Button(dlg, label="&URL kopieren")
+        copy_btn.SetName("URL kopieren")
+        close_btn = wx.Button(dlg, wx.ID_OK, "&Schließen")
+        btn_row.Add(copy_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(close_btn, 0)
+        root.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        def _copy(_e):
+            if wx.TheClipboard.Open():
+                wx.TheClipboard.SetData(wx.TextDataObject(url))
+                wx.TheClipboard.Close()
+                self.frame.set_status("URL kopiert")
+
+        copy_btn.Bind(wx.EVT_BUTTON, _copy)
+        dlg.SetSizer(root)
+        dlg.CentreOnParent()
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_copy_tt_url(self, _event):
         profile = self.profile_from_form()

@@ -49,9 +49,13 @@ class ChannelsChatTab(wx.Panel):
         self._trans_clear_btn = wx.Button(self._trans_panel, label="&Leeren")
         self._trans_clear_btn.SetName("Transkription leeren")
         self._trans_clear_btn.Bind(wx.EVT_BUTTON, self._on_trans_clear)
+        self._trans_export_btn = wx.Button(self._trans_panel, label="&Exportieren")
+        self._trans_export_btn.SetName("Transkription exportieren")
+        self._trans_export_btn.Bind(wx.EVT_BUTTON, self._on_trans_export)
         trans_header.Add(trans_label, 1, wx.ALIGN_CENTER_VERTICAL)
         trans_header.Add(self._trans_toggle_btn, 0, wx.RIGHT, 4)
-        trans_header.Add(self._trans_clear_btn, 0)
+        trans_header.Add(self._trans_clear_btn, 0, wx.RIGHT, 4)
+        trans_header.Add(self._trans_export_btn, 0)
         trans_sizer.Add(trans_header, 0, wx.ALL | wx.EXPAND, 4)
 
         self._trans_text = wx.TextCtrl(
@@ -92,6 +96,31 @@ class ChannelsChatTab(wx.Panel):
     def _on_trans_clear(self, _event) -> None:
         self._transcript_lines.clear()
         self._trans_text.SetValue("")
+
+    def _on_trans_export(self, _event) -> None:
+        """Exportiert alle Transkriptions-Zeilen als TXT-Datei."""
+        if not self._transcript_lines:
+            self.frame.set_status("Keine Transkription zum Exportieren")
+            return
+        import time as _time
+        default_name = f"transkription_{_time.strftime('%Y%m%d_%H%M%S')}.txt"
+        with wx.FileDialog(
+            self,
+            "Transkription exportieren",
+            wildcard="Textdateien (*.txt)|*.txt|Alle Dateien|*.*",
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
+            defaultFile=default_name,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        try:
+            content = "\n".join(self._transcript_lines)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            self.frame.set_status(f"Transkription exportiert: {path}")
+        except Exception as exc:
+            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
 
     def _on_transcription_result(self, text: str, language: str = "de") -> None:
         """Empfängt ein Transkriptions-Ergebnis vom Bus (aus Hintergrundthread)."""

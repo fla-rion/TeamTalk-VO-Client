@@ -1115,15 +1115,23 @@ class SettingsTab(wx.Panel):
         s.chat_muted_users = self._muted_users.GetValue().strip()
         # v3.6.0 – Sprache
         lang_sel = self._app_language.GetSelection()
+        _old_lang = getattr(s, "app_language", "de") or "de"
         s.app_language = "en" if lang_sel == 1 else "de"
-        try:
-            from i18n import set_language
-            set_language(s.app_language)
-        except Exception:
-            pass
+        _lang_changed = s.app_language != _old_lang
         self.frame.settings_store.save()
         self.frame.apply_general_settings()
         self.frame.set_status("Allgemeine Einstellungen gespeichert")
+        # v6.1.2 – Neustart bei Sprachänderung
+        if _lang_changed:
+            dlg = wx.MessageDialog(
+                self.frame,
+                "Die App-Sprache wurde geändert.\nDie App wird jetzt neu gestartet, um die Änderung zu übernehmen.",
+                "Neustart erforderlich / Restart required",
+                wx.OK | wx.ICON_INFORMATION,
+            )
+            dlg.ShowModal()
+            dlg.Destroy()
+            self.frame._restart_app()
 
     def _on_save_display(self, _event):
         s = self.frame.settings_store.settings

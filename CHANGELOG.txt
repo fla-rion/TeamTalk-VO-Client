@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-03-30 (v6.1.2)
+- Bugfix Sprache: Nach Änderung der App-Sprache in den Einstellungen wird die
+  App jetzt automatisch neu gestartet; vorher wurde kein Neustart ausgelöst
+  und die Spracheinstellung hatte daher keinen Effekt
+- Bundle-Optimierung: Whisper/PyTorch/llvmlite/numba/tiktoken aus dem Bundle
+  ausgeschlossen; spart ~325 MB (559 MB → ~234 MB) und beschleunigt den Start;
+  lokale Spracherkennung (Live-Transkription, Sprachsteuerung) ist nur noch
+  verfügbar wenn openai-whisper manuell in der Python-Umgebung installiert ist
+- CFBundleVersion im App-Bundle auf 6.1.2 aktualisiert (war noch 3.0.0)
+- PyInstaller optimize=2 (kompaktere .pyc, leicht schnellerer Start)
+
 2026-03-30 (v6.1.1)
 - Bugfix Startup-Crash: settings.py – cq_box wurde zweimal zu einem Sizer
   hinzugefügt (einmal direkt, einmal via StaticBoxSizer); zweiter Add entfernt

@@ -204,6 +204,18 @@ class AppSettings:
     hotkey_bookmark_1: int = 0
     hotkey_bookmark_2: int = 0
     hotkey_bookmark_3: int = 0
+    # v3.8.0 features
+    hotkey_bookmark_4: int = 0
+    hotkey_bookmark_5: int = 0
+    hotkey_bookmark_6: int = 0
+    hotkey_bookmark_7: int = 0
+    hotkey_bookmark_8: int = 0
+    hotkey_bookmark_9: int = 0
+    # v3.9.0 features
+    translate_chat_enabled: bool = False
+    translate_target_language: str = "Deutsch"
+    hotkey_ai_reply_suggestions: int = 0
+    transcription_autosave: bool = False
     pronunciation_dict: Dict[str, str] = field(default_factory=dict)
     # v2.3.0 features
     auto_join_channel_per_server: Dict[str, str] = field(default_factory=dict)
