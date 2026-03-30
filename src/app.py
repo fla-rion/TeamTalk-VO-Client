@@ -7816,28 +7816,30 @@ class MainFrame(wx.Frame):
                 tag = str(data.get("tag_name", "") or "").lstrip("v")
                 if tag and tag != APP_VERSION:
                     assets = data.get("assets", [])
-                    # v6.1.0 – API-URL statt browser_download_url (Repo ist privat)
-                    api_asset_url = ""
+                    # v6.1.3 – browser_download_url + Token-Query-Param (privates Repo)
+                    # Der /releases/assets/{id} API-Endpunkt gibt nur JSON-Metadaten zurück,
+                    # nicht den Dateiinhalt. browser_download_url mit ?token= lädt die Datei.
+                    download_url = ""
+                    asset_name = f"TeamTalk VO Client {tag}.dmg"
                     if assets:
-                        asset_id = assets[0].get("id")
-                        if asset_id:
-                            api_asset_url = (
-                                f"https://git.garogaming.xyz/api/v1/repos/"
-                                f"flarion/TeamTalk-VO-Client/releases/assets/{asset_id}"
-                            )
+                        raw_url = assets[0].get("browser_download_url", "")
+                        asset_name = assets[0].get("name", asset_name)
+                        if raw_url:
+                            tok = _upd_tok()
+                            download_url = f"{raw_url}?token={tok}"
                     wx.CallAfter(
                         self.set_status,
                         f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
-                    if api_asset_url:
-                        wx.CallAfter(self._show_update_dialog, tag, api_asset_url)
+                    if download_url:
+                        wx.CallAfter(self._show_update_dialog, tag, download_url, asset_name)
             except Exception:
                 pass
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _show_update_dialog(self, tag: str, api_asset_url: str) -> None:
-        """v6.1.0 – Lädt das Update direkt via API herunter (kein Browser nötig)."""
+    def _show_update_dialog(self, tag: str, download_url: str, asset_name: str = "") -> None:
+        """v6.1.3 – Lädt das Update direkt herunter (browser_download_url + Token)."""
         dlg = wx.MessageDialog(
             self,
             f"Version {tag} ist verfügbar (aktuell: {APP_VERSION}).\n\nJetzt herunterladen?",
@@ -7851,7 +7853,7 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
         # Speicherort erfragen
-        default_name = f"TeamTalk VO Client {tag}.dmg"
+        default_name = asset_name or f"TeamTalk VO Client {tag}.dmg"
         save_dlg = wx.FileDialog(
             self,
             message="Update speichern unter…",
@@ -7870,16 +7872,27 @@ class MainFrame(wx.Frame):
 
         def _download():
             import urllib.request
-            import urllib.error
             try:
-                req = urllib.request.Request(
-                    api_asset_url,
-                    headers={"Authorization": f"token {_upd_tok()}"},
-                )
-                with urllib.request.urlopen(req, timeout=120) as resp:  # noqa: S310
-                    data = resp.read()
-                with open(dest_path, "wb") as fh:
-                    fh.write(data)
+                # Chunk-Streaming: kein vollständiger RAM-Load, Fortschrittsanzeige
+                req = urllib.request.Request(download_url)
+                with urllib.request.urlopen(req, timeout=300) as resp:  # noqa: S310
+                    total = int(resp.headers.get("Content-Length") or 0)
+                    chunk = 65536  # 64 KB
+                    received = 0
+                    with open(dest_path, "wb") as fh:
+                        while True:
+                            buf = resp.read(chunk)
+                            if not buf:
+                                break
+                            fh.write(buf)
+                            received += len(buf)
+                            if total > 0:
+                                pct = int(received * 100 / total)
+                                mb = received / 1_048_576
+                                wx.CallAfter(
+                                    self.set_status,
+                                    f"Lade Update v{tag}… {pct}% ({mb:.1f} MB)",
+                                )
                 wx.CallAfter(self._on_update_downloaded, tag, dest_path)
             except Exception as exc:
                 wx.CallAfter(
