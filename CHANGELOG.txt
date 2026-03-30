@@ -5,6 +5,9 @@ Changelog
 - Bugfix Sprache: Nach Änderung der App-Sprache in den Einstellungen wird die
   App jetzt automatisch neu gestartet; vorher wurde kein Neustart ausgelöst
   und die Spracheinstellung hatte daher keinen Effekt
+- Bugfix Sprache: Français und Español waren zwar in i18n.py implementiert,
+  erschienen aber nicht im Sprachauswahl-Dropdown – jetzt alle 4 Sprachen
+  sichtbar: Deutsch, English, Français, Español
 - Bundle-Optimierung: Whisper/PyTorch/llvmlite/numba/tiktoken aus dem Bundle
   ausgeschlossen; spart ~325 MB (559 MB → ~234 MB) und beschleunigt den Start;
   lokale Spracherkennung (Live-Transkription, Sprachsteuerung) ist nur noch

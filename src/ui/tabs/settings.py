@@ -154,10 +154,14 @@ class SettingsTab(wx.Panel):
         lang_box = wx.StaticBox(panel, label="Sprache / Language")
         lang_sizer = wx.StaticBoxSizer(lang_box, wx.HORIZONTAL)
         lang_sizer.Add(wx.StaticText(panel, label="Sprache / Language:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._app_language = wx.Choice(panel, choices=["Deutsch", "English"])
+        _LANG_CODES = ["de", "en", "fr", "es"]
+        _LANG_LABELS = ["Deutsch", "English", "Français", "Español"]
+        self._app_language = wx.Choice(panel, choices=_LANG_LABELS)
+        self._app_language._lang_codes = _LANG_CODES
         self._app_language.SetName("App-Sprache")
         current_lang = getattr(s, "app_language", "de") or "de"
-        self._app_language.SetSelection(0 if current_lang == "de" else 1)
+        sel = _LANG_CODES.index(current_lang) if current_lang in _LANG_CODES else 0
+        self._app_language.SetSelection(sel)
         lang_sizer.Add(self._app_language, 0)
         lang_note = wx.StaticText(panel, label="(Neustart erforderlich / Restart required)")
         lang_sizer.Add(lang_note, 0, wx.ALIGN_CENTER_VERTICAL | wx.LEFT, 12)
@@ -1113,10 +1117,11 @@ class SettingsTab(wx.Panel):
         s.save_channel_passwords = self._save_channel_passwords.GetValue()
         s.chat_highlight_keywords = self._highlight_keywords.GetValue().strip()
         s.chat_muted_users = self._muted_users.GetValue().strip()
-        # v3.6.0 – Sprache
+        # v3.6.0 – Sprache (v6.1.2: alle 4 Sprachen)
         lang_sel = self._app_language.GetSelection()
+        _lang_codes = getattr(self._app_language, "_lang_codes", ["de", "en", "fr", "es"])
         _old_lang = getattr(s, "app_language", "de") or "de"
-        s.app_language = "en" if lang_sel == 1 else "de"
+        s.app_language = _lang_codes[lang_sel] if 0 <= lang_sel < len(_lang_codes) else "de"
         _lang_changed = s.app_language != _old_lang
         self.frame.settings_store.save()
         self.frame.apply_general_settings()
