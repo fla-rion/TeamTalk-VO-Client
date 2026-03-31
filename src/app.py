@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.1.5"
+APP_VERSION = "6.1.6"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -855,10 +855,23 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_ACTIVATE, self._on_activate)
 
         # Ensure Cmd+, opens settings on macOS even if menu shortcuts are ignored.
+        # Cmd+1–4: Fokus-Shortcuts (Kanalliste, Chatverlauf, Eingabe, Protokoll)
         if sys.platform == "darwin":
+            _id_f1 = wx.NewIdRef()
+            _id_f2 = wx.NewIdRef()
+            _id_f3 = wx.NewIdRef()
+            _id_f4 = wx.NewIdRef()
+            self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(1), id=int(_id_f1))
+            self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(2), id=int(_id_f2))
+            self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(3), id=int(_id_f3))
+            self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(4), id=int(_id_f4))
             accel = wx.AcceleratorTable(
                 [
                     (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
+                    (wx.ACCEL_CMD, ord("1"), int(_id_f1)),
+                    (wx.ACCEL_CMD, ord("2"), int(_id_f2)),
+                    (wx.ACCEL_CMD, ord("3"), int(_id_f3)),
+                    (wx.ACCEL_CMD, ord("4"), int(_id_f4)),
                 ]
             )
             self.SetAcceleratorTable(accel)
@@ -9118,6 +9131,27 @@ class MainFrame(wx.Frame):
         _localize_window_tree(self.settings_window)
         _localize_window_tree(self.connection_window)
 
+    def _focus_area(self, area: int) -> None:
+        """Cmd+1–4: Fokus auf Hauptbereiche setzen.
+
+        1 = Kanalliste, 2 = Chatverlauf, 3 = Nachrichteneingabe, 4 = Ereignisprotokoll
+        """
+        if area in (1, 2, 3):
+            self._switch_to_panel("Kanäle und Chat")
+            if self.tab_choice.GetSelection() != 0:
+                self.tab_choice.SetSelection(0)
+        try:
+            if area == 1:
+                self.channels_tab.channel_list.SetFocus()
+            elif area == 2:
+                self.chat_tab.chat_log.SetFocus()
+            elif area == 3:
+                self.chat_tab.chat_input.SetFocus()
+            elif area == 4:
+                self.log.SetFocus()
+        except Exception:
+            pass
+
     def _switch_to_panel(self, label: str) -> None:
         """Show the panel for *label* and hide all others."""
         # Lazy-load if needed
@@ -9390,7 +9424,15 @@ class MainFrame(wx.Frame):
         self.tts.speak(text, kind=tts_kind)
         self._buffer_offline_event(text, "system")
         self.emit_system_message(text, speak=False)
-        self._send_notification("Status", text)
+        # Benachrichtigungen nur für Ereignisse im eigenen Kanal senden
+        if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
+            my_ch = int(self.client.get_my_channel_id() or 0)
+            if my_ch and channel_id == my_ch:
+                self._send_notification("Benutzer betreten", f"{name} → {channel_name or str(channel_id)}")
+        elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
+            my_ch = int(self.client.get_my_channel_id() or 0)
+            if my_ch and channel_id == my_ch:
+                self._send_notification("Benutzer verlassen", f"{name} ← {channel_name or str(channel_id)}")
 
     def _play_user_event_sound(self, event, user_id: int, user_ch: int, source_ch: int, tt) -> None:
         """Wird auf dem Haupt-Thread ausgeführt; Werte wurden im Event-Thread erfasst."""

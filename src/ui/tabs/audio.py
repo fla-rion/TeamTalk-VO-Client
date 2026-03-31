@@ -147,6 +147,48 @@ class AudioTab(wx.Panel):
         preprocess_sizer.Add(preprocess_row, 0, wx.ALL | wx.EXPAND, 8)
         sizer.Add(preprocess_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
 
+        # --- Mikrofon-Verarbeitung (Noise Gate / Expander / Limiter) ---
+        mgp_box = wx.StaticBox(self, label="Mikrofon-Verarbeitung")
+        mgp_sizer = wx.StaticBoxSizer(mgp_box, wx.VERTICAL)
+        mgp_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
+        mgp_form.AddGrowableCol(1)
+
+        lbl_mgp_mode = wx.StaticText(self, label="Modus")
+        self.mgp_mode = wx.Choice(
+            self,
+            choices=["Keine", "Noise Gate", "Expander", "Limiter", "Expander + Limiter"],
+        )
+        self.mgp_mode.SetName("Mikrofon-Verarbeitungsmodus")
+        self.mgp_mode.SetSelection(0)
+
+        lbl_mgp_thresh = wx.StaticText(self, label="Schwellwert (0–100)")
+        self.mgp_threshold = wx.SpinCtrl(self, value="30", min=0, max=100)
+        self.mgp_threshold.SetName("Verarbeitungs-Schwellwert")
+
+        lbl_mgp_db = wx.StaticText(self, label="Rauschunterdrückung (5–60 dB)")
+        self.mgp_suppress_db = wx.SpinCtrl(self, value="30", min=5, max=60)
+        self.mgp_suppress_db.SetName("Rauschunterdrückung dB")
+
+        mgp_form.Add(lbl_mgp_mode, 0, wx.ALIGN_CENTER_VERTICAL)
+        mgp_form.Add(self.mgp_mode, 1, wx.EXPAND)
+        mgp_form.Add(lbl_mgp_thresh, 0, wx.ALIGN_CENTER_VERTICAL)
+        mgp_form.Add(self.mgp_threshold, 1, wx.EXPAND)
+        mgp_form.Add(lbl_mgp_db, 0, wx.ALIGN_CENTER_VERTICAL)
+        mgp_form.Add(self.mgp_suppress_db, 1, wx.EXPAND)
+        mgp_sizer.Add(mgp_form, 0, wx.ALL | wx.EXPAND, 8)
+
+        mgp_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.mgp_apply_btn = wx.Button(self, label="Verarbeitung &anwenden")
+        self.mgp_apply_btn.SetName("Mikrofon-Verarbeitung anwenden")
+        self.mgp_apply_btn.Bind(wx.EVT_BUTTON, self.on_apply_processing)
+        self.mgp_preview_btn = wx.Button(self, label="&Vorschau starten")
+        self.mgp_preview_btn.SetName("Mikrofon-Vorschau starten")
+        self.mgp_preview_btn.Bind(wx.EVT_BUTTON, self.on_mic_preview)
+        mgp_btn_row.Add(self.mgp_apply_btn, 0, wx.RIGHT, 8)
+        mgp_btn_row.Add(self.mgp_preview_btn, 0)
+        mgp_sizer.Add(mgp_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(mgp_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 8)
+
         # --- Buttons row ---
         actions_box = wx.StaticBox(self, label="Aktionen")
         actions_sizer = wx.StaticBoxSizer(actions_box, wx.VERTICAL)
@@ -572,7 +614,76 @@ class AudioTab(wx.Panel):
                 self._loopback_handle = None
             self.frame.set_status("Mikrofontest beendet")
 
+    # --- Mikrofon-Verarbeitung ---
 
+    def on_apply_processing(self, _event):
+        """Noise Gate / Expander / Limiter auf den Mikrofon-Eingang anwenden."""
+        mode = self.mgp_mode.GetSelection()
+        threshold = int(self.mgp_threshold.GetValue())
+        suppress_db = int(self.mgp_suppress_db.GetValue())
+        client = self.frame.client
+        if mode == 0:  # Keine
+            client.set_sound_input_preprocess_none()
+            client.enable_voice_activation(False)
+            self.voice_activation.SetValue(False)
+            self.preprocess_choice.SetSelection(0)
+            self.frame.set_status("Mikrofon-Verarbeitung deaktiviert")
+        elif mode == 1:  # Noise Gate
+            client.enable_voice_activation(True)
+            client.set_voice_activation_level(threshold)
+            self.voice_activation.SetValue(True)
+            self.voice_level.SetValue(threshold)
+            self.frame.set_status(f"Noise Gate aktiv (Schwellwert {threshold})")
+        elif mode == 2:  # Expander
+            client.set_sound_input_preprocess_speexdsp(
+                agc=False, denoise=True, echo_cancel=False,
+                denoise_suppress=-suppress_db,
+            )
+            self.preprocess_choice.SetSelection(1)
+            self.frame.set_status(f"Expander aktiv (−{suppress_db} dB)")
+        elif mode == 3:  # Limiter
+            client.set_sound_input_preprocess_speexdsp(
+                agc=True, agc_gain=min(threshold * 320, 32000),
+                denoise=False, echo_cancel=False,
+            )
+            self.preprocess_choice.SetSelection(1)
+            self.frame.set_status(f"Limiter aktiv (Gain {threshold}%)")
+        elif mode == 4:  # Expander + Limiter
+            client.set_sound_input_preprocess_speexdsp(
+                agc=True, agc_gain=min(threshold * 320, 32000),
+                denoise=True, echo_cancel=False,
+                denoise_suppress=-suppress_db,
+            )
+            self.preprocess_choice.SetSelection(1)
+            self.frame.set_status(f"Expander + Limiter aktiv (−{suppress_db} dB, Gain {threshold}%)")
+
+    def on_mic_preview(self, _event):
+        """Mikrofon-Vorschau: Loopback-Test starten/stoppen (kein Server nötig)."""
+        if self._loopback_handle is not None:
+            self.frame.client.close_sound_loopback_test(self._loopback_handle)
+            self._loopback_handle = None
+            self.loopback_toggle.SetValue(False)
+            self.mgp_preview_btn.SetLabel("&Vorschau starten")
+            self.mgp_preview_btn.SetName("Mikrofon-Vorschau starten")
+            self.frame.set_status("Mikrofon-Vorschau beendet")
+        else:
+            in_idx = self.input_device.GetSelection()
+            out_idx = self.output_device.GetSelection()
+            if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
+                    or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
+                self.frame.set_status("Bitte zuerst Geräte wählen")
+                return
+            indev_id = int(self._input_devices[in_idx].nDeviceID)
+            outdev_id = int(self._output_devices[out_idx].nDeviceID)
+            handle = self.frame.client.start_sound_loopback_test(indev_id, outdev_id)
+            if handle:
+                self._loopback_handle = handle
+                self.loopback_toggle.SetValue(True)
+                self.mgp_preview_btn.SetLabel("&Vorschau stoppen")
+                self.mgp_preview_btn.SetName("Mikrofon-Vorschau stoppen")
+                self.frame.set_status("Mikrofon-Vorschau aktiv – du hörst dich selbst")
+            else:
+                self.frame.set_status("Mikrofon-Vorschau konnte nicht gestartet werden")
 
     # ------------------------------------------------------------------
     # Preferences (save/apply)
@@ -601,6 +712,9 @@ class AudioTab(wx.Panel):
             "effects_denoise": bool(self.denoise_check.GetValue()),
             "effects_echo": bool(self.echo_check.GetValue()),
             "preprocess_choice": int(self.preprocess_choice.GetSelection()),
+            "proc_mode": int(self.mgp_mode.GetSelection()),
+            "proc_threshold": int(self.mgp_threshold.GetValue()),
+            "proc_suppress_db": int(self.mgp_suppress_db.GetValue()),
         }
 
     def apply_audio_prefs(self, prefs: dict, announce: bool = True) -> None:
@@ -669,6 +783,18 @@ class AudioTab(wx.Panel):
             if 0 <= sel < self.preprocess_choice.GetCount():
                 self.preprocess_choice.SetSelection(sel)
                 self.on_preprocess_changed(None)
+
+        # Mikrofon-Verarbeitung
+        if "proc_mode" in prefs:
+            sel = int(prefs["proc_mode"])
+            if 0 <= sel < self.mgp_mode.GetCount():
+                self.mgp_mode.SetSelection(sel)
+        if "proc_threshold" in prefs:
+            self.mgp_threshold.SetValue(int(prefs["proc_threshold"]))
+        if "proc_suppress_db" in prefs:
+            self.mgp_suppress_db.SetValue(int(prefs["proc_suppress_db"]))
+        if "proc_mode" in prefs and int(prefs["proc_mode"]) > 0:
+            self.on_apply_processing(None)
 
         if announce:
             self.frame.set_status("Audioeinstellungen geladen")

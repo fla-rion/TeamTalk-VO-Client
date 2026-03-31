@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-03-31 (v6.1.6)
+- Mikrofon-Verarbeitung: neuer Bereich im Audio-Tab mit Noise Gate, Expander,
+  Limiter und Expander+Limiter; Modus, Schwellwert und Rauschunterdrückungs-dB
+  konfigurierbar und im Audioprofil gespeichert/wiederhergestellt.
+- Mikrofon-Vorschau: direkter "Vorschau starten/stoppen"-Button in der neuen
+  Verarbeitungssektion – hört sich selbst ohne Serververbindung (Loopback).
+- Cmd+1–4 Fokus-Shortcuts (macOS): Cmd+1 = Kanalliste, Cmd+2 = Chatverlauf,
+  Cmd+3 = Nachrichteneingabe, Cmd+4 = Ereignisprotokoll.
+- Benachrichtigungen kanalbasiert: macOS-Notifications für Benutzer-betreten
+  und Benutzer-verlassen werden nur noch ausgelöst, wenn der betroffene Nutzer
+  im eigenen Kanal ist; Benachrichtigungstitel zeigen Name und Kanalrichtung.
+
 2026-03-30 (v6.1.5)
 - Changelog-Audit gegen den Codebestand durchgeführt und dokumentierte
   Abweichungen bereinigt.
