@@ -8,60 +8,68 @@ Kein Upload: python scripts\\build_windows.py --no-upload
 import os
 import re
 import sys
-import shutil
-import subprocess
+import json
 import zipfile
+import argparse
+import subprocess
 import urllib.parse
 import urllib.request
-import json
-import argparse
 from pathlib import Path
 
 GITEA_TOKEN = "e91faa5c35310a376937604fffba15a8d7c66345"
 GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
-# Projektverzeichnis = Elternordner von scripts/
-ROOT = Path(__file__).resolve().parent.parent
+ROOT         = Path(__file__).resolve().parent.parent
+VENV_DIR     = ROOT / ".venv"
+VENV_PYTHON  = VENV_DIR / "Scripts" / "python.exe"
+VENV_PIP     = VENV_DIR / "Scripts" / "pip.exe"
+VENV_PYINST  = VENV_DIR / "Scripts" / "pyinstaller.exe"
+REQUIREMENTS = ROOT / "requirements_windows.txt"
 
+# -----------------------------------------------------------------------
+# Bootstrap: Venv anlegen und dieses Skript darin neu starten
+# -----------------------------------------------------------------------
+def bootstrap():
+    """Legt Venv an und startet das Skript mit dem Venv-Python neu."""
+    # Venv anlegen falls nicht vorhanden
+    if not VENV_PYTHON.exists():
+        print("==> Erstelle .venv ...")
+        subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+        print("==> Installiere Abhaengigkeiten ...")
+        subprocess.run([str(VENV_PIP), "install", "--upgrade", "pip", "--quiet"],
+                       check=True)
+        subprocess.run([str(VENV_PIP), "install", "-r", str(REQUIREMENTS), "--quiet"],
+                       check=True)
+        print("    Fertig.")
+    else:
+        # Sicherstellen dass Requirements aktuell sind
+        print("==> Pruefe Abhaengigkeiten ...")
+        subprocess.run([str(VENV_PIP), "install", "-r", str(REQUIREMENTS), "--quiet"],
+                       check=True)
+
+    # Mit Venv-Python neu starten
+    print(f"==> Starte neu mit Venv-Python: {VENV_PYTHON}")
+    result = subprocess.run([str(VENV_PYTHON)] + sys.argv, cwd=str(ROOT))
+    sys.exit(result.returncode)
+
+
+# Wenn nicht im Venv: Bootstrap ausfuehren
+if Path(sys.executable).resolve() != VENV_PYTHON.resolve():
+    bootstrap()
+
+# Ab hier laueft das Skript garantiert im Venv
+print(f"==> Python (Venv): {sys.executable}")
+
+# -----------------------------------------------------------------------
 def run(*args, **kwargs):
-    """Fuehrt einen Befehl aus und bricht bei Fehler ab."""
     print("   $", " ".join(str(a) for a in args))
-    subprocess.run(list(args), check=True, **kwargs)
+    subprocess.run([str(a) for a in args], check=True, cwd=str(ROOT), **kwargs)
 
 def step(title):
     print(f"\n==> {title}")
 
 # -----------------------------------------------------------------------
-# 1. Python pruefen
-# -----------------------------------------------------------------------
-step("Python pruefen")
-print(f"   Python {sys.version.split()[0]}  ({sys.executable})")
-major, minor = sys.version_info[:2]
-if major != 3 or not (9 <= minor <= 12):
-    print("FEHLER: Python 3.9-3.12 benoetigt.")
-    sys.exit(1)
-
-# -----------------------------------------------------------------------
-# 2. Virtuelle Umgebung anlegen
-# -----------------------------------------------------------------------
-step("Virtuelle Umgebung")
-venv_dir  = ROOT / ".venv"
-pip_exe   = venv_dir / "Scripts" / "pip.exe"
-pyins_exe = venv_dir / "Scripts" / "pyinstaller.exe"
-
-if not venv_dir.exists():
-    print("   Erstelle .venv ...")
-    run(sys.executable, "-m", "venv", str(venv_dir))
-else:
-    print("   .venv bereits vorhanden.")
-
-print("   Installiere requirements_windows.txt ...")
-run(str(pip_exe), "install", "--upgrade", "pip", "--quiet")
-run(str(pip_exe), "install", "-r", str(ROOT / "requirements_windows.txt"), "--quiet")
-print("   Fertig.")
-
-# -----------------------------------------------------------------------
-# 3. Version auslesen
+# 1. Version auslesen
 # -----------------------------------------------------------------------
 step("Version auslesen")
 app_py = (ROOT / "src" / "app.py").read_text(encoding="utf-8")
@@ -73,15 +81,15 @@ VERSION = match.group(1)
 print(f"   Version: {VERSION}")
 
 # -----------------------------------------------------------------------
-# 4. PyInstaller
+# 2. PyInstaller
 # -----------------------------------------------------------------------
 step("PyInstaller-Build")
 spec_file = ROOT / "TeamTalk VO Client_win.spec"
-run(str(pyins_exe), "-y", str(spec_file), cwd=str(ROOT))
+run(VENV_PYINST, "-y", spec_file)
 print("   Build fertig.")
 
 # -----------------------------------------------------------------------
-# 5. ZIP erstellen
+# 3. ZIP erstellen
 # -----------------------------------------------------------------------
 step("ZIP erstellen")
 app_dir  = ROOT / "dist" / "TeamTalk VO Client"
@@ -91,18 +99,19 @@ zip_path = ROOT / "dist" / zip_name
 if zip_path.exists():
     zip_path.unlink()
 
-print(f"   Packe {app_dir} ...")
+print(f"   Packe {app_dir.name} ...")
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
     for f in app_dir.rglob("*"):
-        zf.write(f, f.relative_to(app_dir.parent))
+        if f.is_file():
+            zf.write(f, f.relative_to(app_dir.parent))
 
 size_mb = round(zip_path.stat().st_size / 1_048_576, 1)
 print(f"   {zip_name}  ({size_mb} MB)")
 
 # -----------------------------------------------------------------------
-# 6. Gitea-Release + Upload
+# 4. Gitea-Release + Upload
 # -----------------------------------------------------------------------
-def gitea_get(path):
+def api_get(path):
     req = urllib.request.Request(
         f"{GITEA_API}{path}",
         headers={"Authorization": f"token {GITEA_TOKEN}"}
@@ -113,11 +122,10 @@ def gitea_get(path):
     except Exception:
         return None
 
-def gitea_post_json(path, payload):
-    data = json.dumps(payload).encode()
-    req  = urllib.request.Request(
+def api_post_json(path, payload):
+    req = urllib.request.Request(
         f"{GITEA_API}{path}",
-        data=data,
+        data=json.dumps(payload).encode(),
         headers={
             "Authorization": f"token {GITEA_TOKEN}",
             "Content-Type":  "application/json",
@@ -127,11 +135,10 @@ def gitea_post_json(path, payload):
     with urllib.request.urlopen(req) as r:
         return json.loads(r.read())
 
-def gitea_upload(path, file_path):
-    data = file_path.read_bytes()
-    req  = urllib.request.Request(
+def api_upload(path, file_path):
+    req = urllib.request.Request(
         f"{GITEA_API}{path}",
-        data=data,
+        data=file_path.read_bytes(),
         headers={
             "Authorization": f"token {GITEA_TOKEN}",
             "Content-Type":  "application/octet-stream",
@@ -141,18 +148,21 @@ def gitea_upload(path, file_path):
     with urllib.request.urlopen(req) as r:
         return json.loads(r.read())
 
-def upload(no_upload):
-    if no_upload:
-        return
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--no-upload", action="store_true")
+args = parser.parse_args()
+
+if not args.no_upload:
     step("Gitea-Release")
 
-    existing = gitea_get(f"/releases/tags/v{VERSION}")
+    existing = api_get(f"/releases/tags/v{VERSION}")
     if existing and existing.get("id"):
         release_id = existing["id"]
         print(f"   Release v{VERSION} existiert bereits (ID {release_id}).")
     else:
         print(f"   Lege Release v{VERSION} an ...")
-        resp = gitea_post_json("/releases", {
+        resp = api_post_json("/releases", {
             "tag_name": f"v{VERSION}",
             "name":     f"v{VERSION}",
             "is_draft": False,
@@ -162,14 +172,8 @@ def upload(no_upload):
 
     print(f"   Lade {zip_name} hoch ...")
     name_enc = urllib.parse.quote(zip_name)
-    resp = gitea_upload(f"/releases/{release_id}/assets?name={name_enc}", zip_path)
+    resp = api_upload(f"/releases/{release_id}/assets?name={name_enc}", zip_path)
     print(f"   Asset: {resp.get('name', '?')}")
-
-parser = argparse.ArgumentParser()
-parser.add_argument("--no-upload", action="store_true")
-args = parser.parse_args()
-
-upload(args.no_upload)
 
 # -----------------------------------------------------------------------
 print()
