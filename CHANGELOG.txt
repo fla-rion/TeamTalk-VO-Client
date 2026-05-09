@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.8)
+- Fix: Toolbar-Frage-Schaltfläche rief client.set_away_status() auf (existiert nicht);
+  korrekte Methode ist client.change_status(). Status wurde nie tatsächlich gesetzt.
+- Fix: Admin-Tab – do_new_user_account(), do_delete_user_account() und do_unban_user()
+  geben int zurück (Befehls-ID); negativer Wert = Fehler. `if success:` war bei -1 immer
+  True. Korrektur: `if success > 0:`.
+- Fix: minimize_to_tray-Einstellung wurde gespeichert aber nie ausgewertet. Jetzt gilt:
+  aktiviert = X schließt in den Tray (bisheriges Verhalten, neuer Standard), deaktiviert =
+  X beendet die App wirklich. Standard auf True gesetzt (rückwärtskompatibel).
+- Neu: Auto-Abwesend (Einstellungen → Allgemein → Abwesend-Timer): Wird kein Tastendruck
+  registriert, setzt der Timer nach der gewünschten Anzahl Minuten den Status automatisch
+  auf Abwesend. Erste Tasteneingabe stellt den Verfügbar-Status wieder her.
+
 2026-05-09 (v6.3.7)
 - Fix: Auto-Antwort (AutoReplyManager) rief send_private_message() auf, das im
   TeamTalk-Client nicht existiert. Korrekte Methode ist send_user_message().

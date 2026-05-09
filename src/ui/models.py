@@ -127,7 +127,7 @@ class AppSettings:
     tcp_bind_port: int = 0
     udp_bind_port: int = 0
     # Anzeige
-    minimize_to_tray: bool = False
+    minimize_to_tray: bool = True
     always_on_top: bool = False
     show_server_in_title: bool = True
     chat_history_format: str = "Liste"

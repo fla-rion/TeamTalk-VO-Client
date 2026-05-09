@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.7"
+APP_VERSION = "6.3.8"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -476,6 +476,9 @@ class MainFrame(wx.Frame):
         self.admin_tab: Optional[AdminTab] = None
         self.desktop_tab: Optional[DesktopTab] = None
         self._lazy_pages: Dict[str, wx.Panel] = {}
+        # Auto-away
+        self._last_activity_ts: float = time.time()
+        self._away_set_by_timer: bool = False
 
         # Paths
         from platform_paths import app_data_dir
@@ -844,6 +847,11 @@ class MainFrame(wx.Frame):
             port = int(getattr(self.settings_store.settings, "http_api_port", 8765) or 8765)
             self._http_api.start(port)
 
+        # Auto-away timer (checks every 60 s)
+        self._away_check_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_away_check_timer, self._away_check_timer)
+        self._away_check_timer.Start(60_000)
+
         # Tab order inside each tab is handled by the tab panels themselves.
         # Global keyboard hooks
         self.Bind(wx.EVT_CHAR_HOOK, self.on_key_hook)
@@ -975,7 +983,7 @@ class MainFrame(wx.Frame):
         val = event.GetEventObject().GetValue()
         self._status_mode = 1 if val else 0
         try:
-            self.client.set_away_status(self._status_mode, self._status_message)
+            self.client.change_status(self._status_mode, self._status_message)
         except Exception:
             pass
         self.set_status("Frage-Modus aktiv" if val else "Frage-Modus deaktiviert")
@@ -8835,6 +8843,14 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def on_key_hook(self, event):
+        self._last_activity_ts = time.time()
+        if self._away_set_by_timer and self._status_mode == 1:
+            self._away_set_by_timer = False
+            self._status_mode = 0
+            try:
+                self.client.change_status(0, self._status_message)
+            except Exception:
+                pass
         key = event.GetKeyCode()
         if key == wx.WXK_F2:
             self.on_menu_connect(None)
@@ -9101,6 +9117,23 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
     # Push notifications
     # ------------------------------------------------------------------
+
+    def _on_away_check_timer(self, _event) -> None:
+        away_min = int(getattr(self.settings_store.settings, "away_timer_min", 0) or 0)
+        if away_min <= 0:
+            return
+        if self._status_mode != 0:
+            return
+        if not self.client.is_connected():
+            return
+        idle_sec = time.time() - self._last_activity_ts
+        if idle_sec >= away_min * 60:
+            self._away_set_by_timer = True
+            self._status_mode = 1
+            try:
+                self.client.change_status(1, self._status_message)
+            except Exception:
+                pass
 
     def _on_activate(self, event):
         self._window_focused = event.GetActive()
@@ -9708,6 +9741,11 @@ class MainFrame(wx.Frame):
         self.force_close()
 
     def on_close(self, event):
+        minimize = bool(getattr(self.settings_store.settings, "minimize_to_tray", True))
+        if not minimize:
+            event.Skip()
+            self.force_close()
+            return
         self.Hide()
         try:
             self.connection_window.Hide()

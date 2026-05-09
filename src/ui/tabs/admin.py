@@ -190,7 +190,7 @@ class AdminTab(wx.Panel):
                     success = self.frame.client.do_new_user_account(
                         vals["username"], vals["password"], utype, note=vals["note"],
                     )
-                    if success:
+                    if success > 0:
                         wx.CallAfter(self.frame.set_status, f"Konto erstellt: {vals['username']}")
                         wx.CallAfter(self.on_load_accounts, None) # Refresh list
                     else:
@@ -226,7 +226,7 @@ class AdminTab(wx.Panel):
         def worker():
             try:
                 success = self.frame.client.do_delete_user_account(username)
-                if success:
+                if success > 0:
                     wx.CallAfter(self.frame.set_status, f"Konto gelöscht: {username}")
                     wx.CallAfter(self.on_load_accounts, None) # Refresh list
                 else:
@@ -278,7 +278,7 @@ class AdminTab(wx.Panel):
         def worker():
             try:
                 success = self.frame.client.do_unban_user(ip)
-                if success:
+                if success > 0:
                     wx.CallAfter(self.frame.set_status, f"Entsperrt: {ip}")
                     wx.CallAfter(self.on_load_bans, None) # Refresh list
                 else:

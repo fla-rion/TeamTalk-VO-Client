@@ -217,7 +217,7 @@ class SQLiteSettingsStore:
         s.default_subscriptions = _int("default_subscriptions", 0)
         s.tcp_bind_port = _int("tcp_bind_port", 0)
         s.udp_bind_port = _int("udp_bind_port", 0)
-        s.minimize_to_tray = _bool("minimize_to_tray", False)
+        s.minimize_to_tray = _bool("minimize_to_tray", True)
         s.always_on_top = _bool("always_on_top", False)
         s.show_server_in_title = _bool("show_server_in_title", True)
         s.chat_history_format = _str("chat_history_format", "Liste")
