@@ -512,6 +512,28 @@ class SettingsTab(wx.Panel):
         silence_sizer.Add(silence_grid, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(silence_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # ---- Nutzer-Lautstärke-Vorlagen ----
+        vol_preset_box = wx.StaticBox(panel, label="Gespeicherte Nutzer-Lautstärken")
+        vol_preset_sizer = wx.StaticBoxSizer(vol_preset_box, wx.VERTICAL)
+        vol_preset_sizer.Add(
+            wx.StaticText(vol_preset_box, label="Lautstärke wird automatisch gesetzt wenn ein Nutzer dem Kanal beitritt."),
+            0, wx.LEFT | wx.TOP, 8)
+        self._vol_preset_list = wx.ListBox(vol_preset_box)
+        self._vol_preset_list.SetName("Gespeicherte Nutzer-Lautstärken")
+        vol_preset_sizer.Add(self._vol_preset_list, 0, wx.ALL | wx.EXPAND, 8)
+        vol_preset_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        vol_del_btn = wx.Button(panel, label="Eintrag &löschen")
+        vol_del_btn.SetName("Lautstärke-Vorlage löschen")
+        vol_del_btn.Bind(wx.EVT_BUTTON, self._on_del_volume_preset)
+        vol_clear_btn = wx.Button(panel, label="&Alle löschen")
+        vol_clear_btn.SetName("Alle Lautstärke-Vorlagen löschen")
+        vol_clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_volume_presets)
+        vol_preset_btn_row.Add(vol_del_btn, 0, wx.RIGHT, 8)
+        vol_preset_btn_row.Add(vol_clear_btn, 0)
+        vol_preset_sizer.Add(vol_preset_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(vol_preset_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        self._refresh_volume_presets_list()
+
         # Single save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("Aufnahme & PTT speichern")
@@ -1659,6 +1681,41 @@ class SettingsTab(wx.Panel):
         s.silence_detection_timeout_sec = int(self._silence_timeout.GetValue())
         self.frame.settings_store.save()
         self.frame.set_status("PTT & Erweitert gespeichert")
+
+    def _refresh_volume_presets_list(self) -> None:
+        try:
+            presets = getattr(self.frame.settings_store.settings, "user_volume_presets", {}) or {}
+            items = [f"{user}: {vol}" for user, vol in sorted(presets.items())]
+            self._vol_preset_list.Set(items)
+            self._vol_preset_usernames = sorted(presets.keys())
+        except Exception:
+            pass
+
+    def _on_del_volume_preset(self, _event) -> None:
+        idx = self._vol_preset_list.GetSelection()
+        if idx == wx.NOT_FOUND:
+            self.frame.set_status("Bitte einen Eintrag auswählen")
+            return
+        username = self._vol_preset_usernames[idx]
+        presets = getattr(self.frame.settings_store.settings, "user_volume_presets", {}) or {}
+        presets.pop(username, None)
+        self.frame.settings_store.settings.user_volume_presets = presets
+        self.frame.settings_store.save()
+        self._refresh_volume_presets_list()
+        self.frame.set_status(f"Lautstärke-Vorlage für {username} gelöscht")
+
+    def _on_clear_volume_presets(self, _event) -> None:
+        dlg = wx.MessageDialog(
+            self, "Alle gespeicherten Nutzer-Lautstärken löschen?",
+            "Alle löschen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        dlg.SetYesNoLabels("Ja", "Nein")
+        if dlg.ShowModal() == wx.ID_YES:
+            self.frame.settings_store.settings.user_volume_presets = {}
+            self.frame.settings_store.save()
+            self._refresh_volume_presets_list()
+            self.frame.set_status("Alle Lautstärke-Vorlagen gelöscht")
+        dlg.Destroy()
 
     def _on_save_keyword_alert(self, _event) -> None:
         s = self.frame.settings_store.settings
