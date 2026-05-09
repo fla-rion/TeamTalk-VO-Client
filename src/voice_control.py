@@ -277,7 +277,7 @@ class VoiceCommandManager:
     def _join_channel_by_name(self, name: str) -> None:
         """Sucht einen Kanal nach Name und tritt bei (fuzzy)."""
         try:
-            channels = list(self._frame.client.get_channels() or [])
+            channels = list(self._frame.client.get_server_channels() or [])
             name_lower = name.lower()
             best = None
             best_score = 0

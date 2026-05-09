@@ -115,7 +115,7 @@ class PluginAPI:
     def send_private_message(self, user_id: int, text: str) -> bool:
         """Sendet eine Privatnachricht an einen Nutzer."""
         try:
-            return bool(self._frame.client.send_private_message(int(user_id), text))
+            return bool(self._frame.client.send_user_message(int(user_id), text))
         except Exception:
             return False
 

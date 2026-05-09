@@ -317,7 +317,7 @@ class _Handler(BaseHTTPRequestHandler):
         """v4.3.0 – Kanalliste."""
         result = []
         try:
-            channels = list(f.client.get_channels() or [])
+            channels = list(f.client.get_server_channels() or [])
             for ch in channels:
                 try:
                     cid = int(ch.nChannelID)

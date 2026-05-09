@@ -72,7 +72,7 @@ class MacroManager:
 
     def _join_channel_by_name(self, name: str) -> None:
         try:
-            channels = list(self._frame.client.get_channels() or [])
+            channels = list(self._frame.client.get_server_channels() or [])
             name_l = name.lower()
             for ch in channels:
                 ch_name = (self._frame.tt_str(getattr(ch, "szName", "")) or "").lower()

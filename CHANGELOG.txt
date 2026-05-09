@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.9)
+- Fix: client.get_channels() existiert nicht – korrekte Methode ist
+  client.get_server_channels(). Betroffen: app.py (3×), macro_manager.py,
+  http_api.py, voice_control.py. Alle sechs Stellen haben bei Aufruf mit
+  AttributeError abgestürzt (Makros, HTTP-API-Kanalliste, Sprachsteuerung).
+- Fix: plugin_api.py rief client.send_private_message() auf (existiert nicht);
+  korrekte Methode ist client.send_user_message(). Plugin-Privatnachrichten
+  wurden nie gesendet.
+
 2026-05-09 (v6.3.8)
 - Fix: Toolbar-Frage-Schaltfläche rief client.set_away_status() auf (existiert nicht);
   korrekte Methode ist client.change_status(). Status wurde nie tatsächlich gesetzt.

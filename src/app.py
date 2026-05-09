@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.8"
+APP_VERSION = "6.3.9"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1628,7 +1628,7 @@ class MainFrame(wx.Frame):
         try:
             return [
                 {"id": ch.channelid, "name": ch.name, "users": ch.nusers}
-                for ch in (self.client.get_channels() or [])
+                for ch in (self.client.get_server_channels() or [])
             ]
         except Exception:
             return []
@@ -2385,7 +2385,7 @@ class MainFrame(wx.Frame):
     def _http_api_join_channel(self, name: str) -> None:
         """v2.7.0 – Finds a channel by name and joins it (for HTTP API use)."""
         try:
-            channels = list(self.client.get_channels() or [])
+            channels = list(self.client.get_server_channels() or [])
             name_l = name.strip().lower()
             for ch in channels:
                 ch_name = (self.tt_str(getattr(ch, "szName", "")) or "").lower()
@@ -8061,7 +8061,7 @@ class MainFrame(wx.Frame):
         if not channel_name:
             return
         try:
-            channels = list(self.client.get_channels() or [])
+            channels = list(self.client.get_server_channels() or [])
             name_l = channel_name.lower()
             for ch in channels:
                 ch_name = (self.tt_str(getattr(ch, "szName", "")) or "").lower()
