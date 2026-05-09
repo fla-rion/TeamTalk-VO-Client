@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.2"
+APP_VERSION = "6.3.3"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -9803,6 +9803,7 @@ class MainFrame(wx.Frame):
             pass
         # Destroy UI
         try:
+            self.tray.RemoveIcon()
             self.tray.Destroy()
         except Exception:
             pass

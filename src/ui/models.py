@@ -261,6 +261,15 @@ class AppSettings:
     server_groups: Dict[str, List[str]] = field(default_factory=dict)
     tts_speak_channel_topic_on_join: bool = True
     disabled_plugins: List[str] = field(default_factory=list)
+    # v3.1.0 features
+    braille_status_show_channel: bool = True
+    braille_status_show_users: bool = True
+    braille_status_show_ping: bool = True
+    braille_status_show_mute: bool = False
+    braille_status_show_connection: bool = True
+    silence_detection_enabled: bool = False
+    silence_detection_threshold_pct: int = 2
+    silence_detection_timeout_sec: int = 30
 
 
 class SettingsStore:

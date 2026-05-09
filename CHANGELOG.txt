@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.3)
+- Persistenz-Fix: 33 weitere AppSettings-Felder wurden in settings_db.py nicht
+  persistiert (load/save fehlten): auto_reconnect_enabled, notifications_enabled,
+  channel_bookmarks, hotkey_bookmark_1–9, hotkey_ai_reply_suggestions,
+  pronunciation_dict, auto_join_channel_per_server, mute_schedule, macros,
+  user_volume_presets, hotkey_record_toggle, status_templates,
+  hotkey_status_template_1–3, http_api_enabled, http_api_port, user_notes,
+  recent_channels, alert_keywords, hotkey_mic_boost_up/down, server_groups,
+  tts_speak_channel_topic_on_join, disabled_plugins.
+- models.py: braille_status_show_* und silence_detection_* als echte AppSettings-
+  Felder deklariert (waren bisher nur dynamische Attribute); Standardwerte jetzt
+  auch ohne settings_db.py-Load vorhanden.
+- Tray-Aufräumfix: RemoveIcon() wird jetzt vor Destroy() aufgerufen; macOS-
+  Menüleistensymbol bleibt nach App-Ende nicht mehr hängen.
+
 2026-05-09 (v6.3.2)
 - Kritischer Persistenz-Fix: 27 Einstellungen wurden zwar im UI gespeichert aber beim
   Neustart nicht aus der Datenbank geladen und gingen so bei jedem Neustart verloren.
