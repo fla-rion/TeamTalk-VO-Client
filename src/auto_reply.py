@@ -51,7 +51,7 @@ class AutoReplyManager:
 
     def _send(self, to_id: int, text: str) -> None:
         try:
-            self._frame.client.send_private_message(to_id, text)
+            self._frame.client.send_user_message(to_id, text)
         except Exception as exc:
             print(f"[AutoReply] Senden fehlgeschlagen: {exc}")
 

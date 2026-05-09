@@ -1621,12 +1621,6 @@ class SettingsTab(wx.Panel):
         templates = [line.strip() for line in self._status_templates.GetValue().splitlines() if line.strip()]
         s.status_templates = templates
         self.frame.settings_store.save()
-        # Sync auto-reply manager settings
-        try:
-            self.frame._auto_reply.enabled = s.auto_reply_enabled
-            self.frame._auto_reply.message = s.auto_reply_message
-        except Exception:
-            pass
         self.frame.set_status("Chat & Status gespeichert")
 
     def _on_save_extra_connection(self, _event) -> None:

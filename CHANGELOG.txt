@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.7)
+- Fix: Auto-Antwort (AutoReplyManager) rief send_private_message() auf, das im
+  TeamTalk-Client nicht existiert. Korrekte Methode ist send_user_message().
+  Privatnachrichten-Auto-Antwort war damit komplett nicht funktionsfähig.
+- Fix: Toter Sync-Code in settings.py (_on_save_chat_status) versuchte .enabled
+  und .message auf AutoReplyManager zu setzen; diese Attribute existieren nicht –
+  der Manager liest Einstellungen direkt aus settings_store.settings. Entfernt.
+
 2026-05-09 (v6.3.6)
 - Neu: Verwaltungs-UI für gespeicherte Nutzer-Lautstärken (Einstellungen →
   Audio & Aufnahme → "Gespeicherte Nutzer-Lautstärken"): Liste aller per Menü
