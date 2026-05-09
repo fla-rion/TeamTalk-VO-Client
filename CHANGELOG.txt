@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-05-09 (v6.2.1)
+- Update-Prüfung: Benachrichtigung erscheint nur noch, wenn die Server-Version
+  tatsächlich größer als die installierte Version ist (semantischer Versionsvergleich);
+  kein falscher Update-Hinweis mehr, wenn bereits die aktuelle Version installiert ist.
+
 2026-04-01 (v6.2.0)
 - Desktop-Streaming: neues plattformübergreifendes Backend (screen_capture.py)
   via mss – ersetzt wx.ScreenDC; 10–30× schneller, kein RGB-Konvertierungsloop mehr;

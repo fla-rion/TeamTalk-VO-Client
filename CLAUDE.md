@@ -17,7 +17,7 @@ Python-Umgebung liegt in `.venv/` (Python 3.9, PyInstaller).
 ## Versionierung
 
 `APP_VERSION` in `src/app.py` (einzige Quelle).
-Aktueller Stand: `6.2.0`
+Aktueller Stand: `6.2.1`
 Schema: `6.x.y` – Patch-Releases bei Fehlerbehebungen und UI-/Dokumentationsanpassungen,
 Minor-Releases bei neuen Feature-Blöcken.
 `TeamTalk VO Client.spec` und `version_info.txt` müssen immer auf dieselbe Versionsnummer
@@ -93,6 +93,13 @@ Windows/Linux: dank wxPython unterstützt, aber vereinzelte Einschränkungen mö
 ## Git / Remote
 
 ```
-origin  https://git.garogaming.xyz/flarion/TeamTalk-VO-Client.git
+origin  https://git.garogaming.xyz/flarion/TeamTalk-VO-Client.git   (primär, Gitea)
+github  https://github.com/fla-rion/TeamTalk-VO-Client.git           (Spiegel, GitHub)
 branch  main
 ```
+
+Releases immer auf **beiden** Remotes pushen und auf **beiden** als Release anlegen:
+- Gitea: `git push origin main && git push origin vX.Y.Z`
+- GitHub: `git push github main && git push github vX.Y.Z`
+
+Token für Gitea-API steht in `git remote get-url origin` (URL enthält Credentials).

@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.2.0"
+APP_VERSION = "6.2.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8133,7 +8133,12 @@ class MainFrame(wx.Frame):
                 with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
                     data = json.loads(resp.read().decode("utf-8"))
                 tag = str(data.get("tag_name", "") or "").lstrip("v")
-                if tag and tag != APP_VERSION:
+                try:
+                    _remote_ver = tuple(int(x) for x in tag.split(".") if x.isdigit())
+                    _local_ver = tuple(int(x) for x in APP_VERSION.split(".") if x.isdigit())
+                except Exception:
+                    _remote_ver = _local_ver = ()
+                if tag and _remote_ver > _local_ver:
                     assets = data.get("assets", [])
                     # v6.1.3 – releases/download/{tag}/{filename} mit Authorization-Header
                     # (browser_download_url zeigt auf /attachments/{uuid} → Login-Redirect;
