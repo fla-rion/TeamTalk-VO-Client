@@ -8,6 +8,12 @@ import wx
 import zipfile
 from datetime import datetime
 
+_TRANSLATE_LANGS = [
+    "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch",
+    "Portugiesisch", "Niederländisch", "Polnisch", "Russisch",
+    "Türkisch", "Japanisch", "Chinesisch (Vereinfacht)", "Arabisch",
+]
+
 from .audio import AudioTab
 from .video import VideoTab
 from .shortcuts import ShortcutsTab
@@ -773,11 +779,6 @@ class SettingsTab(wx.Panel):
         self._translate_enabled.SetValue(bool(getattr(s, "translate_chat_enabled", False)))
         ct_sizer.Add(self._translate_enabled, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        _TRANSLATE_LANGS = [
-            "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch",
-            "Portugiesisch", "Niederländisch", "Polnisch", "Russisch",
-            "Türkisch", "Japanisch", "Chinesisch (Vereinfacht)", "Arabisch",
-        ]
         ct_lang_row = wx.BoxSizer(wx.HORIZONTAL)
         ct_lang_row.Add(
             wx.StaticText(panel, label="Zielsprache:"),
@@ -1379,11 +1380,6 @@ class SettingsTab(wx.Panel):
         s.transcription_autosave = self._transcription_autosave.GetValue()
         self._apply_transcription_setting(s.transcription_enabled)
         s.translate_chat_enabled = self._translate_enabled.GetValue()
-        _TRANSLATE_LANGS = [
-            "Deutsch", "Englisch", "Französisch", "Spanisch", "Italienisch",
-            "Portugiesisch", "Niederländisch", "Polnisch", "Russisch",
-            "Türkisch", "Japanisch", "Chinesisch (Vereinfacht)", "Arabisch",
-        ]
         _sel = self._translate_language.GetSelection()
         s.translate_target_language = _TRANSLATE_LANGS[_sel] if 0 <= _sel < len(_TRANSLATE_LANGS) else "Deutsch"
         # v3.3.0 – Braille-Status-Felder

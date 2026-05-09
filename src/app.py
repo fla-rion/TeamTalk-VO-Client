@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.0"
+APP_VERSION = "6.3.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1008,9 +1008,10 @@ class MainFrame(wx.Frame):
         if not getattr(self.settings_store.settings, "transcription_autosave", False):
             return
         import datetime
+        from platform_paths import app_data_dir
         ts = datetime.datetime.now()
         try:
-            save_dir = self._app_dir / "transcripts"
+            save_dir = app_data_dir() / "transcripts"
             save_dir.mkdir(parents=True, exist_ok=True)
             filepath = save_dir / f"{ts.strftime('%Y-%m-%d')}.txt"
             with filepath.open("a", encoding="utf-8") as fh:
