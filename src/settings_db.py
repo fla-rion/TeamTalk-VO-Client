@@ -342,6 +342,8 @@ class SQLiteSettingsStore:
         s.server_groups = _dict("server_groups")
         s.tts_speak_channel_topic_on_join = _bool("tts_speak_channel_topic_on_join", True)
         s.disabled_plugins = _list("disabled_plugins")
+        s.hotkey_tts_cancel = _int("hotkey_tts_cancel", 0)
+        s.hotkey_announce_status = _int("hotkey_announce_status", 0)
 
     def save(self) -> None:
         s = self.settings
@@ -494,6 +496,8 @@ class SQLiteSettingsStore:
         _set("server_groups", dict(getattr(s, "server_groups", {}) or {}))
         _set("tts_speak_channel_topic_on_join", bool(getattr(s, "tts_speak_channel_topic_on_join", True)))
         _set("disabled_plugins", list(getattr(s, "disabled_plugins", []) or []))
+        _set("hotkey_tts_cancel", int(getattr(s, "hotkey_tts_cancel", 0) or 0))
+        _set("hotkey_announce_status", int(getattr(s, "hotkey_announce_status", 0) or 0))
 
         db.commit()
 

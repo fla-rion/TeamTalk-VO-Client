@@ -261,6 +261,8 @@ class AppSettings:
     server_groups: Dict[str, List[str]] = field(default_factory=dict)
     tts_speak_channel_topic_on_join: bool = True
     disabled_plugins: List[str] = field(default_factory=list)
+    hotkey_tts_cancel: int = 0
+    hotkey_announce_status: int = 0
     # v3.1.0 features
     braille_status_show_channel: bool = True
     braille_status_show_users: bool = True

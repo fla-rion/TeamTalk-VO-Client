@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.4"
+APP_VERSION = "6.3.5"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8985,6 +8985,20 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_bookmark_2 = int(key)
                 elif target == "hotkey_bookmark_3":
                     self.settings_store.settings.hotkey_bookmark_3 = int(key)
+                elif target == "hotkey_bookmark_4":
+                    self.settings_store.settings.hotkey_bookmark_4 = int(key)
+                elif target == "hotkey_bookmark_5":
+                    self.settings_store.settings.hotkey_bookmark_5 = int(key)
+                elif target == "hotkey_bookmark_6":
+                    self.settings_store.settings.hotkey_bookmark_6 = int(key)
+                elif target == "hotkey_bookmark_7":
+                    self.settings_store.settings.hotkey_bookmark_7 = int(key)
+                elif target == "hotkey_bookmark_8":
+                    self.settings_store.settings.hotkey_bookmark_8 = int(key)
+                elif target == "hotkey_bookmark_9":
+                    self.settings_store.settings.hotkey_bookmark_9 = int(key)
+                elif target == "hotkey_ai_reply_suggestions":
+                    self.settings_store.settings.hotkey_ai_reply_suggestions = int(key)
                 elif target == "hotkey_record_toggle":
                     self.settings_store.settings.hotkey_record_toggle = int(key)
                 elif target == "hotkey_status_template_1":

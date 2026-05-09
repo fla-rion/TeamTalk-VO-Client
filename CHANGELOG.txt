@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.5)
+- Fix: hotkey_tts_cancel und hotkey_announce_status fehlten in AppSettings und
+  settings_db.py – die Tastaturbelegungen wurden nicht gespeichert und bei jedem
+  Neustart auf 0 zurückgesetzt. Jetzt als echte Dataclass-Felder und in SQLite
+  persistiert.
+- Fix: hotkey_tts_cancel fehlte in shortcuts.py update_labels() – Hotkey wurde
+  immer als "(nicht gesetzt)" angezeigt, auch wenn belegt.
+- Ausbau: Lesezeichen 4–9 (hotkey_bookmark_4–9) und KI-Antwortvorschläge
+  (hotkey_ai_reply_suggestions) sind jetzt im Tastenkürzel-Tab konfigurierbar.
+  Capture-Handler in app.py für alle fehlenden Lesezeichen-Hotkeys ergänzt.
+
 2026-05-09 (v6.3.4)
 - Fix: _message_buffers (mehrteilige Nachrichten-Puffer) werden jetzt beim Verbinden
   gelöscht; bisher konnten Fragmente einer unterbrochenen Session die erste Nachricht

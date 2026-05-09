@@ -37,7 +37,14 @@ class ShortcutsTab(wx.Panel):
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 1 springen", "hotkey_bookmark_1", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 2 springen", "hotkey_bookmark_2", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Lesezeichen 3 springen", "hotkey_bookmark_3", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 4 springen", "hotkey_bookmark_4", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 5 springen", "hotkey_bookmark_5", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 6 springen", "hotkey_bookmark_6", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 7 springen", "hotkey_bookmark_7", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 8 springen", "hotkey_bookmark_8", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "Lesezeichen 9 springen", "hotkey_bookmark_9", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Aufnahme umschalten", "hotkey_record_toggle", global_key=False))
+        self._rows.append(self._make_row(inapp_box, "KI-Antwortvorschläge", "hotkey_ai_reply_suggestions", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 1", "hotkey_status_template_1", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 2", "hotkey_status_template_2", global_key=False))
         self._rows.append(self._make_row(inapp_box, "Status-Vorlage 3", "hotkey_status_template_3", global_key=False))
@@ -131,13 +138,22 @@ class ShortcutsTab(wx.Panel):
             "hotkey_bookmark_1": int(getattr(settings, "hotkey_bookmark_1", 0) or 0),
             "hotkey_bookmark_2": int(getattr(settings, "hotkey_bookmark_2", 0) or 0),
             "hotkey_bookmark_3": int(getattr(settings, "hotkey_bookmark_3", 0) or 0),
+            "hotkey_bookmark_4": int(getattr(settings, "hotkey_bookmark_4", 0) or 0),
+            "hotkey_bookmark_5": int(getattr(settings, "hotkey_bookmark_5", 0) or 0),
+            "hotkey_bookmark_6": int(getattr(settings, "hotkey_bookmark_6", 0) or 0),
+            "hotkey_bookmark_7": int(getattr(settings, "hotkey_bookmark_7", 0) or 0),
+            "hotkey_bookmark_8": int(getattr(settings, "hotkey_bookmark_8", 0) or 0),
+            "hotkey_bookmark_9": int(getattr(settings, "hotkey_bookmark_9", 0) or 0),
             "hotkey_record_toggle": int(getattr(settings, "hotkey_record_toggle", 0) or 0),
+            "hotkey_ai_reply_suggestions": int(getattr(settings, "hotkey_ai_reply_suggestions", 0) or 0),
             "hotkey_status_template_1": int(getattr(settings, "hotkey_status_template_1", 0) or 0),
             "hotkey_status_template_2": int(getattr(settings, "hotkey_status_template_2", 0) or 0),
             "hotkey_status_template_3": int(getattr(settings, "hotkey_status_template_3", 0) or 0),
             # v2.9.0
             "hotkey_mic_boost_up": int(getattr(settings, "hotkey_mic_boost_up", 0) or 0),
             "hotkey_mic_boost_down": int(getattr(settings, "hotkey_mic_boost_down", 0) or 0),
+            # v3.1.0
+            "hotkey_tts_cancel": int(getattr(settings, "hotkey_tts_cancel", 0) or 0),
             # v3.3.0
             "hotkey_announce_status": int(getattr(settings, "hotkey_announce_status", 0) or 0),
         }
