@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.2.1"
+APP_VERSION = "6.2.2"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1986,6 +1986,8 @@ class MainFrame(wx.Frame):
         help_manual = help_menu.Append(wx.ID_ANY, "Handbuch")
         help_hotkeys = help_menu.Append(wx.ID_ANY, "Tastenkürzel-Referenz...")
         help_menu.AppendSeparator()
+        help_check_update = help_menu.Append(wx.ID_ANY, "Auf Updates prüfen...")
+        help_menu.AppendSeparator()
         help_changelog = help_menu.Append(wx.ID_ANY, "Changelog")
         help_about = help_menu.Append(wx.ID_ANY, _("Über"))
         menubar.Append(help_menu, _("Hilfe"))
@@ -2146,6 +2148,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_saved_messages, help_saved_msgs)
         self.Bind(wx.EVT_MENU, self.on_menu_manual, help_manual)
         self.Bind(wx.EVT_MENU, self.on_menu_hotkey_reference, help_hotkeys)
+        self.Bind(wx.EVT_MENU, lambda _e: self._check_for_update(manual=True), help_check_update)
         self.Bind(wx.EVT_MENU, self.on_menu_changelog, help_changelog)
         self.Bind(wx.EVT_MENU, self.on_menu_about, help_about)
 
@@ -8120,8 +8123,11 @@ class MainFrame(wx.Frame):
         if len(self._offline_event_log) > 50:
             self._offline_event_log = self._offline_event_log[-50:]
 
-    def _check_for_update(self) -> None:
-        """Prüft im Hintergrund ob eine neuere Version verfügbar ist."""
+    def _check_for_update(self, manual: bool = False) -> None:
+        """Prüft im Hintergrund ob eine neuere Version verfügbar ist.
+
+        manual=True: zeigt auch Rückmeldung wenn kein Update gefunden.
+        """
         import urllib.request
         import urllib.error
         def _worker():
@@ -8159,8 +8165,23 @@ class MainFrame(wx.Frame):
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
                     wx.CallAfter(self._show_update_dialog, tag, download_url, asset_name)
+                elif manual:
+                    wx.CallAfter(
+                        wx.MessageBox,
+                        f"Du verwendest bereits die aktuelle Version ({APP_VERSION}).",
+                        "Kein Update verfügbar",
+                        wx.OK | wx.ICON_INFORMATION,
+                        self,
+                    )
             except Exception:
-                pass
+                if manual:
+                    wx.CallAfter(
+                        wx.MessageBox,
+                        "Update-Prüfung fehlgeschlagen. Bitte Internetverbindung prüfen.",
+                        "Update-Prüfung",
+                        wx.OK | wx.ICON_WARNING,
+                        self,
+                    )
         threading.Thread(target=_worker, daemon=True).start()
 
     def _show_update_dialog(self, tag: str, download_url: str, asset_name: str = "") -> None:
@@ -9683,10 +9704,12 @@ class MainFrame(wx.Frame):
             except Exception:
                 pass
         # Stop all timers first so no callbacks fire during teardown
-        if hasattr(self, '_vu_timer'):
-            self._vu_timer.Stop()
-        if hasattr(self, '_scheduled_rec_timer'):
-            self._scheduled_rec_timer.Stop()
+        for _attr in (
+            '_vu_timer', '_scheduled_rec_timer', '_recording_seg_timer',
+            '_silence_check_timer', '_scheduled_macro_timer',
+        ):
+            if hasattr(self, _attr):
+                getattr(self, _attr).Stop()
         try:
             self.connection_tab.destroy_timers()
         except Exception:

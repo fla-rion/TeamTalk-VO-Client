@@ -159,10 +159,8 @@ class ChannelsTab(wx.Panel):
             if filtered_labels:
                 self.channel_list.InsertItems(filtered_labels, 0)
             self._items = filtered_items
-        elif self._diff_update_listbox(labels):
-            pass  # Diff-Update angewendet
-        elif labels:
-            self.channel_list.InsertItems(labels, 0)
+        else:
+            self._diff_update_listbox(labels)
 
         # Eigenen Kanal und Nutzer aktualisieren
         try:
