@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-09 (v6.3.4)
+- Fix: _message_buffers (mehrteilige Nachrichten-Puffer) werden jetzt beim Verbinden
+  gelöscht; bisher konnten Fragmente einer unterbrochenen Session die erste Nachricht
+  der nächsten Session korrumpieren wenn derselbe Schlüssel (Absender/Kanal/Typ)
+  wiederverwendet wurde.
+- Fix: "Kanal TTS Geschwindigkeit" wurde nur auf Kanalthema-Ansagen angewendet;
+  jetzt gilt die Rate auch für Benutzer-Beitritt/Verlassen und Dateiübertragungen,
+  was dem Namen des Einstellungsfelds entspricht.
+
 2026-05-09 (v6.3.3)
 - Persistenz-Fix: 33 weitere AppSettings-Felder wurden in settings_db.py nicht
   persistiert (load/save fehlten): auto_reconnect_enabled, notifications_enabled,

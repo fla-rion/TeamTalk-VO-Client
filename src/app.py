@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.3.3"
+APP_VERSION = "6.3.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -7987,6 +7987,7 @@ class MainFrame(wx.Frame):
             self._reconnect_attempts = 0
             self._offline_buffering = False
             self._current_server_key = self._get_server_key()
+            self._message_buffers.clear()
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
             self._refresh_channels_with_retry()

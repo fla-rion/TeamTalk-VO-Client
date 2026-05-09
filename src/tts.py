@@ -341,7 +341,7 @@ class TTSManager:
         elif kind in ("system", "connect"):
             ctx_rate = self.settings.system_rate or 0
             ctx_voice = self.settings.system_voice or ""
-        elif kind == "channel_topic":
+        elif kind in ("channel_topic", "user_join", "user_leave", "file_transfer"):
             ctx_rate = self.settings.channel_rate or 0
         try:
             self._queue.put_nowait((text, ctx_rate, ctx_voice))
