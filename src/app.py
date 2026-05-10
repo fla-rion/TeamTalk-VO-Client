@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.2"
+APP_VERSION = "6.4.3"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -9673,6 +9673,11 @@ class MainFrame(wx.Frame):
                 self._last_private_sender_id = from_id
                 # v3.9.0 – für Antwortvorschläge
                 self._last_private_message_text = str(content or "")
+            # v3.3.0 – VoiceOver-Ankündigung + Makro-Trigger für eingehende Privatnachrichten
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own:
+                from ui.a11y import post_voiceover_announcement
+                wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
+                self._macros.fire_event("private_msg", user=from_user or "", text=content or "")
             # v3.9.0 – Echtzeit-Übersetzung (Hintergrundthread, nur fremde Nachrichten)
             if not is_own and self._translator.is_enabled():
                 def _translate_and_append(txt=str(content or ""), kind_=kind, fu=from_user):
@@ -9687,11 +9692,6 @@ class MainFrame(wx.Frame):
                             )
                     _t.Thread(target=_worker, daemon=True).start()
                 wx.CallAfter(_translate_and_append)
-                # v3.3.0 – VoiceOver-Ankündigung für eingehende Privatnachrichten
-                from ui.a11y import post_voiceover_announcement
-                wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
-                # v3.5.0 – Makro-Trigger für eingehende Privatnachrichten
-                self._macros.fire_event("private_msg", user=from_user or "", text=content or "")
             # Privatnachrichten-Verlauf speichern
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and self.settings_store.settings.save_private_chat_history:
                 server_key = self._get_server_key()

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2026-05-09 (v6.4.3)
+- Fix: VoiceOver-Ankündigung und Makro-Trigger für eingehende Privatnachrichten
+  wurden nur ausgelöst, wenn der Echtzeit-Übersetzer aktiv war. Jetzt werden
+  sie immer ausgelöst, unabhängig vom Übersetzer-Status.
+
 2026-05-10 (v6.4.2)
 - Fix: Toolbar-Desktop-Schaltfläche las client.is_desktop_sharing_active() aus
   (existiert nicht, nur per hasattr abgesichert → immer False). Jetzt wird der
