@@ -274,6 +274,13 @@ class AppSettings:
     silence_detection_enabled: bool = False
     silence_detection_threshold_pct: int = 2
     silence_detection_timeout_sec: int = 30
+    # v3.5.0 features
+    macro_triggers: List[Dict] = field(default_factory=list)
+    scheduled_macros: List[Dict] = field(default_factory=list)
+    # EQ preset persistence
+    eq_active_preset: str = "Standard"
+    eq_mic_gain_pct: int = 50
+    eq_out_volume_pct: int = 100
 
 
 class SettingsStore:
@@ -449,6 +456,15 @@ class SettingsStore:
             self.settings.tts_speak_channel_topic_on_join = bool(data.get("tts_speak_channel_topic_on_join", True))
             raw_dp = data.get("disabled_plugins", [])
             self.settings.disabled_plugins = raw_dp if isinstance(raw_dp, list) else []
+            # v3.5.0
+            raw_mt = data.get("macro_triggers", [])
+            self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
+            raw_sm = data.get("scheduled_macros", [])
+            self.settings.scheduled_macros = raw_sm if isinstance(raw_sm, list) else []
+            # EQ preset
+            self.settings.eq_active_preset = str(data.get("eq_active_preset", "Standard") or "Standard")
+            self.settings.eq_mic_gain_pct = int(data.get("eq_mic_gain_pct", 50) or 50)
+            self.settings.eq_out_volume_pct = int(data.get("eq_out_volume_pct", 100) or 100)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -555,6 +571,11 @@ class SettingsStore:
             "auto_join_channel_per_server": dict(self.settings.auto_join_channel_per_server or {}),
             "mute_schedule": list(self.settings.mute_schedule or []),
             "macros": list(self.settings.macros or []),
+            "macro_triggers": list(self.settings.macro_triggers or []),
+            "scheduled_macros": list(self.settings.scheduled_macros or []),
+            "eq_active_preset": str(self.settings.eq_active_preset or "Standard"),
+            "eq_mic_gain_pct": int(self.settings.eq_mic_gain_pct or 50),
+            "eq_out_volume_pct": int(self.settings.eq_out_volume_pct or 100),
             # v2.4.0
             "user_volume_presets": dict(self.settings.user_volume_presets or {}),
             "noise_gate_enabled": bool(self.settings.noise_gate_enabled),

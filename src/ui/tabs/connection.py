@@ -619,7 +619,11 @@ class ConnectionTab(wx.Panel):
             self.frame.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
 
     def on_auto_reconnect(self, event):
-        self.frame._auto_reconnect = event.IsChecked()
+        enabled = event.IsChecked()
+        self.frame._auto_reconnect = enabled
+        self.frame._menu_auto_reconnect.Check(enabled)
+        self.frame.settings_store.settings.auto_reconnect_enabled = enabled
+        self.frame.settings_store.save()
 
     def get_ping_text(self) -> str:
         """Gibt den aktuellen Ping als lesbaren String zurück."""

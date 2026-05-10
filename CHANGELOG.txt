@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.5)
+- Fix: "Automatisch neu verbinden"-Checkbox im Verbindungs-Tab speicherte
+  Änderungen nicht in den Einstellungen – Menüeintrag und Einstellung wurden
+  nicht synchronisiert. Checkbox-Handler schreibt jetzt korrekt in settings_db.
+- Fix: Makro-Trigger (fire_event) und Geplante Makros (check_scheduled) schlugen
+  mit AttributeError fehl, weil die Felder macro_triggers und scheduled_macros
+  nicht in AppSettings deklariert waren. Werden jetzt korrekt persistiert.
+- Fix: Equalizer-Voreinstellung (eq_active_preset, eq_mic_gain_pct,
+  eq_out_volume_pct) wurde nach App-Neustart auf Standardwerte zurückgesetzt,
+  weil die Felder nicht in AppSettings/settings_db gespeichert wurden.
+
 2026-05-10 (v6.4.4)
 - Fix: "Automatisch neu verbinden"-Checkbox und Menüeintrag wurden nach App-Start
   nicht mit dem gespeicherten Wert initialisiert – Checkbox war immer deaktiviert,
