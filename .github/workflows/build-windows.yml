@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -28,7 +30,7 @@ jobs:
         shell: python
         run: |
           import re, os
-          with open("src/app.py", encoding="utf-8") as f:
+          with open("src/app_wx.py", encoding="utf-8") as f:
               content = f.read()
           m = re.search(r'APP_VERSION\s*=\s*["\']([^"\']+)["\']', content)
           version = m.group(1) if m else "unknown"
