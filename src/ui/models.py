@@ -281,6 +281,8 @@ class AppSettings:
     eq_active_preset: str = "Standard"
     eq_mic_gain_pct: int = 50
     eq_out_volume_pct: int = 100
+    # v6.5.0 features
+    watched_users: List[str] = field(default_factory=list)
 
 
 class SettingsStore:

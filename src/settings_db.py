@@ -351,6 +351,8 @@ class SQLiteSettingsStore:
         s.disabled_plugins = _list("disabled_plugins")
         s.hotkey_tts_cancel = _int("hotkey_tts_cancel", 0)
         s.hotkey_announce_status = _int("hotkey_announce_status", 0)
+        # v6.5.0
+        s.watched_users = _list("watched_users")
 
     def save(self) -> None:
         s = self.settings
@@ -512,6 +514,8 @@ class SQLiteSettingsStore:
         _set("disabled_plugins", list(getattr(s, "disabled_plugins", []) or []))
         _set("hotkey_tts_cancel", int(getattr(s, "hotkey_tts_cancel", 0) or 0))
         _set("hotkey_announce_status", int(getattr(s, "hotkey_announce_status", 0) or 0))
+        # v6.5.0
+        _set("watched_users", list(getattr(s, "watched_users", []) or []))
 
         db.commit()
 

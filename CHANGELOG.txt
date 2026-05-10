@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-10 (v6.5.0)
+- Neu: TTS-Mitschrift-Fenster (Automation → TTS-Mitschrift...) – zeigt die
+  letzten 200 von espeak-ng gesprochenen Texte mit Zeitstempel und Kategorie.
+  Kann geleert und jederzeit aktualisiert werden.
+- Neu: Nutzerwatcher (Automation → Nutzerwatcher...) – Liste beobachteter
+  Nutzernamen. Betritt ein beobachteter Nutzer einen Kanal, wird eine TTS-
+  Ansage und eine Desktop-Benachrichtigung ausgelöst.
+- Neu: Chat-Verlaufssuche (Automation → Chat-Verlauf durchsuchen...) –
+  Volltextsuche im gespeicherten Kanal-Chat-Verlauf des aktuellen Servers.
+- Verbessert: Makro-Editor unterstützt jetzt alle bekannten Aktionstypen
+  (speak, channel, status, ptt_on, ptt_off, mute_toggle, wait) in der
+  Inline-Hilfe und persistiert Makros sofort beim Speichern.
+
 2026-05-10 (v6.4.7)
 - Fix: Makro-Trigger-Filter prüfte kwargs["channel"] – kein Event sendet diesen
   Schlüssel. user_joined/user_left senden channel_name=. Filter prüft jetzt

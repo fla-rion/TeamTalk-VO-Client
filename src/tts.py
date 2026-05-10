@@ -6,9 +6,10 @@ import shutil
 import subprocess
 import threading
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Tuple
 import sys
 
 
@@ -50,6 +51,7 @@ class TTSManager:
         self._current_proc: Optional[subprocess.Popen] = None
         self._missing_warned = False
         self._local_espeak_dir: Optional[Path] = None
+        self._transcript: List[Tuple[str, str, str]] = []  # (timestamp, kind, text)
 
     def ensure_local_espeak(self) -> Optional[Path]:
         """Copy bundled espeak-ng into App Support / AppData to avoid access prompts."""
@@ -343,6 +345,9 @@ class TTSManager:
             ctx_voice = self.settings.system_voice or ""
         elif kind in ("channel_topic", "user_join", "user_leave", "file_transfer"):
             ctx_rate = self.settings.channel_rate or 0
+        self._transcript.append((time.strftime("%H:%M:%S"), kind, text))
+        if len(self._transcript) > 200:
+            self._transcript = self._transcript[-200:]
         try:
             self._queue.put_nowait((text, ctx_rate, ctx_voice))
         except Exception:

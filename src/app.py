@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.7"
+APP_VERSION = "6.5.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -2015,6 +2015,10 @@ class MainFrame(wx.Frame):
         auto_menu.AppendSeparator()
         auto_translate = auto_menu.AppendCheckItem(wx.ID_ANY, "Chat-Übersetzung aktivieren")
         auto_menu.AppendSeparator()
+        auto_user_watcher = auto_menu.Append(wx.ID_ANY, "Nutzerwatcher...")
+        auto_chat_search = auto_menu.Append(wx.ID_ANY, "Chat-Verlauf durchsuchen...")
+        auto_tts_transcript = auto_menu.Append(wx.ID_ANY, "TTS-Mitschrift...")
+        auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, "Plugin-Manager...")
         menubar.Append(auto_menu, _("Automation"))
 
@@ -2183,6 +2187,9 @@ class MainFrame(wx.Frame):
         self._auto_translate_menu_item = auto_translate
         auto_translate.Check(bool(getattr(self.settings_store.settings, "translate_chat_enabled", False)))
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_translation, auto_translate)
+        self.Bind(wx.EVT_MENU, self.on_menu_user_watcher, auto_user_watcher)
+        self.Bind(wx.EVT_MENU, self.on_menu_chat_search, auto_chat_search)
+        self.Bind(wx.EVT_MENU, self.on_menu_tts_transcript, auto_tts_transcript)
         self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
 
         self.Bind(wx.EVT_MENU, self.on_menu_settings, help_settings)
@@ -4837,6 +4844,32 @@ class MainFrame(wx.Frame):
         """v4.0.0 – Plugin-Manager Dialog."""
         from ui.plugin_manager import PluginManagerDialog
         dlg = PluginManagerDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    # ------------------------------------------------------------------
+    # v6.5.0 – Nutzerwatcher, Chat-Verlaufssuche, TTS-Mitschrift
+    # ------------------------------------------------------------------
+
+    def on_menu_user_watcher(self, _event) -> None:
+        from ui.user_watcher_dialog import UserWatcherDialog
+        dlg = UserWatcherDialog(self, self.settings_store)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_chat_search(self, _event) -> None:
+        from ui.chat_search_dialog import ChatSearchDialog
+        server_key = getattr(self, "_current_server_key", "")
+        if not server_key:
+            wx.MessageBox("Nicht verbunden – kein Chat-Verlauf verfügbar.", "Chat-Verlaufssuche", wx.OK | wx.ICON_INFORMATION, self)
+            return
+        dlg = ChatSearchDialog(self, self._chat_history, server_key)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def on_menu_tts_transcript(self, _event) -> None:
+        from ui.tts_transcript_dialog import TTSTranscriptDialog
+        dlg = TTSTranscriptDialog(self, self.tts)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -9522,6 +9555,12 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self._apply_saved_user_volume, user_id)
             # v2.7.0 – Webhook
             self._webhook.emit("user_join", {"user": name, "channel": channel_name})
+            # v6.5.0 – Nutzerwatcher
+            _watched = list(getattr(self.settings_store.settings, "watched_users", []) or [])
+            if name in _watched:
+                _watch_text = f"Beobachteter Nutzer anwesend: {name} in {channel_name or channel_id}"
+                self.tts.speak(_watch_text, kind="system")
+                wx.CallAfter(self._send_notification, "Nutzerwatcher", _watch_text)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             text = f"* {name} hat Kanal {channel_name or channel_id} verlassen"
             tts_kind = "user_leave"
