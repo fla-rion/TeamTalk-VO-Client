@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>6.1.6</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>6.4.3</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -52,7 +52,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <ol start="4">
   <li><a href="#hauptfenster">Hauptfenster – Überblick</a></li>
   <li><a href="#menue">Menüleiste</a></li>
-  <li><a href="#fokus">Fokus-Shortcuts (Cmd+1–4) <span class="badge-new">NEU</span></a></li>
+  <li><a href="#fokus">Fokus-Shortcuts (Cmd+1–4)</a></li>
   <li><a href="#schnellaktionen">Schnellaktionen-Leiste &amp; Tray-Symbol</a></li>
 </ol>
 
@@ -60,13 +60,13 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <ol start="8">
   <li><a href="#verbindung">Verbindung herstellen</a></li>
   <li><a href="#kanaelechat">Kanäle, Nutzerliste &amp; Chat</a></li>
-  <li><a href="#benachrichtigungen">Benachrichtigungen <span class="badge-new">NEU</span></a></li>
+  <li><a href="#benachrichtigungen">Benachrichtigungen</a></li>
 </ol>
 
 <p class="toc-part">Teil D · Audio</p>
 <ol start="11">
   <li><a href="#audio">Audio-Einstellungen</a></li>
-  <li><a href="#mikverarbeitung">Mikrofon-Verarbeitung <span class="badge-new">NEU</span></a></li>
+  <li><a href="#mikverarbeitung">Mikrofon-Verarbeitung</a></li>
   <li><a href="#systemtts">System-TTS (espeak-ng)</a></li>
   <li><a href="#sprechen">Sprechen (ElevenLabs TTS)</a></li>
 </ol>
@@ -109,14 +109,34 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>TeamTalk ist ein Sprachkommunikationsdienst ähnlich wie Mumble oder Discord. Der Client verbindet sich mit einem TeamTalk-Server, tritt Kanälen bei und ermöglicht Sprach- und Textkommunikation.</p>
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
-<h2>Was ist neu in v6.1.6</h2>
+<h2>Was ist neu</h2>
 <div class="new">
-<strong>Neu in v6.1.6 (2026-03-31):</strong>
+<strong>v6.4.3 (2026-05-09):</strong>
 <ul>
-  <li><strong>Mikrofon-Verarbeitung</strong>: Noise Gate, Expander, Limiter und Expander+Limiter direkt im Audio-Tab – Modus, Schwellwert und Rauschunterdrückungs-dB einstellbar (→ <a href="#mikverarbeitung">Abschnitt 12</a>).</li>
-  <li><strong>Mikrofon-Vorschau</strong>: "Vorschau starten/stoppen"-Taste im Verarbeitungsbereich – hören Sie sich selbst ohne Serververbindung (Loopback).</li>
-  <li><strong>Fokus-Shortcuts <span class="platform mac">macOS</span></strong>: Cmd+1 bis Cmd+4 setzen den Fokus direkt auf Kanalliste, Chatverlauf, Nachrichteneingabe und Ereignisprotokoll (→ <a href="#fokus">Abschnitt 6</a>).</li>
-  <li><strong>Kanalbasierte Benachrichtigungen</strong>: macOS-Benachrichtigungen für Benutzer-betreten/-verlassen erscheinen nur noch wenn der Nutzer im eigenen Kanal ist; der Titel nennt Name und Richtung (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+  <li><strong>Barrierefreiheits-Fix</strong>: VoiceOver-Ankündigung und Makro-Trigger für eingehende Privatnachrichten werden jetzt immer ausgelöst – unabhängig davon, ob der Echtzeit-Übersetzer aktiv ist.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v6.4.0–6.4.2 (2026-05-10):</strong>
+<ul>
+  <li><strong>Benachrichtigungen ein-/ausschalten</strong>: Neue Checkbox in <em>Einstellungen → Anzeige</em> steuert, ob Desktop-Benachrichtigungen angezeigt werden (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
+  <li><strong>Companion-Server-Einstellungen</strong>: Port und Aktivierungsstatus des integrierten HTTP-Companion-Servers können jetzt in <em>Einstellungen → Integrationen</em> konfiguriert werden (→ <a href="#einstellungen">Abschnitt 18</a>).</li>
+</ul>
+</div>
+<div class="new">
+<strong>v6.3.8 (2026-05-10):</strong>
+<ul>
+  <li><strong>Auto-Away</strong>: Die App setzt automatisch einen Away-Status nach einer konfigurierbaren Zeit ohne Tastatureingabe. Einstellbar unter <em>Einstellungen → Allgemein → Abwesenheits-Timer (Minuten)</em> (0 = deaktiviert).</li>
+  <li><strong>Im Tray minimieren</strong>: Standardmäßig jetzt aktiviert. Beim Schließen des Fensters bleibt die Verbindung im Tray erhalten.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v6.1.6 (2026-03-31):</strong>
+<ul>
+  <li><strong>Mikrofon-Verarbeitung</strong>: Noise Gate, Expander, Limiter und Expander+Limiter direkt im Audio-Tab (→ <a href="#mikverarbeitung">Abschnitt 12</a>).</li>
+  <li><strong>Mikrofon-Vorschau</strong>: Loopback-Test ohne Serververbindung.</li>
+  <li><strong>Fokus-Shortcuts <span class="platform mac">macOS</span></strong>: Cmd+1–4 (→ <a href="#fokus">Abschnitt 6</a>).</li>
+  <li><strong>Kanalbasierte Benachrichtigungen</strong>: Erscheinen nur wenn der andere Nutzer im eigenen Kanal ist (→ <a href="#benachrichtigungen">Abschnitt 10</a>).</li>
 </ul>
 </div>
 
@@ -266,7 +286,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </table>
 
 <!-- ============================================================ -->
-<h1 id="fokus">6 · Fokus-Shortcuts (Cmd+1–4) <span class="badge-new">NEU in 6.1.6</span></h1>
+<h1 id="fokus">6 · Fokus-Shortcuts (Cmd+1–4)</h1>
 <p>Auf <span class="platform mac">macOS</span> können Sie mit Cmd+Zahl den Fokus direkt auf das gewünschte Element im "Kanäle und Chat"-Bereich setzen:</p>
 
 <table>
@@ -385,10 +405,11 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <div class="note">Der Verlauf kann jederzeit über "Verlauf leeren" zurückgesetzt werden.</div>
 
 <!-- ============================================================ -->
-<h1 id="benachrichtigungen">10 · Benachrichtigungen <span class="badge-new">NEU in 6.1.6</span></h1>
+<h1 id="benachrichtigungen">10 · Benachrichtigungen</h1>
 
 <h2><span class="platform mac">macOS</span> – Native Benachrichtigungen</h2>
-<p>Ab v6.1.6 erscheinen macOS-Systembenachrichtigungen für Kanal-Ereignisse <strong>nur dann</strong>, wenn der betroffene Nutzer im selben Kanal wie Sie ist. Das reduziert irrelevante Meldungen auf vollen Servern.</p>
+<p>macOS-Systembenachrichtigungen für Kanal-Ereignisse erscheinen <strong>nur dann</strong>, wenn der betroffene Nutzer im selben Kanal wie Sie ist. Das reduziert irrelevante Meldungen auf vollen Servern.</p>
+<p>Benachrichtigungen können zentral über <em>Einstellungen → Anzeige → Benachrichtigungen aktivieren</em> ein- und ausgeschaltet werden.</p>
 
 <table>
 <tr><th>Ereignis</th><th>Benachrichtigung (Beispiel)</th></tr>
@@ -397,7 +418,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <tr><td>Neue Privatnachricht</td><td>Absendername + Nachrichtenvorschau</td></tr>
 </table>
 
-<div class="tip">Wenn Sie keine Benachrichtigungen möchten, deaktivieren Sie sie unter <em>Systemeinstellungen → Benachrichtigungen → TeamTalk VO Client</em>.</div>
+<div class="tip">Um Benachrichtigungen zu deaktivieren: <em>Einstellungen → Anzeige → Benachrichtigungen aktivieren</em> ausschalten. Alternativ können Sie sie global in <em>Systemeinstellungen → Benachrichtigungen → TeamTalk VO Client</em> deaktivieren.</div>
 
 <h2>Sound-Ereignisse</h2>
 <p>Zusätzlich zu nativen Benachrichtigungen kann für jedes Ereignis ein eigener Klang abgespielt werden. Die Konfiguration erfolgt unter <em>Einstellungen → Sound-Ereignisse</em> (→ <a href="#einstellungen">Abschnitt 18</a>).</p>
@@ -455,7 +476,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </table>
 
 <!-- ============================================================ -->
-<h1 id="mikverarbeitung">12 · Mikrofon-Verarbeitung <span class="badge-new">NEU in 6.1.6</span></h1>
+<h1 id="mikverarbeitung">12 · Mikrofon-Verarbeitung</h1>
 <p>Der Bereich "Mikrofon-Verarbeitung" befindet sich im Audio-Tab und bietet erweiterte Signalverarbeitung für Ihr Mikrofonsignal, bevor es übertragen wird.</p>
 
 <h2>Verarbeitungsmodi</h2>
@@ -641,13 +662,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <tr><td>App-Sprache</td><td>Wechselt die Oberflächensprache (Deutsch, English, Français, Español); Neustart erforderlich</td></tr>
 <tr><td>Chat-Verlauf speichern</td><td>Speichert Chat-Nachrichten pro Server als JSON (max. 200 Einträge). Verlauf wird beim nächsten Verbinden automatisch geladen.</td></tr>
 <tr><td>Letzten Kanal automatisch beitreten</td><td>Tritt nach dem Verbinden automatisch dem zuletzt genutzten Kanal dieses Servers bei</td></tr>
+<tr><td>Abwesenheits-Timer (Minuten)</td><td>Setzt automatisch einen Away-Status, wenn Sie für die eingestellte Anzahl Minuten keine Taste gedrückt haben. 0 = Auto-Away deaktiviert.</td></tr>
 </table>
 
 <h2>Bereich: Anzeige</h2>
 <table>
 <tr><th>Option</th><th>Beschreibung</th></tr>
-<tr><td>Im Tray minimieren</td><td>Fenster schließen minimiert in den Tray statt zu beenden</td></tr>
+<tr><td>Im Tray minimieren</td><td>Fenster schließen minimiert in den Tray statt zu beenden (Standard: aktiviert)</td></tr>
 <tr><td>Immer im Vordergrund</td><td>Fenster bleibt vor allen anderen</td></tr>
+<tr><td>Benachrichtigungen aktivieren</td><td>Desktop-Benachrichtigungen für Kanal-Ereignisse und Privatnachrichten ein-/ausschalten</td></tr>
 <tr><td>VU-Meter anzeigen</td><td>Zeigt den Eingangspegel in der Schnellaktionen-Leiste</td></tr>
 <tr><td>Fenstertitel aktualisieren</td><td>Aktueller Kanal erscheint im Fenstertitel</td></tr>
 <tr><td>Toolbar anzeigen</td><td>Schnellaktionen-Leiste ein-/ausblenden</td></tr>
@@ -670,6 +693,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 
 <h2>Bereich: System &amp; TTS</h2>
 <p>Einstellungen für die eingebaute Text-to-Speech-Ausgabe (espeak-ng). Siehe → <a href="#systemtts">Abschnitt 13</a>.</p>
+
+<h2>Bereich: Integrationen</h2>
+<p>Steuert den integrierten HTTP-Companion-Server, der eine lokale REST-API zum Steuern der App von außen bereitstellt (z.B. von Hilfsprogrammen, Makros, Automator-Skripten).</p>
+<table>
+<tr><th>Option</th><th>Beschreibung</th></tr>
+<tr><td>Companion-Server aktivieren</td><td>Startet den lokalen HTTP-Server beim Verbinden (Standard: aktiviert)</td></tr>
+<tr><td>Companion-Server-Port</td><td>Port des lokalen HTTP-Servers (Standard: 19880). Änderungen sind nach dem nächsten Verbinden aktiv.</td></tr>
+</table>
+<div class="note">Der Companion-Server ist nur lokal erreichbar (<code>http://localhost:&lt;Port&gt;</code>). Er wird nur gestartet, wenn eine Serververbindung aktiv ist.</div>
 
 <!-- ============================================================ -->
 <h1 id="kuerzel">19 · Tastaturkürzel &amp; Globale Hotkeys</h1>
@@ -791,7 +823,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </table>
 
 <hr>
-<p><em>TeamTalk VoiceOver Client v6.1.6 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Danksagungen: Garo (Git-Server, Windows-Tests), FVH (Tabs, ElevenLabs), DHT (Tests), Korn (M1), de Losse (Mac mini).</em></p>
+<p><em>TeamTalk VoiceOver Client v6.4.3 – Benutzerhandbuch. Hauptentwickler: Florian Lichteblau (Flarion). Danksagungen: Garo (Git-Server, Windows-Tests), FVH (Tabs, ElevenLabs), DHT (Tests), Korn (M1), de Losse (Mac mini).</em></p>
 
 </body>
 </html>
