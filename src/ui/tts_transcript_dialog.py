@@ -45,7 +45,7 @@ class TTSTranscriptDialog(wx.Dialog):
 
     def _fill(self):
         self._lb.Clear()
-        for ts, kind, text in self._tts._transcript:
+        for ts, kind, text in list(self._tts._transcript):
             self._lb.Append(f"{ts}, {kind}: {text}")
         if self._lb.GetCount():
             self._lb.SetSelection(self._lb.GetCount() - 1)

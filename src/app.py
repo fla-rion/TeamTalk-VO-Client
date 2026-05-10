@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.5.0"
+APP_VERSION = "6.5.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -4861,8 +4861,19 @@ class MainFrame(wx.Frame):
         from ui.chat_search_dialog import ChatSearchDialog
         server_key = getattr(self, "_current_server_key", "")
         if not server_key:
-            wx.MessageBox("Nicht verbunden – kein Chat-Verlauf verfügbar.", "Chat-Verlaufssuche", wx.OK | wx.ICON_INFORMATION, self)
-            return
+            keys = self._chat_history.list_server_keys()
+            if not keys:
+                wx.MessageBox("Kein gespeicherter Chat-Verlauf vorhanden.", "Chat-Verlaufssuche", wx.OK | wx.ICON_INFORMATION, self)
+                return
+            if len(keys) == 1:
+                server_key = keys[0]
+            else:
+                dlg_choice = wx.SingleChoiceDialog(self, "Server auswählen:", "Chat-Verlaufssuche", keys)
+                if dlg_choice.ShowModal() != wx.ID_OK:
+                    dlg_choice.Destroy()
+                    return
+                server_key = dlg_choice.GetStringSelection()
+                dlg_choice.Destroy()
         dlg = ChatSearchDialog(self, self._chat_history, server_key)
         dlg.ShowModal()
         dlg.Destroy()

@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-10 (v6.5.1)
+- Fix: version_info.txt hatte noch veraltete filevers/prodvers-Tupel (6, 3, 6, 0)
+  statt der aktuellen Version; jetzt synchron mit APP_VERSION gehalten.
+- Fix: TTS-Mitschrift-Dialog las _transcript-Liste ohne Snapshot, was bei
+  gleichzeitigem Schreiben aus dem TTS-Thread zu einem RuntimeError führen kann;
+  jetzt wird eine Kopie der Liste erstellt (list(...)) bevor iteriert wird.
+- Fix: Chat-Verlaufssuche war offline komplett gesperrt; jetzt werden
+  vorhandene Verlaufsdateien aufgelistet und der Nutzer kann einen Server
+  auswählen (ChatHistoryManager.list_server_keys() hinzugefügt).
+
 2026-05-10 (v6.5.0)
 - Neu: TTS-Mitschrift-Fenster (Automation → TTS-Mitschrift...) – zeigt die
   letzten 200 von espeak-ng gesprochenen Texte mit Zeitstempel und Kategorie.

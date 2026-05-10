@@ -102,6 +102,10 @@ class ChatHistoryManager:
         out_path.write_text("\n".join(lines), encoding="utf-8")
         return len(lines)
 
+    def list_server_keys(self) -> List[str]:
+        """Gibt alle Server zurück, für die ein Kanal-Chat-Verlauf gespeichert ist."""
+        return [p.stem for p in self._dir.glob("*.json")]
+
     def list_private_partners(self, server_key: str) -> List[str]:
         """Gibt alle Partner zurück, mit denen ein Privatverlauf gespeichert ist."""
         d = self._private_dir / self._safe_key(server_key)
