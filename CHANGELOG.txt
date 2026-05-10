@@ -1,6 +1,15 @@
 Changelog
 =========
 
+2026-05-10 (v6.4.7)
+- Fix: Makro-Trigger-Filter prüfte kwargs["channel"] – kein Event sendet diesen
+  Schlüssel. user_joined/user_left senden channel_name=. Filter prüft jetzt
+  user=, from_user=, channel_name= und channel= in dieser Reihenfolge, womit
+  Filterung nach Kanalname bei Beitritts- und Verlass-Events korrekt funktioniert.
+- Fix: HTTP-API-Endpunkt /info lieferte leere Versionszeichenkette, weil
+  getattr(frame, "_app_version", "") keine Instanzvariable fand. MainFrame
+  setzt jetzt self._app_version = APP_VERSION in __init__.
+
 2026-05-10 (v6.4.6)
 - Fix: Makro-Trigger mit Filter für chat_message-Events griff auf den falschen
   Keyword-Parameter zu (user= statt from_user=). Eingehende Privatnachrichten

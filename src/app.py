@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.4.6"
+APP_VERSION = "6.4.7"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -438,6 +438,7 @@ class MainFrame(wx.Frame):
         self.client = TeamTalkClient()
 
         # Shared state
+        self._app_version = APP_VERSION
         self._closing = False
         self._auto_reconnect = False
         self._reconnect_attempts = 0

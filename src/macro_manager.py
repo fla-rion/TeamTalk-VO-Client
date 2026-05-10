@@ -116,6 +116,7 @@ class MacroManager:
                 match_val = str(
                     kwargs.get("user", "")
                     or kwargs.get("from_user", "")
+                    or kwargs.get("channel_name", "")
                     or kwargs.get("channel", "")
                 ).lower()
                 if filter_val not in match_val:
