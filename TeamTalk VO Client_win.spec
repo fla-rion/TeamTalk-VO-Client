@@ -26,6 +26,7 @@ a = Analysis(
         ('src/sounds', 'sounds'),
     ],
     hiddenimports=[
+        'app_qt',
         'teamtalk_client', 'teamtalk_client.tt', 'teamtalk_client.client',
         'ui.tabs.system', 'ui_qt.tabs.system', 'platform_paths', 'sound_manager',
         'chat_history', 'global_hotkeys', 'i18n',
@@ -39,7 +40,8 @@ a = Analysis(
     runtime_hooks=[],
     excludes=['whisper', 'torch', 'numba', 'numba.core', 'llvmlite',
               'tiktoken', 'tiktoken_ext', 'tiktoken_ext.openai_public',
-              'objc', 'AppKit', 'Quartz'],
+              'objc', 'AppKit', 'Quartz',
+              'wx', 'wx.adv', 'wx.dataview'],
     noarchive=False,
     optimize=2,
 )

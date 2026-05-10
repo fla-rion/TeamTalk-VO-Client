@@ -10250,7 +10250,7 @@ def _run_probe_server_once(argv: List[str]) -> int:
     return 0
 
 
-if __name__ == "__main__":
+def run_app():
     try:
         if "--probe-server" in sys.argv:
             raise SystemExit(_run_probe_server_once(sys.argv))
@@ -10272,3 +10272,7 @@ if __name__ == "__main__":
         crash_log = crash_dir / "last_crash.txt"
         crash_log.write_text(traceback.format_exc(), encoding="utf-8")
         raise
+
+
+if __name__ == "__main__":
+    run_app()
