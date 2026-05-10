@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-11 (v6.7.3)
+Windows Qt-UI: fehlende Funktionen implementiert + SDK-Shutdown-Fix:
+- Fix: TeamTalk-SDK lief nach Schließen der App im Hintergrund weiter;
+  client.close() (closeTeamTalk) wird jetzt beim Beenden aufgerufen,
+  danach os._exit(0) für garantierten Prozess-Abbruch.
+- Neu: Audio-Geräteauswahl funktioniert jetzt (init_sound_input/output_device).
+- Neu: Mikrofon- und Ausgangsverstärkung sowie VA-Nachlauf werden per SDK gesetzt.
+- Neu: Aufnahme via start_recording_muxed/stop_recording_muxed implementiert.
+- Neu: PTT per konfigurierter Taste (keyPressEvent/keyReleaseEvent →
+  enable_voice_transmission).
+- Neu: Online-Nutzer-Dialog mit Suche und Refresh.
+- Neu: Server-Statistiken-Dialog.
+- Neu: Makro-Manager-Dialog mit Ausführen-Funktion.
+- Fix: TT-URL-Kopieren und .tt-Datei-Import nutzen ui.tt_file_parser statt
+  ui_wx (kein wxPython auf Windows).
+
 2026-05-11 (v6.7.2)
 Windows-Darstellung verbessert:
 - Neu: app.manifest mit Common-Controls-6.0-Dependency und PerMonitorV2-DPI-
