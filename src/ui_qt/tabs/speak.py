@@ -16,16 +16,17 @@ if TYPE_CHECKING:
 
 
 class SpeakTab(QWidget):
-    """Tab 8: ElevenLabs TTS → Kanal sprechen."""
+    """Tab: ElevenLabs TTS → Kanal sprechen."""
 
     def __init__(self, parent: QWidget, window: "MainWindow") -> None:
         super().__init__(parent)
         self.window = window
-        self._api_key = ""
+        self._api_key: str = ""
         self._voice_ids: List[str] = []
         self._model_ids: List[str] = []
         self._generating = False
         self._temp_file: Optional[str] = None
+        self._streaming_temp_file: Optional[str] = None
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -33,107 +34,324 @@ class SpeakTab(QWidget):
         tts_group = QGroupBox("ElevenLabs Text-to-Speech")
         tts_layout = QVBoxLayout(tts_group)
 
-        # Voice/model selection
         sel_form = QFormLayout()
         voice_row = QHBoxLayout()
         self.voice_choice = QComboBox()
-        self.voice_choice.setObjectName("Stimme")
         self.refresh_btn = QPushButton("&Aktualisieren")
         self.refresh_btn.clicked.connect(self.on_refresh)
         voice_row.addWidget(self.voice_choice, 1)
         voice_row.addWidget(self.refresh_btn)
-        sel_form.addRow(QLabel("Stimme"), voice_row)
+        sel_form.addRow("Stimme", voice_row)
 
         self.model_choice = QComboBox()
-        self.model_choice.setObjectName("Modell")
         self.model_choice.currentIndexChanged.connect(self.on_model_changed)
-        sel_form.addRow(QLabel("Modell"), self.model_choice)
+        sel_form.addRow("Modell", self.model_choice)
 
         self.streaming_check = QCheckBox("&Echtzeit-Streaming")
         sel_form.addRow("", self.streaming_check)
         tts_layout.addLayout(sel_form)
 
-        # Settings
         settings_form = QFormLayout()
         self.stability_slider = QSpinBox()
         self.stability_slider.setRange(0, 100)
         self.stability_slider.setValue(50)
-        settings_form.addRow(QLabel("Stabilität (0–100)"), self.stability_slider)
+        settings_form.addRow("Stabilität (0–100)", self.stability_slider)
 
         self.similarity_slider = QSpinBox()
         self.similarity_slider.setRange(0, 100)
         self.similarity_slider.setValue(75)
-        settings_form.addRow(QLabel("Ähnlichkeit (0–100)"), self.similarity_slider)
+        settings_form.addRow("Ähnlichkeit (0–100)", self.similarity_slider)
+
+        self.style_slider = QSpinBox()
+        self.style_slider.setRange(0, 100)
+        self.style_slider.setValue(0)
+        settings_form.addRow("Stil (0–100)", self.style_slider)
+
+        self.speaker_boost = QCheckBox("&Sprecher-Boost")
+        self.speaker_boost.setChecked(True)
+        settings_form.addRow("", self.speaker_boost)
 
         self.api_key_field = QLineEdit()
         self.api_key_field.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_field.setObjectName("ElevenLabs API-Key")
         self.api_key_field.setPlaceholderText("API-Key eingeben...")
-        settings_form.addRow(QLabel("API-Key"), self.api_key_field)
+        settings_form.addRow("API-Key", self.api_key_field)
         tts_layout.addLayout(settings_form)
 
-        # Text input
-        tts_layout.addWidget(QLabel("Text zum Vorlesen"))
+        tts_layout.addWidget(QLabel("Text zum Sprechen"))
         self.text_input = QTextEdit()
-        self.text_input.setObjectName("Text zum Vorlesen")
         self.text_input.setPlaceholderText("Text hier eingeben...")
         tts_layout.addWidget(self.text_input, 1)
 
-        # Action buttons
         btn_row = QHBoxLayout()
-        self.generate_btn = QPushButton("&Generieren und senden")
-        self.generate_btn.clicked.connect(self.on_generate)
-        self.preview_btn = QPushButton("&Vorschau")
-        self.preview_btn.clicked.connect(self.on_preview)
-        self.stop_btn = QPushButton("&Stopp")
+        self.speak_btn = QPushButton("S&prechen")
+        self.speak_btn.clicked.connect(self.on_speak)
+        self.stop_btn = QPushButton("S&topp")
         self.stop_btn.clicked.connect(self.on_stop)
         self.save_key_btn = QPushButton("API-Key &speichern")
         self.save_key_btn.clicked.connect(self.on_save_api_key)
-        for btn in (self.generate_btn, self.preview_btn, self.stop_btn, self.save_key_btn):
-            btn_row.addWidget(btn)
+        btn_row.addWidget(self.speak_btn)
+        btn_row.addWidget(self.stop_btn)
+        btn_row.addWidget(self.save_key_btn)
         btn_row.addStretch()
+        self.status_label = QLabel("Bereit")
+        btn_row.addWidget(self.status_label)
         tts_layout.addLayout(btn_row)
 
         root.addWidget(tts_group)
 
-        # Load saved API key
         try:
             saved_key = self.window.settings_store.settings.elevenlabs_api_key
             if saved_key:
                 self.api_key_field.setText(saved_key)
-                self._api_key = saved_key
+                self.set_api_key(saved_key)
         except Exception:
             pass
 
+    # ------------------------------------------------------------------
+    # API key & voice loading
+    # ------------------------------------------------------------------
+
+    def set_api_key(self, key: str) -> None:
+        self._api_key = key
+        if key.strip():
+            self._set_status("Lade Stimmen und Modelle...")
+            threading.Thread(target=self._load_voices_and_models, daemon=True).start()
+
+    def _load_voices_and_models(self) -> None:
+        from ui_qt.call_after import call_after
+        try:
+            import requests as _req
+            resp = _req.get(
+                "https://api.elevenlabs.io/v1/voices",
+                headers={"xi-api-key": self._api_key},
+                timeout=10,
+            )
+            if resp.status_code != 200:
+                msg = f"ElevenLabs API Fehler: HTTP {resp.status_code}"
+                if resp.status_code == 401:
+                    msg = "ElevenLabs API Key ungültig (401)"
+                call_after(self._set_status, msg)
+                return
+            voices = [
+                {"voice_id": v["voice_id"], "name": v["name"]}
+                for v in resp.json().get("voices", [])
+            ]
+            resp2 = _req.get(
+                "https://api.elevenlabs.io/v1/models",
+                headers={"xi-api-key": self._api_key},
+                timeout=10,
+            )
+            models = (
+                [{"model_id": m["model_id"], "name": m.get("name", m["model_id"])} for m in resp2.json()]
+                if resp2.status_code == 200 else []
+            )
+            call_after(self._populate_voices, voices)
+            call_after(self._populate_models, models)
+            call_after(self._set_status, f"{len(voices)} Stimmen, {len(models)} Modelle geladen")
+        except ImportError:
+            from ui_qt.call_after import call_after as _ca
+            _ca(self._set_status, "Fehlendes Modul: requests")
+        except Exception as exc:
+            from ui_qt.call_after import call_after as _ca
+            _ca(self._set_status, f"Fehler beim Laden: {exc}")
+
+    def _populate_voices(self, voices: list) -> None:
+        self._voice_ids = [v["voice_id"] for v in voices]
+        self.voice_choice.clear()
+        for v in voices:
+            self.voice_choice.addItem(v["name"])
+
+    def _populate_models(self, models: list) -> None:
+        self._model_ids = [m["model_id"] for m in models]
+        self.model_choice.clear()
+        for m in models:
+            self.model_choice.addItem(m["name"])
+        self._update_speaker_boost_state()
+
+    # ------------------------------------------------------------------
+    # Events
+    # ------------------------------------------------------------------
+
     def on_refresh(self) -> None:
-        self.window.refresh_elevenlabs_voices(self)
+        key = self.api_key_field.text().strip() or self._api_key
+        if key:
+            self._api_key = key
+            self._set_status("Aktualisiere...")
+            threading.Thread(target=self._load_voices_and_models, daemon=True).start()
 
     def on_model_changed(self, idx: int) -> None:
-        pass
+        self._update_speaker_boost_state()
 
-    def on_generate(self) -> None:
+    def _update_speaker_boost_state(self) -> None:
+        idx = self.model_choice.currentIndex()
+        if idx < 0 or idx >= len(self._model_ids):
+            return
+        if self._model_ids[idx].startswith("eleven_v3"):
+            self.speaker_boost.setChecked(False)
+            self.speaker_boost.setEnabled(False)
+        else:
+            self.speaker_boost.setEnabled(True)
+
+    def on_speak(self) -> None:
         text = self.text_input.toPlainText().strip()
         if not text:
+            self._set_status("Bitte Text eingeben")
             return
-        voice_idx = self.voice_choice.currentIndex()
-        voice_id = self._voice_ids[voice_idx] if 0 <= voice_idx < len(self._voice_ids) else ""
-        model_idx = self.model_choice.currentIndex()
-        model_id = self._model_ids[model_idx] if 0 <= model_idx < len(self._model_ids) else "eleven_multilingual_v2"
+        vi = self.voice_choice.currentIndex()
+        mi = self.model_choice.currentIndex()
+        if vi < 0 or vi >= len(self._voice_ids):
+            self._set_status("Bitte eine Stimme auswählen")
+            return
+        if mi < 0 or mi >= len(self._model_ids):
+            self._set_status("Bitte ein Modell auswählen")
+            return
+
+        voice_id = self._voice_ids[vi]
+        model_id = self._model_ids[mi]
         stability = self.stability_slider.value() / 100.0
         similarity = self.similarity_slider.value() / 100.0
-        streaming = self.streaming_check.isChecked()
-        self.window.elevenlabs_generate_and_send(
-            text, voice_id, model_id, stability, similarity, streaming
-        )
+        style = self.style_slider.value() / 100.0
+        use_boost = self.speaker_boost.isChecked()
+        use_streaming = self.streaming_check.isChecked() and self._can_stream(model_id)
 
-    def on_preview(self) -> None:
-        text = self.text_input.toPlainText().strip()
-        if not text:
+        self._generating = True
+        self.speak_btn.setEnabled(False)
+        if use_streaming:
+            self._set_status("Echtzeit-Streaming...")
+            threading.Thread(
+                target=self._generate_streaming,
+                args=(text, voice_id, model_id, stability, similarity, style, use_boost),
+                daemon=True,
+            ).start()
+        else:
+            self._set_status("Generiere Audio...")
+            threading.Thread(
+                target=self._speak_worker,
+                args=(text, voice_id, model_id, stability, similarity, style, use_boost),
+                daemon=True,
+            ).start()
+
+    def _speak_worker(self, text, voice_id, model_id, stability, similarity, style, use_boost) -> None:
+        from ui_qt.call_after import call_after
+        try:
+            import requests as _req
+            resp = _req.post(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}",
+                json={
+                    "text": text,
+                    "model_id": model_id,
+                    "voice_settings": {
+                        "stability": stability,
+                        "similarity_boost": similarity,
+                        "style": style,
+                        "use_speaker_boost": use_boost,
+                    },
+                },
+                headers={
+                    "xi-api-key": self._api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "audio/mpeg",
+                },
+                timeout=30,
+            )
+            if resp.status_code != 200:
+                call_after(self._set_status, f"ElevenLabs Fehler: HTTP {resp.status_code}")
+                return
+            audio_bytes = resp.content
+            self._cleanup_temp()
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                f.write(audio_bytes)
+                self._temp_file = f.name
+            self.window.client.stop_streaming_media()
+            ok = self.window.client.start_streaming_media_to_channel(self._temp_file)
+            if ok:
+                call_after(self._set_status, f"Streaming gestartet ({len(audio_bytes) // 1024} KB)")
+            else:
+                call_after(self._set_status, "Streaming konnte nicht gestartet werden")
+        except Exception as exc:
+            call_after(self._set_status, f"Fehler: {exc}")
+        finally:
+            self._generating = False
+            call_after(lambda: self.speak_btn.setEnabled(True))
+
+    def _can_stream(self, model_id: str) -> bool:
+        return model_id.startswith("eleven_") and model_id != "eleven_turbo_v2_5"
+
+    def _generate_streaming(self, text, voice_id, model_id, stability, similarity, style, use_boost) -> None:
+        from ui_qt.call_after import call_after
+        try:
+            import requests as _req
+        except ImportError:
+            call_after(self._set_status, "Fehlendes Modul: requests")
+            self._generating = False
+            call_after(lambda: self.speak_btn.setEnabled(True))
             return
-        self.window.elevenlabs_preview(text, self)
+
+        try:
+            with _req.post(
+                f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream",
+                json={
+                    "text": text,
+                    "model_id": model_id,
+                    "voice_settings": {
+                        "stability": stability,
+                        "similarity_boost": similarity,
+                        "style": style,
+                        "use_speaker_boost": use_boost,
+                    },
+                },
+                headers={
+                    "xi-api-key": self._api_key,
+                    "Content-Type": "application/json",
+                    "Accept": "audio/mpeg",
+                },
+                stream=True,
+                timeout=30,
+            ) as resp:
+                if resp.status_code != 200:
+                    call_after(self._set_status, f"ElevenLabs Fehler: HTTP {resp.status_code}")
+                    return
+                with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+                    self._streaming_temp_file = tmp.name
+                    received = 0
+                    playback_started = False
+                    for chunk in resp.iter_content(chunk_size=4096):
+                        if not self._generating:
+                            break
+                        if chunk:
+                            tmp.write(chunk)
+                            tmp.flush()
+                            received += len(chunk)
+                            if not playback_started and received >= 32_768:
+                                playback_started = True
+                                call_after(self._start_streaming_playback, self._streaming_temp_file)
+                if not playback_started and self._streaming_temp_file:
+                    call_after(self._start_streaming_playback, self._streaming_temp_file)
+                call_after(self._set_status, f"Streaming abgeschlossen ({received // 1024} KB)")
+        except Exception as exc:
+            call_after(self._set_status, f"Streaming Fehler: {exc}")
+        finally:
+            self._generating = False
+            call_after(lambda: self.speak_btn.setEnabled(True))
+
+    def _start_streaming_playback(self, filepath: str) -> None:
+        try:
+            self.window.client.stop_streaming_media()
+            ok = self.window.client.start_streaming_media_to_channel(filepath)
+            if not ok:
+                self._set_status("Streaming-Wiedergabe konnte nicht gestartet werden")
+        except Exception as exc:
+            self._set_status(f"Wiedergabe-Fehler: {exc}")
 
     def on_stop(self) -> None:
-        self.window.elevenlabs_stop()
+        self._generating = False
+        try:
+            self.window.client.stop_streaming_media()
+        except Exception:
+            pass
+        self._cleanup_temp()
+        self._cleanup_streaming_temp()
+        self._set_status("Streaming gestoppt")
 
     def on_save_api_key(self) -> None:
         key = self.api_key_field.text().strip()
@@ -142,15 +360,39 @@ class SpeakTab(QWidget):
             self.window.settings_store.settings.elevenlabs_api_key = key
             self.window.settings_store.save()
             self.window.set_status("ElevenLabs API-Key gespeichert")
+            if key:
+                self.set_api_key(key)
         except Exception as exc:
             self.window.set_status(f"Fehler: {exc}")
 
-    def update_voices(self, voices: list, models: list) -> None:
-        self._voice_ids = [v.get("voice_id", "") for v in voices]
-        self.voice_choice.clear()
-        for v in voices:
-            self.voice_choice.addItem(v.get("name", "?"))
-        self._model_ids = [m.get("model_id", "") for m in models]
-        self.model_choice.clear()
-        for m in models:
-            self.model_choice.addItem(m.get("name", m.get("model_id", "?")))
+    # ------------------------------------------------------------------
+    # Helpers
+    # ------------------------------------------------------------------
+
+    def _set_status(self, text: str) -> None:
+        self.status_label.setText(text)
+
+    def _cleanup_temp(self) -> None:
+        if self._temp_file and os.path.exists(self._temp_file):
+            try:
+                os.unlink(self._temp_file)
+            except OSError:
+                pass
+            self._temp_file = None
+
+    def _cleanup_streaming_temp(self) -> None:
+        if self._streaming_temp_file and os.path.exists(self._streaming_temp_file):
+            try:
+                os.unlink(self._streaming_temp_file)
+            except OSError:
+                pass
+            self._streaming_temp_file = None
+
+    def cleanup(self) -> None:
+        self._generating = False
+        try:
+            self.window.client.stop_streaming_media()
+        except Exception:
+            pass
+        self._cleanup_temp()
+        self._cleanup_streaming_temp()

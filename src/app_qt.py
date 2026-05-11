@@ -952,22 +952,33 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self.set_status(f"Aufnahme-Stopp-Fehler: {exc}")
 
-    def start_media_stream(self, url: str) -> None:
+    def start_media_stream(self, url: str, gain: float = 1.0) -> None:
         try:
-            self.client.start_streaming_media_file_to_channel(url, 0)
-            self.set_status(f"Streaming gestartet: {url}")
+            ok = self.client.start_streaming_media_to_channel(url, preamp_gain=gain)
+            if ok:
+                self.set_status(f"Streaming gestartet: {url}")
+            else:
+                self.set_status("Streaming konnte nicht gestartet werden")
         except Exception as exc:
             self.set_status(f"Streaming fehlgeschlagen: {exc}")
 
     def stop_media_stream(self) -> None:
         try:
-            self.client.stop_streaming_media_file_to_channel()
+            self.client.stop_streaming_media()
             self.set_status("Streaming gestoppt")
         except Exception:
             pass
 
-    def yt_search(self, query: str, source: str, list_widget) -> None:
-        self.set_status(f"Suche: {query} ({source})...")
+    def configure_user_recording(self, enabled: bool, folder: str, pattern: str, fmt: int, include_self: bool) -> None:
+        try:
+            if enabled and folder:
+                self.client.enable_user_recording(folder, pattern or "%Y%m%d-%H%M%S", fmt, include_self)
+                self.set_status(f"Konversationsaufnahme aktiv: {folder}")
+            else:
+                self.client.disable_user_recording()
+                self.set_status("Konversationsaufnahme deaktiviert")
+        except Exception as exc:
+            self.set_status(f"Aufnahme-Konfiguration fehlgeschlagen: {exc}")
 
     # ------------------------------------------------------------------
     # Admin
@@ -1044,17 +1055,23 @@ class MainWindow(QMainWindow):
     # ElevenLabs
     # ------------------------------------------------------------------
 
-    def refresh_elevenlabs_voices(self, tab) -> None:
-        self.set_status("ElevenLabs Stimmen werden geladen...")
+    def refresh_elevenlabs_voices(self, tab=None) -> None:
+        try:
+            self.speak_tab.on_refresh()
+        except Exception:
+            pass
 
-    def elevenlabs_generate_and_send(self, text, voice_id, model_id, stability, similarity, streaming):
-        self.set_status("ElevenLabs TTS: nicht implementiert")
-
-    def elevenlabs_preview(self, text, tab) -> None:
-        self.set_status("ElevenLabs Vorschau: nicht implementiert")
+    def elevenlabs_generate_and_send(self, *args, **kwargs) -> None:
+        try:
+            self.speak_tab.on_speak()
+        except Exception:
+            pass
 
     def elevenlabs_stop(self) -> None:
-        pass
+        try:
+            self.speak_tab.on_stop()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Server management
@@ -1301,6 +1318,14 @@ class MainWindow(QMainWindow):
         self._closing = True
         self._tt_event_timer.stop()
         self._reconnect_timer.stop()
+        try:
+            self.speak_tab.cleanup()
+        except Exception:
+            pass
+        try:
+            self.media_tab.stop_all()
+        except Exception:
+            pass
         try:
             self.tray.hide()
         except Exception:
