@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-05-11 (v6.7.4)
+Windows Qt-UI: ElevenLabs TTS und vollständiges Medien-Streaming implementiert:
+- Neu: ElevenLabs-Tab — Stimmen/Modelle per API laden, normales TTS und
+  Echtzeit-Streaming (ab 32 KB), Stil/Sprecher-Boost-Regler, API-Key speichern.
+- Neu: Medien-Tab Unterreiter "Datei" — URL/Dateipfad streamen mit Lautstärke.
+- Neu: Medien-Tab Unterreiter "YouTube/yt-dlp" — YouTube, SoundCloud, Twitch,
+  Bandcamp, Vimeo, Mixcloud; Suche (wo unterstützt) + direkte URL-Eingabe.
+- Neu: Medien-Tab Unterreiter "Webradio" — 33 Voreinstellungen + Live-Suche
+  über radio-browser.info.
+- Neu: Medien-Tab Unterreiter "Podcasts" — iTunes-Suche, RSS/Atom Feed-Loader,
+  Episodenliste mit Einzel-Streaming.
+- Neu: Medien-Tab Unterreiter "Playlist" — Dateien hinzufügen, M3U laden/
+  exportieren, Reihenfolge ändern, Auto-Weiter-Modus.
+- Neu: Konversationsaufnahme-Konfiguration im Aufnahme-Tab.
+- Fix: start_media_stream/stop_media_stream nutzten falsche SDK-Methodennamen.
+- Fix: speak_tab.cleanup() und media_tab.stop_all() werden beim Beenden aufgerufen.
+
 2026-05-11 (v6.7.3)
 Windows Qt-UI: fehlende Funktionen implementiert + SDK-Shutdown-Fix:
 - Fix: TeamTalk-SDK lief nach Schließen der App im Hintergrund weiter;
