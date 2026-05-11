@@ -184,6 +184,10 @@ class ConnectDialog(QDialog):
                 self.window.store.add(p)
             self._load_profiles()
             self.window.set_status(f"Server gespeichert: {p.name}")
+            try:
+                self.window._rebuild_favorites_menu()
+            except Exception:
+                pass
         except Exception as exc:
             QMessageBox.warning(self, "Fehler", str(exc))
 

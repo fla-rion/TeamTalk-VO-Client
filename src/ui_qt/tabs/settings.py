@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
     QLabel, QLineEdit, QCheckBox, QComboBox, QSpinBox,
-    QPushButton, QTabWidget, QFileDialog, QScrollArea,
+    QPushButton, QTabWidget, QFileDialog, QScrollArea, QTextEdit, QTimeEdit,
 )
+from PySide6.QtCore import QTime
 
 from ui_qt.tabs.audio import AudioTab
 from ui_qt.tabs.video import VideoTab
@@ -69,12 +70,14 @@ class SettingsTab(QWidget):
         self.inner.addTab(self._build_general_tab(), "Allgemein")
         self.inner.addTab(self._build_connection_tab(), "Verbindung")
         self.inner.addTab(self._build_sound_events_tab(), "Sound-Ereignisse")
+        self.inner.addTab(self._build_recording_tab(), "Aufnahmen")
         self.inner.addTab(self.audio_tab, "Audio")
         self.inner.addTab(self.video_tab, "Video")
         self.inner.addTab(self.shortcuts_tab, "Tastenkürzel")
         self.inner.addTab(self.system_tab, "TTS")
         self.inner.addTab(self._build_chat_tab(), "Chat & Automation")
         self.inner.addTab(self._build_ki_tab(), "KI & Integration")
+        self.inner.addTab(self._build_braille_tab(), "Braille")
 
     # ------------------------------------------------------------------
     # Allgemein
@@ -349,8 +352,217 @@ class SettingsTab(QWidget):
         self.auto_reply_enabled.setChecked(bool(getattr(s, "auto_reply_enabled", False)))
         self.auto_reply_enabled.stateChanged.connect(lambda v: self._save_bool("auto_reply_enabled", v))
         auto_form.addRow("", self.auto_reply_enabled)
+
+        self.auto_reply_text = QLineEdit(getattr(s, "auto_reply_text", "") or "")
+        self.auto_reply_text.setPlaceholderText("Text der automatischen Antwort")
+        self.auto_reply_text.textChanged.connect(lambda v: self._save_str("auto_reply_text", v))
+        auto_form.addRow("Auto-Antwort Text", self.auto_reply_text)
+
+        self.mute_scheduler_enabled = QCheckBox("Stumm-Planer aktivieren")
+        self.mute_scheduler_enabled.setChecked(bool(getattr(s, "mute_scheduler_enabled", False)))
+        self.mute_scheduler_enabled.stateChanged.connect(lambda v: self._save_bool("mute_scheduler_enabled", v))
+        auto_form.addRow("", self.mute_scheduler_enabled)
+
+        mute_from_str = getattr(s, "mute_from_time", "22:00") or "22:00"
+        self.mute_from_time = QTimeEdit()
+        self.mute_from_time.setDisplayFormat("HH:mm")
+        self.mute_from_time.setTime(QTime.fromString(mute_from_str, "HH:mm"))
+        self.mute_from_time.timeChanged.connect(
+            lambda t: self._save_str("mute_from_time", t.toString("HH:mm"))
+        )
+        auto_form.addRow("Täglich stummschalten von", self.mute_from_time)
+
+        mute_to_str = getattr(s, "mute_to_time", "07:00") or "07:00"
+        self.mute_to_time = QTimeEdit()
+        self.mute_to_time.setDisplayFormat("HH:mm")
+        self.mute_to_time.setTime(QTime.fromString(mute_to_str, "HH:mm"))
+        self.mute_to_time.timeChanged.connect(
+            lambda t: self._save_str("mute_to_time", t.toString("HH:mm"))
+        )
+        auto_form.addRow("bis", self.mute_to_time)
         layout.addWidget(auto_group)
 
+        # --- Chat-Filter ---
+        cf_group = QGroupBox("Chat-Filter")
+        cf_form = QFormLayout(cf_group)
+
+        self.chat_filter_enabled = QCheckBox("Chat-Filter aktivieren")
+        self.chat_filter_enabled.setChecked(bool(getattr(s, "chat_filter_enabled", False)))
+        self.chat_filter_enabled.stateChanged.connect(lambda v: self._save_bool("chat_filter_enabled", v))
+        cf_form.addRow("", self.chat_filter_enabled)
+
+        self.chat_highlight_keywords = QLineEdit(getattr(s, "chat_highlight_keywords", "") or "")
+        self.chat_highlight_keywords.setPlaceholderText("Wort1, Wort2, … (Komma-getrennt)")
+        self.chat_highlight_keywords.textChanged.connect(lambda v: self._save_str("chat_highlight_keywords", v))
+        cf_form.addRow("Schlüsselwörter hervorheben", self.chat_highlight_keywords)
+
+        self.blocked_phrases = QTextEdit()
+        self.blocked_phrases.setPlaceholderText("Ein Ausdruck pro Zeile")
+        self.blocked_phrases.setPlainText(getattr(s, "blocked_phrases", "") or "")
+        self.blocked_phrases.setFixedHeight(80)
+        self.blocked_phrases.textChanged.connect(
+            lambda: self._save_str("blocked_phrases", self.blocked_phrases.toPlainText())
+        )
+        cf_form.addRow("Gesperrte Ausdrücke", self.blocked_phrases)
+
+        self.filter_case_insensitive = QCheckBox("Groß-/Kleinschreibung ignorieren")
+        self.filter_case_insensitive.setChecked(bool(getattr(s, "filter_case_insensitive", True)))
+        self.filter_case_insensitive.stateChanged.connect(lambda v: self._save_bool("filter_case_insensitive", v))
+        cf_form.addRow("", self.filter_case_insensitive)
+
+        self.filter_use_regex = QCheckBox("Regex-Muster")
+        self.filter_use_regex.setChecked(bool(getattr(s, "filter_use_regex", False)))
+        self.filter_use_regex.stateChanged.connect(lambda v: self._save_bool("filter_use_regex", v))
+        cf_form.addRow("", self.filter_use_regex)
+        layout.addWidget(cf_group)
+
+        layout.addStretch()
+        scroll.setWidget(inner)
+        return scroll
+
+    # ------------------------------------------------------------------
+    # Aufnahmen
+    # ------------------------------------------------------------------
+
+    def _build_recording_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        s = self.window.settings_store.settings
+
+        grp = QGroupBox("Aufnahmeeinstellungen")
+        form = QFormLayout(grp)
+
+        _FORMAT_LABELS = [
+            "WAV (unkomprimiert)",
+            "MP3 (128 kbps)",
+            "MP3 (256 kbps)",
+            "OGG Vorbis",
+        ]
+        _FORMAT_VALUES = ["wav", "mp3_128", "mp3_256", "ogg"]
+        self.rec_format = QComboBox()
+        self.rec_format.addItems(_FORMAT_LABELS)
+        saved_fmt = getattr(s, "rec_format", "wav") or "wav"
+        self.rec_format.setCurrentIndex(
+            _FORMAT_VALUES.index(saved_fmt) if saved_fmt in _FORMAT_VALUES else 0
+        )
+        self.rec_format.currentIndexChanged.connect(
+            lambda i: self._save_str("rec_format", _FORMAT_VALUES[i])
+        )
+        form.addRow("Aufnahmeformat", self.rec_format)
+
+        self.rec_bitrate_kbps = QSpinBox()
+        self.rec_bitrate_kbps.setRange(64, 320)
+        self.rec_bitrate_kbps.setSuffix(" kbps")
+        self.rec_bitrate_kbps.setValue(int(getattr(s, "rec_bitrate_kbps", 128) or 128))
+        self.rec_bitrate_kbps.valueChanged.connect(lambda v: self._save_int("rec_bitrate_kbps", v))
+        form.addRow("Bitrate (MP3)", self.rec_bitrate_kbps)
+
+        dir_row = QHBoxLayout()
+        self.rec_directory = QLineEdit(getattr(s, "rec_directory", "") or "")
+        self.rec_directory.setPlaceholderText("Aufnahmeverzeichnis …")
+        self.rec_directory.textChanged.connect(lambda v: self._save_str("rec_directory", v))
+        dir_btn = QPushButton("Durchsuchen")
+        dir_btn.clicked.connect(self._browse_rec_directory)
+        dir_row.addWidget(self.rec_directory, 1)
+        dir_row.addWidget(dir_btn)
+        form.addRow("Aufnahmeverzeichnis", dir_row)
+
+        self.rec_filename_pattern = QLineEdit(
+            getattr(s, "rec_filename_pattern", "{date}_{server}_{channel}") or "{date}_{server}_{channel}"
+        )
+        self.rec_filename_pattern.setPlaceholderText("{date}_{server}_{channel}")
+        self.rec_filename_pattern.textChanged.connect(lambda v: self._save_str("rec_filename_pattern", v))
+        form.addRow("Dateinamen-Muster", self.rec_filename_pattern)
+
+        self.rec_include_self = QCheckBox("Eigene Stimme aufnehmen")
+        self.rec_include_self.setChecked(bool(getattr(s, "rec_include_self", True)))
+        self.rec_include_self.stateChanged.connect(lambda v: self._save_bool("rec_include_self", v))
+        form.addRow("", self.rec_include_self)
+
+        self.rec_auto_start = QCheckBox("Bei Verbindung automatisch aufnehmen")
+        self.rec_auto_start.setChecked(bool(getattr(s, "rec_auto_start", False)))
+        self.rec_auto_start.stateChanged.connect(lambda v: self._save_bool("rec_auto_start", v))
+        form.addRow("", self.rec_auto_start)
+
+        self.rec_segment_minutes = QSpinBox()
+        self.rec_segment_minutes.setRange(0, 120)
+        self.rec_segment_minutes.setSuffix(" min (0 = deaktiviert)")
+        self.rec_segment_minutes.setValue(int(getattr(s, "rec_segment_minutes", 0) or 0))
+        self.rec_segment_minutes.valueChanged.connect(lambda v: self._save_int("rec_segment_minutes", v))
+        form.addRow("Aufnahmen segmentieren alle", self.rec_segment_minutes)
+
+        self.rec_skip_silence = QCheckBox("Stille erkennen und ignorieren")
+        self.rec_skip_silence.setChecked(bool(getattr(s, "rec_skip_silence", False)))
+        self.rec_skip_silence.stateChanged.connect(lambda v: self._save_bool("rec_skip_silence", v))
+        form.addRow("", self.rec_skip_silence)
+
+        layout.addWidget(grp)
+        layout.addStretch()
+        scroll.setWidget(inner)
+        return scroll
+
+    def _browse_rec_directory(self) -> None:
+        path = QFileDialog.getExistingDirectory(self, "Aufnahmeverzeichnis wählen", "")
+        if path:
+            self.rec_directory.setText(path)
+
+    # ------------------------------------------------------------------
+    # Braille
+    # ------------------------------------------------------------------
+
+    def _build_braille_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        s = self.window.settings_store.settings
+
+        grp = QGroupBox("Braillezeilen-Einstellungen")
+        form = QFormLayout(grp)
+
+        self.braille_enabled = QCheckBox("Braillezeile aktiv")
+        self.braille_enabled.setChecked(bool(getattr(s, "braille_enabled", False)))
+        self.braille_enabled.stateChanged.connect(lambda v: self._save_bool("braille_enabled", v))
+        form.addRow("", self.braille_enabled)
+
+        _VERBOSITY_LABELS = ["Kompakt", "Normal", "Ausführlich"]
+        _VERBOSITY_VALUES = ["compact", "normal", "verbose"]
+        self.braille_verbosity = QComboBox()
+        self.braille_verbosity.addItems(_VERBOSITY_LABELS)
+        saved_verb = getattr(s, "braille_verbosity", "normal") or "normal"
+        self.braille_verbosity.setCurrentIndex(
+            _VERBOSITY_VALUES.index(saved_verb) if saved_verb in _VERBOSITY_VALUES else 1
+        )
+        self.braille_verbosity.currentIndexChanged.connect(
+            lambda i: self._save_str("braille_verbosity", _VERBOSITY_VALUES[i])
+        )
+        form.addRow("Ausführlichkeit", self.braille_verbosity)
+
+        self.braille_announce_channel = QCheckBox("Kanalwechsel ansagen")
+        self.braille_announce_channel.setChecked(bool(getattr(s, "braille_announce_channel", True)))
+        self.braille_announce_channel.stateChanged.connect(lambda v: self._save_bool("braille_announce_channel", v))
+        form.addRow("", self.braille_announce_channel)
+
+        self.braille_announce_user = QCheckBox("Nutzerwechsel ansagen")
+        self.braille_announce_user.setChecked(bool(getattr(s, "braille_announce_user", True)))
+        self.braille_announce_user.stateChanged.connect(lambda v: self._save_bool("braille_announce_user", v))
+        form.addRow("", self.braille_announce_user)
+
+        self.braille_read_messages = QCheckBox("Nachrichten vorlesen")
+        self.braille_read_messages.setChecked(bool(getattr(s, "braille_read_messages", True)))
+        self.braille_read_messages.stateChanged.connect(lambda v: self._save_bool("braille_read_messages", v))
+        form.addRow("", self.braille_read_messages)
+
+        self.braille_max_msg_len = QSpinBox()
+        self.braille_max_msg_len.setRange(20, 200)
+        self.braille_max_msg_len.setSuffix(" Zeichen")
+        self.braille_max_msg_len.setValue(int(getattr(s, "braille_max_msg_len", 80) or 80))
+        self.braille_max_msg_len.valueChanged.connect(lambda v: self._save_int("braille_max_msg_len", v))
+        form.addRow("Maximale Nachrichtenlänge", self.braille_max_msg_len)
+
+        layout.addWidget(grp)
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll

@@ -109,6 +109,8 @@ class MainWindow(QMainWindow):
         self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
+        self._speaking_log: List[dict] = []  # {"nick": ..., "ts": ..., "seconds": ...}
+        self._speaking_start: Dict[int, float] = {}  # user_id -> start_time
         self._channel_message_log: List[str] = []
         self._current_channel_name: str = ""
         self._server_session_ids: List[str] = []
@@ -213,6 +215,15 @@ class MainWindow(QMainWindow):
         # Reconnect timer
         self._reconnect_timer = QTimer(self)
         self._reconnect_timer.timeout.connect(self._on_reconnect_tick)
+
+        # Auto-away timer
+        self._away_timer = QTimer(self)
+        self._away_timer.timeout.connect(self._on_away_check)
+        self._away_active = False
+        self._activity_time = time.time()
+        _away_min = int(getattr(_ts, "away_timer", 0) or 0)
+        if _away_min > 0:
+            self._away_timer.start(_away_min * 60 * 1000)
 
         # Start HTTP API if enabled
         if bool(getattr(_ts, "http_api_enabled", False)):
@@ -427,6 +438,9 @@ class MainWindow(QMainWindow):
             self._on_toggle_auto_reconnect,
             bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True)))
         datei.addSeparator()
+        self._fav_menu = datei.addMenu("&Schnellverbindung")
+        self._rebuild_favorites_menu()
+        datei.addSeparator()
         self._add_action(datei, "&TT-Datei öffnen...", self.on_menu_open_tt_file)
         self._add_action(datei, "TT-&URL kopieren", self.copy_tt_url)
         datei.addSeparator()
@@ -448,6 +462,19 @@ class MainWindow(QMainWindow):
         kanal.addSeparator()
         self._add_action(kanal, "&Datei hochladen...", self.on_menu_upload_file)
         self._add_action(kanal, "Datei &herunterladen", self.on_menu_download_file)
+        kanal.addSeparator()
+        stream_m = kanal.addMenu("&Streamen")
+        for _label, _mode in [
+            ("&YouTube/URL...", "url"),
+            ("&SoundCloud...", "soundcloud"),
+            ("&Twitch...", "twitch"),
+            ("&Webradio...", "radio"),
+            ("&Podcast...", "podcast"),
+            ("&Datei...", "file"),
+            ("&Playlist...", "playlist"),
+        ]:
+            self._add_action(stream_m, _label,
+                lambda checked=False, m=_mode: self._on_channel_stream_mode(m))
 
         # --- Benutzer ---
         benutzer = mb.addMenu("&Benutzer")
@@ -466,6 +493,16 @@ class MainWindow(QMainWindow):
         benutzer.addSeparator()
         self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
             self._on_toggle_mute_all, self._mute_all)
+        benutzer.addSeparator()
+        tx_m = benutzer.addMenu("&Sendekontrolle")
+        for _tx_label, _stype in [
+            ("Sprache erlauben/sperren", "voice"),
+            ("Video erlauben/sperren", "video"),
+            ("Desktop erlauben/sperren", "desktop"),
+            ("Mediendatei erlauben/sperren", "media"),
+        ]:
+            self._add_action(tx_m, _tx_label,
+                lambda checked=False, st=_stype: self.on_menu_toggle_user_tx(st))
 
         # --- Profil ---
         profil = mb.addMenu("&Profil")
@@ -511,6 +548,8 @@ class MainWindow(QMainWindow):
         self._add_action(server_m, "&Sperrliste...", self.on_menu_ban_list)
         self._add_action(server_m, "&Administration...", self.on_menu_admin)
         self._add_action(server_m, "Server&eigenschaften...", self.on_menu_server_properties)
+        server_m.addSeparator()
+        self._add_action(server_m, "&Wer-spricht-Protokoll...", self.on_menu_speaking_log)
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
@@ -527,6 +566,12 @@ class MainWindow(QMainWindow):
 
         # --- Hilfe ---
         hlp = mb.addMenu("&Hilfe")
+        self._add_action(hlp, "Logs &exportieren...", self.on_menu_export_logs)
+        self._add_action(hlp, "&Gesundheitsbericht...", self.on_menu_health_report)
+        self._add_action(hlp, "Verbindungs&statistiken...", self.on_menu_client_stats)
+        self._add_action(hlp, "&Gespeicherte Nachrichten...", self.on_menu_saved_messages)
+        self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
+        hlp.addSeparator()
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual)
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
@@ -717,7 +762,30 @@ class MainWindow(QMainWindow):
         self._refresh_channels()
 
     def _on_user_statechange(self, msg) -> None:
-        pass
+        try:
+            tt = self.client.tt
+            user = msg.user
+            uid = int(user.nUserID)
+            nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
+            ustate = int(user.uUserState)
+            voice_flag = int(tt.UserState.USERSTATE_VOICE)
+            is_talking = bool(ustate & voice_flag)
+            if is_talking:
+                if uid not in self._speaking_start:
+                    self._speaking_start[uid] = time.time()
+            else:
+                start = self._speaking_start.pop(uid, None)
+                if start is not None:
+                    duration_s = round(time.time() - start, 1)
+                    self._speaking_log.append({
+                        "nick": nick,
+                        "ts": time.strftime("%H:%M:%S"),
+                        "seconds": duration_s,
+                    })
+                    if len(self._speaking_log) > 200:
+                        self._speaking_log = self._speaking_log[-200:]
+        except Exception:
+            pass
 
     def _on_channel_update(self) -> None:
         self._refresh_channels()
@@ -1015,6 +1083,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def send_chat_message(self, text: str, private: bool = False, target_id: int = 0) -> None:
+        self._reset_away()
         if not self.client.is_connected():
             oq = self._offline_queue
             if private and target_id:
@@ -1384,6 +1453,30 @@ class MainWindow(QMainWindow):
     def _on_reconnect_tick(self) -> None:
         self._reconnect_timer.stop()
         self.reconnect()
+
+    # ------------------------------------------------------------------
+    # Auto-away
+    # ------------------------------------------------------------------
+
+    def _on_away_check(self) -> None:
+        if self._away_active:
+            return
+        try:
+            away_msg = getattr(self.settings_store.settings, "away_status", "") or "Abwesend"
+            self.client.change_status(1, away_msg)
+            self._away_active = True
+            self.set_status(f"Auto-Abwesend: {away_msg}")
+        except Exception:
+            pass
+
+    def _reset_away(self) -> None:
+        if self._away_active:
+            try:
+                self.client.change_status(0, self._status_message)
+                self._away_active = False
+            except Exception:
+                pass
+        self._activity_time = time.time()
 
     # ------------------------------------------------------------------
     # Tab change
@@ -1785,6 +1878,61 @@ class MainWindow(QMainWindow):
         self.edit_server_properties()
 
     # ------------------------------------------------------------------
+    # Favorites / Schnellverbindung
+    # ------------------------------------------------------------------
+
+    def _rebuild_favorites_menu(self) -> None:
+        self._fav_menu.clear()
+        profiles = list(self.store.items())
+        for i, p in enumerate(profiles[:9]):
+            label = getattr(p, "name", "") or getattr(p, "host", f"Server {i + 1}")
+            action = QAction(f"&{i + 1}: {label}", self)
+            action.setShortcut(QKeySequence(f"Ctrl+{i + 1}"))
+            action.triggered.connect(lambda checked=False, pr=p: self.connect_to_server(pr))
+            self._fav_menu.addAction(action)
+        if not profiles:
+            empty_action = self._fav_menu.addAction("(Keine gespeicherten Server)")
+            empty_action.setEnabled(False)
+
+    # ------------------------------------------------------------------
+    # Channel Stream Mode
+    # ------------------------------------------------------------------
+
+    def _on_channel_stream_mode(self, mode: str) -> None:
+        idx = self.notebook.indexOf(self.media_tab)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+        try:
+            self.media_tab.switch_to_mode(mode)
+        except Exception:
+            self.set_status(f"Medien → {mode}")
+
+    # ------------------------------------------------------------------
+    # User Transmission Control
+    # ------------------------------------------------------------------
+
+    def on_menu_toggle_user_tx(self, stream_type: str) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            tt = self.client.tt
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            type_map = {
+                "voice": int(tt.StreamType.STREAMTYPE_VOICE),
+                "video": int(tt.StreamType.STREAMTYPE_VIDEOCAPTURE),
+                "desktop": int(tt.StreamType.STREAMTYPE_DESKTOP),
+                "media": int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO),
+            }
+            st = type_map.get(stream_type, 0)
+            if st and ch_id:
+                self.client.do_channel_user_transmit(uid, ch_id, st)
+                self.set_status(f"Sendekontrolle {stream_type} für User#{uid} umgeschaltet")
+        except Exception as exc:
+            self.set_status(f"Sendekontrolle Fehler: {exc}")
+
+    # ------------------------------------------------------------------
     # Automation-Menü
     # ------------------------------------------------------------------
 
@@ -1843,8 +1991,13 @@ class MainWindow(QMainWindow):
         dlg.exec()
 
     def on_menu_server_stats(self) -> None:
-        from ui_qt.dialogs import ServerStatisticsDialog
-        dlg = ServerStatisticsDialog(self, self.client)
+        from ui_qt.dialogs import ServerStatsDialog
+        dlg = ServerStatsDialog(self, self.client)
+        dlg.exec()
+
+    def on_menu_speaking_log(self) -> None:
+        from ui_qt.dialogs import SpeakingLogDialog
+        dlg = SpeakingLogDialog(self, self._speaking_log)
         dlg.exec()
 
     def on_menu_ban_list(self) -> None:
@@ -1882,6 +2035,109 @@ class MainWindow(QMainWindow):
             f"© Flarion (Florian Lichteblau)\n"
             f"Plattform: {platform_info()}"
         )
+
+    # ------------------------------------------------------------------
+    # Hilfe-Menü
+    # ------------------------------------------------------------------
+
+    def on_menu_export_logs(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Logs exportieren", "client.log", "Logdateien (*.log *.txt)"
+        )
+        if path:
+            try:
+                import shutil
+                shutil.copy(self.logger.path, path)
+                self.set_status(f"Log exportiert: {path}")
+            except Exception as exc:
+                self.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def on_menu_health_report(self) -> None:
+        try:
+            results = self._health.run_all()
+            lines = [
+                f"{k}: {'OK' if v.ok else 'FEHLER — ' + v.message}"
+                for k, v in results.items()
+            ]
+            report = "\n".join(lines) or "Keine Prüfungen registriert"
+        except Exception as exc:
+            report = f"Fehler: {exc}"
+        QMessageBox.information(self, "Gesundheitsbericht", report)
+
+    def on_menu_client_stats(self) -> None:
+        from PySide6.QtWidgets import QDialogButtonBox
+        try:
+            stats = self.client.get_client_statistics()
+            lines = []
+            for attr in dir(stats):
+                if attr.startswith("n") or attr.startswith("f"):
+                    try:
+                        lines.append(f"{attr}: {getattr(stats, attr)}")
+                    except Exception:
+                        pass
+            text = "\n".join(lines[:30]) or "Keine Statistiken verfügbar"
+        except Exception as exc:
+            text = f"Fehler: {exc}"
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Verbindungsstatistiken")
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        te.setPlainText(text)
+        layout.addWidget(te)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.resize(400, 300)
+        dlg.exec()
+
+    def on_menu_saved_messages(self) -> None:
+        from PySide6.QtWidgets import QListWidget, QDialogButtonBox
+        try:
+            msgs = self._saved_messages.get_all()
+        except Exception:
+            msgs = []
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Gespeicherte Nachrichten")
+        layout = QVBoxLayout(dlg)
+        lw = QListWidget()
+        for m in (msgs or []):
+            lw.addItem(str(m)[:120])
+        layout.addWidget(lw, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.resize(500, 350)
+        dlg.exec()
+
+    def on_menu_check_updates(self) -> None:
+        self.set_status("Update-Prüfung gestartet...")
+        import threading
+
+        def worker():
+            try:
+                import urllib.request
+                import json as _json
+                TOKEN = _upd_tok()
+                url = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
+                req = urllib.request.Request(url, headers={"Authorization": f"token {TOKEN}"})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    data = _json.loads(r.read())
+                latest = data.get("tag_name", "").lstrip("v")
+                if latest and latest > APP_VERSION:
+                    call_after(lambda: QMessageBox.information(
+                        self, "Update verfügbar",
+                        f"Version {latest} ist verfügbar.\nAktuelle Version: {APP_VERSION}"
+                    ))
+                else:
+                    call_after(lambda: self.set_status(
+                        f"Kein Update verfügbar (aktuell: {APP_VERSION})"
+                    ))
+            except Exception as exc:
+                call_after(lambda: self.set_status(f"Update-Prüfung fehlgeschlagen: {exc}"))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     # ------------------------------------------------------------------
     # Transcription

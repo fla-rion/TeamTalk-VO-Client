@@ -357,6 +357,31 @@ class SQLiteSettingsStore:
         s.server_audio_profiles = _dict("server_audio_profiles")
         # v6.7.0
         s.auto_channel_summary = _bool("auto_channel_summary", False)
+        # v6.7.x – recording tab
+        s.rec_format = _str("rec_format", "wav")
+        s.rec_bitrate_kbps = _int("rec_bitrate_kbps", 128)
+        s.rec_directory = _str("rec_directory", "")
+        s.rec_filename_pattern = _str("rec_filename_pattern", "{date}_{server}_{channel}")
+        s.rec_include_self = _bool("rec_include_self", True)
+        s.rec_auto_start = _bool("rec_auto_start", False)
+        s.rec_segment_minutes = _int("rec_segment_minutes", 0)
+        s.rec_skip_silence = _bool("rec_skip_silence", False)
+        # v6.7.x – braille tab
+        s.braille_enabled = _bool("braille_enabled", False)
+        s.braille_announce_channel = _bool("braille_announce_channel", True)
+        s.braille_announce_user = _bool("braille_announce_user", True)
+        s.braille_read_messages = _bool("braille_read_messages", True)
+        s.braille_max_msg_len = _int("braille_max_msg_len", 80)
+        # v6.7.x – chat filter tab extensions
+        s.chat_filter_enabled = _bool("chat_filter_enabled", False)
+        s.blocked_phrases = _str("blocked_phrases", "")
+        s.filter_case_insensitive = _bool("filter_case_insensitive", True)
+        s.filter_use_regex = _bool("filter_use_regex", False)
+        # v6.7.x – mute scheduler
+        s.mute_scheduler_enabled = _bool("mute_scheduler_enabled", False)
+        s.mute_from_time = _str("mute_from_time", "22:00")
+        s.mute_to_time = _str("mute_to_time", "07:00")
+        s.auto_reply_text = _str("auto_reply_text", "Ich bin gerade nicht erreichbar.")
 
     def save(self) -> None:
         s = self.settings
@@ -524,6 +549,31 @@ class SQLiteSettingsStore:
         _set("server_audio_profiles", dict(getattr(s, "server_audio_profiles", {}) or {}))
         # v6.7.0
         _set("auto_channel_summary", bool(getattr(s, "auto_channel_summary", False)))
+        # v6.7.x – recording tab
+        _set("rec_format", str(getattr(s, "rec_format", "wav") or "wav"))
+        _set("rec_bitrate_kbps", int(getattr(s, "rec_bitrate_kbps", 128) or 128))
+        _set("rec_directory", str(getattr(s, "rec_directory", "") or ""))
+        _set("rec_filename_pattern", str(getattr(s, "rec_filename_pattern", "{date}_{server}_{channel}") or "{date}_{server}_{channel}"))
+        _set("rec_include_self", bool(getattr(s, "rec_include_self", True)))
+        _set("rec_auto_start", bool(getattr(s, "rec_auto_start", False)))
+        _set("rec_segment_minutes", int(getattr(s, "rec_segment_minutes", 0) or 0))
+        _set("rec_skip_silence", bool(getattr(s, "rec_skip_silence", False)))
+        # v6.7.x – braille tab
+        _set("braille_enabled", bool(getattr(s, "braille_enabled", False)))
+        _set("braille_announce_channel", bool(getattr(s, "braille_announce_channel", True)))
+        _set("braille_announce_user", bool(getattr(s, "braille_announce_user", True)))
+        _set("braille_read_messages", bool(getattr(s, "braille_read_messages", True)))
+        _set("braille_max_msg_len", int(getattr(s, "braille_max_msg_len", 80) or 80))
+        # v6.7.x – chat filter tab extensions
+        _set("chat_filter_enabled", bool(getattr(s, "chat_filter_enabled", False)))
+        _set("blocked_phrases", str(getattr(s, "blocked_phrases", "") or ""))
+        _set("filter_case_insensitive", bool(getattr(s, "filter_case_insensitive", True)))
+        _set("filter_use_regex", bool(getattr(s, "filter_use_regex", False)))
+        # v6.7.x – mute scheduler
+        _set("mute_scheduler_enabled", bool(getattr(s, "mute_scheduler_enabled", False)))
+        _set("mute_from_time", str(getattr(s, "mute_from_time", "22:00") or "22:00"))
+        _set("mute_to_time", str(getattr(s, "mute_to_time", "07:00") or "07:00"))
+        _set("auto_reply_text", str(getattr(s, "auto_reply_text", "") or ""))
 
         db.commit()
 
