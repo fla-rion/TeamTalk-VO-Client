@@ -33,7 +33,7 @@ from ai_summary import ChatSummaryManager
 from gemini_auth import GeminiAuthManager
 from ui_qt.tray import TrayIcon
 from ui_qt.call_after import call_after
-from ui_qt.tabs.connection import ConnectionTab
+from ui_qt.connect_dialog import ConnectDialog
 from ui_qt.tabs.channels_chat import ChannelsChatTab
 from ui_qt.tabs.media import MediaTab
 from ui_qt.tabs.files import FilesTab
@@ -210,11 +210,6 @@ class MainWindow(QMainWindow):
         self.setStatusBar(self._status_bar)
         self._status_bar.showMessage(f"TeamTalk VoiceOver Client {APP_VERSION}")
 
-        # Start TT event loop
-        self._tt_event_timer = QTimer(self)
-        self._tt_event_timer.timeout.connect(self._poll_tt_events)
-        self._tt_event_timer.start(50)
-
         # Reconnect timer
         self._reconnect_timer = QTimer(self)
         self._reconnect_timer.timeout.connect(self._on_reconnect_tick)
@@ -246,35 +241,26 @@ class MainWindow(QMainWindow):
         root = QVBoxLayout(central)
         root.setContentsMargins(4, 4, 4, 4)
 
-        # Server switcher bar
-        srv_bar = QHBoxLayout()
-        srv_bar.addWidget(QLabel("Server:"))
-        self.server_choice = QComboBox()
-        self.server_choice.setMinimumWidth(200)
-        self.server_choice.currentIndexChanged.connect(self._on_server_choice_changed)
-        self._srv_connect_btn = QPushButton("&Verbinden")
-        self._srv_connect_btn.clicked.connect(lambda: self.on_menu_connect())
+        # Connection status bar (shows current server + quick disconnect)
+        status_bar = QHBoxLayout()
+        self._conn_label = QLabel("Nicht verbunden")
         self._srv_disconnect_btn = QPushButton("&Trennen")
-        self._srv_disconnect_btn.clicked.connect(lambda: self.on_menu_disconnect())
-        srv_bar.addWidget(self.server_choice, 1)
-        srv_bar.addWidget(self._srv_connect_btn)
-        srv_bar.addWidget(self._srv_disconnect_btn)
-        root.addLayout(srv_bar)
+        self._srv_disconnect_btn.clicked.connect(self.on_menu_disconnect)
+        self._srv_disconnect_btn.setEnabled(False)
+        status_bar.addWidget(self._conn_label, 1)
+        status_bar.addWidget(self._srv_disconnect_btn)
+        root.addLayout(status_bar)
 
-        # Tab widget
+        # Tab widget — no connection tab, starts with channels
         self.notebook = QTabWidget()
         self.notebook.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self.notebook, 1)
 
-        # Connection tab
-        self.connection_tab = ConnectionTab(self.notebook, self)
-        self.notebook.addTab(self.connection_tab, "Verbindung")
-
-        # Channels+Chat
+        # Channels + Chat (first tab — main view when connected)
         self._cc_tab = ChannelsChatTab(self.notebook, self)
         self.channels_tab = self._cc_tab.channels_tab
         self.chat_tab = self._cc_tab.chat_tab
-        self.notebook.addTab(self._cc_tab, "Kanäle & Chat")
+        self.notebook.addTab(self._cc_tab, "Kanäle && Chat")
 
         # Media
         self.media_tab = MediaTab(self.notebook, self)
@@ -307,41 +293,127 @@ class MainWindow(QMainWindow):
     def _build_menu(self) -> None:
         mb = self.menuBar()
 
-        # Server menu
-        srv = mb.addMenu("&Server")
-        self._add_action(srv, "&Verbinden...", self.on_menu_connect, "Ctrl+Return")
-        self._add_action(srv, "&Trennen", self.on_menu_disconnect)
-        srv.addSeparator()
-        self._add_action(srv, "&Kanal beitreten", self.on_menu_join_channel)
-        self._add_action(srv, "Root-&Kanal", self.on_menu_join_root)
-        self._add_action(srv, "Kanal &verlassen", self.on_menu_leave_channel)
-        srv.addSeparator()
-        self._add_action(srv, "&Status ändern...", self.on_menu_status)
-        self._add_action(srv, "&Beenden", self.force_close, "Ctrl+Q")
+        # --- Datei ---
+        datei = mb.addMenu("&Datei")
+        self._add_action(datei, "&Verbinden...", self.on_menu_connect, "Ctrl+Return")
+        self._add_action(datei, "&Trennen", self.on_menu_disconnect)
+        self._add_action(datei, "Neu &verbinden", self.reconnect)
+        self._auto_reconnect_action = self._add_checkable(datei, "Auto-&Reconnect",
+            self._on_toggle_auto_reconnect,
+            bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True)))
+        datei.addSeparator()
+        self._add_action(datei, "&TT-Datei öffnen...", self.on_menu_open_tt_file)
+        self._add_action(datei, "TT-&URL kopieren", self.copy_tt_url)
+        datei.addSeparator()
+        self._add_action(datei, "&Beenden", self.force_close, "Ctrl+Q")
 
-        # Tools menu
-        tools = mb.addMenu("&Werkzeuge")
-        self._add_action(tools, "&TTS-Mitschrift...", self.on_menu_tts_transcript)
-        self._add_action(tools, "&Chat-Suche...", self.on_menu_chat_search)
-        self._add_action(tools, "&Nutzerwatcher...", self.on_menu_user_watcher)
-        self._add_action(tools, "&Offline-Warteschlange...", self.on_menu_offline_queue)
-        self._add_action(tools, "&Per-Server-Soundprofile...", self.on_menu_server_audio_profiles)
-        tools.addSeparator()
-        self._add_action(tools, "&Online-Nutzer...", self.on_menu_online_users)
-        self._add_action(tools, "&Server-Statistiken...", self.on_menu_server_stats)
-        self._add_action(tools, "&Sperrliste...", self.on_menu_ban_list)
-        tools.addSeparator()
-        self._add_action(tools, "&Makro-Manager...", self.on_menu_macros)
+        # --- Kanal ---
+        kanal = mb.addMenu("&Kanal")
+        self._add_action(kanal, "Kanal &beitreten", self.on_menu_join_channel)
+        self._add_action(kanal, "&Root-Kanal beitreten", self.on_menu_join_root)
+        self._add_action(kanal, "Kanal &verlassen", self.on_menu_leave_channel)
+        kanal.addSeparator()
+        self._add_action(kanal, "Kanal &erstellen...", self.on_menu_create_channel)
+        self._add_action(kanal, "Kanal &bearbeiten...", self.on_menu_edit_channel)
+        self._add_action(kanal, "Kanal &löschen", self.on_menu_delete_channel)
+        kanal.addSeparator()
+        self._add_action(kanal, "Kanal&info vorlesen", self.on_menu_channel_info)
+        self._add_action(kanal, "Kanal-&Notiz bearbeiten...", self.on_menu_channel_note)
+        self._add_action(kanal, "Kanal&nachricht senden...", self.on_menu_send_channel_msg)
+        kanal.addSeparator()
+        self._add_action(kanal, "&Datei hochladen...", self.on_menu_upload_file)
+        self._add_action(kanal, "Datei &herunterladen", self.on_menu_download_file)
 
-        # View menu
-        view = mb.addMenu("&Ansicht")
-        self._add_action(view, "&Einstellungen...", self.on_menu_settings, "Ctrl+,")
-        self._add_action(view, "&Verbindung...", self.on_menu_connection_window)
+        # --- Benutzer ---
+        benutzer = mb.addMenu("&Benutzer")
+        self._add_action(benutzer, "&Benutzerinfo vorlesen", self.on_menu_user_info)
+        self._add_action(benutzer, "&Private Nachricht...", self.on_menu_private_msg)
+        benutzer.addSeparator()
+        self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice)
+        self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
+        benutzer.addSeparator()
+        self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick)
+        self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban)
+        self._add_action(benutzer, "Vom &Server kicken", self.on_menu_kick_server)
+        benutzer.addSeparator()
+        self._add_action(benutzer, "Benutzer &verschieben", self.on_menu_move_user)
+        self._add_action(benutzer, "&Operator geben/nehmen", self.on_menu_toggle_operator)
+        benutzer.addSeparator()
+        self._all_mute_action = self._add_checkable(benutzer, "Alle &stummschalten",
+            self._on_toggle_mute_all, self._mute_all)
 
-        # Help menu
+        # --- Profil ---
+        profil = mb.addMenu("&Profil")
+        self._add_action(profil, "&Nickname ändern...", self.on_menu_change_nick)
+        self._add_action(profil, "&Status setzen...", self.on_menu_status)
+        profil.addSeparator()
+        self._self_hear_action = self._add_checkable(profil, "Mich selbst &hören",
+            self._on_toggle_self_hear,
+            bool(getattr(self.settings_store.settings, "self_hear", False)))
+        self._question_mode_action = self._add_checkable(profil, "&Frage-Modus",
+            self._on_toggle_question_mode, False)
+        profil.addSeparator()
+        self._add_action(profil, "TTS-&Mitschrift...", self.on_menu_tts_transcript)
+
+        # --- Audio ---
+        audio_m = mb.addMenu("&Audio")
+        self._ptt_action = self._add_checkable(audio_m, "&Push-to-Talk",
+            self._on_toggle_ptt,
+            bool(getattr(self.settings_store.settings, "ptt_enabled", False)))
+        self._va_action = self._add_checkable(audio_m, "&Sprachaktivierung",
+            self._on_toggle_va,
+            bool(getattr(self.settings_store.settings, "voice_activation", False)))
+        audio_m.addSeparator()
+        self._add_action(audio_m, "Audio-Einstellungen...", self.on_menu_audio_settings)
+        self._add_action(audio_m, "Audio &anwenden", self.apply_audio_prefs)
+        audio_m.addSeparator()
+        self._add_action(audio_m, "&Equalizer-Voreinstellungen...", self.on_menu_equalizer)
+        self._add_action(audio_m, "&Per-Server-Soundprofile...", self.on_menu_server_audio_profiles)
+
+        # --- Aufnahmen ---
+        aufn = mb.addMenu("A&ufnahmen")
+        self._add_action(aufn, "Aufnahme &starten...", self.on_menu_start_recording)
+        self._add_action(aufn, "Aufnahme &stoppen", self.on_menu_stop_recording)
+        aufn.addSeparator()
+        self._add_action(aufn, "Konversationen au&fzeichnen...", self.on_menu_user_recording)
+
+        # --- Server ---
+        server_m = mb.addMenu("&Server")
+        self._add_action(server_m, "&Online-Nutzer...", self.on_menu_online_users)
+        self._add_action(server_m, "Server&nachricht senden...", self.on_menu_server_message)
+        self._add_action(server_m, "Server-&Statistiken...", self.on_menu_server_stats)
+        server_m.addSeparator()
+        self._add_action(server_m, "&Sperrliste...", self.on_menu_ban_list)
+        self._add_action(server_m, "&Administration...", self.on_menu_admin)
+        self._add_action(server_m, "Server&eigenschaften...", self.on_menu_server_properties)
+
+        # --- Automation ---
+        auto_m = mb.addMenu("A&utomation")
+        self._add_action(auto_m, "&Makro-Manager...", self.on_menu_macros)
+        self._add_action(auto_m, "&Chat-Suche...", self.on_menu_chat_search)
+        self._add_action(auto_m, "&Nutzerwatcher...", self.on_menu_user_watcher)
+        self._add_action(auto_m, "&Offline-Warteschlange...", self.on_menu_offline_queue)
+        auto_m.addSeparator()
+        self._translation_action = self._add_checkable(auto_m, "Chat-&Übersetzung",
+            self._on_toggle_translation,
+            bool(getattr(self.settings_store.settings, "translation_enabled", False)))
+        auto_m.addSeparator()
+        self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "Ctrl+,")
+
+        # --- Hilfe ---
         hlp = mb.addMenu("&Hilfe")
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual)
+        self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
+        hlp.addSeparator()
         self._add_action(hlp, "&Info...", self.on_menu_about)
+
+    def _add_checkable(self, menu: QMenu, label: str, slot, checked: bool = False) -> QAction:
+        action = QAction(label, self)
+        action.setCheckable(True)
+        action.setChecked(checked)
+        action.triggered.connect(slot)
+        menu.addAction(action)
+        return action
 
     def _add_action(self, menu: QMenu, label: str, slot, shortcut: str = "") -> QAction:
         action = QAction(label, self)
@@ -375,32 +447,15 @@ class MainWindow(QMainWindow):
             self.system_tab.append_system(text)
 
     # ------------------------------------------------------------------
-    # TeamTalk Event Loop
+    # TeamTalk Event Loop (driven by client.start_event_loop)
     # ------------------------------------------------------------------
-
-    def _poll_tt_events(self) -> None:
-        try:
-            msgs = self.client.get_messages(max_count=32, timeout_ms=0)
-        except Exception:
-            return
-        for msg in (msgs or []):
-            try:
-                self._handle_tt_message(msg)
-            except Exception:
-                pass
 
     def _handle_tt_message(self, msg) -> None:
         tt = self.client.tt
         mtype = int(msg.nClientEvent)
 
-        if mtype == int(tt.ClientEvent.CLIENTEVENT_CON_SUCCESS):
-            call_after(self._on_connected)
-        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CON_FAILED):
-            call_after(self._on_connect_failed)
-        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CON_LOST):
+        if mtype == int(tt.ClientEvent.CLIENTEVENT_CON_LOST):
             call_after(self._on_connection_lost)
-        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN):
-            call_after(self._on_logged_in, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDOUT):
             call_after(self._on_logged_out)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_NEW):
@@ -442,26 +497,12 @@ class MainWindow(QMainWindow):
     # Connection Events
     # ------------------------------------------------------------------
 
-    def _on_connected(self) -> None:
-        self.set_status("Verbunden, melde an...")
-        profile = getattr(self, "_last_profile", None)
-        if profile:
-            try:
-                self.client.login(
-                    profile.nickname,
-                    profile.username,
-                    profile.password,
-                    profile.client_name,
-                )
-            except Exception as exc:
-                self.set_status(f"Login fehlgeschlagen: {exc}")
-
-    def _on_connect_failed(self) -> None:
-        self.set_status("Verbindung fehlgeschlagen")
-        if self._auto_reconnect:
-            self._schedule_reconnect()
+    def _update_conn_bar(self, text: str, connected: bool = False) -> None:
+        self._conn_label.setText(text)
+        self._srv_disconnect_btn.setEnabled(connected)
 
     def _on_connection_lost(self) -> None:
+        self._update_conn_bar("Verbindung verloren")
         self.set_status("Verbindung verloren")
         self.tts.speak("Verbindung verloren", kind="system")
         self.sound_manager.play("server_disconnect")
@@ -469,37 +510,37 @@ class MainWindow(QMainWindow):
         if self._auto_reconnect:
             self._schedule_reconnect()
 
-    def _on_logged_in(self, msg) -> None:
-        self.set_status("Angemeldet")
-        self.tts.speak("Angemeldet", kind="system")
-        self.sound_manager.play("server_connect")
-        self._audit_log.log(A_SERVER_CONNECT)
-        self._drain_offline_queue()
-        profile = getattr(self, "_last_profile", None)
-        if profile:
-            try:
-                root_id = self.client.get_root_channel_id()
-                if root_id:
-                    join_ch = getattr(profile, "channel", "") or ""
-                    if join_ch:
-                        self._join_channel_by_path(join_ch)
-                    else:
-                        self.client.join_channel_by_id(root_id, "")
-            except Exception as exc:
-                self.logger.write(f"Auto-join fehlgeschlagen: {exc}")
-        self._refresh_channels()
+    def _handle_connect_result(self, result) -> None:
+        if result.ok:
+            profile = getattr(self, "_last_profile", None)
+            server_name = (getattr(profile, "name", "") or getattr(profile, "host", "Server")) if profile else "Server"
+            nick = getattr(profile, "nickname", "") if profile else ""
+            self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
+            self.set_status(f"Angemeldet an {server_name}")
+            self.tts.speak("Angemeldet", kind="system")
+            self.sound_manager.play("server_connect")
+            self._audit_log.log(A_SERVER_CONNECT)
+            self._drain_offline_queue()
+            self._refresh_channels()
+            self.client.start_event_loop(self._handle_tt_message)
+        else:
+            self._update_conn_bar("Verbindung fehlgeschlagen")
+            self.set_status(result.message)
+            if self._auto_reconnect:
+                self._schedule_reconnect()
 
     def _on_logged_out(self) -> None:
+        self._update_conn_bar("Nicht verbunden")
         self.set_status("Abgemeldet")
         self._refresh_channels()
 
-    def _join_channel_by_path(self, path: str) -> None:
+    def _join_channel_by_path(self, path: str, password: str = "") -> None:
         try:
             channels = list(self.client.get_server_channels() or [])
             for ch in channels:
                 name = self.tt_str(ch.szName)
                 if name == path or f"/{name}" == path:
-                    self.client.join_channel_by_id(int(ch.nChannelID), "")
+                    self.client.join_channel_by_id(int(ch.nChannelID), password)
                     return
         except Exception:
             pass
@@ -698,25 +739,45 @@ class MainWindow(QMainWindow):
 
     def connect_to_server(self, profile) -> None:
         self._last_profile = profile
-        try:
-            self.client.connect(
-                profile.host,
-                profile.tcp_port,
-                profile.udp_port,
-                profile.encrypted,
+        self.set_status(f"Verbinde mit {profile.host}:{profile.tcp_port}...")
+        self._update_conn_bar(f"Verbinde mit {profile.host}...")
+
+        def worker():
+            try:
+                self.client.stop_event_loop_and_wait()
+            except Exception:
+                pass
+            result = self.client.connect_and_login(
+                host=profile.host,
+                tcp_port=int(getattr(profile, "tcp_port", 10333) or 10333),
+                udp_port=int(getattr(profile, "udp_port", 10333) or 10333),
+                nickname=getattr(profile, "nickname", "") or "Gast",
+                username=getattr(profile, "username", "") or "",
+                password=getattr(profile, "password", "") or "",
+                client_name="TeamTalk VO Client",
+                encrypted=bool(getattr(profile, "encrypted", False)),
+                timeout_ms=8000,
             )
-            self.set_status(f"Verbinde mit {profile.host}:{profile.tcp_port}...")
-        except Exception as exc:
-            self.set_status(f"Verbindungsfehler: {exc}")
+            if result.ok:
+                join_ch = getattr(profile, "channel", "") or ""
+                ch_pw = getattr(profile, "channel_password", "") or ""
+                try:
+                    if join_ch:
+                        self.client.join_channel_by_path(join_ch, ch_pw)
+                    else:
+                        root_id = self.client.get_root_channel_id()
+                        if root_id:
+                            self.client.join_channel_by_id(root_id, "")
+                except Exception as exc:
+                    self.logger.write(f"Auto-join fehlgeschlagen: {exc}")
+            call_after(self._handle_connect_result, result)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def reconnect(self) -> None:
         profile = getattr(self, "_last_profile", None)
         if profile:
-            try:
-                self.client.disconnect()
-            except Exception:
-                pass
-            QTimer.singleShot(500, lambda: self.connect_to_server(profile))
+            self.connect_to_server(profile)
 
     def join_channel(self, channel_id: int, password: str = "") -> None:
         def _worker():
@@ -741,6 +802,10 @@ class MainWindow(QMainWindow):
             pass
 
     def logout(self) -> None:
+        try:
+            self.client.stop_event_loop()
+        except Exception:
+            pass
         try:
             self.client.logout()
         except Exception:
@@ -1021,7 +1086,7 @@ class MainWindow(QMainWindow):
         ip, ok = QInputDialog.getText(self, "IP-Adresse bannen", "IP-Adresse:")
         if ok and ip:
             try:
-                self.client.ban_user_by_ip(ip)
+                self.client.do_ban_ip_address(ip)
                 self.set_status(f"IP gebannt: {ip}")
             except Exception as exc:
                 self.set_status(f"Bannen fehlgeschlagen: {exc}")
@@ -1125,15 +1190,18 @@ class MainWindow(QMainWindow):
 
     def kick_user(self, user_id: int) -> None:
         try:
-            self.client.kick_user(user_id, 0)
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            self.client.do_kick_user(user_id, ch_id)
         except Exception as exc:
             self.set_status(f"Kick fehlgeschlagen: {exc}")
 
     def mute_user(self, user_id: int) -> None:
         try:
-            muted = user_id not in self._user_volume_levels or self._user_volume_levels[user_id] > 0
-            self.client.set_user_volume(user_id, 0 if muted else 100)
-            self._user_volume_levels[user_id] = 0 if muted else 100
+            tt = self.client.tt
+            stream_type = int(tt.StreamType.STREAMTYPE_VOICE)
+            muted = self._user_volume_levels.get(user_id, 1) > 0
+            self.client.set_user_mute(user_id, stream_type, muted)
+            self._user_volume_levels[user_id] = 0 if muted else 16384
         except Exception:
             pass
 
@@ -1195,18 +1263,43 @@ class MainWindow(QMainWindow):
     # Menu handlers
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Datei-Menü
+    # ------------------------------------------------------------------
+
     def on_menu_connect(self) -> None:
-        profile = self.connection_tab.profile_from_form()
-        if profile:
-            self.connect_to_server(profile)
+        dlg = ConnectDialog(self)
+        dlg.exec()
 
     def on_menu_disconnect(self) -> None:
+        self._update_conn_bar("Nicht verbunden")
         self.logout()
 
+    def on_menu_open_tt_file(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(
+            self, "TeamTalk-Datei öffnen", "", "TeamTalk-Dateien (*.tt);;Alle Dateien (*.*)"
+        )
+        if path:
+            self.import_tt_file(path)
+
+    def _on_toggle_auto_reconnect(self, checked: bool) -> None:
+        self._auto_reconnect = checked
+        try:
+            self.settings_store.settings.auto_reconnect_enabled = checked
+            self.settings_store.save()
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Kanal-Menü
+    # ------------------------------------------------------------------
+
     def on_menu_join_channel(self) -> None:
-        row = self.channels_tab.channel_list.currentRow()
-        if row >= 0:
+        try:
             self.channels_tab._on_join_btn()
+        except Exception:
+            pass
 
     def on_menu_join_root(self) -> None:
         self.join_root_channel()
@@ -1214,13 +1307,326 @@ class MainWindow(QMainWindow):
     def on_menu_leave_channel(self) -> None:
         self.leave_channel()
 
+    def on_menu_create_channel(self) -> None:
+        self.set_status("Kanal erstellen: nicht implementiert")
+
+    def on_menu_edit_channel(self) -> None:
+        self.set_status("Kanal bearbeiten: nicht implementiert")
+
+    def on_menu_delete_channel(self) -> None:
+        self.set_status("Kanal löschen: nicht implementiert")
+
+    def on_menu_channel_info(self) -> None:
+        try:
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            if not ch_id:
+                self.set_status("Kein Kanal")
+                return
+            ch = self.client.get_channel(ch_id)
+            if ch:
+                name = self.tt_str(ch.szName)
+                topic = self.tt_str(ch.szTopic)
+                info = f"Kanal: {name}"
+                if topic:
+                    info += f"  Thema: {topic}"
+                self.tts.speak(info, kind="system")
+                self.set_status(info)
+        except Exception as exc:
+            self.set_status(f"Kanalinfo Fehler: {exc}")
+
+    def on_menu_channel_note(self) -> None:
+        ch_id = int(self.client.get_my_channel_id() or 0)
+        key = f"channel_note_{ch_id}"
+        current = getattr(self.settings_store.settings, key, "") or ""
+        text, ok = QInputDialog.getMultiLineText(self, "Kanal-Notiz", "Notiz:", current)
+        if ok:
+            try:
+                setattr(self.settings_store.settings, key, text)
+                self.settings_store.save()
+                self.set_status("Kanal-Notiz gespeichert")
+            except Exception:
+                pass
+
+    def on_menu_send_channel_msg(self) -> None:
+        text, ok = QInputDialog.getText(self, "Kanalnachricht", "Nachricht:")
+        if ok and text:
+            self.send_chat_message(text)
+
+    def on_menu_upload_file(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getOpenFileName(self, "Datei hochladen", "", "Alle Dateien (*.*)")
+        if path:
+            self.upload_file(path)
+
+    def on_menu_download_file(self) -> None:
+        try:
+            self.files_tab._on_download()
+        except Exception:
+            self.set_status("Datei herunterladen: Dateien-Tab öffnen")
+
+    # ------------------------------------------------------------------
+    # Benutzer-Menü
+    # ------------------------------------------------------------------
+
+    def _get_selected_user_id(self) -> int:
+        try:
+            return self.channels_tab.get_selected_user_id() or 0
+        except Exception:
+            return 0
+
+    def on_menu_user_info(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            user = self.client.get_user(uid)
+            if user:
+                nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername)
+                ch_id = int(user.nChannelID)
+                info = f"Benutzer: {nick}, Kanal-ID: {ch_id}"
+                self.tts.speak(info, kind="system")
+                self.set_status(info)
+        except Exception as exc:
+            self.set_status(f"Benutzerinfo Fehler: {exc}")
+
+    def on_menu_private_msg(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        text, ok = QInputDialog.getText(self, "Private Nachricht", "Nachricht:")
+        if ok and text:
+            self.send_chat_message(text, private=True, target_id=uid)
+
+    def on_menu_mute_voice(self) -> None:
+        uid = self._get_selected_user_id()
+        if uid:
+            self.mute_user(uid)
+
+    def on_menu_user_volume(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        current = self._user_volume_levels.get(uid, 16384)
+        vol, ok = QInputDialog.getInt(self, "Lautstärke", f"Lautstärke für User#{uid} (0–32000):", current, 0, 32000)
+        if ok:
+            try:
+                tt = self.client.tt
+                self.client.set_user_volume(uid, int(tt.StreamType.STREAMTYPE_VOICE), vol)
+                self._user_volume_levels[uid] = vol
+                self.set_status(f"Lautstärke für User#{uid}: {vol}")
+            except Exception as exc:
+                self.set_status(f"Lautstärke-Fehler: {exc}")
+
+    def on_menu_kick(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            self.client.do_kick_user(uid, ch_id)
+            self.set_status(f"User#{uid} gekickt")
+        except Exception as exc:
+            self.set_status(f"Kick Fehler: {exc}")
+
+    def on_menu_kick_ban(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            return
+        try:
+            tt = self.client.tt
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            ban_types = int(tt.BanType.BANTYPE_USERNAME)
+            self.client.do_ban_user_ex(uid, ban_types)
+            if ch_id:
+                self.client.do_kick_user(uid, ch_id)
+            self.set_status(f"User#{uid} gekickt und gesperrt")
+        except Exception as exc:
+            self.set_status(f"Kick+Ban Fehler: {exc}")
+
+    def on_menu_kick_server(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        try:
+            self.client.do_kick_user(uid, 0)
+            self.set_status(f"User#{uid} vom Server gekickt")
+        except Exception as exc:
+            self.set_status(f"Kick Fehler: {exc}")
+
+    def on_menu_move_user(self) -> None:
+        self.set_status("Benutzer verschieben: Kanal aus Kanalliste wählen")
+
+    def on_menu_toggle_operator(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            return
+        try:
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            is_op = self.client.is_channel_operator(ch_id, uid)
+            self.client.do_channel_op(ch_id, uid, not is_op)
+            self.set_status(f"User#{uid} {'zum Operator gemacht' if not is_op else 'Operator entfernt'}")
+        except Exception as exc:
+            self.set_status(f"Operator-Fehler: {exc}")
+
+    def _on_toggle_mute_all(self, checked: bool) -> None:
+        self._mute_all = checked
+        try:
+            self.client.set_sound_output_mute(checked)
+            self.set_status("Ausgabe stummgeschaltet" if checked else "Ausgabe aktiv")
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Profil-Menü
+    # ------------------------------------------------------------------
+
+    def on_menu_change_nick(self) -> None:
+        nick, ok = QInputDialog.getText(self, "Nickname", "Neuer Nickname:")
+        if ok and nick:
+            try:
+                self.client.change_nickname(nick)
+                profile = getattr(self, "_last_profile", None)
+                if profile:
+                    self._update_conn_bar(
+                        f"Verbunden: {getattr(profile, 'name', '')}  |  Nickname: {nick}", connected=True
+                    )
+                self.set_status(f"Nickname geändert: {nick}")
+            except Exception as exc:
+                self.set_status(f"Nickname-Fehler: {exc}")
+
     def on_menu_status(self) -> None:
         msg, ok = QInputDialog.getText(self, "Status", "Status-Meldung:")
         if ok:
             try:
                 self.client.change_status(0, msg)
+                self.set_status(f"Status gesetzt: {msg}")
             except Exception:
                 pass
+
+    def _on_toggle_self_hear(self, checked: bool) -> None:
+        try:
+            s = self.settings_store.settings
+            indev = int(getattr(s, "input_device_id", 0) or 0)
+            outdev = int(getattr(s, "output_device_id", 0) or 0)
+            if checked:
+                h = self.client.start_sound_loopback_test(indev, outdev)
+                self._loopback_handle = h if h >= 0 else None
+            else:
+                h = getattr(self, "_loopback_handle", None)
+                if h is not None:
+                    self.client.close_sound_loopback_test(h)
+                    self._loopback_handle = None
+            self.set_status("Mikrofon-Rückhörmodus: " + ("an" if checked else "aus"))
+        except Exception:
+            pass
+
+    def _on_toggle_question_mode(self, checked: bool) -> None:
+        try:
+            mode = 1 if checked else 0
+            my_id = int(self.client.get_my_user_id() or 0)
+            if my_id:
+                self.client.change_status(mode, self._status_message)
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Audio-Menü
+    # ------------------------------------------------------------------
+
+    def _on_toggle_ptt(self, checked: bool) -> None:
+        self._ptt_enabled = checked
+        try:
+            self.settings_store.settings.ptt_enabled = checked
+            self.settings_store.save()
+        except Exception:
+            pass
+        if not checked and self._ptt_active:
+            self._ptt_active = False
+            try:
+                self.client.enable_voice_transmission(False)
+            except Exception:
+                pass
+
+    def _on_toggle_va(self, checked: bool) -> None:
+        self.set_voice_activation(checked)
+        try:
+            self.settings_store.settings.voice_activation = checked
+            self.settings_store.save()
+        except Exception:
+            pass
+
+    def on_menu_audio_settings(self) -> None:
+        idx = self.notebook.indexOf(self.settings_tab_widget)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+            self.settings_tab_widget.inner.setCurrentWidget(self.settings_tab_widget.audio_tab)
+
+    def on_menu_equalizer(self) -> None:
+        self.set_status("Equalizer-Voreinstellungen: Einstellungen → Audio")
+        self.on_menu_audio_settings()
+
+    # ------------------------------------------------------------------
+    # Aufnahmen-Menü
+    # ------------------------------------------------------------------
+
+    def on_menu_start_recording(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Aufnahme speichern unter", "", "WAV-Dateien (*.wav);;MP3 (*.mp3)"
+        )
+        if path:
+            fmt = "mp3" if path.lower().endswith(".mp3") else "wav"
+            self.start_recording(path, fmt)
+
+    def on_menu_stop_recording(self) -> None:
+        self.stop_recording()
+
+    def on_menu_user_recording(self) -> None:
+        idx = self.notebook.indexOf(self.media_tab)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+
+    # ------------------------------------------------------------------
+    # Server-Menü
+    # ------------------------------------------------------------------
+
+    def on_menu_server_message(self) -> None:
+        text, ok = QInputDialog.getText(self, "Servernachricht", "Nachricht an alle:")
+        if ok and text:
+            try:
+                self.client.send_broadcast_message(text)
+                self.set_status("Servernachricht gesendet")
+            except Exception as exc:
+                self.set_status(f"Servernachricht fehlgeschlagen: {exc}")
+
+    def on_menu_admin(self) -> None:
+        idx = self.notebook.indexOf(self.admin_tab)
+        if idx >= 0:
+            self.notebook.setCurrentIndex(idx)
+
+    def on_menu_server_properties(self) -> None:
+        self.edit_server_properties()
+
+    # ------------------------------------------------------------------
+    # Automation-Menü
+    # ------------------------------------------------------------------
+
+    def _on_toggle_translation(self, checked: bool) -> None:
+        try:
+            self.settings_store.settings.translation_enabled = checked
+            self.settings_store.save()
+            self.set_status("Übersetzung: " + ("aktiviert" if checked else "deaktiviert"))
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Einstellungen / Navigation
+    # ------------------------------------------------------------------
 
     def on_menu_settings(self) -> None:
         idx = self.notebook.indexOf(self.settings_tab_widget)
@@ -1228,7 +1634,11 @@ class MainWindow(QMainWindow):
             self.notebook.setCurrentIndex(idx)
 
     def on_menu_connection_window(self) -> None:
-        self.notebook.setCurrentIndex(0)
+        self.on_menu_connect()
+
+    # ------------------------------------------------------------------
+    # Dialoge
+    # ------------------------------------------------------------------
 
     def on_menu_tts_transcript(self) -> None:
         from ui_qt.dialogs import TTSTranscriptDialog
@@ -1284,6 +1694,15 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def on_menu_changelog(self) -> None:
+        try:
+            import webbrowser
+            cl_path = Path(__file__).parent.parent / "CHANGELOG.txt"
+            if cl_path.exists():
+                webbrowser.open(str(cl_path))
+        except Exception:
+            pass
+
     def on_menu_about(self) -> None:
         QMessageBox.information(
             self, "Info",
@@ -1316,8 +1735,11 @@ class MainWindow(QMainWindow):
 
     def force_close(self) -> None:
         self._closing = True
-        self._tt_event_timer.stop()
         self._reconnect_timer.stop()
+        try:
+            self.client.stop_event_loop()
+        except Exception:
+            pass
         try:
             self.speak_tab.cleanup()
         except Exception:
