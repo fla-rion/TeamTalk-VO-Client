@@ -662,7 +662,7 @@ class MainWindow(QMainWindow):
         for i in range(1, 10):
             sc = QShortcut(QKeySequence(f"Alt+{i}"), self)
             tab_idx = i - 1
-            sc.activated.connect(lambda idx=tab_idx: self.tabs.setCurrentIndex(idx))
+            sc.activated.connect(lambda idx=tab_idx: self.notebook.setCurrentIndex(idx))
 
     # ------------------------------------------------------------------
     # tt_str helper
@@ -1597,7 +1597,9 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_tab_changed(self, idx: int) -> None:
-        pass
+        tab_name = self.notebook.tabText(idx).replace("&&", "&")
+        if hasattr(self, "tts"):
+            self.tts.speak(tab_name, kind="system")
 
     def _on_server_choice_changed(self, idx: int) -> None:
         pass

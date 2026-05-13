@@ -293,7 +293,7 @@ class OnlineUsersDialog(QDialog):
         layout.addLayout(search_row)
 
         self._list = QListWidget()
-        self._list.setObjectName("Online-Nutzer Liste")
+        self._list.setAccessibleName("Online-Nutzer Liste")
         layout.addWidget(self._list, 1)
 
         self._count_label = QLabel("")
@@ -415,7 +415,7 @@ class BanListDialog(QDialog):
         layout.addWidget(QLabel("IP-Adresse, Benutzername, Typ"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Sperrliste")
+        self._list.setAccessibleName("Sperrliste")
         layout.addWidget(self._list, 1)
 
         self._status = QLabel("")
@@ -493,7 +493,7 @@ class ServerStatsDialog(QDialog):
         layout = QVBoxLayout(self)
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setObjectName("Serverstatistiken")
+        self._text.setAccessibleName("Serverstatistiken")
         layout.addWidget(self._text, 1)
 
         btn_row = QHBoxLayout()
@@ -709,7 +709,7 @@ class SpeakingLogDialog(QDialog):
         layout.addWidget(QLabel("Sprechprotokoll:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Sprechprotokoll")
+        self._list.setAccessibleName("Sprechprotokoll")
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
@@ -821,7 +821,7 @@ class EqPresetsDialog(QDialog):
         layout.addWidget(QLabel("Verfügbare EQ-Voreinstellungen:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("EQ-Voreinstellungen Liste")
+        self._list.setAccessibleName("EQ-Voreinstellungen Liste")
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
@@ -951,7 +951,7 @@ class ScheduledRecordingsDialog(QDialog):
         layout.addWidget(QLabel("Geplante Aufnahmen:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Geplante Aufnahmen Liste")
+        self._list.setAccessibleName("Geplante Aufnahmen Liste")
         layout.addWidget(self._list, 1)
 
         # Form group
@@ -1093,7 +1093,7 @@ class RecordingsBrowserDialog(QDialog):
         layout.addWidget(QLabel("Aufnahmedateien:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Aufnahmen Liste")
+        self._list.setAccessibleName("Aufnahmen Liste")
         layout.addWidget(self._list, 1)
 
         btn_row = QHBoxLayout()
@@ -1217,7 +1217,7 @@ class ServerAudioProfilesDialog(QDialog):
         layout.addWidget(QLabel("Server → Audio-Profil Zuordnung:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Server-Audioprofile Liste")
+        self._list.setAccessibleName("Server-Audioprofile Liste")
         layout.addWidget(self._list, 1)
 
         # Form for new/edit entry
@@ -1378,7 +1378,7 @@ class UserWatcherDialogFull(QDialog):
         layout.addWidget(QLabel("Benachrichtigung wenn Nutzer sich verbindet/trennt:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Beobachtete Nutzer Liste")
+        self._list.setAccessibleName("Beobachtete Nutzer Liste")
         layout.addWidget(self._list, 1)
         self._fill_list()
 
@@ -1495,7 +1495,7 @@ class TtsTranscriptDialogFull(QDialog):
 
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setObjectName("TTS-Mitschrift Text")
+        self._text.setAccessibleName("TTS-Mitschrift Text")
         layout.addWidget(self._text, 1)
 
         btn_row = QHBoxLayout()
@@ -1586,7 +1586,7 @@ class OfflineQueueDialogFull(QDialog):
         layout.addWidget(QLabel("Nachrichten, die im Offline-Modus gepuffert wurden:"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Offline-Warteschlange Liste")
+        self._list.setAccessibleName("Offline-Warteschlange Liste")
         layout.addWidget(self._list, 1)
 
         self._status = QLabel("")
@@ -1721,12 +1721,12 @@ class PluginManagerDialogQt(QDialog):
         layout.addWidget(QLabel(f"Plugin-Verzeichnis: {plugins_dir}"))
 
         self._list = QListWidget()
-        self._list.setObjectName("Plugin-Liste")
+        self._list.setAccessibleName("Plugin-Liste")
         layout.addWidget(self._list, 1)
 
         self._detail = QTextEdit()
         self._detail.setReadOnly(True)
-        self._detail.setObjectName("Plugin-Details")
+        self._detail.setAccessibleName("Plugin-Details")
         self._detail.setMaximumHeight(100)
         layout.addWidget(self._detail)
 

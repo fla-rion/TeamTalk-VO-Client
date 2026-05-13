@@ -261,7 +261,7 @@ class _FileHistoryDialog(QDialog):
 
         self._text = QTextEdit()
         self._text.setReadOnly(True)
-        self._text.setObjectName("Dateiübertragungsverlauf")
+        self._text.setAccessibleName("Dateiübertragungsverlauf")
 
         if history:
             lines = []
