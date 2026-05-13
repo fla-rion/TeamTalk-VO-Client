@@ -43,7 +43,6 @@ class ChannelsTab(QWidget):
         search_row = QHBoxLayout()
         search_row.addWidget(QLabel("Suche:"))
         self._channel_search = QLineEdit()
-        self._channel_search.setObjectName("Kanal suchen")
         self._channel_search.setAccessibleName("Kanal suchen")
         self._channel_search.setAccessibleDescription(
             "Eingabe filtert die Kanalliste. Leer lassen für alle Kanäle."
@@ -54,7 +53,6 @@ class ChannelsTab(QWidget):
         root.addLayout(search_row)
 
         self.channel_list = QListWidget()
-        self.channel_list.setObjectName("Kanalliste")
         self.channel_list.setAccessibleName("Kanäle und Benutzer")
         self.channel_list.setAccessibleDescription(
             "Liste aller Kanäle und verbundenen Benutzer. "
@@ -422,6 +420,10 @@ class ChannelsTab(QWidget):
         join_action = menu.addAction("Kanal &beitreten")
         leave_action = menu.addAction("Kanal &verlassen")
         menu.addSeparator()
+        create_action = menu.addAction("Kanal &erstellen...")
+        edit_action = menu.addAction("Kanal &bearbeiten...")
+        delete_action = menu.addAction("Kanal &löschen")
+        menu.addSeparator()
         info_action = menu.addAction("Kanal-&Info...")
         url_action = menu.addAction("TT-URL &kopieren")
         menu.addSeparator()
@@ -439,6 +441,12 @@ class ChannelsTab(QWidget):
             self.window.join_channel(channel_id)
         elif action == leave_action:
             self.window.leave_channel()
+        elif action == create_action:
+            self.window.on_menu_create_channel()
+        elif action == edit_action:
+            self.window.on_menu_edit_channel()
+        elif action == delete_action:
+            self.window.on_menu_delete_channel()
         elif action == info_action:
             self._show_channel_info(channel_id)
         elif action == url_action:
@@ -590,6 +598,8 @@ class ChannelsTab(QWidget):
         op_action = menu.addAction(op_label)
         menu.addSeparator()
 
+        move_action = menu.addAction("Benutzer &verschieben...")
+        menu.addSeparator()
         kick_action = menu.addAction("Aus Kanal &kicken...")
         kick_ban_action = menu.addAction("Aus Kanal kicken + &Bannen...")
         kick_server_action = menu.addAction("Vom &Server kicken...")
@@ -620,6 +630,9 @@ class ChannelsTab(QWidget):
 
         elif action == op_action:
             self._toggle_channel_op(user_id, my_ch, not is_op)
+
+        elif action == move_action:
+            self.window.on_menu_move_user()
 
         elif action == kick_action:
             self._kick_user_from_channel(user_id, my_ch)

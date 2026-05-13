@@ -26,7 +26,7 @@ class _HotkeyRow(QWidget):
         lbl = QLabel(label)
         lbl.setMinimumWidth(260)
         self.status = QLabel("(nicht gesetzt)")
-        self.status.setObjectName(f"{label} Hotkey")
+        self.status.setAccessibleName(f"{label} Hotkey")
         btn = QPushButton("&Hotkey aufnehmen")
         if global_key:
             btn.clicked.connect(lambda: window.start_global_hotkey_capture(key))

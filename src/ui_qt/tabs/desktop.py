@@ -63,7 +63,7 @@ class DesktopTab(QWidget):
         fs_layout.setContentsMargins(0, 0, 0, 0)
         fs_layout.addWidget(QLabel("Monitor:"))
         self.monitor_choice = QComboBox()
-        self.monitor_choice.setObjectName("Monitor")
+        self.monitor_choice.setAccessibleName("Monitor")
         fs_layout.addWidget(self.monitor_choice, 1)
         self.refresh_monitors_btn = QPushButton("A&ktualisieren")
         self.refresh_monitors_btn.clicked.connect(self._refresh_monitors)
@@ -75,7 +75,7 @@ class DesktopTab(QWidget):
         win_layout = QVBoxLayout(win_page)
         win_layout.setContentsMargins(0, 0, 0, 0)
         self.window_list = QListWidget()
-        self.window_list.setObjectName("Fensterliste")
+        self.window_list.setAccessibleName("Fensterliste")
         win_layout.addWidget(self.window_list, 1)
         self.refresh_windows_btn = QPushButton("&Fenster aktualisieren")
         self.refresh_windows_btn.clicked.connect(self._refresh_windows)
@@ -93,13 +93,13 @@ class DesktopTab(QWidget):
         opt_form = QFormLayout(opt_group)
 
         self.fps_choice = QComboBox()
-        self.fps_choice.setObjectName("FPS")
+        self.fps_choice.setAccessibleName("FPS")
         self.fps_choice.addItems(["1", "2", "5", "10"])
         self.fps_choice.setCurrentIndex(2)  # default 5
         opt_form.addRow(QLabel("FPS"), self.fps_choice)
 
         self.scale_choice = QComboBox()
-        self.scale_choice.setObjectName("Skalierung")
+        self.scale_choice.setAccessibleName("Skalierung")
         self.scale_choice.addItems(["25%", "50%", "75%", "100%"])
         self.scale_choice.setCurrentIndex(1)  # default 50%
         opt_form.addRow(QLabel("Skalierung"), self.scale_choice)
@@ -140,7 +140,7 @@ class DesktopTab(QWidget):
         status_group = QGroupBox("Status")
         status_layout = QVBoxLayout(status_group)
         self.status_label = QLabel("Bereit")
-        self.status_label.setObjectName("Desktop-Status")
+        self.status_label.setAccessibleName("Desktop-Status")
         status_layout.addWidget(self.status_label)
         root.addWidget(status_group)
 

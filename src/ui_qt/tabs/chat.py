@@ -61,7 +61,7 @@ class ChatTab(QWidget):
         search_row = QHBoxLayout()
         search_row.addWidget(QLabel("Suchen:"))
         self.search_input = QLineEdit()
-        self.search_input.setObjectName("Verlauf durchsuchen")
+        self.search_input.setAccessibleName("Verlauf durchsuchen")
         self.search_input.setPlaceholderText("Im Verlauf suchen …")
         self.search_input.returnPressed.connect(self._on_search)
         search_row.addWidget(self.search_input, 1)
@@ -69,7 +69,7 @@ class ChatTab(QWidget):
         self.search_btn.clicked.connect(self._on_search)
         search_row.addWidget(self.search_btn)
         self.search_count = QLabel("0 Treffer")
-        self.search_count.setObjectName("Suchergebnis")
+        self.search_count.setAccessibleName("Suchergebnis")
         search_row.addWidget(self.search_count)
         root.addLayout(search_row)
 
@@ -77,7 +77,7 @@ class ChatTab(QWidget):
         target_group = QGroupBox("Chat-Ziel")
         target_layout = QVBoxLayout(target_group)
         self.chat_target = QLabel("Ziel: (kein)")
-        self.chat_target.setObjectName("Chat-Ziel")
+        self.chat_target.setAccessibleName("Chat-Ziel")
         target_layout.addWidget(self.chat_target)
 
         target_row = QHBoxLayout()
@@ -85,7 +85,7 @@ class ChatTab(QWidget):
         self.private_chat.stateChanged.connect(lambda _: self.update_chat_target())
         lbl_private = QLabel("Privat an:")
         self.private_user = QComboBox()
-        self.private_user.setObjectName("Privat an")
+        self.private_user.setAccessibleName("Privat an")
         self.private_user.currentIndexChanged.connect(self._on_private_user_changed)
         target_row.addWidget(self.private_chat)
         target_row.addWidget(lbl_private)
@@ -97,7 +97,6 @@ class ChatTab(QWidget):
         root.addWidget(QLabel("Chatverlauf"))
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
-        self.chat_log.setObjectName("Chatverlauf")
         self.chat_log.setAccessibleName("Chatverlauf")
         self.chat_log.setAccessibleDescription(
             "Lese-only Bereich. Strg+C kopiert markierten Text. "
@@ -128,7 +127,6 @@ class ChatTab(QWidget):
         # --- Message input ---
         root.addWidget(QLabel("Nachricht"))
         self.chat_input = QLineEdit()
-        self.chat_input.setObjectName("Nachricht eingeben")
         self.chat_input.setAccessibleName("Nachricht eingeben")
         self.chat_input.setAccessibleDescription(
             "Nachricht tippen und Enter drücken oder Senden klicken. "
@@ -147,7 +145,7 @@ class ChatTab(QWidget):
         self.send_btn.setAccessibleName("Nachricht senden")
         self.send_btn.clicked.connect(self._on_send)
         self.char_count_label = QLabel("0 Zeichen")
-        self.char_count_label.setObjectName("Zeichenanzahl")
+        self.char_count_label.setAccessibleName("Zeichenanzahl")
         send_row.addWidget(self.send_btn)
         send_row.addWidget(self.char_count_label)
         send_row.addStretch()

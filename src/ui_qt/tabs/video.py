@@ -30,12 +30,12 @@ class VideoTab(QWidget):
         dev_form = QFormLayout(dev_group)
 
         self.camera_choice = QComboBox()
-        self.camera_choice.setObjectName("Kamera")
+        self.camera_choice.setAccessibleName("Kamera")
         self.camera_choice.currentIndexChanged.connect(self._on_device_changed)
         dev_form.addRow(QLabel("Kamera"), self.camera_choice)
 
         self.format_choice = QComboBox()
-        self.format_choice.setObjectName("Format")
+        self.format_choice.setAccessibleName("Format")
         dev_form.addRow(QLabel("Format"), self.format_choice)
 
         refresh_row = QHBoxLayout()
@@ -51,13 +51,13 @@ class VideoTab(QWidget):
         settings_form = QFormLayout(settings_group)
 
         self.fps_choice = QComboBox()
-        self.fps_choice.setObjectName("FPS")
+        self.fps_choice.setAccessibleName("FPS")
         self.fps_choice.addItems(["5", "10", "15", "20", "25", "30"])
         self.fps_choice.setCurrentIndex(2)  # default 15
         settings_form.addRow(QLabel("FPS"), self.fps_choice)
 
         self.resolution_choice = QComboBox()
-        self.resolution_choice.setObjectName("Auflösung")
+        self.resolution_choice.setAccessibleName("Auflösung")
         self.resolution_choice.addItems(
             ["320x240", "640x480", "1280x720", "1920x1080"]
         )
@@ -65,7 +65,7 @@ class VideoTab(QWidget):
         settings_form.addRow(QLabel("Auflösung"), self.resolution_choice)
 
         self.codec_choice = QComboBox()
-        self.codec_choice.setObjectName("Codec")
+        self.codec_choice.setAccessibleName("Codec")
         self.codec_choice.addItems(["H.264", "MJPEG", "Theora"])
         saved_codec = getattr(
             self.window.settings_store.settings, "video_codec", "H.264"
@@ -120,7 +120,7 @@ class VideoTab(QWidget):
         tx_layout.addLayout(tx_btn_row)
 
         self.stats_label = QLabel("")
-        self.stats_label.setObjectName("Video-Statistik")
+        self.stats_label.setAccessibleName("Video-Statistik")
         self.stats_label.setWordWrap(True)
         tx_layout.addWidget(self.stats_label)
 

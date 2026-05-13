@@ -133,6 +133,7 @@ class SettingsTab(QWidget):
 
         lang_combo = QComboBox()
         lang_combo.addItems(["Deutsch", "English"])
+        lang_combo.setAccessibleName("App-Sprache")
         saved_lang = getattr(s, "app_language", "de") or "de"
         lang_combo.setCurrentIndex(0 if saved_lang == "de" else 1)
         lang_combo.currentIndexChanged.connect(self._on_lang_changed)
@@ -147,11 +148,13 @@ class SettingsTab(QWidget):
         self.away_timer.setRange(0, 120)
         self.away_timer.setSuffix(" min (0 = aus)")
         self.away_timer.setValue(int(getattr(s, "away_timer_minutes", 0) or 0))
+        self.away_timer.setAccessibleName("Weg-Modus nach (Minuten)")
         self.away_timer.valueChanged.connect(lambda v: self._save_int("away_timer_minutes", v))
         away_form.addRow("Weg-Modus nach", self.away_timer)
 
         self.away_status = QLineEdit(getattr(s, "away_status_message", "Bin kurz weg") or "Bin kurz weg")
         self.away_status.setPlaceholderText("Status-Nachricht bei Abwesenheit")
+        self.away_status.setAccessibleName("Weg-Status-Nachricht")
         self.away_status.textChanged.connect(lambda v: self._save_str("away_status_message", v))
         away_form.addRow("Weg-Status", self.away_status)
         layout.addWidget(away_group)
@@ -162,11 +165,13 @@ class SettingsTab(QWidget):
 
         self.highlight_keywords = QLineEdit(getattr(s, "highlight_keywords", "") or "")
         self.highlight_keywords.setPlaceholderText("Wort1, Wort2, … (Komma-getrennt)")
+        self.highlight_keywords.setAccessibleName("Hervorhebungs-Schlüsselwörter (kommagetrennt)")
         self.highlight_keywords.textChanged.connect(lambda v: self._save_str("highlight_keywords", v))
         filter_form.addRow("Hervorheben", self.highlight_keywords)
 
         self.muted_users = QLineEdit(getattr(s, "muted_users", "") or "")
         self.muted_users.setPlaceholderText("Benutzername1, Benutzername2, …")
+        self.muted_users.setAccessibleName("Stummgeschaltete Nutzer (kommagetrennt)")
         self.muted_users.textChanged.connect(lambda v: self._save_str("muted_users", v))
         filter_form.addRow("Nutzer stummschalten", self.muted_users)
         layout.addWidget(filter_group)
@@ -199,6 +204,7 @@ class SettingsTab(QWidget):
         self.reconnect_delay.setRange(5, 300)
         self.reconnect_delay.setSuffix(" s")
         self.reconnect_delay.setValue(int(getattr(s, "reconnect_delay_seconds", 10) or 10))
+        self.reconnect_delay.setAccessibleName("Reconnect-Wartezeit in Sekunden")
         self.reconnect_delay.valueChanged.connect(lambda v: self._save_int("reconnect_delay_seconds", v))
         rc_form.addRow("Wartezeit", self.reconnect_delay)
 
@@ -206,6 +212,7 @@ class SettingsTab(QWidget):
         self.reconnect_max.setRange(0, 9999)
         self.reconnect_max.setSuffix(" (0 = unbegrenzt)")
         self.reconnect_max.setValue(int(getattr(s, "reconnect_max_attempts", 0) or 0))
+        self.reconnect_max.setAccessibleName("Maximale Reconnect-Versuche (0 unbegrenzt)")
         self.reconnect_max.valueChanged.connect(lambda v: self._save_int("reconnect_max_attempts", v))
         rc_form.addRow("Max. Versuche", self.reconnect_max)
         layout.addWidget(rc_group)
@@ -229,12 +236,14 @@ class SettingsTab(QWidget):
         self.tcp_bind_port = QSpinBox()
         self.tcp_bind_port.setRange(0, 65535)
         self.tcp_bind_port.setValue(int(getattr(s, "tcp_bind_port", 0) or 0))
+        self.tcp_bind_port.setAccessibleName("TCP-Bindungsport (0 automatisch)")
         self.tcp_bind_port.valueChanged.connect(lambda v: self._save_int("tcp_bind_port", v))
         port_form.addRow("TCP-Port", self.tcp_bind_port)
 
         self.udp_bind_port = QSpinBox()
         self.udp_bind_port.setRange(0, 65535)
         self.udp_bind_port.setValue(int(getattr(s, "udp_bind_port", 0) or 0))
+        self.udp_bind_port.setAccessibleName("UDP-Bindungsport (0 automatisch)")
         self.udp_bind_port.valueChanged.connect(lambda v: self._save_int("udp_bind_port", v))
         port_form.addRow("UDP-Port", self.udp_bind_port)
         layout.addWidget(port_group)
@@ -252,6 +261,7 @@ class SettingsTab(QWidget):
         self.ping_threshold.setRange(50, 9999)
         self.ping_threshold.setSuffix(" ms")
         self.ping_threshold.setValue(int(getattr(s, "ping_threshold_ms", 500) or 500))
+        self.ping_threshold.setAccessibleName("Ping-Schwellwert in Millisekunden")
         self.ping_threshold.valueChanged.connect(lambda v: self._save_int("ping_threshold_ms", v))
         quality_form.addRow("Ping-Schwellwert", self.ping_threshold)
         layout.addWidget(quality_group)
@@ -305,9 +315,11 @@ class SettingsTab(QWidget):
             saved = getattr(s, f"sound_{key}", "") or ""
             field.setText(saved)
             field.setPlaceholderText("Leer = Standard")
+            field.setAccessibleName(f"Sound-Datei: {label}")
             field.textChanged.connect(lambda v, k=key: self._save_str(f"sound_{k}", v))
             browse_btn = QPushButton("…")
             browse_btn.setFixedWidth(30)
+            browse_btn.setAccessibleName(f"Datei wählen: {label}")
             browse_btn.clicked.connect(lambda _, f=field: self._browse_sound(f))
             row.addWidget(field, 1)
             row.addWidget(browse_btn)
@@ -466,6 +478,7 @@ class SettingsTab(QWidget):
         _FORMAT_VALUES = ["wav", "mp3_128", "mp3_256", "ogg"]
         self.rec_format = QComboBox()
         self.rec_format.addItems(_FORMAT_LABELS)
+        self.rec_format.setAccessibleName("Aufnahmeformat")
         saved_fmt = getattr(s, "rec_format", "wav") or "wav"
         self.rec_format.setCurrentIndex(
             _FORMAT_VALUES.index(saved_fmt) if saved_fmt in _FORMAT_VALUES else 0
@@ -479,12 +492,14 @@ class SettingsTab(QWidget):
         self.rec_bitrate_kbps.setRange(64, 320)
         self.rec_bitrate_kbps.setSuffix(" kbps")
         self.rec_bitrate_kbps.setValue(int(getattr(s, "rec_bitrate_kbps", 128) or 128))
+        self.rec_bitrate_kbps.setAccessibleName("Bitrate für MP3-Aufnahmen in kbps")
         self.rec_bitrate_kbps.valueChanged.connect(lambda v: self._save_int("rec_bitrate_kbps", v))
         form.addRow("Bitrate (MP3)", self.rec_bitrate_kbps)
 
         dir_row = QHBoxLayout()
         self.rec_directory = QLineEdit(getattr(s, "rec_directory", "") or "")
         self.rec_directory.setPlaceholderText("Aufnahmeverzeichnis …")
+        self.rec_directory.setAccessibleName("Aufnahmeverzeichnis")
         self.rec_directory.textChanged.connect(lambda v: self._save_str("rec_directory", v))
         dir_btn = QPushButton("Durchsuchen")
         dir_btn.clicked.connect(self._browse_rec_directory)

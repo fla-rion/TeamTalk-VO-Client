@@ -29,7 +29,7 @@ class SystemTab(QWidget):
         sys_layout = QVBoxLayout(sys_group)
         self.system_log = QTextEdit()
         self.system_log.setReadOnly(True)
-        self.system_log.setObjectName("Systemmeldungen")
+        self.system_log.setAccessibleName("Systemmeldungen")
         sys_layout.addWidget(self.system_log)
         root.addWidget(sys_group, 1)
 
@@ -70,31 +70,31 @@ class SystemTab(QWidget):
 
         form = QFormLayout()
         self.tts_language = QComboBox()
-        self.tts_language.setObjectName("TTS Sprache")
+        self.tts_language.setAccessibleName("TTS Sprache")
         form.addRow(QLabel("Sprache"), self.tts_language)
 
         self.tts_voice_filter = QLineEdit()
-        self.tts_voice_filter.setObjectName("TTS Stimme Filter")
+        self.tts_voice_filter.setAccessibleName("TTS Stimme Filter")
         form.addRow(QLabel("Stimmenfilter"), self.tts_voice_filter)
 
         self.tts_voice = QListWidget()
-        self.tts_voice.setObjectName("TTS Stimme")
+        self.tts_voice.setAccessibleName("TTS Stimme")
         form.addRow(QLabel("Stimme"), self.tts_voice)
 
         self.tts_rate = QSpinBox()
         self.tts_rate.setRange(80, 400)
         self.tts_rate.setValue(175)
-        self.tts_rate.setObjectName("TTS Sprechtempo")
+        self.tts_rate.setAccessibleName("TTS Sprechtempo")
         form.addRow(QLabel("Sprechtempo (80–400)"), self.tts_rate)
 
         self.tts_volume = QSpinBox()
         self.tts_volume.setRange(0, 200)
         self.tts_volume.setValue(100)
-        self.tts_volume.setObjectName("TTS Lautstärke")
+        self.tts_volume.setAccessibleName("TTS Lautstärke")
         form.addRow(QLabel("Lautstärke (0–200)"), self.tts_volume)
 
         self.tts_path = QLineEdit()
-        self.tts_path.setObjectName("espeak-ng Pfad")
+        self.tts_path.setAccessibleName("espeak-ng Pfad")
         form.addRow(QLabel("espeak-ng Pfad"), self.tts_path)
 
         tts_layout.addLayout(form)

@@ -54,7 +54,7 @@ class AdminTab(QWidget):
 
         acc_layout.addWidget(QLabel("Benutzername, Typ"))
         self.account_list = QListWidget()
-        self.account_list.setObjectName("Benutzerkonten")
+        self.account_list.setAccessibleName("Benutzerkonten")
         self.account_list.currentRowChanged.connect(self._on_account_selected)
         acc_layout.addWidget(self.account_list, 1)
 
@@ -78,17 +78,17 @@ class AdminTab(QWidget):
         form_layout = QFormLayout(self._account_form_group)
 
         self._acc_username = QLineEdit()
-        self._acc_username.setObjectName("Benutzername")
+        self._acc_username.setAccessibleName("Benutzername")
         form_layout.addRow("Benutzername:", self._acc_username)
 
         self._acc_password = QLineEdit()
         self._acc_password.setEchoMode(QLineEdit.EchoMode.Password)
-        self._acc_password.setObjectName("Passwort")
+        self._acc_password.setAccessibleName("Passwort")
         form_layout.addRow("Passwort:", self._acc_password)
 
         self._acc_usertype = QComboBox()
         self._acc_usertype.addItems(["Standard", "Administrator", "Gesperrt"])
-        self._acc_usertype.setObjectName("Benutzertyp")
+        self._acc_usertype.setAccessibleName("Benutzertyp")
         form_layout.addRow("Benutzertyp:", self._acc_usertype)
 
         rights_label = QLabel("Rechte:")
@@ -127,7 +127,7 @@ class AdminTab(QWidget):
 
         ban_layout.addWidget(QLabel("IP-Adresse, Benutzername"))
         self.ban_list = QListWidget()
-        self.ban_list.setObjectName("Sperrliste")
+        self.ban_list.setAccessibleName("Sperrliste")
         ban_layout.addWidget(self.ban_list, 1)
 
         ban_btn_row = QHBoxLayout()
@@ -149,18 +149,18 @@ class AdminTab(QWidget):
         srv_form = QFormLayout(srv_group)
 
         self.srv_name = QLineEdit()
-        self.srv_name.setObjectName("Servername")
+        self.srv_name.setAccessibleName("Servername")
         srv_form.addRow("Servername:", self.srv_name)
 
         self.srv_motd = QTextEdit()
-        self.srv_motd.setObjectName("Willkommensnachricht")
+        self.srv_motd.setAccessibleName("Willkommensnachricht")
         self.srv_motd.setMaximumHeight(80)
         srv_form.addRow("Willkommensnachricht:", self.srv_motd)
 
         self.srv_maxusers = QSpinBox()
         self.srv_maxusers.setRange(1, 1000)
         self.srv_maxusers.setValue(100)
-        self.srv_maxusers.setObjectName("Max. Benutzer")
+        self.srv_maxusers.setAccessibleName("Max. Benutzer")
         srv_form.addRow("Max. Benutzer:", self.srv_maxusers)
 
         srv_btn_row = QHBoxLayout()

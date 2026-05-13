@@ -38,7 +38,7 @@ class FilesTab(QWidget):
         list_layout = QVBoxLayout(list_group)
         list_layout.addWidget(QLabel("Dateiname (Größe) [Kanal]"))
         self.file_list = QListWidget()
-        self.file_list.setObjectName("Dateiliste")
+        self.file_list.setAccessibleName("Dateien im Kanal")
         list_layout.addWidget(self.file_list, 1)
         root.addWidget(list_group, 1)
 
