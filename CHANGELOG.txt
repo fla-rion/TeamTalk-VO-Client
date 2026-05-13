@@ -2,6 +2,16 @@ Changelog
 =========
 
 2026-05-13 (v6.7.5)
+Windows Qt-UI – UI-Cleanup Runde 2:
+- Fix: Windows-SDK zeigte beim Start einen "Testversion läuft"-Dialog –
+  TT_SetLicenseInformation("", "") wird jetzt vor dem ersten TeamTalk()-Aufruf
+  aufgerufen, um den Dialog zu unterdrücken (identisches Verhalten wie macOS).
+- UI: Tab "Sprechen" (ElevenLabs TTS) wird jetzt wie in der macOS-Fassung nur
+  angezeigt, wenn ein ElevenLabs-API-Schlüssel konfiguriert ist; der Tab wird
+  dynamisch ein-/ausgeblendet sobald der Schlüssel in den Einstellungen geändert wird.
+- Cleanup: Screen Reader (ScreenReaderAnnouncer) wird beim Beenden der App sauber
+  entladen (stop() in force_close).
+
 Windows Qt-UI – Screen Reader & UI-Aufräumen:
 - Neu: screen_reader.py – Windows-Screen-Reader-Integration über tolk.dll,
   nvdaControllerClient64.dll oder SAPI5-Fallback; unterstützt NVDA, JAWS,

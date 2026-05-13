@@ -209,6 +209,9 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._build_menu()
         self.tray = TrayIcon(self)
+        # Show Sprechen tab only when ElevenLabs API key is configured
+        _eleven_key = getattr(self.settings_store.settings, "elevenlabs_api_key", "") or ""
+        self._update_speak_tab(_eleven_key)
 
         # Status bar
         self._status_bar = QStatusBar()
@@ -413,9 +416,9 @@ class MainWindow(QMainWindow):
         self.admin_tab = AdminTab(self.notebook, self)
         self.notebook.addTab(self.admin_tab, "Administration")
 
-        # Speak (ElevenLabs)
+        # Speak (ElevenLabs) — added/removed dynamically by _update_speak_tab
         self.speak_tab = SpeakTab(self.notebook, self)
-        self.notebook.addTab(self.speak_tab, "Sprechen")
+        self._speak_tab_added = False
 
         # Desktop share
         self.desktop_tab = DesktopTab(self.notebook, self)
@@ -1336,6 +1339,25 @@ class MainWindow(QMainWindow):
     # ElevenLabs
     # ------------------------------------------------------------------
 
+    def _update_speak_tab(self, api_key: str) -> None:
+        """Add/remove the Sprechen tab depending on whether an API key is configured."""
+        if api_key:
+            self.speak_tab.set_api_key(api_key)
+            if not self._speak_tab_added:
+                # Insert before Desktop so order stays: ..., Sprechen, Desktop
+                desktop_idx = self.notebook.indexOf(self.desktop_tab)
+                if desktop_idx >= 0:
+                    self.notebook.insertTab(desktop_idx, self.speak_tab, "Sprechen")
+                else:
+                    self.notebook.addTab(self.speak_tab, "Sprechen")
+                self._speak_tab_added = True
+        else:
+            if self._speak_tab_added:
+                idx = self.notebook.indexOf(self.speak_tab)
+                if idx >= 0:
+                    self.notebook.removeTab(idx)
+                self._speak_tab_added = False
+
     def refresh_elevenlabs_voices(self, tab=None) -> None:
         try:
             self.speak_tab.on_refresh()
@@ -2197,6 +2219,10 @@ class MainWindow(QMainWindow):
             pass
         try:
             self.client.close()
+        except Exception:
+            pass
+        try:
+            self._screen_reader.stop()
         except Exception:
             pass
         try:

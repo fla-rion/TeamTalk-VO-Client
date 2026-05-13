@@ -590,7 +590,11 @@ class SettingsTab(QWidget):
         self.elevenlabs_key = QLineEdit(getattr(s, "elevenlabs_api_key", "") or "")
         self.elevenlabs_key.setEchoMode(QLineEdit.EchoMode.Password)
         self.elevenlabs_key.setPlaceholderText("ElevenLabs API-Key")
-        self.elevenlabs_key.textChanged.connect(lambda v: self._save_str("elevenlabs_api_key", v))
+        def _on_elevenlabs_key_changed(v: str) -> None:
+            self._save_str("elevenlabs_api_key", v)
+            if hasattr(self.window, "_update_speak_tab"):
+                self.window._update_speak_tab(v)
+        self.elevenlabs_key.textChanged.connect(_on_elevenlabs_key_changed)
         ki_form.addRow("ElevenLabs", self.elevenlabs_key)
         layout.addWidget(ki_group)
 

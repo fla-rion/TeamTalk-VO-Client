@@ -24,6 +24,13 @@ class ConnectResult:
 class TeamTalkClient:
     def __init__(self) -> None:
         self.tt = load_teamtalk_module()
+        # Suppress Windows trial-mode popup before the first TeamTalk instance
+        # is created. Calling setLicense with empty strings is sufficient.
+        if hasattr(self.tt, "setLicense"):
+            try:
+                self.tt.setLicense("", "")
+            except Exception:
+                pass
         self.client = self.tt.TeamTalk()
         self._connect_lock = threading.Lock()
         self._event_thread: Optional[threading.Thread] = None
