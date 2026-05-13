@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2026-05-13 (v6.7.6)
+Bump version für Windows-Release mit allen Qt-UI-Verbesserungen seit v6.7.5.
+Alle Änderungen dieser Version sind unter v6.7.5 dokumentiert.
+
 2026-05-13 (v6.7.5)
 Windows Qt-UI – UI-Cleanup Runde 2:
 - Fix: Windows-SDK zeigte beim Start einen "Testversion läuft"-Dialog –
