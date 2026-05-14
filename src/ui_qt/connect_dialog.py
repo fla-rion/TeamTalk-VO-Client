@@ -8,7 +8,7 @@ from typing import Optional, TYPE_CHECKING
 
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
-    QLabel, QListWidget, QLineEdit, QCheckBox, QSpinBox,
+    QWidget, QLabel, QListWidget, QLineEdit, QCheckBox, QSpinBox,
     QPushButton, QMessageBox, QFileDialog,
 )
 from PySide6.QtCore import Qt, QTimer
@@ -179,6 +179,19 @@ class ConnectDialog(QDialog):
         self._load_profiles()
         self._update_stats()
 
+        # Tab order: server list → form fields → connect button
+        QWidget.setTabOrder(self.server_list, self.filter_field)
+        QWidget.setTabOrder(self.filter_field, self.name_field)
+        QWidget.setTabOrder(self.name_field, self.host_field)
+        QWidget.setTabOrder(self.host_field, self.tcp_field)
+        QWidget.setTabOrder(self.tcp_field, self.udp_field)
+        QWidget.setTabOrder(self.udp_field, self.nick_field)
+        QWidget.setTabOrder(self.nick_field, self.user_field)
+        QWidget.setTabOrder(self.user_field, self.pass_field)
+        QWidget.setTabOrder(self.pass_field, self.channel_field)
+        QWidget.setTabOrder(self.channel_field, self.ch_pass_field)
+        QWidget.setTabOrder(self.ch_pass_field, self.connect_btn)
+
         # Pre-fill with last connected profile
         try:
             last = getattr(self.window, "_last_profile", None)
@@ -191,6 +204,13 @@ class ConnectDialog(QDialog):
             pass
 
     # ── Server list helpers ───────────────────────────────────────────────
+
+    def showEvent(self, event) -> None:
+        super().showEvent(event)
+        if self.server_list.count() > 0:
+            self.server_list.setFocus()
+        else:
+            self.host_field.setFocus()
 
     def _load_profiles(self) -> None:
         self._profiles = list(self.window.store.items())

@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.8.2"
+APP_VERSION = "6.8.3"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -522,6 +522,8 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
         self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Shift+Up")
         self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Shift+Down")
+        self._add_action(benutzer, "Medien-Lautstärke h&och", self.on_menu_user_media_volume_up, "Ctrl+Alt+Up")
+        self._add_action(benutzer, "Medien-Lautstärke &runter", self.on_menu_user_media_volume_down, "Ctrl+Alt+Down")
         benutzer.addSeparator()
         self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick, "Ctrl+K")
         self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban, "Ctrl+Shift+K")
@@ -1514,11 +1516,13 @@ class MainWindow(QMainWindow):
         from ui_qt.server_browser import ServerBrowserDialog
         dlg = ServerBrowserDialog(self)
         dlg.exec()
+        self._refocus_channel_list()
 
     def manage_server_groups(self) -> None:
         from ui_qt.server_groups_dialog import ServerGroupsDialog
         dlg = ServerGroupsDialog(self)
         dlg.exec()
+        self._refocus_channel_list()
 
     def import_tt_file(self, path: str) -> None:
         try:
@@ -1668,9 +1672,16 @@ class MainWindow(QMainWindow):
     # Datei-Menü
     # ------------------------------------------------------------------
 
+    def _refocus_channel_list(self) -> None:
+        try:
+            self.channels_tab.channel_list.setFocus()
+        except Exception:
+            pass
+
     def on_menu_connect(self) -> None:
         dlg = ConnectDialog(self)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_disconnect(self) -> None:
         self._update_conn_bar("Nicht verbunden")
@@ -2327,6 +2338,36 @@ class MainWindow(QMainWindow):
         new_level = self._set_user_volume_level(uid, self._get_user_volume_level(uid) - 1000)
         self.set_status(f"Lautstärke: {new_level}")
 
+    def on_menu_user_media_volume_up(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        current = self._user_media_volumes.get(uid, 16384)
+        new_level = max(0, min(32000, current + 1000))
+        try:
+            tt = self.client.tt
+            self.client.set_user_volume(uid, int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), new_level)
+            self._user_media_volumes[uid] = new_level
+            self.set_status(f"Medien-Lautstärke: {new_level}")
+        except Exception as exc:
+            self.set_status(f"Medien-Lautstärke Fehler: {exc}")
+
+    def on_menu_user_media_volume_down(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        current = self._user_media_volumes.get(uid, 16384)
+        new_level = max(0, min(32000, current - 1000))
+        try:
+            tt = self.client.tt
+            self.client.set_user_volume(uid, int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), new_level)
+            self._user_media_volumes[uid] = new_level
+            self.set_status(f"Medien-Lautstärke: {new_level}")
+        except Exception as exc:
+            self.set_status(f"Medien-Lautstärke Fehler: {exc}")
+
     def on_menu_kick(self) -> None:
         uid = self._get_selected_user_id()
         if not uid:
@@ -2932,6 +2973,10 @@ class MainWindow(QMainWindow):
         self._settings_dialog.show()
         self._settings_dialog.raise_()
         self._settings_dialog.activateWindow()
+        try:
+            self.settings_tab_widget.inner.setFocus()
+        except Exception:
+            pass
 
     def on_menu_connection_window(self) -> None:
         self.on_menu_connect()
@@ -2969,11 +3014,13 @@ class MainWindow(QMainWindow):
         from ui_qt.dialogs import OnlineUsersDialog
         dlg = OnlineUsersDialog(self, self.client, self.tt_str)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_server_stats(self) -> None:
         from ui_qt.dialogs import ServerStatsDialog
         dlg = ServerStatsDialog(self, self.client)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_speaking_log(self) -> None:
         from ui_qt.dialogs import SpeakingLogDialog

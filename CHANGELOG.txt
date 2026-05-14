@@ -1,6 +1,24 @@
 Changelog
 =========
 
+2026-05-14 (v6.8.3)
+Medien-Lautstärke-Kürzel, Startwert-Fix, NVDA-Fokus-Verbesserungen:
+
+Neue Features:
+- Medien-Lautstärke hoch/runter: Ctrl+Alt+Auf/Ab (Schritt 1000, unabhängig von Sprach-Lautstärke)
+  auch im Menü Benutzer
+
+Bugfixes:
+- Lautstärke-Dialog im Rechtsklick-Menü zeigt jetzt den echten aktuellen Pegel statt immer 1000
+
+NVDA-Fokus (Windows):
+- Verbinden-Dialog: Fokus springt beim Öffnen automatisch auf die Serverliste (falls Einträge vorhanden)
+  oder auf das Host-Feld (bei leerer Liste)
+- Verbinden-Dialog: Tab-Reihenfolge korrekt gesetzt (Serverliste → Formularfelder → Verbinden-Button)
+- Einstellungen-Dialog: Fokus auf Tab-Widget beim Öffnen
+- Nach Schließen von Verbinden-, Online-Nutzer-, Server-Statistiken- und Server-Browser-Dialog
+  kehrt der Fokus automatisch zur Kanalliste zurück
+
 2026-05-14 (v6.8.2)
 Medienstream-Stummschalten und Lautstärke im Rechtsklick-Menü:
 
