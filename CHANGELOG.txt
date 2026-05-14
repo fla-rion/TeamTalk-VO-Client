@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-14 (v6.8.4)
+NVDA-Fokus vollständig, Chat-Export, TTS-Wiederholung, Tastenkürzel-Referenz:
+
+Neue Features:
+- Chat-Log exportieren: Kanalnachrichten als .txt oder .html speichern (Menü Chat → Chat-Log exportieren)
+- Letzte TTS-Ansage wiederholen: Strg+Umschalt+S (Menü Chat → Letzte TTS-Ansage wiederholen)
+- Tastenkürzel-Referenz: vollständige Übersicht aller Shortcuts in einem Dialogfenster, F2 (Menü Hilfe)
+- Neues Menü „Chat" in der Menüleiste
+
+NVDA-Fokus (Windows) – vollständige Abdeckung:
+- Nach Schließen aller Dialoge (Kanal erstellen/bearbeiten, Sperrliste, Nutzer verschieben,
+  Abonnements, 3D-Position, alle sonstigen Menü-Dialoge) kehrt der Fokus automatisch zur
+  Kanalliste zurück
+- 21 Dialog-Aufrufe automatisch mit Fokus-Rückgabe ausgestattet
+
 2026-05-14 (v6.8.3)
 Medien-Lautstärke-Kürzel, Startwert-Fix, NVDA-Fokus-Verbesserungen:
 
