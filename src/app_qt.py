@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.7.9"
+APP_VERSION = "6.8.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -483,6 +483,8 @@ class MainWindow(QMainWindow):
         self._add_action(kanal, "Kanal &löschen", self.on_menu_delete_channel)
         kanal.addSeparator()
         self._add_action(kanal, "Kanal&info vorlesen", self.on_menu_channel_info, "Ctrl+S")
+        self._add_action(kanal, "Kanal-Statistiken &ansagen", self.on_menu_channel_stats_speak)
+        self._add_action(kanal, "Kanalzustand &ansagen", self.on_menu_channel_state_speak)
         self._add_action(kanal, "Kanal-&Notiz bearbeiten...", self.on_menu_channel_note)
         self._add_action(kanal, "Kanal&nachricht senden...", self.on_menu_send_channel_msg, "F3")
         kanal.addSeparator()
@@ -492,6 +494,8 @@ class MainWindow(QMainWindow):
         self._add_action(kanal, "Sperren im Kanal anzeigen...", self.on_menu_channel_bans)
         self._add_action(kanal, "Kanal&nachrichten anzeigen...", self.on_menu_channel_view_msgs)
         self._add_action(kanal, "Kanal&verlauf...", self.on_menu_channel_history)
+        self._recent_ch_menu = kanal.addMenu("&Zuletzt besucht")
+        self._refresh_recent_channels_menu()
         kanal.addSeparator()
         stream_m = kanal.addMenu("&Streamen")
         for _label, _mode in [
@@ -513,6 +517,8 @@ class MainWindow(QMainWindow):
         benutzer.addSeparator()
         self._add_action(benutzer, "S&tummschalten (Sprache)", self.on_menu_mute_voice, "Ctrl+M")
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
+        self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Shift+Up")
+        self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Shift+Down")
         benutzer.addSeparator()
         self._add_action(benutzer, "Aus Kanal &kicken", self.on_menu_kick, "Ctrl+K")
         self._add_action(benutzer, "Kicken + &Sperren", self.on_menu_kick_ban, "Ctrl+Shift+K")
@@ -594,6 +600,8 @@ class MainWindow(QMainWindow):
         self._add_action(aufn, "Konversationen au&fzeichnen...", self.on_menu_user_recording)
         aufn.addSeparator()
         self._add_action(aufn, "Geplante &Aufnahmen...", self.on_menu_scheduled_recordings)
+        aufn.addSeparator()
+        self._add_action(aufn, "Aufnahmen-&Browser...", self.on_menu_recordings_browser)
 
         # --- Server ---
         server_m = mb.addMenu("&Server")
@@ -609,6 +617,7 @@ class MainWindow(QMainWindow):
         self._add_action(server_m, "&Sitzungsübersicht...", self.on_menu_session_overview)
         server_m.addSeparator()
         self._add_action(server_m, "&Ping ansagen", self.on_menu_announce_ping, "Ctrl+P")
+        self._add_action(server_m, "Konfiguration &speichern", self.on_menu_server_save_config)
 
         # --- Automation ---
         auto_m = mb.addMenu("A&utomation")
@@ -877,6 +886,7 @@ class MainWindow(QMainWindow):
                 if topic:
                     announce += f" — {topic}"
                 self.tts.speak(announce, kind="system")
+                self._add_to_recent_channels(ch_id, self._current_channel_name)
         except Exception:
             pass
         self._refresh_channels()
@@ -2040,6 +2050,42 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             self.set_status(f"Kanalinfo Fehler: {exc}")
 
+    def on_menu_channel_stats_speak(self) -> None:
+        try:
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            if not ch_id:
+                self.set_status("Kein Kanal")
+                return
+            users = list(self.client.get_channel_users(ch_id) or [])
+            count = len(users)
+            text = f"{count} Nutzer im Kanal"
+            self.tts.speak(text, kind="system")
+            self.set_status(text)
+        except Exception as exc:
+            self.set_status(f"Kanalstatistiken Fehler: {exc}")
+
+    def on_menu_channel_state_speak(self) -> None:
+        try:
+            tt = self.client.tt
+            ch_id = int(self.client.get_my_channel_id() or 0)
+            if not ch_id:
+                self.set_status("Kein Kanal")
+                return
+            users = list(self.client.get_channel_users(ch_id) or [])
+            voice_flag = int(tt.UserState.USERSTATE_VOICE)
+            media_flag = int(getattr(tt.UserState, "USERSTATE_MEDIAFILE_AUDIO", 0) or 0)
+            transmitting = []
+            for user in users:
+                ustate = int(user.uUserState)
+                if ustate & voice_flag or (media_flag and ustate & media_flag):
+                    nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{int(user.nUserID)}"
+                    transmitting.append(nick)
+            text = ("Spricht: " + ", ".join(transmitting)) if transmitting else "Niemand spricht"
+            self.tts.speak(text, kind="system")
+            self.set_status(text)
+        except Exception as exc:
+            self.set_status(f"Kanalzustand Fehler: {exc}")
+
     def on_menu_channel_note(self) -> None:
         ch_id = int(self.client.get_my_channel_id() or 0)
         key = f"channel_note_{ch_id}"
@@ -2229,6 +2275,35 @@ class MainWindow(QMainWindow):
                 self.set_status(f"Lautstärke für User#{uid}: {vol}")
             except Exception as exc:
                 self.set_status(f"Lautstärke-Fehler: {exc}")
+
+    def _get_user_volume_level(self, uid: int) -> int:
+        return self._user_volume_levels.get(uid, 16384)
+
+    def _set_user_volume_level(self, uid: int, level: int) -> int:
+        level = max(0, min(32000, level))
+        try:
+            tt = self.client.tt
+            self.client.set_user_volume(uid, int(tt.StreamType.STREAMTYPE_VOICE), level)
+            self._user_volume_levels[uid] = level
+        except Exception:
+            pass
+        return level
+
+    def on_menu_user_volume_up(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        new_level = self._set_user_volume_level(uid, self._get_user_volume_level(uid) + 1000)
+        self.set_status(f"Lautstärke: {new_level}")
+
+    def on_menu_user_volume_down(self) -> None:
+        uid = self._get_selected_user_id()
+        if not uid:
+            self.set_status("Bitte Benutzer auswählen")
+            return
+        new_level = self._set_user_volume_level(uid, self._get_user_volume_level(uid) - 1000)
+        self.set_status(f"Lautstärke: {new_level}")
 
     def on_menu_kick(self) -> None:
         uid = self._get_selected_user_id()
@@ -2674,6 +2749,11 @@ class MainWindow(QMainWindow):
         except ImportError:
             self.set_status("Geplante Aufnahmen: Dialog nicht verfügbar")
 
+    def on_menu_recordings_browser(self) -> None:
+        from ui_qt.recordings_browser import RecordingsBrowserDialog
+        dlg = RecordingsBrowserDialog(self, self.settings_store)
+        dlg.exec()
+
     # ------------------------------------------------------------------
     # Server-Menü
     # ------------------------------------------------------------------
@@ -2687,6 +2767,16 @@ class MainWindow(QMainWindow):
             except Exception as exc:
                 self.set_status(f"Servernachricht fehlgeschlagen: {exc}")
 
+    def on_menu_server_save_config(self) -> None:
+        try:
+            result = self.client.do_save_config()
+            if result >= 0:
+                self.set_status("Server-Konfiguration gespeichert")
+            else:
+                self.set_status("Server-Konfiguration speichern fehlgeschlagen")
+        except Exception as exc:
+            self.set_status(f"Speichern fehlgeschlagen: {exc}")
+
     def on_menu_admin(self) -> None:
         idx = self.notebook.indexOf(self.admin_tab)
         if idx >= 0:
@@ -2694,6 +2784,49 @@ class MainWindow(QMainWindow):
 
     def on_menu_server_properties(self) -> None:
         self.edit_server_properties()
+
+    # ------------------------------------------------------------------
+    # Recent channels
+    # ------------------------------------------------------------------
+
+    def _add_to_recent_channels(self, ch_id: int, ch_name: str) -> None:
+        server_key = getattr(self, "_current_server_key", "")
+        s = self.settings_store.settings
+        recent = list(getattr(s, "recent_channels", []) or [])
+        recent = [e for e in recent if not (e.get("channel_id") == ch_id and e.get("server_key") == server_key)]
+        recent.insert(0, {"channel_id": ch_id, "name": ch_name, "server_key": server_key})
+        if len(recent) > 8:
+            recent = recent[:8]
+        s.recent_channels = recent
+        try:
+            self.settings_store.save()
+        except Exception:
+            pass
+        self._refresh_recent_channels_menu()
+
+    def _refresh_recent_channels_menu(self) -> None:
+        if not hasattr(self, "_recent_ch_menu"):
+            return
+        self._recent_ch_menu.clear()
+        s = self.settings_store.settings
+        recent = list(getattr(s, "recent_channels", []) or [])
+        if not recent:
+            act = self._recent_ch_menu.addAction("(Leer)")
+            act.setEnabled(False)
+            return
+        for entry in recent:
+            ch_id = entry.get("channel_id")
+            name = entry.get("name", "") or str(ch_id or "?")
+            server = entry.get("server_key", "")
+            label = f"{name}  [{server}]" if server else name
+            act = QAction(label, self)
+            if ch_id:
+                act.triggered.connect(
+                    lambda checked=False, cid=ch_id: self.join_channel(int(cid)) if self.client.is_connected() else self.set_status("Nicht verbunden")
+                )
+            else:
+                act.setEnabled(False)
+            self._recent_ch_menu.addAction(act)
 
     # ------------------------------------------------------------------
     # Favorites / Schnellverbindung

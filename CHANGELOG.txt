@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-05-13 (v6.8.0)
+Windows Qt-UI – Lautstärkekürzel, Kanalstatistiken, Server-Config, Aufnahmen-Browser, Zuletzt besuchte Kanäle:
+
+Neue Features:
+- Lautstärke hoch/runter für ausgewählten Nutzer (Ctrl+Shift+Auf/Ab, Schritt: 1000 Einheiten)
+- Kanal-Statistiken ansagen: Nutzeranzahl im eigenen Kanal per TTS (Menü Kanal)
+- Kanalzustand ansagen: wer gerade spricht (Stimme/Medien) per TTS (Menü Kanal)
+- Server-Konfiguration speichern (Menü Server → Konfiguration speichern)
+- Zuletzt besuchte Kanäle: dynamisches Untermenü im Kanal-Menü (bis zu 8 Einträge,
+  per Klick direkt beitreten)
+- Aufnahmen-Browser: .wav/.mp3 in Aufnahmeordner und Downloads anzeigen,
+  abspielen, Ordner öffnen, löschen (Menü Aufnahmen → Aufnahmen-Browser)
+
 2026-05-13 (v6.7.9)
 Windows Qt-UI – Server-Browser, Stubs implementiert, TTS-Verbesserungen:
 
