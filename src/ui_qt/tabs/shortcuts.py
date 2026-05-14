@@ -171,6 +171,13 @@ class ShortcutsTab(QWidget):
     def _format_vk(self, vk: int) -> str:
         if not vk:
             return "(nicht gesetzt)"
+        import sys
+        if sys.platform == "win32":
+            try:
+                from win32_hotkeys import win32_vk_to_name
+                return win32_vk_to_name(vk)
+            except Exception:
+                return f"VK-{vk:#04x}"
         try:
             from global_hotkeys import vk_to_name
             return vk_to_name(vk)

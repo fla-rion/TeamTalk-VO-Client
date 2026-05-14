@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-05-14 (v6.9.0)
+Globale Hotkeys (Qt), Auto-Kanal pro Server, persistente Nutzer-Notizen:
+
+Neue Features (Qt / Windows):
+- Globale Hotkeys vollständig: PTT und Stummschalten funktionieren auch wenn die App
+  nicht im Vordergrund ist
+  macOS Qt: NSEvent-Monitor (wie macOS wxPython-UI)
+  Windows Qt: GetAsyncKeyState-Polling (Win32 VK-Codes, 50 ms Abtastrate)
+- Globale Hotkey-Erfassung: macOS nutzt NSEvent, Windows nutzt Fokus-basierte Eingabe
+  (nativeVirtualKey() für korrekte Win32 VK-Codes)
+- Auto-Kanal pro Server: im Einstellungs-Tab Verbindung kann ein Kanalname hinterlegt
+  werden, der nach dem Verbinden automatisch betreten wird (pro Server-Schlüssel gespeichert,
+  greift wenn im Profil kein Kanal eingetragen ist)
+- Nutzer-Notizen persistent: Notizen werden jetzt dauerhaft in der Einstellungsdatenbank
+  gespeichert (vorher nur für die laufende Sitzung)
+
+Technisch:
+- GlobalHotkeyManager (macOS) unterstützt nun konfigurierbaren call_after-Dispatcher
+  (wx.CallAfter oder Qt QTimer.singleShot) – kein wx-Import mehr in Qt-Kontext nötig
+- Neues Modul win32_hotkeys.py für Windows-globale-Hotkeys
+
 2026-05-14 (v6.8.4)
 NVDA-Fokus vollständig, Chat-Export, TTS-Wiederholung, Tastenkürzel-Referenz:
 

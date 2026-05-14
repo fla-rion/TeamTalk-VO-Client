@@ -55,6 +55,7 @@ class GlobalHotkeyManager:
         self._thread: Optional[threading.Thread] = None
         self._running = False
         self._loop = None  # NSRunLoop reference
+        self._call_after: Optional[Callable] = None  # configurable dispatcher (wx.CallAfter or Qt equivalent)
 
     # ------------------------------------------------------------------
     # Public API
@@ -67,6 +68,7 @@ class GlobalHotkeyManager:
         on_ptt_down: Callable,
         on_ptt_up: Callable,
         on_mute: Callable,
+        call_after: Optional[Callable] = None,
     ) -> None:
         self.stop()
         self._ptt_vk = ptt_vk
@@ -74,6 +76,7 @@ class GlobalHotkeyManager:
         self._on_ptt_down = on_ptt_down
         self._on_ptt_up = on_ptt_up
         self._on_mute = on_mute
+        self._call_after = call_after
         self._ptt_pressed = False
         self._running = True
         self._thread = threading.Thread(target=self._run_loop, daemon=True, name="GlobalHotkeys")
@@ -102,15 +105,18 @@ class GlobalHotkeyManager:
         Läuft im Haupt-Thread (via wx.CallAfter aus dem Haupt-NSRunLoop).
         """
         try:
-            import wx
             from AppKit import NSEvent, NSKeyDownMask  # type: ignore
+            _dispatch = self._call_after
+            if _dispatch is None:
+                import wx
+                _dispatch = wx.CallAfter
 
             self._remove_capture_monitor()
 
             def _handler(event):  # type: ignore
                 vk = int(event.keyCode())
                 self._remove_capture_monitor()
-                wx.CallAfter(callback, vk)
+                _dispatch(callback, vk)
                 return event  # pass event through
 
             self._capture_monitor = NSEvent.addLocalMonitorForEventsMatchingMask_handler_(
@@ -146,8 +152,11 @@ class GlobalHotkeyManager:
 
     def _run_loop(self) -> None:
         try:
-            import wx
             from AppKit import NSEvent, NSKeyDownMask, NSKeyUpMask, NSRunLoop, NSDate  # type: ignore
+            _dispatch = self._call_after
+            if _dispatch is None:
+                import wx
+                _dispatch = wx.CallAfter
 
             mask = NSKeyDownMask | NSKeyUpMask
 
@@ -164,14 +173,14 @@ class GlobalHotkeyManager:
                     if is_down and not self._ptt_pressed:
                         self._ptt_pressed = True
                         if self._on_ptt_down:
-                            wx.CallAfter(self._on_ptt_down)
+                            _dispatch(self._on_ptt_down)
                     elif is_up and self._ptt_pressed:
                         self._ptt_pressed = False
                         if self._on_ptt_up:
-                            wx.CallAfter(self._on_ptt_up)
+                            _dispatch(self._on_ptt_up)
                 elif self._mute_vk and vk == self._mute_vk and is_down:
                     if self._on_mute:
-                        wx.CallAfter(self._on_mute)
+                        _dispatch(self._on_mute)
 
             self._monitor = NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
                 mask, _handler

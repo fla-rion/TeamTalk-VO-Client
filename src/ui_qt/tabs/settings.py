@@ -287,9 +287,41 @@ class SettingsTab(QWidget):
         bw_form.addRow("Passwort", self.bearware_password)
         layout.addWidget(bw_group)
 
+        # Auto-Kanal per Server-Schlüssel
+        ac_group = QGroupBox("Automatisch beitreten (pro Server)")
+        ac_form = QFormLayout(ac_group)
+        ac_info = QLabel(
+            "Kanalname, der nach dem Verbinden automatisch betreten wird.\n"
+            "Leer lassen = deaktiviert. Wird pro Server gespeichert.\n"
+            "Gilt nur wenn im Serverprofil kein Kanal eingetragen ist."
+        )
+        ac_info.setWordWrap(True)
+        ac_form.addRow(ac_info)
+        server_key = getattr(self.window, "_current_server_key", "") or ""
+        ajc = getattr(s, "auto_join_channel_per_server", {}) or {}
+        self._auto_join_channel = QLineEdit(ajc.get(server_key, ""))
+        self._auto_join_channel.setAccessibleName("Auto-Kanal Kanalname")
+        self._auto_join_channel.setPlaceholderText("Kanalname (ohne Schrägstrich)")
+        self._auto_join_channel.textChanged.connect(self._on_auto_join_channel_changed)
+        ac_form.addRow("Kanalname", self._auto_join_channel)
+        layout.addWidget(ac_group)
+
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    def _on_auto_join_channel_changed(self, text: str) -> None:
+        s = self.window.settings_store.settings
+        server_key = getattr(self.window, "_current_server_key", "") or ""
+        if not server_key:
+            return
+        ajc = dict(getattr(s, "auto_join_channel_per_server", {}) or {})
+        if text.strip():
+            ajc[server_key] = text.strip()
+        else:
+            ajc.pop(server_key, None)
+        s.auto_join_channel_per_server = ajc
+        self.window.settings_store.save()
 
     # ------------------------------------------------------------------
     # Sound-Ereignisse

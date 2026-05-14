@@ -34,8 +34,7 @@ class ChannelsTab(QWidget):
         self._all_labels: List[str] = []
         self._all_items: List[Tuple[str, int]] = []
         self._displayed_labels: List[str] = []
-        # user_id -> note text
-        self._user_notes: Dict[int, str] = {}
+        # user notes are persisted in settings_store.settings.user_notes (keyed by username)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
@@ -812,17 +811,26 @@ class ChannelsTab(QWidget):
                 self.window.set_status(f"Server-Kick fehlgeschlagen: {exc}")
 
     def _edit_user_note(self, user_id: int) -> None:
-        current_note = self._user_notes.get(user_id, "")
         user = self._find_user(user_id)
         tt_str = self.window.tt_str
         name = ""
+        username = f"User#{user_id}"
         if user:
             name = tt_str(user.szNickname) or tt_str(user.szUsername) or f"User#{user_id}"
+            username = tt_str(user.szUsername) or f"User#{user_id}"
+        notes = getattr(self.window.settings_store.settings, "user_notes", {}) or {}
+        current_note = notes.get(username, "")
         note, ok = QInputDialog.getText(
             self, "Notiz bearbeiten", f"Notiz für {name}:", text=current_note
         )
         if ok:
-            self._user_notes[user_id] = note.strip()
+            if not isinstance(getattr(self.window.settings_store.settings, "user_notes", None), dict):
+                self.window.settings_store.settings.user_notes = {}
+            if note.strip():
+                self.window.settings_store.settings.user_notes[username] = note.strip()
+            else:
+                self.window.settings_store.settings.user_notes.pop(username, None)
+            self.window.settings_store.save()
             self.window.set_status("Notiz gespeichert")
 
     # ------------------------------------------------------------------

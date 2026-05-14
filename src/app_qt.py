@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.8.4"
+APP_VERSION = "6.9.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -247,6 +247,9 @@ class MainWindow(QMainWindow):
         self.bus.on("user_joined", lambda **kw: self._macros.fire_event("user_join", **kw))
         self.bus.on("user_left", lambda **kw: self._macros.fire_event("user_leave", **kw))
         self.bus.on("channel_joined", lambda **kw: self._macros.fire_event("channel_join", **kw))
+
+        # Global hotkeys (macOS: NSEvent / Windows: GetAsyncKeyState polling)
+        self.apply_global_hotkeys()
 
         # Windows dark mode detection
         self._apply_windows_dark_mode()
@@ -779,6 +782,8 @@ class MainWindow(QMainWindow):
     def _handle_connect_result(self, result) -> None:
         if result.ok:
             profile = getattr(self, "_last_profile", None)
+            if profile:
+                self._current_server_key = f"{profile.host}:{getattr(profile, 'tcp_port', 10333)}"
             server_name = (getattr(profile, "name", "") or getattr(profile, "host", "Server")) if profile else "Server"
             nick = getattr(profile, "nickname", "") if profile else ""
             self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
@@ -1072,6 +1077,10 @@ class MainWindow(QMainWindow):
             if result.ok:
                 join_ch = getattr(profile, "channel", "") or ""
                 ch_pw = getattr(profile, "channel_password", "") or ""
+                if not join_ch:
+                    server_key = f"{profile.host}:{getattr(profile, 'tcp_port', 10333)}"
+                    ajc_map = getattr(self.settings_store.settings, "auto_join_channel_per_server", {}) or {}
+                    join_ch = ajc_map.get(server_key, "")
                 try:
                     if join_ch:
                         self.client.join_channel_by_path(join_ch, ch_pw)
@@ -1139,7 +1148,100 @@ class MainWindow(QMainWindow):
             pass
 
     def apply_global_hotkeys(self) -> None:
-        pass
+        import sys
+        s = self.settings_store.settings
+        enabled = bool(getattr(s, "global_hotkeys_enabled", False))
+        if sys.platform == "darwin":
+            from global_hotkeys import GlobalHotkeyManager
+            from PySide6.QtCore import QTimer
+            if not enabled:
+                if self._global_hotkey_mgr is not None:
+                    self._global_hotkey_mgr.stop()
+                return
+            if self._global_hotkey_mgr is None:
+                self._global_hotkey_mgr = GlobalHotkeyManager()
+
+            def _qt_call_after(fn):
+                QTimer.singleShot(0, fn)
+
+            self._global_hotkey_mgr.start(
+                ptt_vk=int(getattr(s, "global_hotkey_ptt", 0) or 0),
+                mute_vk=int(getattr(s, "global_hotkey_mute", 0) or 0),
+                on_ptt_down=self._on_global_ptt_down,
+                on_ptt_up=self._on_global_ptt_up,
+                on_mute=self._on_global_mute,
+                call_after=_qt_call_after,
+            )
+        elif sys.platform == "win32":
+            try:
+                from win32_hotkeys import Win32GlobalHotkeyManager
+                from PySide6.QtCore import QTimer
+                if hasattr(self, "_win32_hotkey_mgr") and self._win32_hotkey_mgr is not None:
+                    self._win32_hotkey_mgr.stop()
+                    self._win32_hotkey_mgr = None
+                if not enabled:
+                    return
+                self._win32_hotkey_mgr = Win32GlobalHotkeyManager()
+
+                def _qt_call_after(fn):
+                    QTimer.singleShot(0, fn)
+
+                self._win32_hotkey_mgr.start(
+                    ptt_vk=int(getattr(s, "global_hotkey_ptt", 0) or 0),
+                    mute_vk=int(getattr(s, "global_hotkey_mute", 0) or 0),
+                    on_ptt_down=self._on_global_ptt_down,
+                    on_ptt_up=self._on_global_ptt_up,
+                    on_mute=self._on_global_mute,
+                    call_after=_qt_call_after,
+                )
+            except Exception as exc:
+                self.logger.write(f"Win32 globale Hotkeys: {exc}")
+
+    def _on_global_ptt_down(self) -> None:
+        try:
+            self.client.enable_voice_transmission(True)
+            self.set_status("Sprechen (global)")
+        except Exception:
+            pass
+
+    def _on_global_ptt_up(self) -> None:
+        try:
+            self.client.enable_voice_transmission(False)
+        except Exception:
+            pass
+
+    def _on_global_mute(self) -> None:
+        self._mute_all = not self._mute_all
+        try:
+            self.client.set_sound_output_mute(self._mute_all)
+            if hasattr(self, "_tb_mute"):
+                self._tb_mute.setChecked(self._mute_all)
+            if hasattr(self, "_all_mute_action"):
+                self._all_mute_action.setChecked(self._mute_all)
+        except Exception:
+            pass
+        self.set_status("Stummgeschaltet" if self._mute_all else "Stummschaltung aufgehoben")
+
+    def _on_global_key_captured(self, vk: int) -> None:
+        target = self._global_capture_target
+        self._global_capture_target = None
+        if not target:
+            return
+        if vk == 53:  # ESC (macOS VK)
+            if hasattr(self, "shortcuts_tab"):
+                self.shortcuts_tab.set_global_capture_label(target, False)
+            self.set_status("Globaler Hotkey: Abgebrochen")
+            return
+        try:
+            setattr(self.settings_store.settings, target, vk)
+            self.settings_store.save()
+        except Exception:
+            pass
+        if hasattr(self, "shortcuts_tab"):
+            self.shortcuts_tab.set_global_capture_label(target, False)
+            self.shortcuts_tab.update_labels()
+        self.apply_global_hotkeys()
+        self.set_status("Globales Tastenkürzel gespeichert")
 
     def start_hotkey_capture(self, key: str) -> None:
         self._capture_hotkey_target = key
@@ -1151,6 +1253,17 @@ class MainWindow(QMainWindow):
         self._global_capture_target = key
         if hasattr(self, "shortcuts_tab"):
             self.shortcuts_tab.set_global_capture_label(key, True)
+        import sys
+        if sys.platform == "darwin":
+            if self._global_hotkey_mgr is None:
+                from global_hotkeys import GlobalHotkeyManager
+                self._global_hotkey_mgr = GlobalHotkeyManager()
+            from PySide6.QtCore import QTimer
+            self._global_hotkey_mgr._call_after = lambda fn: QTimer.singleShot(0, fn)
+            self._global_hotkey_mgr.capture_key_vk(self._on_global_key_captured)
+            self.set_status("Globaler Hotkey: Taste drücken (ESC = Abbruch)...")
+        else:
+            self.set_status(f"Globaler Hotkey '{key}': Taste drücken (App muss Fokus haben)...")
 
     def keyPressEvent(self, event) -> None:
         if self._capture_hotkey_target:
@@ -1168,6 +1281,23 @@ class MainWindow(QMainWindow):
                 self.audio_tab.update_ptt_hotkey_label()
             self.set_status("Tastenkürzel gespeichert")
             return
+        if self._global_capture_target:
+            import sys
+            if sys.platform == "win32":
+                vk = int(event.nativeVirtualKey() or event.key())
+                target = self._global_capture_target
+                self._global_capture_target = None
+                try:
+                    setattr(self.settings_store.settings, target, vk)
+                    self.settings_store.save()
+                except Exception:
+                    pass
+                if hasattr(self, "shortcuts_tab"):
+                    self.shortcuts_tab.set_global_capture_label(target, False)
+                    self.shortcuts_tab.update_labels()
+                self.apply_global_hotkeys()
+                self.set_status("Globales Tastenkürzel gespeichert")
+                return
         ptt_key = getattr(self.settings_store.settings, "ptt_key", None)
         if ptt_key and event.key() == ptt_key and not event.isAutoRepeat() and not self._ptt_active:
             self._ptt_active = True
