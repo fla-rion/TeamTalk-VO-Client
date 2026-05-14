@@ -70,10 +70,19 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.0"
+APP_VERSION = "6.9.1"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
+
+_startup_profiler: "StartupProfiler | None" = None
+
+
+def _get_startup_profiler() -> StartupProfiler:
+    global _startup_profiler
+    if _startup_profiler is None:
+        _startup_profiler = StartupProfiler()
+    return _startup_profiler
 
 
 def _upd_tok() -> str:
@@ -109,6 +118,7 @@ class MainWindow(QMainWindow):
         self._last_private_sender_id: Optional[int] = None
         self._last_private_message_text: str = ""
         self._status_message = ""
+        self._status_mode: int = 0
         self._capture_hotkey_target: Optional[str] = None
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_muted: Dict[int, bool] = {}
@@ -188,6 +198,11 @@ class MainWindow(QMainWindow):
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
         self.tts.settings.connect_announce = _ts.tts_connect_announce
+        self.tts.settings.chat_rate = getattr(_ts, "tts_chat_rate", 0) or 0
+        self.tts.settings.system_rate = getattr(_ts, "tts_system_rate", 0) or 0
+        self.tts.settings.channel_rate = getattr(_ts, "tts_channel_rate", 0) or 0
+        self.tts.settings.chat_voice = getattr(_ts, "tts_chat_voice", "") or ""
+        self.tts.settings.system_voice = getattr(_ts, "tts_system_voice", "") or ""
 
         self._screen_reader = ScreenReaderAnnouncer()
 
@@ -472,6 +487,10 @@ class MainWindow(QMainWindow):
         self._add_action(datei, "Serverliste &importieren...", self.on_menu_import_servers)
         self._add_action(datei, "Serverliste &exportieren...", self.on_menu_export_servers)
         datei.addSeparator()
+        sound_sub = datei.addMenu("&Sound-Konfiguration")
+        self._add_action(sound_sub, "Audio-Einstellungen...", self.on_menu_audio_settings)
+        self._add_action(sound_sub, "Geräte a&ktualisieren", self.on_menu_audio_refresh)
+        datei.addSeparator()
         self._add_action(datei, "Einstellungen &sichern (Backup)...", self.on_menu_settings_backup)
         self._add_action(datei, "Einstellungen &wiederherstellen...", self.on_menu_settings_restore)
         datei.addSeparator()
@@ -646,8 +665,12 @@ class MainWindow(QMainWindow):
         self._translation_action = self._add_checkable(auto_m, "Chat-&Übersetzung",
             self._on_toggle_translation,
             bool(getattr(self.settings_store.settings, "translation_enabled", False)))
+        self._auto_channel_sum_action = self._add_checkable(auto_m, "Auto-&Kanal-Zusammenfassung",
+            self._on_toggle_channel_summary,
+            bool(getattr(self.settings_store.settings, "auto_channel_summary", False)))
         auto_m.addSeparator()
         self._add_action(auto_m, "&Plugin-Manager...", self.on_menu_plugin_manager)
+        self._add_action(auto_m, "Per-Server-&Soundprofile...", self.on_menu_server_audio_profiles)
         auto_m.addSeparator()
         self._add_action(auto_m, "&Einstellungen...", self.on_menu_settings, "Ctrl+,")
 
@@ -656,6 +679,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "Logs &exportieren...", self.on_menu_export_logs)
         self._add_action(hlp, "&Gesundheitsbericht...", self.on_menu_health_report)
         self._add_action(hlp, "Verbindungs&statistiken...", self.on_menu_client_stats)
+        self._add_action(hlp, "Statistiken &vorlesen", self.on_menu_client_stats_speak)
         self._add_action(hlp, "&Gespeicherte Nachrichten...", self.on_menu_saved_messages)
         self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
         hlp.addSeparator()
@@ -663,6 +687,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference, "F2")
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
+        self._add_action(hlp, "&Startup-Profiler...", self.on_menu_startup_profiler)
         self._add_action(hlp, "&Nutzungsbericht...", self.on_menu_analytics_report)
         self._add_action(hlp, "&Info...", self.on_menu_about)
 
@@ -906,6 +931,8 @@ class MainWindow(QMainWindow):
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
         except Exception:
             pass
+        if getattr(self.settings_store.settings, "auto_channel_summary", False):
+            QTimer.singleShot(0, self._auto_channel_summary)
         self._refresh_channels()
 
     def _on_myself_left(self, msg) -> None:
@@ -2776,13 +2803,52 @@ class MainWindow(QMainWindow):
                 self.set_status(f"Nickname-Fehler: {exc}")
 
     def on_menu_status(self) -> None:
-        msg, ok = QInputDialog.getText(self, "Status", "Status-Meldung:")
-        if ok:
-            try:
-                self.client.change_status(0, msg)
-                self.set_status(f"Status gesetzt: {msg}")
-            except Exception:
-                pass
+        if not self._require_connected("Status setzen"):
+            return
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Status setzen")
+        layout = QFormLayout(dlg)
+        mode_cb = QComboBox()
+        mode_cb.addItems(["Verfügbar", "Abwesend", "Frage"])
+        current_mode = getattr(self, "_status_mode", 0)
+        try:
+            from teamtalk_client import tt as _tt
+            if current_mode == int(_tt.UserStatusMode.STATUSMODE_AWAY):
+                mode_cb.setCurrentIndex(1)
+            elif current_mode == int(_tt.UserStatusMode.STATUSMODE_QUESTION):
+                mode_cb.setCurrentIndex(2)
+            else:
+                mode_cb.setCurrentIndex(0)
+        except Exception:
+            pass
+        msg_edit = QLineEdit(getattr(self, "_status_message", ""))
+        layout.addRow("Modus", mode_cb)
+        layout.addRow("Nachricht", msg_edit)
+        bb = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        bb.accepted.connect(dlg.accept)
+        bb.rejected.connect(dlg.reject)
+        layout.addRow(bb)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        try:
+            from teamtalk_client import tt as _tt
+            mode_map = {
+                0: int(_tt.UserStatusMode.STATUSMODE_AVAILABLE),
+                1: int(_tt.UserStatusMode.STATUSMODE_AWAY),
+                2: int(_tt.UserStatusMode.STATUSMODE_QUESTION),
+            }
+            mode = mode_map.get(mode_cb.currentIndex(), 0)
+            message = msg_edit.text().strip()
+            self._status_mode = mode
+            self._status_message = message
+            cmdid = self.client.change_status(mode, message)
+            if cmdid < 0:
+                self.set_status("Status konnte nicht gesetzt werden")
+            else:
+                self.set_status(f"Status gesetzt: {message or mode_cb.currentText()}")
+        except Exception:
+            pass
 
     def _on_toggle_self_hear(self, checked: bool) -> None:
         try:
@@ -3110,6 +3176,29 @@ class MainWindow(QMainWindow):
             self.set_status("Übersetzung: " + ("aktiviert" if checked else "deaktiviert"))
         except Exception:
             pass
+
+    def _on_toggle_channel_summary(self, checked: bool) -> None:
+        try:
+            self.settings_store.settings.auto_channel_summary = checked
+            self.settings_store.save()
+            self.set_status("Auto-Kanal-Zusammenfassung: " + ("aktiviert" if checked else "deaktiviert"))
+        except Exception:
+            pass
+
+    def _auto_channel_summary(self) -> None:
+        if self._ai_summary is None:
+            return
+        server_key = getattr(self, "_current_server_key", "")
+        if not server_key:
+            return
+        since = time.time() - 1800
+
+        def _work():
+            text = self._ai_summary.summarize_missed(server_key, since)
+            if text and text != "Keine neuen Nachrichten.":
+                call_after(lambda: self.tts.speak(f"Zusammenfassung: {text}", kind="system"))
+
+        threading.Thread(target=_work, daemon=True).start()
 
     # ------------------------------------------------------------------
     # Einstellungen / Navigation
@@ -3610,6 +3699,43 @@ class MainWindow(QMainWindow):
         dlg.resize(400, 300)
         dlg.exec()
         self._refocus_channel_list()
+
+    def on_menu_startup_profiler(self) -> None:
+        prof = _get_startup_profiler()
+        phases = prof.phases
+        if phases:
+            lines = [f"{name}: {dur:.1f} ms" for name, dur in phases if dur > 0]
+            text = "\n".join(lines) or "Keine Phasen aufgezeichnet."
+        else:
+            text = "Keine Profiling-Daten verfügbar."
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Startup-Profiler")
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        te.setPlainText(text)
+        layout.addWidget(te)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.resize(400, 300)
+        dlg.exec()
+
+    def on_menu_client_stats_speak(self) -> None:
+        if not self.client.is_connected():
+            self.set_status("Nicht verbunden")
+            return
+        try:
+            stats = self.client.get_client_statistics()
+            if stats is None:
+                self.set_status("Keine Statistik verfügbar")
+                return
+            udp = int(getattr(stats, "nUdpPingTimeMs", 0) or 0)
+            tcp = int(getattr(stats, "nTcpPingTimeMs", 0) or 0)
+            text = f"UDP Ping {udp} Millisekunden, TCP Ping {tcp} Millisekunden."
+            self.tts.speak(text, kind="system")
+        except Exception:
+            self.set_status("Statistik nicht verfügbar")
 
     def on_menu_saved_messages(self) -> None:
         try:

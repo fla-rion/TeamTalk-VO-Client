@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTextEdit,
     QCheckBox, QLabel, QComboBox, QLineEdit, QSpinBox, QListWidget,
-    QPushButton, QFormLayout,
+    QPushButton, QFormLayout, QScrollArea,
 )
 
 if TYPE_CHECKING:
@@ -109,6 +109,44 @@ class SystemTab(QWidget):
 
         root.addWidget(tts_group)
 
+        # TTS per-context rates + voices
+        ctx_group = QGroupBox("Sprechgeschwindigkeit je Kontext (0 = global)")
+        ctx_form = QFormLayout(ctx_group)
+        self.tts_chat_rate = QSpinBox()
+        self.tts_chat_rate.setRange(0, 400)
+        self.tts_chat_rate.setAccessibleName("TTS Chat-/Privat-Rate")
+        ctx_form.addRow("Chat / Privat (Wörter/Min, 0=global)", self.tts_chat_rate)
+        self.tts_system_rate = QSpinBox()
+        self.tts_system_rate.setRange(0, 400)
+        self.tts_system_rate.setAccessibleName("TTS System-Rate")
+        ctx_form.addRow("Systemmeldungen (0=global)", self.tts_system_rate)
+        self.tts_channel_rate = QSpinBox()
+        self.tts_channel_rate.setRange(0, 400)
+        self.tts_channel_rate.setAccessibleName("TTS Kanal-Rate")
+        ctx_form.addRow("Kanal-Thema / Beitritt (0=global)", self.tts_channel_rate)
+        self.tts_chat_voice = QLineEdit()
+        self.tts_chat_voice.setPlaceholderText("leer = global")
+        self.tts_chat_voice.setAccessibleName("TTS Chat-Stimme")
+        ctx_form.addRow("Chat-Stimme (leer=global)", self.tts_chat_voice)
+        self.tts_system_voice = QLineEdit()
+        self.tts_system_voice.setPlaceholderText("leer = global")
+        self.tts_system_voice.setAccessibleName("TTS System-Stimme")
+        ctx_form.addRow("System-Stimme (leer=global)", self.tts_system_voice)
+        root.addWidget(ctx_group)
+
+        # Pronunciation dictionary
+        pron_group = QGroupBox("Aussprache-Wörterbuch (Wort=Ersatz, eine Regel pro Zeile)")
+        pron_layout = QVBoxLayout(pron_group)
+        pron_layout.addWidget(QLabel("Beispiel: TeamTalk=Timtock"))
+        self.pron_edit = QTextEdit()
+        self.pron_edit.setAccessibleName("Aussprache-Wörterbuch")
+        self.pron_edit.setMaximumHeight(120)
+        pron_layout.addWidget(self.pron_edit)
+        pron_save = QPushButton("Aussprache-Regeln &speichern")
+        pron_save.clicked.connect(self._save_pronunciation)
+        pron_layout.addWidget(pron_save)
+        root.addWidget(pron_group)
+
         self._bind_events()
         self._sync_from_manager()
 
@@ -132,6 +170,11 @@ class SystemTab(QWidget):
         self.tts_path.textChanged.connect(self._apply_settings)
         self.tts_refresh.clicked.connect(lambda: self._refresh_voices(force=True))
         self.tts_test.clicked.connect(self._on_test)
+        self.tts_chat_rate.valueChanged.connect(self._apply_settings)
+        self.tts_system_rate.valueChanged.connect(self._apply_settings)
+        self.tts_channel_rate.valueChanged.connect(self._apply_settings)
+        self.tts_chat_voice.textChanged.connect(self._apply_settings)
+        self.tts_system_voice.textChanged.connect(self._apply_settings)
 
     def _sync_from_manager(self) -> None:
         s = self.window.tts.settings
@@ -159,6 +202,13 @@ class SystemTab(QWidget):
         self.tts_rate.setValue(s.rate)
         self.tts_volume.setValue(s.volume)
         self.tts_path.setText(s.espeak_path)
+        self.tts_chat_rate.setValue(s.chat_rate or 0)
+        self.tts_system_rate.setValue(s.system_rate or 0)
+        self.tts_channel_rate.setValue(s.channel_rate or 0)
+        self.tts_chat_voice.setText(s.chat_voice or "")
+        self.tts_system_voice.setText(s.system_voice or "")
+        pron = self.window.settings_store.settings.pronunciation_dict or {}
+        self.pron_edit.setPlainText("\n".join(f"{k}={v}" for k, v in pron.items()))
 
     def _apply_settings(self, *_) -> None:
         s = self.window.tts.settings
@@ -195,6 +245,16 @@ class SystemTab(QWidget):
         app.tts_speak_file_transfer = s.speak_file_transfer
         app.tts_speak_channel_topic = s.speak_channel_topic
         app.tts_connect_announce = s.connect_announce
+        s.chat_rate = self.tts_chat_rate.value()
+        s.system_rate = self.tts_system_rate.value()
+        s.channel_rate = self.tts_channel_rate.value()
+        s.chat_voice = self.tts_chat_voice.text().strip()
+        s.system_voice = self.tts_system_voice.text().strip()
+        app.tts_chat_rate = s.chat_rate
+        app.tts_system_rate = s.system_rate
+        app.tts_channel_rate = s.channel_rate
+        app.tts_chat_voice = s.chat_voice
+        app.tts_system_voice = s.system_voice
         self.window.settings_store.save()
 
     def _refresh_voices(self, *_, force: bool = False) -> None:
@@ -294,6 +354,22 @@ class SystemTab(QWidget):
                 return
         if self._voice_labels:
             self.tts_voice.setCurrentRow(0)
+
+    def _save_pronunciation(self) -> None:
+        rules: dict[str, str] = {}
+        for line in self.pron_edit.toPlainText().splitlines():
+            line = line.strip()
+            if "=" in line:
+                k, _, v = line.partition("=")
+                k, v = k.strip(), v.strip()
+                if k:
+                    rules[k] = v
+        app = self.window.settings_store.settings
+        app.pronunciation_dict = rules
+        self.window.settings_store.save()
+        pm = getattr(self.window, "_pronunciation", None)
+        if pm is not None:
+            pm._rules = rules
 
     def _on_test(self) -> None:
         self.window.tts.speak("Das ist ein TTS Test", kind="system")

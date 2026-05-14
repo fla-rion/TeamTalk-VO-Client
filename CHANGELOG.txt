@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-05-14 (v6.9.1)
+Qt UI Parität: TTS-Kontexteinstellungen, Status-Dialog, Auto-Kanal-Zusammenfassung, weitere Menüpunkte:
+
+Neue Features (Qt / Windows):
+- Status-Dialog verbessert: Auswahl von Modus (Verfügbar / Abwesend / Frage) und
+  Status-Nachricht in einem Formular-Dialog (bisher nur einfaches Texteingabe-Feld)
+- TTS Kontexteinstellungen: Im System-Tab können jetzt separate Sprechtempo- und
+  Stimmenwerte für Chat, System und Kanal-Ereignisse konfiguriert werden (0 = global)
+- Aussprache-Wörterbuch: Ausspracheregeln (Wort=Ersatz, eine pro Zeile) können direkt
+  im System-Tab gespeichert werden; Änderungen wirken sofort ohne Neustart
+- Auto-Kanal-Zusammenfassung: Automation-Menü → Auto-Kanal-Zusammenfassung liest
+  per KI-Zusammenfassung die letzten 30 Minuten vor (setzt aktivierten KI-Dienst voraus)
+- Statistiken vorlesen: Hilfe-Menü → Statistiken vorlesen gibt UDP/TCP-Ping per TTS aus
+- Sound-Konfiguration: Datei-Menü → Sound-Konfiguration (Untermenü) mit
+  Audio-Einstellungen und Geräte aktualisieren
+- Per-Server-Soundprofile auch im Automation-Menü erreichbar
+- Startup-Profiler: Hilfe-Menü → Startup-Profiler zeigt Startphasen-Zeiten in einem Dialog
+
+Technisch:
+- TTS-Kontextraten (chat_rate, system_rate, channel_rate, chat_voice, system_voice)
+  werden beim Start aus der Einstellungsdatenbank korrekt in tts.settings geladen
+
 2026-05-14 (v6.9.0)
 Globale Hotkeys (Qt), Auto-Kanal pro Server, persistente Nutzer-Notizen:
 
