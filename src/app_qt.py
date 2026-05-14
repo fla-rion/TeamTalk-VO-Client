@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.8.3"
+APP_VERSION = "6.8.4"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -597,6 +597,11 @@ class MainWindow(QMainWindow):
         self._add_action(audio_m, "&Equalizer-Voreinstellungen...", self.on_menu_equalizer)
         self._add_action(audio_m, "&Per-Server-Soundprofile...", self.on_menu_server_audio_profiles)
 
+        # --- Chat ---
+        chat_m = mb.addMenu("&Chat")
+        self._add_action(chat_m, "Chat-Log &exportieren...", self.on_menu_chat_export)
+        self._add_action(chat_m, "Letzte &TTS-Ansage wiederholen", self.on_menu_tts_repeat, "Ctrl+Shift+S")
+
         # --- Aufnahmen ---
         aufn = mb.addMenu("A&ufnahmen")
         self._add_action(aufn, "Aufnahme &starten...", self.on_menu_start_recording)
@@ -652,6 +657,7 @@ class MainWindow(QMainWindow):
         self._add_action(hlp, "Auf &Updates prüfen...", self.on_menu_check_updates)
         hlp.addSeparator()
         self._add_action(hlp, "&Handbuch...", self.on_menu_manual, "F1")
+        self._add_action(hlp, "&Tastenkürzel-Referenz...", self.on_menu_shortcut_reference, "F2")
         self._add_action(hlp, "&Changelog...", self.on_menu_changelog)
         hlp.addSeparator()
         self._add_action(hlp, "&Nutzungsbericht...", self.on_menu_analytics_report)
@@ -1712,6 +1718,7 @@ class MainWindow(QMainWindow):
     def on_menu_server_check(self) -> None:
         dlg = ConnectDialog(self)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_import_servers(self) -> None:
         from PySide6.QtWidgets import QFileDialog
@@ -1943,6 +1950,7 @@ class MainWindow(QMainWindow):
                 self.channels_tab.refresh_channels_and_users()
         except Exception as exc:
             self.set_status(f"Kanal erstellen fehlgeschlagen: {exc}")
+        self._refocus_channel_list()
 
     def on_menu_edit_channel(self) -> None:
         if not self.client.is_connected():
@@ -2014,6 +2022,7 @@ class MainWindow(QMainWindow):
                 self.channels_tab.refresh_channels_and_users()
         except Exception as exc:
             self.set_status(f"Kanal bearbeiten fehlgeschlagen: {exc}")
+        self._refocus_channel_list()
 
     def on_menu_delete_channel(self) -> None:
         if not self.client.is_connected():
@@ -2158,6 +2167,7 @@ class MainWindow(QMainWindow):
             self.ban_dialog = None
         except ImportError:
             self.set_status("Sperren im Kanal: Dialog nicht verfügbar")
+        self._refocus_channel_list()
 
     def on_menu_channel_view_msgs(self) -> None:
         if not self._channel_message_log:
@@ -2181,6 +2191,7 @@ class MainWindow(QMainWindow):
         clear_btn.clicked.connect(lambda: (self._channel_message_log.clear(), te.clear()))
         close_btn.clicked.connect(dlg.accept)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_channel_history(self) -> None:
         s = self.settings_store.settings
@@ -2234,6 +2245,7 @@ class MainWindow(QMainWindow):
         bb.rejected.connect(dlg.reject)
         layout.addWidget(bb)
         dlg.exec()
+        self._refocus_channel_list()
 
     # ------------------------------------------------------------------
     # Benutzer-Menü
@@ -2431,6 +2443,7 @@ class MainWindow(QMainWindow):
                 self.set_status(f'Benutzer in Kanal "{ch_name}" verschoben')
         except Exception as exc:
             self.set_status(f"Verschieben fehlgeschlagen: {exc}")
+        self._refocus_channel_list()
 
     def on_menu_toggle_operator(self) -> None:
         uid = self._get_selected_user_id()
@@ -2511,6 +2524,7 @@ class MainWindow(QMainWindow):
                 self.set_status("Abonnements geändert")
         except Exception as exc:
             self.set_status(f"Abonnements Fehler: {exc}")
+        self._refocus_channel_list()
 
     def on_menu_user_position(self) -> None:
         if not self.client.is_connected():
@@ -2567,6 +2581,7 @@ class MainWindow(QMainWindow):
                 self.set_status(f"Benutzer #{uid} positioniert: ({x:.1f}, {y:.1f}, {z:.1f})")
         except Exception as exc:
             self.set_status(f"Positionieren Fehler: {exc}")
+        self._refocus_channel_list()
 
     def on_menu_relay_voice(self) -> None:
         if not self.client.is_connected():
@@ -2816,6 +2831,7 @@ class MainWindow(QMainWindow):
         from ui_qt.recordings_browser import RecordingsBrowserDialog
         dlg = RecordingsBrowserDialog(self, self.settings_store)
         dlg.exec()
+        self._refocus_channel_list()
 
     # ------------------------------------------------------------------
     # Server-Menü
@@ -2989,26 +3005,31 @@ class MainWindow(QMainWindow):
         from ui_qt.dialogs import TTSTranscriptDialog
         dlg = TTSTranscriptDialog(self, self.tts)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_chat_search(self) -> None:
         from ui_qt.dialogs import ChatSearchDialog
         dlg = ChatSearchDialog(self, self._chat_history, self._current_server_key)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_user_watcher(self) -> None:
         from ui_qt.dialogs import UserWatcherDialog
         dlg = UserWatcherDialog(self, self.settings_store)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_offline_queue(self) -> None:
         from ui_qt.dialogs import OfflineQueueDialog
         dlg = OfflineQueueDialog(self, self._offline_queue)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_server_audio_profiles(self) -> None:
         from ui_qt.dialogs import ServerAudioProfileDialog
         dlg = ServerAudioProfileDialog(self, self.settings_store)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_online_users(self) -> None:
         from ui_qt.dialogs import OnlineUsersDialog
@@ -3026,6 +3047,7 @@ class MainWindow(QMainWindow):
         from ui_qt.dialogs import SpeakingLogDialog
         dlg = SpeakingLogDialog(self, self._speaking_log)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_session_overview(self) -> None:
         try:
@@ -3051,6 +3073,7 @@ class MainWindow(QMainWindow):
         bb.rejected.connect(dlg.reject)
         layout.addWidget(bb)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_announce_ping(self) -> None:
         try:
@@ -3072,6 +3095,7 @@ class MainWindow(QMainWindow):
         from ui_qt.dialogs import MacroManagerDialog
         dlg = MacroManagerDialog(self, self._macros)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_scheduled_macros(self) -> None:
         s = self.settings_store.settings
@@ -3227,6 +3251,128 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def on_menu_chat_export(self) -> None:
+        from PySide6.QtWidgets import QFileDialog
+        if not self._channel_message_log:
+            QMessageBox.information(self, "Chat-Export", "Keine Kanalnachrichten zum Exportieren.")
+            return
+        path, sel = QFileDialog.getSaveFileName(
+            self, "Chat-Log exportieren", "chat_log.txt",
+            "Textdatei (*.txt);;HTML (*.html *.htm);;Alle Dateien (*.*)"
+        )
+        if not path:
+            return
+        try:
+            if path.lower().endswith((".html", ".htm")):
+                import html as _html
+                lines = [
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                    "<title>Chat-Log</title></head><body><pre>"
+                ] + [_html.escape(l) for l in self._channel_message_log] + ["</pre></body></html>"]
+                content = "\n".join(lines)
+            else:
+                content = "\n".join(self._channel_message_log)
+            Path(path).write_text(content, encoding="utf-8")
+            self.set_status(f"Chat-Log exportiert: {Path(path).name}")
+        except Exception as exc:
+            self.set_status(f"Chat-Export fehlgeschlagen: {exc}")
+
+    def on_menu_tts_repeat(self) -> None:
+        last = getattr(self.tts, "last_text", "")
+        if last:
+            self.tts.speak(last, kind="system")
+        else:
+            self.set_status("Keine letzte TTS-Ansage vorhanden")
+
+    def on_menu_shortcut_reference(self) -> None:
+        _SHORTCUTS = [
+            ("VERBINDUNG", [
+                ("Verbinden / Verbindungsdialog", "Ctrl+Return"),
+                ("Trennen",                        "Ctrl+W"),
+                ("Neu verbinden",                  "Ctrl+Shift+R"),
+                ("Schnellverbindung 1–9",          "Ctrl+1–9"),
+            ]),
+            ("KANAL", [
+                ("Kanal beitreten",                "Ctrl+J"),
+                ("Kanal verlassen",                "Ctrl+L"),
+                ("Kanal erstellen",                "Ctrl+Shift+N"),
+                ("Kanalinfo vorlesen",             "Ctrl+S"),
+                ("Kanalnachricht senden",          "F3"),
+                ("Kanal-Statistiken ansagen",      "(Menü Kanal)"),
+                ("Kanalzustand ansagen",           "(Menü Kanal)"),
+            ]),
+            ("BENUTZER", [
+                ("Benutzerinfo vorlesen",          "Ctrl+I"),
+                ("Private Nachricht",              "Ctrl+T"),
+                ("Stummschalten (Sprache)",        "Ctrl+M"),
+                ("Kicken",                         "Ctrl+K"),
+                ("Kicken + Bannen",                "Ctrl+Shift+K"),
+                ("Benutzer verschieben",           "(Menü Benutzer)"),
+                ("Sprach-Lautstärke hoch",         "Ctrl+Shift+Auf"),
+                ("Sprach-Lautstärke runter",       "Ctrl+Shift+Ab"),
+                ("Medien-Lautstärke hoch",         "Ctrl+Alt+Auf"),
+                ("Medien-Lautstärke runter",       "Ctrl+Alt+Ab"),
+                ("Alle stummschalten",             "F7"),
+            ]),
+            ("PROFIL", [
+                ("Nickname ändern",                "Ctrl+R"),
+                ("Mich selbst hören",              "F6"),
+                ("TTS aktivieren/deaktivieren",    "(Menü Profil)"),
+            ]),
+            ("AUDIO", [
+                ("Push-to-Talk",                   "F5"),
+                ("Sprachaktivierung",              "F4"),
+                ("Ping ansagen",                   "Ctrl+P"),
+            ]),
+            ("CHAT", [
+                ("Chat-Log exportieren",           "(Menü Chat)"),
+                ("Letzte TTS-Ansage wiederholen",  "Ctrl+Shift+S"),
+                ("Chat-Suche",                     "Ctrl+F"),
+            ]),
+            ("SERVER", [
+                ("Online-Nutzer",                  "Ctrl+U"),
+                ("Sperrliste",                     "Ctrl+B"),
+                ("Administration",                 "Ctrl+A"),
+                ("Servernachricht senden",         "(Menü Server)"),
+                ("Konfiguration speichern",        "(Menü Server)"),
+            ]),
+            ("AUTOMATION", [
+                ("Makro-Manager",                  "Ctrl+Shift+M"),
+                ("Einstellungen",                  "Ctrl+,"),
+            ]),
+            ("TABS", [
+                ("Tab 1–9 direkt",                 "Alt+1–9"),
+            ]),
+            ("HILFE", [
+                ("Handbuch",                       "F1"),
+                ("Tastenkürzel-Referenz",          "F2"),
+            ]),
+        ]
+        lines = []
+        for section, entries in _SHORTCUTS:
+            lines.append(f"── {section} ──")
+            for desc, keys in entries:
+                lines.append(f"  {desc:<40} {keys}")
+            lines.append("")
+        text = "\n".join(lines)
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Tastenkürzel-Referenz")
+        dlg.resize(600, 560)
+        layout = QVBoxLayout(dlg)
+        te = QTextEdit()
+        te.setReadOnly(True)
+        te.setAccessibleName("Tastenkürzel-Referenz")
+        from PySide6.QtGui import QFont as _QFont
+        te.setFont(_QFont("Courier New", 10))
+        te.setPlainText(text)
+        layout.addWidget(te, 1)
+        bb = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        bb.rejected.connect(dlg.reject)
+        layout.addWidget(bb)
+        dlg.exec()
+        self._refocus_channel_list()
+
     def on_menu_analytics_report(self) -> None:
         try:
             report_text = self._analytics.text_report()
@@ -3269,6 +3415,7 @@ class MainWindow(QMainWindow):
 
         export_btn.clicked.connect(_on_export)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_about(self) -> None:
         QMessageBox.information(
@@ -3332,6 +3479,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(bb)
         dlg.resize(400, 300)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_saved_messages(self) -> None:
         try:
@@ -3350,6 +3498,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(bb)
         dlg.resize(500, 350)
         dlg.exec()
+        self._refocus_channel_list()
 
     def on_menu_check_updates(self) -> None:
         self.set_status("Update-Prüfung gestartet...")

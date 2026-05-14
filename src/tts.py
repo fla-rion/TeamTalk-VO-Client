@@ -49,6 +49,7 @@ class TTSManager:
         self._thread = threading.Thread(target=self._worker, daemon=True)
         self._thread.start()
         self._current_proc: Optional[subprocess.Popen] = None
+        self.last_text: str = ""
         self._missing_warned = False
         self._local_espeak_dir: Optional[Path] = None
         self._transcript: List[Tuple[str, str, str]] = []  # (timestamp, kind, text)
@@ -345,6 +346,7 @@ class TTSManager:
             ctx_voice = self.settings.system_voice or ""
         elif kind in ("channel_topic", "user_join", "user_leave", "file_transfer"):
             ctx_rate = self.settings.channel_rate or 0
+        self.last_text = text
         self._transcript.append((time.strftime("%H:%M:%S"), kind, text))
         if len(self._transcript) > 200:
             self._transcript = self._transcript[-200:]
