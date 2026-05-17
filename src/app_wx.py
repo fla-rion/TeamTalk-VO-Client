@@ -9151,6 +9151,21 @@ class MainFrame(wx.Frame):
             if key and key == hk_boost_down:
                 self._mic_boost_change(-1000)
                 return
+            # Ausgabelautstärke (BearWare)
+            hk_vol_up = int(getattr(settings, "hotkey_volume_up", 0) or 0)
+            hk_vol_down = int(getattr(settings, "hotkey_volume_down", 0) or 0)
+            if key and key == hk_vol_up:
+                new_vol = min(200, self.master_volume_slider.GetValue() + 5)
+                self.master_volume_slider.SetValue(new_vol)
+                self._on_master_volume_slider(None)
+                self.set_status(f"Lautstärke: {new_vol}%")
+                return
+            if key and key == hk_vol_down:
+                new_vol = max(0, self.master_volume_slider.GetValue() - 5)
+                self.master_volume_slider.SetValue(new_vol)
+                self._on_master_volume_slider(None)
+                self.set_status(f"Lautstärke: {new_vol}%")
+                return
             # v3.1.0 – TTS abbrechen
             hk_tts_cancel = int(getattr(settings, "hotkey_tts_cancel", 0) or 0)
             if key and key == hk_tts_cancel:

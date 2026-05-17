@@ -255,6 +255,8 @@ class AppSettings:
     # v2.9.0 features
     hotkey_mic_boost_up: int = 0
     hotkey_mic_boost_down: int = 0
+    hotkey_volume_up: int = 0
+    hotkey_volume_down: int = 0
     vu_alert_enabled: bool = False
     vu_alert_threshold: int = 90
     recording_max_size_mb: int = 0
@@ -466,6 +468,8 @@ class SettingsStore:
             # v2.9.0
             self.settings.hotkey_mic_boost_up = int(data.get("hotkey_mic_boost_up", 0) or 0)
             self.settings.hotkey_mic_boost_down = int(data.get("hotkey_mic_boost_down", 0) or 0)
+            self.settings.hotkey_volume_up = int(data.get("hotkey_volume_up", 0) or 0)
+            self.settings.hotkey_volume_down = int(data.get("hotkey_volume_down", 0) or 0)
             self.settings.vu_alert_enabled = bool(data.get("vu_alert_enabled", False))
             self.settings.vu_alert_threshold = int(data.get("vu_alert_threshold", 90) or 90)
             self.settings.recording_max_size_mb = int(data.get("recording_max_size_mb", 0) or 0)
@@ -641,6 +645,8 @@ class SettingsStore:
             # v2.9.0
             "hotkey_mic_boost_up": int(self.settings.hotkey_mic_boost_up or 0),
             "hotkey_mic_boost_down": int(self.settings.hotkey_mic_boost_down or 0),
+            "hotkey_volume_up": int(self.settings.hotkey_volume_up or 0),
+            "hotkey_volume_down": int(self.settings.hotkey_volume_down or 0),
             "vu_alert_enabled": bool(self.settings.vu_alert_enabled),
             "vu_alert_threshold": int(self.settings.vu_alert_threshold or 90),
             "recording_max_size_mb": int(self.settings.recording_max_size_mb or 0),

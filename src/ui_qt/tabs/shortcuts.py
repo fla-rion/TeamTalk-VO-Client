@@ -81,6 +81,8 @@ class ShortcutsTab(QWidget):
             ("Status-Vorlage 1", "hotkey_status_template_1"),
             ("Status-Vorlage 2", "hotkey_status_template_2"),
             ("Status-Vorlage 3", "hotkey_status_template_3"),
+            ("Ausgabelautstärke hoch", "hotkey_volume_up"),
+            ("Ausgabelautstärke runter", "hotkey_volume_down"),
             ("Mikrofon-Boost hoch", "hotkey_mic_boost_up"),
             ("Mikrofon-Boost runter", "hotkey_mic_boost_down"),
             ("TTS abbrechen", "hotkey_tts_cancel"),

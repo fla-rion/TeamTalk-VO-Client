@@ -600,8 +600,8 @@ class MainWindow(QMainWindow):
         self._add_action(benutzer, "Stummschalten (&Mediendatei)", self.on_menu_mute_media)
         self._add_action(benutzer, "Lautstärke &einstellen...", self.on_menu_user_volume)
         self._add_action(benutzer, "Stereo-&Position...", self.on_menu_user_stereo)
-        self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Shift+Up")
-        self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Shift+Down")
+        self._add_action(benutzer, "Lautstärke &hoch", self.on_menu_user_volume_up, "Ctrl+Right")
+        self._add_action(benutzer, "Lautstärke &runter", self.on_menu_user_volume_down, "Ctrl+Left")
         self._add_action(benutzer, "Medien-Lautstärke h&och", self.on_menu_user_media_volume_up, "Ctrl+Alt+Up")
         self._add_action(benutzer, "Medien-Lautstärke &runter", self.on_menu_user_media_volume_down, "Ctrl+Alt+Down")
         benutzer.addSeparator()
@@ -1474,6 +1474,16 @@ class MainWindow(QMainWindow):
                 self.tts._stop_current()
                 self.tts.clear_queue()
                 self.set_status("TTS abgebrochen")
+                return
+            if key and key == int(getattr(settings, "hotkey_volume_up", 0) or 0):
+                new_vol = min(200, self._vol_slider.value() + 5)
+                self._vol_slider.setValue(new_vol)
+                self.set_status(f"Lautstärke: {new_vol}%")
+                return
+            if key and key == int(getattr(settings, "hotkey_volume_down", 0) or 0):
+                new_vol = max(0, self._vol_slider.value() - 5)
+                self._vol_slider.setValue(new_vol)
+                self.set_status(f"Lautstärke: {new_vol}%")
                 return
         super().keyPressEvent(event)
 
@@ -3831,8 +3841,8 @@ class MainWindow(QMainWindow):
                 ("Kicken",                         "Ctrl+K"),
                 ("Kicken + Bannen",                "Ctrl+Shift+K"),
                 ("Benutzer verschieben",           "(Menü Benutzer)"),
-                ("Sprach-Lautstärke hoch",         "Ctrl+Shift+Auf"),
-                ("Sprach-Lautstärke runter",       "Ctrl+Shift+Ab"),
+                ("Sprach-Lautstärke hoch",         "Ctrl+Rechts"),
+                ("Sprach-Lautstärke runter",       "Ctrl+Links"),
                 ("Medien-Lautstärke hoch",         "Ctrl+Alt+Auf"),
                 ("Medien-Lautstärke runter",       "Ctrl+Alt+Ab"),
                 ("Alle stummschalten",             "(Menü Benutzer)"),
