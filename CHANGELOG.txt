@@ -1,6 +1,13 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.8)
+Hotfix Windows: QShortcut-Import-Fehler behoben
+
+- QShortcut wurde in PySide6 6.4 von QtWidgets nach QtGui verschoben.
+  Der falsche Import in ui_qt/tabs/chat.py und ui_qt/private_chat_dialog.py
+  verhinderte den Start der Windows-Version komplett.
+
 2026-05-17 (v6.9.7)
 Fünf neue Funktionen für VoiceOver-Nutzer:
 

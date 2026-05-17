@@ -10,8 +10,7 @@ from PySide6.QtWidgets import (
     QLineEdit, QPushButton, QLabel, QSplitter, QWidget,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QKeySequence, QCloseEvent
-from PySide6.QtWidgets import QShortcut
+from PySide6.QtGui import QKeySequence, QCloseEvent, QShortcut
 
 if TYPE_CHECKING:
     from app_qt import MainWindow

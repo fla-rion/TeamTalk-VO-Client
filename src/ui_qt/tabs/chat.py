@@ -11,8 +11,7 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QMessageBox,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
