@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.9.3"
+APP_VERSION = "6.9.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -889,10 +889,16 @@ class MainFrame(wx.Frame):
             _id_f2 = wx.NewIdRef()
             _id_f3 = wx.NewIdRef()
             _id_f4 = wx.NewIdRef()
+            _id_join = wx.NewIdRef()
+            _id_leave = wx.NewIdRef()
+            _id_mic = wx.NewIdRef()
             self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(1), id=int(_id_f1))
             self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(2), id=int(_id_f2))
             self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(3), id=int(_id_f3))
             self.Bind(wx.EVT_MENU, lambda _e: self._focus_area(4), id=int(_id_f4))
+            self.Bind(wx.EVT_MENU, lambda _e: self.on_menu_channel_join(None), id=int(_id_join))
+            self.Bind(wx.EVT_MENU, lambda _e: self.on_menu_channel_leave(None), id=int(_id_leave))
+            self.Bind(wx.EVT_MENU, lambda _e: self._toggle_mic_accel(), id=int(_id_mic))
             accel = wx.AcceleratorTable(
                 [
                     (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
@@ -900,12 +906,16 @@ class MainFrame(wx.Frame):
                     (wx.ACCEL_CMD, ord("2"), int(_id_f2)),
                     (wx.ACCEL_CMD, ord("3"), int(_id_f3)),
                     (wx.ACCEL_CMD, ord("4"), int(_id_f4)),
+                    (wx.ACCEL_CMD, ord("J"), int(_id_join)),
+                    (wx.ACCEL_CMD, ord("L"), int(_id_leave)),
+                    (wx.ACCEL_CMD | wx.ACCEL_SHIFT, ord("A"), int(_id_mic)),
                 ]
             )
             self.SetAcceleratorTable(accel)
             self.Bind(wx.EVT_MENU, self.on_menu_settings, id=wx.ID_PREFERENCES)
 
         wx.CallLater(350, self._restore_saved_sessions)
+        wx.CallLater(600, self._maybe_show_connection_window)
 
         # Toolbar button bindings
         self.tb_ptt.Bind(wx.EVT_CHECKBOX, self._on_tb_ptt)
@@ -1873,8 +1883,8 @@ class MainFrame(wx.Frame):
         chan_edit = chan_menu.Append(wx.ID_ANY, "Kanal bearbeiten...")
         chan_delete = chan_menu.Append(wx.ID_ANY, "Kanal löschen...")
         chan_menu.AppendSeparator()
-        chan_join = chan_menu.Append(wx.ID_ANY, "Kanal beitreten...")
-        chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen")
+        chan_join = chan_menu.Append(wx.ID_ANY, "Kanal beitreten...\tCtrl+J")
+        chan_leave = chan_menu.Append(wx.ID_ANY, "Kanal verlassen\tCtrl+L")
         chan_menu.AppendSeparator()
         chan_info = chan_menu.Append(wx.ID_ANY, "Kanalinfo...")
         chan_info_speak = chan_menu.Append(wx.ID_ANY, "Kanalinfo vorlesen")
@@ -2833,11 +2843,20 @@ class MainFrame(wx.Frame):
     # Menu actions
     # ------------------------------------------------------------------
 
-    def on_menu_connect(self, _event):
+    def _open_connection_window(self) -> None:
+        """Öffnet und fokussiert das Verbindungsfenster (z. B. nach Trennen)."""
         if not self.connection_window.IsShown():
             self.connection_window.Show()
         self.connection_window.Raise()
         wx.CallAfter(self.connection_window.connection_tab.server_list.SetFocus)
+
+    def _maybe_show_connection_window(self) -> None:
+        """Zeigt Verbindungsfenster beim Start, falls nicht bereits verbunden."""
+        if not self.client.is_connected():
+            self._open_connection_window()
+
+    def on_menu_connect(self, _event):
+        self._open_connection_window()
 
     def on_menu_disconnect(self, _event):
         if not self.client.is_connected():
@@ -2862,6 +2881,7 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
         self.set_status("Verbindung getrennt")
+        wx.CallAfter(self._open_connection_window)
 
     def on_menu_reconnect(self, _event):
         self.connection_tab.on_reconnect(None)
@@ -8125,6 +8145,9 @@ class MainFrame(wx.Frame):
             self._audit_log.log(A_SERVER_CONNECT, detail=self._get_server_key())
             self._analytics.on_connect(self._get_server_key())
         if result.ok:
+            wx.CallAfter(self.connection_window.Hide)
+            wx.CallAfter(self.Raise)
+            wx.CallLater(400, self._focus_area, 1)
             self._reconnect_attempts = 0
             self._offline_buffering = False
             self._current_server_key = self._get_server_key()
@@ -9027,7 +9050,10 @@ class MainFrame(wx.Frame):
                 pass
         key = event.GetKeyCode()
         if key == wx.WXK_F2:
-            self.on_menu_connect(None)
+            if self.client.is_connected():
+                self.on_menu_disconnect(None)
+            else:
+                self.on_menu_connect(None)
             return
         if key == wx.WXK_F6:
             self.on_menu_user_message(None)
@@ -9392,6 +9418,12 @@ class MainFrame(wx.Frame):
         _localize_window_tree(self)
         _localize_window_tree(self.settings_window)
         _localize_window_tree(self.connection_window)
+
+    def _toggle_mic_accel(self) -> None:
+        """Cmd+Shift+A: Mikrofon-Übertragung ein-/ausschalten."""
+        at = self.audio_tab
+        at.ptt_toggle.SetValue(not at.ptt_toggle.GetValue())
+        at.on_ptt_toggle(None)
 
     def _focus_area(self, area: int) -> None:
         """Cmd+1–4: Fokus auf Hauptbereiche setzen.

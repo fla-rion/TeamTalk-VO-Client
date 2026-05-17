@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.4)
+Verbindungsflow, Tastenkürzel und UI-Optimierungen (inspiriert von ttaccessible):
+
+- Verbindungsfenster öffnet sich beim App-Start automatisch
+- Nach erfolgreicher Verbindung: Verbindungsfenster schließt sich, Hauptfenster
+  kommt in den Vordergrund, Fokus springt auf Kanalliste
+- Nach Trennen: Verbindungsfenster öffnet sich automatisch wieder
+- F2 (macOS): Smart-Toggle — Trennen wenn verbunden, Verbinden wenn getrennt
+- Neues Tastenkürzel ⌘J (macOS): Ausgewählten Kanal beitreten
+- Neues Tastenkürzel ⌘L (macOS): Kanal verlassen
+- Neues Tastenkürzel ⌘⇧A (macOS): Mikrofon-Übertragung ein-/ausschalten
+- Kanal beitreten / verlassen im Menü mit Tastenkürzel (Ctrl+J / Ctrl+L) sichtbar
+- Qt (Windows): Nach erfolgreicher Verbindung springt der Tab automatisch auf
+  "Kanäle & Chat"
+
 2026-05-17 (v6.9.3)
 Sound-Pack-Manager, Stereo-Position, Audio-Hotplug (inspiriert von ttaccessible):
 

@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.3"
+APP_VERSION = "6.9.4"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -840,6 +840,7 @@ class MainWindow(QMainWindow):
 
     def _handle_connect_result(self, result) -> None:
         if result.ok:
+            self.notebook.setCurrentIndex(0)
             profile = getattr(self, "_last_profile", None)
             if profile:
                 self._current_server_key = f"{profile.host}:{getattr(profile, 'tcp_port', 10333)}"
