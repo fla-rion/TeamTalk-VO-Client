@@ -145,6 +145,13 @@ class ChatTab(wx.Panel):
 
         self.SetSizer(sizer)
 
+        # Ctrl+F / Cmd+F → Suche fokussieren
+        search_id = wx.NewIdRef()
+        self.SetAcceleratorTable(wx.AcceleratorTable([
+            (wx.ACCEL_CMD, ord("F"), search_id),
+        ]))
+        self.Bind(wx.EVT_MENU, self._on_focus_search, id=search_id)
+
         # Drag & Drop: Datei auf Chat-Tab ziehen startet Upload
         self.SetDropTarget(_ChatFileDropTarget(self))
 
@@ -427,6 +434,11 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                     self.chat_target.SetLabel("Ziel: Aktueller Kanal")
             else:
                 self.chat_target.SetLabel("Ziel: (kein)")
+
+    def _on_focus_search(self, _event=None) -> None:
+        """Cmd+F: Suchfeld fokussieren."""
+        self.search_input.SetFocus()
+        self.search_input.SelectAll()
 
     def _on_search(self, _event=None) -> None:
         """Durchsucht den aktuellen Chat-Verlauf nach dem Suchbegriff."""

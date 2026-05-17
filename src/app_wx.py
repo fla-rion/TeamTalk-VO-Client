@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.9.6"
+APP_VERSION = "6.9.7"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -9545,6 +9545,7 @@ class MainFrame(wx.Frame):
             self._offline_buffering = True
             wx.CallAfter(self.schedule_reconnect)
             self.sound_manager.play("server_disconnect", self.settings_store.settings.sound_events.get("server_disconnect"))
+            wx.CallAfter(self.tts.speak, "Verbindung verloren", kind="connect")
             self.bus.emit("connection_state_changed", connected=False, reason="lost")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_CRYPT_ERROR:
             err = self.tt_str(msg.clienterrormsg.szErrorMsg)
@@ -9731,8 +9732,15 @@ class MainFrame(wx.Frame):
         else:
             return
 
+        # v6.9.7: per-Nutzer TTS-Stummschaltung für Beitritt/Verlassen
+        _tts_join_muted = False
+        if tts_kind in ("user_join", "user_leave"):
+            _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
+            _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
+            _tts_join_muted = name.lower() in _muted_list if _muted_list else False
         self.chat_tab.append_chat(text, kind="system", speak=False)
-        self.tts.speak(text, kind=tts_kind)
+        if not _tts_join_muted:
+            self.tts.speak(text, kind=tts_kind)
         self._buffer_offline_event(text, "system")
         self.emit_system_message(text, speak=False)
         # Benachrichtigungen nur für Ereignisse im eigenen Kanal senden

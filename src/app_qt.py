@@ -70,7 +70,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 from screen_reader import ScreenReaderAnnouncer
 
-APP_VERSION = "6.9.6"
+APP_VERSION = "6.9.7"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -896,9 +896,12 @@ class MainWindow(QMainWindow):
             name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
             ch_id = int(user.nChannelID)
             my_ch = int(self.client.get_my_channel_id() or 0)
+            _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
+            _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
+            _tts_muted = name.lower() in _muted_list if _muted_list else False
             if ch_id == my_ch:
-                if self.tts.settings.speak_user_join:
-                    self.tts.speak(f"{name} hat den Kanal betreten", kind="system")
+                if self.tts.settings.speak_user_join and not _tts_muted:
+                    self.tts.speak(f"{name} hat den Kanal betreten", kind="user_join")
                 self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
         except Exception:
@@ -912,8 +915,11 @@ class MainWindow(QMainWindow):
             if uid == my_id:
                 return
             name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
-            if self.tts.settings.speak_user_leave:
-                self.tts.speak(f"{name} hat den Kanal verlassen", kind="system")
+            _muted_raw = str(getattr(self.settings_store.settings, "tts_muted_join_users", "") or "")
+            _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
+            _tts_muted = name.lower() in _muted_list if _muted_list else False
+            if self.tts.settings.speak_user_leave and not _tts_muted:
+                self.tts.speak(f"{name} hat den Kanal verlassen", kind="user_leave")
             self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
         except Exception:

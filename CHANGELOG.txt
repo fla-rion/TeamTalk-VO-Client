@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.7)
+Fünf neue Funktionen für VoiceOver-Nutzer:
+
+- TTS per Nutzer stummschalten: Beitritt/Verlassen einzelner Nutzer können per
+  Rechtsklick → "TTS-Beitritt stummschalten" aus der Sprachausgabe ausgeblendet werden.
+  Die Liste wird in den Einstellungen gespeichert (tts_muted_join_users).
+- Verbindungsabbruch per TTS angekündigt: Bei Verbindungsverlust (CON_LOST) wird
+  jetzt "Verbindung verloren" via TTS gesprochen (wx + Qt).
+- Nutzernotiz im Rechtsklick-Kontextmenü: Direkt aus der Nutzerliste über das Kontextmenü
+  Notizen für einzelne Nutzer anlegen oder bearbeiten (zeigt [✓] bei vorhandener Notiz).
+- Cmd+F fokussiert Chatsuche: Im Chat-Tab springt Cmd+F (macOS) bzw. Ctrl+F (Windows)
+  direkt in das Suchfeld und markiert den Inhalt.
+- Kanal-Favoriten mit Sternmarkierung: Kanäle können per Rechtsklick → "☆ Als Favorit
+  markieren" als Favorit gesetzt werden. Favorisierte Kanäle erscheinen mit "★ " in der
+  Kanalliste.
+
 2026-05-17 (v6.9.6)
 Alle ttaccessible-Blöcke integriert — Settings, TTS, Verbindung, Notifications:
 

@@ -251,7 +251,14 @@ class ChannelsTab(wx.Panel):
             parts.append("1 Nutzer")
         elif n > 1:
             parts.append(f"{n} Nutzer")
-        return ", ".join(parts)
+        label = ", ".join(parts)
+        # v6.9.7: Favoriten-Stern voranstellen
+        if chan is not None:
+            ch_id = int(getattr(chan, "nChannelID", 0) or 0)
+            favs = list(getattr(self.frame.settings_store.settings, "channel_favorites", []) or [])
+            if ch_id and ch_id in favs:
+                label = "★ " + label
+        return label
 
     def _format_user_label(self, user) -> str:
         try:
@@ -555,6 +562,14 @@ class ChannelsTab(wx.Panel):
         join_item = menu.Append(wx.ID_ANY, _("Kanal &beitreten"))
         menu.AppendSeparator()
 
+        # Favoriten-Toggle
+        favs = list(getattr(self.frame.settings_store.settings, "channel_favorites", []) or [])
+        is_fav = channel_id in favs
+        fav_label = _("★ Favorit entfernen") if is_fav else _("☆ Als Favorit markieren")
+        fav_item = menu.Append(wx.ID_ANY, fav_label)
+
+        menu.AppendSeparator()
+
         # Kanal-Notiz: zeige ob eine Notiz existiert
         server_key = getattr(self.frame, "_current_server_key", "")
         has_note = False
@@ -568,10 +583,23 @@ class ChannelsTab(wx.Panel):
         def _join(_e):
             self.frame.join_channel(channel_id)
 
+        def _toggle_fav(_e):
+            cf = list(getattr(self.frame.settings_store.settings, "channel_favorites", []) or [])
+            if channel_id in cf:
+                cf.remove(channel_id)
+                self.frame.set_status("Favorit entfernt")
+            else:
+                cf.append(channel_id)
+                self.frame.set_status("Als Favorit markiert")
+            self.frame.settings_store.settings.channel_favorites = cf
+            self.frame.settings_store.save()
+            wx.CallAfter(self.refresh_channels_and_users)
+
         def _note(_e):
             self.frame.on_menu_channel_note(None)
 
         menu.Bind(wx.EVT_MENU, _join, join_item)
+        menu.Bind(wx.EVT_MENU, _toggle_fav, fav_item)
         menu.Bind(wx.EVT_MENU, _note, note_item)
         self.PopupMenu(menu)
         menu.Destroy()
@@ -585,6 +613,7 @@ class ChannelsTab(wx.Panel):
         if user is None:
             return
         tt = self.frame.client.tt
+        user_name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Benutzer"
 
         menu = wx.Menu()
 
@@ -601,6 +630,18 @@ class ChannelsTab(wx.Panel):
         mute_media_label = _("Mediendatei entstummen") if media_muted else _("Mediendatei stummschalten")
         mute_voice_item = menu.Append(wx.ID_ANY, mute_voice_label)
         mute_media_item = menu.Append(wx.ID_ANY, mute_media_label)
+
+        # v6.9.7: TTS-Beitreten/Verlassen per Nutzer stummschalten
+        _muted_raw = str(getattr(self.frame.settings_store.settings, "tts_muted_join_users", "") or "")
+        _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
+        _tts_join_muted = user_name.lower() in _muted_list
+        tts_join_label = _("TTS-Beitritt entstummen") if _tts_join_muted else _("TTS-Beitritt stummschalten")
+        tts_join_item = menu.Append(wx.ID_ANY, tts_join_label)
+
+        # v6.9.7: Nutzernotiz
+        _current_note = self.frame._get_user_note(user_name)
+        note_label = _("Notiz bearbeiten... [✓]") if _current_note else _("Notiz bearbeiten...")
+        user_note_item = menu.Append(wx.ID_ANY, note_label)
 
         sub_menu = wx.Menu()
         sub_flags = [
@@ -639,11 +680,29 @@ class ChannelsTab(wx.Panel):
         kick_ban_item = menu.Append(wx.ID_ANY, _("Kicken + Bannen"))
         desktop_access_item = menu.Append(wx.ID_ANY, _("Desktop-Zugriff erlauben"))
 
+        def _toggle_tts_join(_e):
+            raw = str(getattr(self.frame.settings_store.settings, "tts_muted_join_users", "") or "")
+            lst = [u.strip() for u in raw.split(",") if u.strip()]
+            low = user_name.lower()
+            if low in [u.lower() for u in lst]:
+                lst = [u for u in lst if u.lower() != low]
+                self.frame.set_status(f"TTS-Beitritt entstummt: {user_name}")
+            else:
+                lst.append(user_name)
+                self.frame.set_status(f"TTS-Beitritt stummgeschaltet: {user_name}")
+            self.frame.settings_store.settings.tts_muted_join_users = ", ".join(lst)
+            self.frame.settings_store.save()
+
+        def _edit_user_note(_e):
+            self.frame.on_menu_user_note(None)
+
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_info(user_id), info_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), "Stimme"), vol_voice_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), "Mediendatei"), vol_media_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_VOICE), e.IsChecked()), mute_voice_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), e.IsChecked()), mute_media_item)
+        self.Bind(wx.EVT_MENU, _toggle_tts_join, tts_join_item)
+        self.Bind(wx.EVT_MENU, _edit_user_note, user_note_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_op(user_id, not is_op), op_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_ban(user_id), ban_item)
         self.Bind(wx.EVT_MENU, lambda e: self.frame.on_menu_user_move(None), move_item)

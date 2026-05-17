@@ -298,6 +298,9 @@ class AppSettings:
     notify_background_private: bool = True
     notify_background_channel: bool = False
     notify_background_broadcast: bool = True
+    # v6.9.7
+    tts_muted_join_users: str = ""
+    channel_favorites: List[int] = field(default_factory=list)
 
 
 class SettingsStore:
@@ -484,6 +487,10 @@ class SettingsStore:
             self.settings.notify_background_private = bool(data.get("notify_background_private", True))
             self.settings.notify_background_channel = bool(data.get("notify_background_channel", False))
             self.settings.notify_background_broadcast = bool(data.get("notify_background_broadcast", True))
+            # v6.9.7
+            self.settings.tts_muted_join_users = str(data.get("tts_muted_join_users", "") or "")
+            raw_cf = data.get("channel_favorites", [])
+            self.settings.channel_favorites = [int(x) for x in raw_cf if isinstance(x, (int, float))] if isinstance(raw_cf, list) else []
             # v3.5.0
             raw_mt = data.get("macro_triggers", [])
             self.settings.macro_triggers = raw_mt if isinstance(raw_mt, list) else []
@@ -653,5 +660,8 @@ class SettingsStore:
             "notify_background_private": bool(self.settings.notify_background_private),
             "notify_background_channel": bool(self.settings.notify_background_channel),
             "notify_background_broadcast": bool(self.settings.notify_background_broadcast),
+            # v6.9.7
+            "tts_muted_join_users": str(self.settings.tts_muted_join_users or ""),
+            "channel_favorites": list(self.settings.channel_favorites or []),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
