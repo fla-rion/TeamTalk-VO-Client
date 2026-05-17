@@ -60,3 +60,48 @@ jobs:
           files: dist/${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Gitea Release synchronisieren
+        shell: pwsh
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $zipPath = "dist\$env:ZIP_NAME"
+          $token = $env:GITEA_TOKEN
+          $base = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+          $headers = @{ "Authorization" = "token $token"; "Content-Type" = "application/json" }
+
+          # Gitea-Release für diesen Tag holen
+          try {
+            $release = Invoke-RestMethod -Uri "$base/releases/tags/$tag" -Headers $headers -ErrorAction Stop
+            $releaseId = $release.id
+            Write-Host "Gitea-Release gefunden: ID $releaseId"
+          } catch {
+            # Release existiert noch nicht – erstellen
+            Write-Host "Gitea-Release $tag nicht gefunden – erstelle..."
+            $body = @{ tag_name = $tag; name = $tag; body = "Windows-Build $tag"; draft = $false; prerelease = $false } | ConvertTo-Json
+            try {
+              $release = Invoke-RestMethod -Method Post -Uri "$base/releases" -Headers $headers -Body $body -ErrorAction Stop
+              $releaseId = $release.id
+              Write-Host "Gitea-Release erstellt: ID $releaseId"
+            } catch {
+              Write-Host "Gitea-Release konnte nicht erstellt werden: $_"
+              exit 0
+            }
+          }
+
+          # Prüfen ob Windows-ZIP schon hochgeladen
+          $assets = Invoke-RestMethod -Uri "$base/releases/$releaseId/assets" -Headers @{ "Authorization" = "token $token" } -ErrorAction SilentlyContinue
+          $existing = $assets | Where-Object { $_.name -match "windows" }
+          if ($existing) {
+            Write-Host "Windows-ZIP bereits auf Gitea vorhanden ($($existing.name)) – überspringe Upload"
+            exit 0
+          }
+
+          # ZIP hochladen (multipart via curl, da Invoke-RestMethod kein -F unterstützt)
+          Write-Host "Lade $env:ZIP_NAME auf Gitea hoch (Release $releaseId)..."
+          $result = & curl -s -X POST "$base/releases/$releaseId/assets" `
+            -H "Authorization: token $token" `
+            -F "attachment=@$zipPath"
+          Write-Host "Gitea Upload Antwort: $result"
