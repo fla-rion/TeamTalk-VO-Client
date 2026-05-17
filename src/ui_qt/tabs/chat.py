@@ -274,7 +274,7 @@ class ChatTab(QWidget):
     # alias used by some callers
     def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
         """wx-compat alias: appends a pre-formatted line to the chat log."""
-        ts_str = time.strftime("%H:%M:%S")
+        ts_str = time.strftime("%H:%M")
         color_map = {
             "system": "#888888",
             "private": "#2980b9",

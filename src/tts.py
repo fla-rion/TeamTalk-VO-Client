@@ -53,6 +53,11 @@ class TTSManager:
         self._missing_warned = False
         self._local_espeak_dir: Optional[Path] = None
         self._transcript: List[Tuple[str, str, str]] = []  # (timestamp, kind, text)
+        # Batch-Announcements: 300ms Puffer für user_join/user_leave (wie ttaccessible)
+        self._batch_buffer: List[str] = []
+        self._batch_kind: str = "system"
+        self._batch_timer: Optional[threading.Timer] = None
+        self._batch_lock = threading.Lock()
 
     def ensure_local_espeak(self) -> Optional[Path]:
         """Copy bundled espeak-ng into App Support / AppData to avoid access prompts."""
@@ -350,8 +355,37 @@ class TTSManager:
         self._transcript.append((time.strftime("%H:%M:%S"), kind, text))
         if len(self._transcript) > 200:
             self._transcript = self._transcript[-200:]
+        # Batch user_join/user_leave events within 300ms window (wie ttaccessible)
+        if kind in ("user_join", "user_leave"):
+            self._enqueue_batched(text, kind, ctx_rate)
+            return
         try:
             self._queue.put_nowait((text, ctx_rate, ctx_voice))
+        except Exception:
+            pass
+
+    def _enqueue_batched(self, text: str, kind: str, ctx_rate: int) -> None:
+        with self._batch_lock:
+            self._batch_buffer.append(text)
+            self._batch_kind = kind
+            self._batch_rate = ctx_rate
+            if self._batch_timer is not None:
+                self._batch_timer.cancel()
+            t = threading.Timer(0.3, self._flush_batch)
+            t.daemon = True
+            self._batch_timer = t
+            t.start()
+
+    def _flush_batch(self) -> None:
+        with self._batch_lock:
+            if not self._batch_buffer:
+                return
+            combined = ". ".join(self._batch_buffer)
+            rate = getattr(self, "_batch_rate", 0)
+            self._batch_buffer.clear()
+            self._batch_timer = None
+        try:
+            self._queue.put_nowait((combined, rate, ""))
         except Exception:
             pass
 

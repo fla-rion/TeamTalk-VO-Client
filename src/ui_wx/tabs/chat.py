@@ -188,7 +188,7 @@ class ChatTab(wx.Panel):
         # Optional timestamp prefix
         if getattr(self.frame.settings_store.settings, "chat_show_timestamps", False):
             from datetime import datetime as _dt
-            text = f"[{_dt.now().strftime('%H:%M:%S')}] {text}"
+            text = f"[{_dt.now().strftime('%H:%M')}] {text}"
         if self.chat_log.GetLastPosition() > 0:
             self.chat_log.AppendText("\n")
         if kind == "system":

@@ -211,7 +211,8 @@ class ChannelsTab(wx.Panel):
                 name = self.frame.tt_str(chan.szName) if chan else str(chan_id)
 
             users = users_by_channel.get(chan_id, [])
-            label = indent + self._make_channel_label(name, chan if chan_id != root_id else None, users)
+            total = self._count_total_users(chan_id, users_by_channel, channels_by_id)
+            label = indent + self._make_channel_label(name, chan if chan_id != root_id else None, users, total)
             labels.append(label)
             items.append((_NODE_CHANNEL, chan_id))
 
@@ -232,12 +233,21 @@ class ChannelsTab(wx.Panel):
         visit(root_id, 0)
         return labels, items
 
-    def _make_channel_label(self, name: str, chan, users: List) -> str:
+    def _count_total_users(self, chan_id: int, users_by_channel: Dict, channels_by_id: Dict) -> int:
+        total = len(users_by_channel.get(chan_id, []))
+        for child in channels_by_id.values():
+            if int(child.nParentID) == chan_id:
+                total += self._count_total_users(child.nChannelID, users_by_channel, channels_by_id)
+        return total
+
+    def _make_channel_label(self, name: str, chan, users: List, total: int = 0) -> str:
         parts = [name]
         if chan is not None and bool(getattr(chan, "bPassword", False)):
             parts.append("Passwort")
         n = len(users)
-        if n == 1:
+        if total > n:
+            parts.append(f"{n}/{total} Nutzer")
+        elif n == 1:
             parts.append("1 Nutzer")
         elif n > 1:
             parts.append(f"{n} Nutzer")
@@ -587,10 +597,10 @@ class ChannelsTab(wx.Panel):
 
         vol_voice_item = menu.Append(wx.ID_ANY, _("Lautstärke Stimme..."))
         vol_media_item = menu.Append(wx.ID_ANY, _("Lautstärke Mediendatei..."))
-        mute_voice_item = menu.AppendCheckItem(wx.ID_ANY, _("Stimme stummschalten"))
-        mute_media_item = menu.AppendCheckItem(wx.ID_ANY, _("Mediendatei stummschalten"))
-        mute_voice_item.Check(voice_muted)
-        mute_media_item.Check(media_muted)
+        mute_voice_label = _("Stimme entstummen") if voice_muted else _("Stimme stummschalten")
+        mute_media_label = _("Mediendatei entstummen") if media_muted else _("Mediendatei stummschalten")
+        mute_voice_item = menu.Append(wx.ID_ANY, mute_voice_label)
+        mute_media_item = menu.Append(wx.ID_ANY, mute_media_label)
 
         sub_menu = wx.Menu()
         sub_flags = [

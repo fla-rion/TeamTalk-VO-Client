@@ -197,6 +197,13 @@ class ChannelsTab(QWidget):
         if restore_idx >= 0:
             self.channel_list.setCurrentRow(restore_idx)
 
+    def _count_total_users(self, chan_id: int, users_by_channel: Dict, channels_by_id: Dict) -> int:
+        total = len(users_by_channel.get(chan_id, []))
+        for child in channels_by_id.values():
+            if int(child.nParentID) == chan_id:
+                total += self._count_total_users(child.nChannelID, users_by_channel, channels_by_id)
+        return total
+
     def _build_flat_list(self, root_id, root_channel, server_name,
                          channels_by_id, users_by_channel,
                          depth=0) -> Tuple[List[str], List[Tuple[str, int]]]:
@@ -216,7 +223,13 @@ class ChannelsTab(QWidget):
         except Exception:
             pass
         user_count = len(users_by_channel.get(root_id, []))
-        count_txt = f" ({user_count})" if user_count else ""
+        total_count = self._count_total_users(root_id, users_by_channel, channels_by_id)
+        if total_count > user_count:
+            count_txt = f" ({user_count}/{total_count})"
+        elif user_count:
+            count_txt = f" ({user_count})"
+        else:
+            count_txt = ""
         has_pw = bool(getattr(ch, "bPassword", False))
         pw_txt = ", Passwort" if has_pw else ""
         labels.append(f"{indent}[{ch_name}{topic}{pw_txt}{count_txt}]")

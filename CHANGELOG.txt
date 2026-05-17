@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.5)
+UI-Verbesserungen inspiriert von ttaccessible:
+
+- Batch-Ankündigungen: Mehrere Join-/Leave-Ereignisse werden 300 ms gesammelt und
+  als eine TTS-Ansage zusammengefasst (statt einzelner Unterbrechungen)
+- Chat-Zeitstempel ohne Sekunden (HH:MM statt HH:MM:SS) — ruhiger im Vorlesen
+- Kanalliste: Nutzeranzahl als direkt/gesamt (z. B. "3/5 Nutzer") — zeigt auch
+  Nutzer in Unterkanälen
+- Kontextmenü Nutzer: Stumm-Einträge mit dynamischem Titel
+  ("Stimme stummschalten" / "Stimme entstummen") statt Checkbox (macOS)
+
 2026-05-17 (v6.9.4)
 Verbindungsflow, Tastenkürzel und UI-Optimierungen (inspiriert von ttaccessible):
 
