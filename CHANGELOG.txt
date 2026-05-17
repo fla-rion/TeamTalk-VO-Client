@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-05-17 (v6.9.9)
+Danksagungen und Handbuch: ttaccessible-Referenz ergänzt
+
+- Über-Dialog (macOS): Neue Sektion "Inspirationsquellen" im Reiter "Allgemein"
+  mit Verweis auf ttaccessible (Mathieu Ramage / math65,
+  https://github.com/math65/ttaccessible).
+- Über-Dialog: Reiter "Danksagungen" enthält nun einen eigenen Abschnitt für
+  Mathieu Ramage mit Beschreibung seiner Beiträge und Link zum Repo.
+- Handbuch: Neue Sektion "Danksagungen & Inspirationsquellen" mit Querverweisen
+  auf ttaccessible und Auflistung der inspirierten Features (v6.9.4–6.9.8).
+- Handbuch-Footer aktualisiert (v6.4.3 → v6.9.8, Mathieu ergänzt).
+
 2026-05-17 (v6.9.8)
 Hotfix Windows: QShortcut-Import-Fehler behoben
 

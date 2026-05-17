@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info, capabilities, feature_summary
 
 
-APP_VERSION = "6.9.8"
+APP_VERSION = "6.9.9"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -7746,6 +7746,13 @@ class MainFrame(wx.Frame):
             "  Einschränkungen kommen kann, da macOS der primäre Entwicklungs-\n"
             "  und Testrahmen ist.\n"
             "\n"
+            "Inspirationsquellen\n"
+            "  ttaccessible  –  Mathieu Ramage (math65)\n"
+            "  https://github.com/math65/ttaccessible\n"
+            "  Ein nativer, barrierefreier TeamTalk-Client für macOS.\n"
+            "  Viele Features der Versionen 6.9.4–6.9.8 sind von dieser\n"
+            "  Arbeit und der Zusammenarbeit mit Mathieu inspiriert.\n"
+            "\n"
             "Verwendete Bibliotheken und Werkzeuge\n"
             "  • TeamTalk SDK  –  BearWare (bearware.dk)\n"
             "  • wxPython  –  wxWidgets-Projekt\n"
@@ -7770,6 +7777,19 @@ class MainFrame(wx.Frame):
         p_thanks.SetName("Danksagungen")
         ts = wx.BoxSizer(wx.VERTICAL)
         thanks_text = (
+            "Inspirationsquellen\n"
+            "════════════════════════════════════════\n"
+            "\n"
+            "Mathieu Ramage (math65)\n"
+            "  Entwickler von ttaccessible – einem nativen, barrierefreien\n"
+            "  TeamTalk-Client für macOS. Mathieu ist selbst VoiceOver-Nutzer\n"
+            "  und hat durch seine offene Architektur und sein direktes Feedback\n"
+            "  die Weiterentwicklung dieses Clients wesentlich geprägt.\n"
+            "  Die Features in den Versionen 6.9.4–6.9.8 (Batch-TTS,\n"
+            "  Kanal-Favoriten, granulare TTS-Steuerung, Verbindungsflow u. v. m.)\n"
+            "  sind direkt von seiner Arbeit inspiriert.\n"
+            "  → https://github.com/math65/ttaccessible\n"
+            "\n"
             "Beta-Tester und Unterstützer\n"
             "════════════════════════════════════════\n"
             "\n"
