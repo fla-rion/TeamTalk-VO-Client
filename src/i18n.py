@@ -2158,6 +2158,111 @@ _TRANSLATIONS_FR.update({
     "Trigger-Regeln...": "Règles de déclenchement...",
 })
 
+# FR-Ergänzungen: Chat- und Audio-Sektionen (PR @math65)
+_TRANSLATIONS_FR.update({
+    # --- Chat ---
+    # EN: 'Delete all saved messages'
+    "Alle gespeicherten Nachrichten löschen": "Supprimer tous les messages enregistrés",
+    # EN: 'Delete all'
+    "Alle löschen": "Tout supprimer",
+    # EN: 'As HTML'
+    "Als HTML": "En HTML",
+    # EN: 'Delete selected message'
+    "Ausgewählte Nachricht löschen": "Supprimer le message sélectionné",
+    # EN: 'Quote selected text'
+    "Ausgewählten Text zitieren": "Citer le texte sélectionné",
+    # EN: 'Saved messages'
+    "Gespeicherte Nachrichten": "Messages enregistrés",
+    # EN: 'HTML export'
+    "HTML-Export": "Export HTML",
+    # EN: 'HTML export failed'
+    "HTML-Export fehlgeschlagen": "Échec de l'export HTML",
+    # EN: 'Channel chat: not in a channel'
+    "Kanal-Chat: Nicht in einem Kanal": "Chat de canal : pas dans un canal",
+    # EN: 'No chat history to export'
+    "Kein Chat-Verlauf zum Exportieren": "Aucun historique de chat à exporter",
+    # EN: 'No text to save'
+    "Kein Text zum Speichern": "Aucun texte à enregistrer",
+    # EN: 'No text to quote'
+    "Kein Text zum Zitieren": "Aucun texte à citer",
+    # EN: 'Message saved'
+    "Nachricht gespeichert": "Message enregistré",
+    # EN: 'Copy message'
+    "Nachricht kopieren": "Copier le message",
+    # EN: 'Private chat: please select user'
+    "Privater Chat: Bitte Benutzer wählen": "Chat privé : veuillez sélectionner un utilisateur",
+    # EN: 'Export history as HTML'
+    "Verlauf als HTML exportieren": "Exporter l'historique en HTML",
+
+    # --- Audio ---
+    # EN: 'Activation level'
+    "Aktivierungspegel": "Niveau d'activation",
+    # EN: 'Save current audio settings'
+    "Aktuelle Audioeinstellungen speichern": "Enregistrer les paramètres audio actuels",
+    # EN: 'Apply audio settings on start'
+    "Audioeinstellungen beim Start anwenden": "Appliquer les paramètres audio au démarrage",
+    # EN: 'Save audio settings'
+    "Audioeinstellungen speichern": "Enregistrer les paramètres audio",
+    # EN: 'Output'
+    "Ausgabe": "Sortie",
+    # EN: 'Mute output'
+    "Ausgabe stummschalten": "Muter la sortie",
+    # EN: 'VU meter'
+    "Aussteuerungsanzeige": "VU-mètre",
+    # EN: 'Auto-apply on device change'
+    "Bei Gerätewechsel automatisch anwenden": "Appliquer automatiquement au changement de périphérique",
+    # EN: 'Duplex mode'
+    "Duplex-Modus": "Mode duplex",
+    # EN: 'EQ preset saved'
+    "EQ-Preset gespeichert": "Préréglage d'égaliseur enregistré",
+    # EN: 'EQ preset imported'
+    "EQ-Preset importiert": "Préréglage d'égaliseur importé",
+    # EN: 'EQ presets exported'
+    "EQ-Presets exportiert": "Préréglages d'égaliseur exportés",
+    # EN: 'Export failed'
+    "Export fehlgeschlagen": "Échec de l'export",
+    # EN: 'Export…'
+    "Exportieren…": "Exporter…",
+    # EN: 'Devices'
+    "Geräte": "Périphériques",
+    # EN: 'Device effects'
+    "Geräteeffekte": "Effets de périphérique",
+    # EN: 'Apply saved audio settings'
+    "Gespeicherte Audioeinstellungen anwenden": "Appliquer les paramètres audio enregistrés",
+    # EN: 'Delete saved audio settings'
+    "Gespeicherte Audioeinstellungen löschen": "Supprimer les paramètres audio enregistrés",
+    # EN: 'Import failed'
+    "Import fehlgeschlagen": "Échec de l'import",
+    # EN: 'Import…'
+    "Importieren…": "Importer…",
+    # EN: 'Local playback'
+    "Lokale Wiedergabe": "Lecture locale",
+    # EN: 'Hold time (ms)'
+    "Nachlaufzeit (ms)": "Temps de maintien (ms)",
+    # EN: 'PTT hotkey'
+    "PTT-Hotkey": "Raccourci PTT",
+    # EN: 'Levels and volume'
+    "Pegel und Lautstärke": "Niveaux et volume",
+    # EN: 'Save preset'
+    "Preset speichern": "Enregistrer le préréglage",
+    # EN: 'Export presets'
+    "Presets exportieren": "Exporter les préréglages",
+    # EN: 'Import presets'
+    "Presets importieren": "Importer les préréglages",
+    # EN: 'Save as…'
+    "Speichern als…": "Enregistrer sous…",
+    # EN: 'Enable voice activation'
+    "Sprachaktivierung aktivieren": "Activer la détection vocale",
+    # EN: 'Silence duration (s)'
+    "Stille-Dauer (s)": "Durée du silence (s)",
+    # EN: 'Silence detection'
+    "Stille-Erkennung": "Détection de silence",
+    # EN: 'Silence level'
+    "Stille-Pegel": "Niveau de silence",
+    # EN: 'Preprocessing'
+    "Vorverarbeitung": "Prétraitement",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
