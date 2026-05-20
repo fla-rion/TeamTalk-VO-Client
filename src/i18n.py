@@ -2158,6 +2158,69 @@ _TRANSLATIONS_FR.update({
     "Trigger-Regeln...": "Règles de déclenchement...",
 })
 
+# FR-Ergänzungen: Connection- und Channel-Sektionen (PR @math65)
+_TRANSLATIONS_FR.update({
+    # --- Connection (Tab Verbindung + Einstellungen + Ping-Info) ---
+    # EN: 'Auto-reconnect'
+    "Auto-Wiederverbinden": "Reconnexion automatique",
+    # EN: 'Bind local port'
+    "Lokalen Port binden": "Lier le port local",
+    # EN: 'Max'
+    "Max": "Max",
+    # EN: 'Min'
+    "Min": "Min",
+    # EN: 'Profile list'
+    "Profil-Liste": "Liste des profils",
+    # EN: 'Export server (.tt)'
+    "Server exportieren (.tt)": "Exporter le serveur (.tt)",
+    # EN: 'Import server (.tt)'
+    "Server importieren (.tt)": "Importer le serveur (.tt)",
+    # EN: 'Server profile'
+    "Serverprofil": "Profil de serveur",
+    # EN: 'Default subscriptions'
+    "Standard-Abonnements": "Abonnements par défaut",
+    # EN: 'Check status'
+    "Status prüfen": "Vérifier l'état",
+    # EN: 'TCP port'
+    "TCP-Port": "Port TCP",
+    # EN: 'UDP port'
+    "UDP-Port": "Port UDP",
+    # EN: 'ms'
+    "ms": "ms",
+    # EN: 'Avg ping'
+    "Ø Ping": "Ping moy.",
+
+    # --- Channels (Tab Kanäle + Kanalverwaltung) ---
+    # EN: 'Join'
+    "Beitreten": "Rejoindre",
+    # EN: 'Join channel (Enter)'
+    "Kanal beitreten (Enter)": "Rejoindre le canal (Entrée)",
+    # EN: 'Channel note'
+    "Kanal-Notiz": "Note du canal",
+    # EN: 'Channel note saved'
+    "Kanal-Notiz gespeichert": "Note du canal enregistrée",
+    # EN: 'Channel history'
+    "Kanalverlauf": "Historique du canal",
+    # EN: 'Clear channel history'
+    "Kanalverlauf leeren": "Effacer l'historique du canal",
+    # EN: 'Bookmark 4'
+    "Lesezeichen 4": "Marque-page 4",
+    # EN: 'Bookmark 5'
+    "Lesezeichen 5": "Marque-page 5",
+    # EN: 'Bookmark 6'
+    "Lesezeichen 6": "Marque-page 6",
+    # EN: 'Bookmark 7'
+    "Lesezeichen 7": "Marque-page 7",
+    # EN: 'Bookmark 8'
+    "Lesezeichen 8": "Marque-page 8",
+    # EN: 'Bookmark 9'
+    "Lesezeichen 9": "Marque-page 9",
+    # EN: 'No channels visited yet.'
+    "Noch keine Kanäle besucht.": "Aucun canal visité pour l'instant.",
+    # EN: 'Edit note... [✓]'
+    "Notiz bearbeiten... [✓]": "Modifier la note... [✓]",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
