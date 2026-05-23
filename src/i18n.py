@@ -9,6 +9,9 @@ Verwendung:
 """
 from __future__ import annotations
 
+import locale
+import os
+
 _LANG = "de"  # Standard: Deutsch
 
 # ---------------------------------------------------------------------------
@@ -2260,6 +2263,73 @@ def set_language(lang: str) -> None:
 
 def current_language() -> str:
     return _LANG
+
+
+def _extract_lang_code(raw: str) -> str:
+    """Reduziert eine Locale-Kennung (`fr_FR`, `fr-FR.UTF-8`, `fr:en`) auf
+    den 2-Buchstaben-ISO-Code in Kleinschreibung. Leer wenn nicht extrahierbar."""
+    if not raw:
+        return ""
+    head = raw.split(":", 1)[0].split(".", 1)[0]
+    head = head.replace("-", "_").split("_", 1)[0]
+    head = head.strip().lower()
+    if head in ("c", "posix"):
+        return ""
+    return head[:2] if len(head) >= 2 else ""
+
+
+def _iter_locale_candidates() -> list[str]:
+    """Sammelt mögliche Locale-Strings in Prioritätsreihenfolge:
+    1. locale.getlocale() (laufzeitkonfiguriert)
+    2. LC_ALL, LC_MESSAGES, LANG (POSIX)
+    3. LANGUAGE (Doppelpunkt-getrennte Liste, alle Einträge separat)"""
+    candidates: list[str] = []
+    try:
+        lc = locale.getlocale()
+        if lc and lc[0]:
+            candidates.append(lc[0])
+    except Exception:
+        pass
+    for var in ("LC_ALL", "LC_MESSAGES", "LANG"):
+        v = os.environ.get(var, "")
+        if v:
+            candidates.append(v)
+    language_env = os.environ.get("LANGUAGE", "")
+    if language_env:
+        for piece in language_env.split(":"):
+            if piece:
+                candidates.append(piece)
+    return candidates
+
+
+def detect_system_language(default: str = "en") -> str:
+    """Erkennt die Systemsprache und gibt einen Code aus `_SUPPORTED_LANGUAGES`
+    zurück. Fällt auf `default` zurück, wenn nichts Unterstütztes gefunden wird.
+
+    Reihenfolge: laufzeitkonfigurierte Locale → POSIX-Env-Variablen.
+    Robust gegen Ausnahmen (z. B. exotische Windows-Locale-Strings)."""
+    try:
+        for raw in _iter_locale_candidates():
+            code = _extract_lang_code(raw)
+            if code in _SUPPORTED_LANGUAGES:
+                return code
+    except Exception:
+        pass
+    return default
+
+
+def ensure_language(store) -> str:
+    """Stellt sicher, dass `store.settings.app_language` gesetzt ist und
+    aktiviert sie. Beim ersten Start (leere Sprache) wird die Systemsprache
+    erkannt, persistiert (`store.save()`) und aktiviert. Andernfalls bleibt
+    die gespeicherte Wahl unverändert."""
+    lang = getattr(store.settings, "app_language", "") or ""
+    if not lang:
+        lang = detect_system_language(default="en")
+        store.settings.app_language = lang
+        store.save()
+    set_language(lang)
+    return lang
 
 
 def _lookup_direct(text: str, lang: str) -> str | None:
