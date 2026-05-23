@@ -2249,6 +2249,213 @@ _TRANSLATIONS_FR.update({
     "Notiz bearbeiten... [✓]": "Modifier la note... [✓]",
 })
 
+# Files / Médias / Administration (i18n/fr-files-media-admin)
+_TRANSLATIONS_FR.update({
+    # ---- Files ----
+    # EN: '&Close'
+    "&Schließen": "&Fermer",
+    # EN: 'Download file'
+    "Datei herunterladen": "Télécharger le fichier",
+    # EN: 'Upload file'
+    "Datei hochladen": "Téléverser le fichier",
+    # EN: 'Delete file'
+    "Datei löschen": "Supprimer le fichier",
+    # EN: 'Files in the current channel'
+    "Dateien im aktuellen Kanal": "Fichiers dans le canal actuel",
+    # EN: 'File list header'
+    "Dateiliste Kopfzeile": "En-tête de la liste de fichiers",
+    # EN: 'Filename, size, uploaded by, date'
+    "Dateiname, Größe, Hochgeladen von, Datum": "Nom de fichier, Taille, Téléversé par, Date",
+    # EN: 'File transfer'
+    "Dateiübertragung": "Transfert de fichier",
+    # EN: 'File transfer history'
+    "Dateiübertragungsverlauf": "Historique des transferts de fichiers",
+    # EN: 'No file transfer history yet.'
+    "Noch kein Dateiübertragungsverlauf vorhanden.": "Aucun historique de transfert de fichiers pour l'instant.",
+    # EN: 'Transfer progress'
+    "Übertragungsfortschritt": "Progression du transfert",
+
+    # ---- Médias / Streaming ----
+    # EN: 'Recording'
+    "Aufnahme": "Enregistrement",
+    # EN: 'Start recording'
+    "Aufnahme starten": "Démarrer l'enregistrement",
+    # EN: 'Recording and Media'
+    "Aufnahme und Medien": "Enregistrement et médias",
+    # EN: 'Recording format'
+    "Aufnahmeformat": "Format d'enregistrement",
+    # EN: 'Apply recording settings'
+    "Aufzeichnung anwenden": "Appliquer les réglages d'enregistrement",
+    # EN: 'Remove selected title'
+    "Ausgewählten Titel entfernen": "Retirer le titre sélectionné",
+    # EN: 'Auto-advance'
+    "Automatisch weiter": "Avancer automatiquement",
+    # EN: 'Add files to playlist'
+    "Dateien zur Playlist hinzufügen": "Ajouter des fichiers à la liste de lecture",
+    # EN: 'Filename'
+    "Dateiname": "Nom de fichier",
+    # EN: 'Duration: --'
+    "Dauer: --": "Durée : --",
+    # EN: 'Include own voice'
+    "Eigene Stimme mit aufnehmen": "Inclure sa propre voix",
+    # EN: 'Stream episode'
+    "Episode streamen": "Diffuser l'épisode",
+    # EN: 'Format'
+    "Format": "Format",
+    # EN: 'Record conversations'
+    "Konversationen aufzeichnen": "Enregistrer les conversations",
+    # EN: 'Conversation format'
+    "Konversationsformat": "Format de conversation",
+    # EN: 'Clear'
+    "Leeren": "Vider",
+    # EN: 'Link'
+    "Link": "Lien",
+    # EN: 'Load M3U file'
+    "M3U-Datei laden": "Charger un fichier M3U",
+    # EN: 'Media streaming'
+    "Medien-Streaming": "Diffusion de médias",
+    # EN: 'Media file path'
+    "Mediendatei Pfad": "Chemin du fichier média",
+    # EN: 'Select media file'
+    "Mediendatei auswählen": "Sélectionner un fichier média",
+    # EN: 'Media info'
+    "Medieninfo": "Informations média",
+    # EN: 'Playlist'
+    "Playlist": "Liste de lecture",
+    # EN: 'Playlist header'
+    "Playlist Kopfzeile": "En-tête de la liste de lecture",
+    # EN: 'Play playlist'
+    "Playlist abspielen": "Lire la liste de lecture",
+    # EN: 'Export playlist as M3U'
+    "Playlist als M3U exportieren": "Exporter la liste de lecture en M3U",
+    # EN: 'Clear playlist'
+    "Playlist leeren": "Vider la liste de lecture",
+    # EN: 'Pause playlist'
+    "Playlist pausieren": "Mettre la liste de lecture en pause",
+    # EN: 'Stop playlist'
+    "Playlist stoppen": "Arrêter la liste de lecture",
+    # EN: 'Playlist volume'
+    "Playlist-Lautstärke": "Volume de la liste de lecture",
+    # EN: 'Podcast episodes'
+    "Podcast Episoden": "Épisodes de podcast",
+    # EN: 'Podcast results'
+    "Podcast Ergebnisse": "Résultats de podcast",
+    # EN: 'Podcast feed URL'
+    "Podcast Feed URL": "URL du flux de podcast",
+    # EN: 'Load podcast feed'
+    "Podcast Feed laden": "Charger le flux de podcast",
+    # EN: 'Pause podcast'
+    "Podcast Pause": "Pause du podcast",
+    # EN: 'Stop podcast'
+    "Podcast Stopp": "Arrêt du podcast",
+    # EN: 'Podcast search'
+    "Podcast Suche": "Recherche de podcasts",
+    # EN: 'Search podcasts'
+    "Podcast suchen": "Rechercher des podcasts",
+    # EN: 'Podcast volume'
+    "Podcast-Lautstärke": "Volume du podcast",
+    # EN: 'Podcasts'
+    "Podcasts": "Podcasts",
+    # EN: 'Position'
+    "Position": "Position",
+    # EN: 'Position (0-1000)'
+    "Position (0–1000)": "Position (0–1000)",
+    # EN: 'Status: ready'
+    "Status: bereit": "État : prêt",
+    # EN: 'Stream'
+    "Streamen": "Diffuser",
+    # EN: 'Streaming (yt-dlp)'
+    "Streaming (yt-dlp)": "Diffusion (yt-dlp)",
+    # EN: 'Streaming pause'
+    "Streaming Pause": "Pause de la diffusion",
+    # EN: 'Streaming stop'
+    "Streaming Stopp": "Arrêt de la diffusion",
+    # EN: 'Streaming volume'
+    "Streaming-Lautstärke": "Volume de la diffusion",
+    # EN: 'Streaming source'
+    "Streaming-Quelle": "Source de la diffusion",
+    # EN: 'Streaming status'
+    "Streaming-Status": "État de la diffusion",
+    # EN: 'Search:'
+    "Suche:": "Rechercher :",
+    # EN: 'Search results'
+    "Suchergebnisse": "Résultats de recherche",
+    # EN: 'Move title up'
+    "Titel nach oben verschieben": "Déplacer le titre vers le haut",
+    # EN: 'Move title down'
+    "Titel nach unten verschieben": "Déplacer le titre vers le bas",
+    # EN: 'Title, path'
+    "Titel, Pfad": "Titre, Chemin",
+    # EN: 'Web radio'
+    "Webradio": "Webradio",
+    # EN: 'Web radio results'
+    "Webradio Ergebnisse": "Résultats de webradio",
+    # EN: 'Pause web radio'
+    "Webradio Pause": "Pause de la webradio",
+    # EN: 'Web radio station list'
+    "Webradio Senderliste": "Liste des stations de webradio",
+    # EN: 'Stop web radio'
+    "Webradio Stopp": "Arrêt de la webradio",
+    # EN: 'Web radio stream URL'
+    "Webradio Stream-URL": "URL de diffusion de la webradio",
+    # EN: 'Web radio search'
+    "Webradio Suche": "Recherche de webradio",
+    # EN: 'Stream web radio'
+    "Webradio streamen": "Diffuser la webradio",
+    # EN: 'Search web radio'
+    "Webradio suchen": "Rechercher une webradio",
+    # EN: 'Web radio volume'
+    "Webradio-Lautstärke": "Volume de la webradio",
+    # EN: 'Target folder'
+    "Zielordner": "Dossier de destination",
+
+    # ---- Administration ----
+    # EN: 'Admin info'
+    "Admin-Info": "Infos admin",
+    # EN: 'Administration functions (admins only)'
+    "Administrationsfunktionen (nur für Admins)": "Fonctions d'administration (admins uniquement)",
+    # EN: 'Administrator'
+    "Administrator": "Administrateur",
+    # EN: 'User accounts'
+    "Benutzerkonten": "Comptes utilisateurs",
+    # EN: 'User accounts header'
+    "Benutzerkonten Kopfzeile": "En-tête des comptes utilisateurs",
+    # EN: 'Username, type, note'
+    "Benutzername, Typ, Notiz": "Nom d'utilisateur, Type, Note",
+    # EN: 'Unban'
+    "Entsperren": "Débannir",
+    # EN: 'Ban IP address'
+    "IP-Adresse bannen": "Bannir l'adresse IP",
+    # EN: 'IP address, username, timestamp'
+    "IP-Adresse, Benutzername, Zeitpunkt": "Adresse IP, Nom d'utilisateur, Date",
+    # EN: 'Load accounts'
+    "Konten laden": "Charger les comptes",
+    # EN: 'Add account'
+    "Konto hinzufügen": "Ajouter un compte",
+    # EN: 'Delete account'
+    "Konto löschen": "Supprimer le compte",
+    # EN: 'Max users'
+    "Max. Benutzer": "Utilisateurs max.",
+    # EN: 'Note'
+    "Notiz": "Note",
+    # EN: 'Server properties'
+    "Servereigenschaften": "Propriétés du serveur",
+    # EN: 'Load server properties'
+    "Servereigenschaften laden": "Charger les propriétés du serveur",
+    # EN: 'Save server properties'
+    "Servereigenschaften speichern": "Enregistrer les propriétés du serveur",
+    # EN: 'Bans'
+    "Sperren": "Bannissements",
+    # EN: 'Load bans'
+    "Sperren laden": "Charger les bannissements",
+    # EN: 'Ban list'
+    "Sperrliste": "Liste des bannissements",
+    # EN: 'Ban list header'
+    "Sperrliste Kopfzeile": "En-tête de la liste des bannissements",
+    # EN: 'Default'
+    "Standard": "Par défaut",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
