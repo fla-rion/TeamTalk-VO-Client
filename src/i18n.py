@@ -2702,6 +2702,180 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Final batch — UI verbs / Schedules / Files / Misc (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- UI verbs / Actions génériques ----
+    "Aktivieren": "Activer",
+    "Aktivieren/Deaktivieren": "Activer/Désactiver",
+    "Anwenden": "Appliquer",
+    "Deaktivieren": "Désactiver",
+    "Installieren": "Installer",
+    "Jetzt starten": "Démarrer maintenant",
+    "Kopieren": "Copier",
+    "Neu laden": "Recharger",
+    "Neuen Client starten": "Démarrer un nouveau client",
+    "Springen": "Aller",
+    "Stoppen": "Arrêter",
+    "Testen": "Tester",
+    "URL kopieren": "Copier l'URL",
+    "Unterbrechen": "Interrompre",
+    "Prüfen": "Vérifier",
+    "Profil löschen": "Supprimer le profil",
+    "Liste aktualisieren": "Actualiser la liste",
+    "Freigabe beenden": "Arrêter le partage",
+    "Hinzufügen...": "Ajouter...",
+    "In Liste speichern": "Enregistrer dans la liste",
+    "Als Profil speichern...": "Enregistrer comme profil...",
+    "Als M3U exportieren...": "Exporter en M3U...",
+    "Nach oben": "Vers le haut",
+    "Nach unten": "Vers le bas",
+
+    # ---- Feeds / Catalogues / M3U ----
+    "Feed laden": "Charger le flux",
+    "M3U laden...": "Charger M3U...",
+    "Katalog laden": "Charger le catalogue",
+    "Katalog wird geladen...": "Chargement du catalogue...",
+    "Katalog-URL:": "URL du catalogue :",
+    "Kein Katalog geladen": "Aucun catalogue chargé",
+
+    # ---- Mouse clicks ----
+    "Linksklick": "Clic gauche",
+    "Mittelklick": "Clic milieu",
+    "Rechtsklick": "Clic droit",
+
+    # ---- Coordonnées ----
+    "X:": "X :",
+    "Y:": "Y :",
+    "Z:": "Z :",
+
+    # ---- Genre / Voix ----
+    "Geschlecht": "Genre",
+    "Männlich": "Masculin",
+    "Weiblich": "Féminin",
+    "Neutral": "Neutre",
+    "Sprache": "Parole",
+
+    # ---- Actions de macro ----
+    "Aktion entfernen": "Retirer l'action",
+    "Aktion hinzufügen": "Ajouter une action",
+    "Aktionen (eine pro Zeile, Format: type=value):": "Actions (une par ligne, format : type=value) :",
+    "Aktionstyp": "Type d'action",
+    "Aktives Profil:": "Profil actif :",
+
+    # ---- Schedules / Planification ----
+    "Startzeit": "Heure de début",
+    "Startzeit (HH:MM)": "Heure de début (HH:MM)",
+    "Geplante Zeit": "Heure planifiée",
+    "Uhrzeit (HH:MM)": "Heure (HH:MM)",
+    "Zeit (HH:MM):": "Heure (HH:MM) :",
+    "Format HH:MM – täglich ausführen": "Format HH:MM – exécution quotidienne",
+    "Einmalig": "Une seule fois",
+    "Täglich": "Quotidien",
+    "Wochentage (leer = täglich)": "Jours de la semaine (vide = quotidien)",
+    "Zeitgesteuerte Stille": "Silence programmé",
+    "Zeitgesteuerte Stille Zeitfenster": "Plage horaire du silence programmé",
+    "Warten (ms)": "Attendre (ms)",
+    "Mindestverzögerung (Sek.)": "Délai minimum (sec.)",
+    "Reconnect-Verzögerung": "Délai de reconnexion",
+
+    # ---- Files / Folders ----
+    "Im Explorer öffnen": "Ouvrir dans l'Explorateur",
+    "Im Finder öffnen": "Ouvrir dans le Finder",
+    "Ordner öffnen": "Ouvrir le dossier",
+    "Datei:": "Fichier :",
+    "Datei-Quota (MB, 0=aus)": "Quota de fichiers (Mo, 0=désactivé)",
+    "Keine Datei ausgewählt": "Aucun fichier sélectionné",
+    "Max. Dateigröße (MB, 0=aus):": "Taille max. de fichier (Mo, 0=désactivée) :",
+    "Max. Dauer (Minuten, 0=aus):": "Durée max. (minutes, 0=désactivée) :",
+    "Mediendatei": "Fichier média",
+    "{n} Datei": "{n} fichier",
+    "{n} Dateien": "{n} fichiers",
+
+    # ---- Événements / Reconnect / Limites ----
+    "Ereignis": "Événement",
+    "Ereignis:": "Événement :",
+    "Ereignisse (Komma-getrennt):": "Événements (séparés par virgule) :",
+    "Mögliche Werte: private_msg, channel_msg, user_join, user_leave, connect, disconnect": "Valeurs possibles : private_msg, channel_msg, user_join, user_leave, connect, disconnect",
+    "Max. Reconnect-Versuche": "Tentatives de reconnexion max.",
+    "Max. Versuche (0=unbegrenzt)": "Tentatives max. (0=illimité)",
+    "Limits": "Limites",
+    "Schwellenwert % (0-100):": "Seuil % (0-100) :",
+    "Schwellenwert (0-10000):": "Seuil (0-10000) :",
+
+    # ---- Stichwort / Mots-clés ----
+    "Stichwort-Alarm": "Alerte par mot-clé",
+    "Stichwörter": "Mots-clés",
+    "Ein Stichwort je Zeile (Groß/Kleinschreibung egal):": "Un mot-clé par ligne (insensible à la casse) :",
+    "Komma-getrennte Stichwörter, z. B.: wichtig,dringend": "Mots-clés séparés par virgule, p. ex. : important,urgent",
+
+    # ---- Notes ----
+    "Notiz (lokal, nur auf diesem Gerät gespeichert):": "Note (locale, enregistrée uniquement sur cet appareil) :",
+    "Notiz löschen": "Supprimer la note",
+
+    # ---- QR Code ----
+    "QR-Code": "QR code",
+    "QR-Code Bild": "Image QR code",
+    "(qrcode-Bibliothek nicht installiert – URL unten kopieren und\nin einem QR-Generator einfügen)": "(bibliothèque qrcode non installée – copiez l'URL ci-dessous et\ncollez-la dans un générateur de QR code)",
+
+    # ---- Auto / Continue ----
+    "Automatisch aufzeichnen": "Enregistrer automatiquement",
+    "Automatisch weiter (nächster Titel nach Ende)": "Continuer automatiquement (titre suivant à la fin)",
+
+    # ---- ElevenLabs Voice settings ----
+    "Sprecherklarheit verstärken (nicht bei v3)": "Renforcer la clarté de la voix (sauf en v3)",
+    "Stil-Übertreibung (0–100)": "Exagération du style (0–100)",
+    "Stimmstabilität (0–100)": "Stabilité de la voix (0–100)",
+    "Stabilität": "Stabilité",
+
+    # ---- Settings divers ----
+    "Qualität  Anzeige": "Qualité et affichage",
+    "Qualität & Anzeige": "Qualité et affichage",
+    "Verschlüsselt (Encrypted)": "Chiffré (Encrypted)",
+    "Startup-Profil": "Profil de démarrage",
+    "Textfeld": "Champ de texte",
+    "Thema": "Sujet",
+    "Übertragungsrechte": "Droits de transmission",
+    "Über Reiter": "À propos des onglets",
+    "Initialisierungsphasen": "Phases d'initialisation",
+
+    # ---- Identifiants / Métadonnées ----
+    "Autor:": "Auteur :",
+    "Name:": "Nom :",
+    "Namensfilter": "Filtre par nom",
+    "Filter (Name, leer=alle):": "Filtre (nom, vide=tous) :",
+    "Version:": "Version :",
+    "Versionen": "Versions",
+    "Grunddaten": "Données de base",
+    "Dauer (Minuten)": "Durée (minutes)",
+    "Dauer in Minuten": "Durée en minutes",
+
+    # ---- Groupes ----
+    "Gruppe verwalten...": "Gérer le groupe...",
+    "Gruppen": "Groupes",
+    "Gruppen-Liste": "Liste des groupes",
+
+    # ---- Bannissements (compléments) ----
+    "Sperrliste Liste": "Liste des bannissements",
+    "Sperrliste schließen": "Fermer la liste des bannissements",
+
+    # ---- Misc UI states/labels ----
+    "(nicht gesetzt)": "(non défini)",
+    "0 online": "0 en ligne",
+    "?-Modus": "Mode question",
+    "Abmelden": "Se déconnecter",
+    "Permanent": "Permanent",
+    "Einstellungen...\tF4": "Réglages...\tF4",
+    "anwesend": "présent",
+    "derzeit leer": "actuellement vide",
+    "tt://-URL:": "URL tt:// :",
+    "aktiviert (wirkt beim nächsten Start)": "activé (effectif au prochain démarrage)",
+    "deaktiviert (wirkt beim nächsten Start)": "désactivé (effectif au prochain démarrage)",
+    "Änderungen speichern?": "Enregistrer les modifications ?",
+
+    # ---- Erreurs ----
+    "Export fehlgeschlagen: {exc}": "Échec de l'export : {exc}",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
