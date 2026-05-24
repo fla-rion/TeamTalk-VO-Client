@@ -2702,6 +2702,72 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Plugins / Makros / Automation / Trigger / Transkription (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Plugins ----
+    "(Keine Plugins gefunden)": "(Aucun plugin trouvé)",
+    "Geladene Plugins": "Plugins chargés",
+    "Plugin aktivieren": "Activer le plugin",
+    "Plugin aktivieren/deaktivieren": "Activer/désactiver le plugin",
+    "Plugin deaktivieren": "Désactiver le plugin",
+    "Plugin installieren": "Installer le plugin",
+    "Plugin neu laden": "Recharger le plugin",
+    "Plugins neu laden": "Recharger les plugins",
+    "Plugin-Details": "Détails du plugin",
+    "Plugin-Fehler": "Erreur du plugin",
+    "Plugin-Info": "Infos du plugin",
+    "Plugin-Liste": "Liste des plugins",
+    "Plugin-Ordner öffnen": "Ouvrir le dossier des plugins",
+    "Plugin-Verzeichnis": "Répertoire des plugins",
+
+    # ---- Plugin-Marktplatz / Catalogue ----
+    "Plugin-Marktplatz Details": "Détails du catalogue de plugins",
+    "Plugin-Marktplatz Liste": "Liste du catalogue de plugins",
+    "Plugin-Marktplatz Status": "État du catalogue de plugins",
+    "Plugin-Marktplatz Suche": "Recherche dans le catalogue de plugins",
+    "Plugin-Marktplatz URL": "URL du catalogue de plugins",
+    "Plugin-Marktplatz laden": "Charger le catalogue de plugins",
+
+    # ---- Live-Transkription ----
+    "Live-Transkription aktivieren": "Activer la transcription en direct",
+    "Transkription Info": "Infos de transcription",
+    "Transkription exportieren": "Exporter la transcription",
+    "Transkription exportiert": "Transcription exportée",
+    "Transkription exportiert: {path}": "Transcription exportée : {path}",
+    "Transkriptions-Text": "Texte de transcription",
+
+    # ---- Makros / Macros ----
+    "Makro": "Macro",
+    "Makro:": "Macro :",
+    "Makros": "Macros",
+    "Makros:": "Macros :",
+    "Makros JSON": "Macros JSON",
+    "Makro Name": "Nom de la macro",
+    "Makroname": "Nom de la macro",
+    "Makro Aktionen": "Actions de la macro",
+    "Makro ausführen": "Exécuter la macro",
+    "Makro auswählen": "Sélectionner la macro",
+    "Makro automatisch ausführen wenn Ereignis eintritt:": "Exécuter la macro automatiquement lorsqu'un événement se produit :",
+    "Makro löschen": "Supprimer la macro",
+    "Makro neu": "Nouvelle macro",
+    "Makro speichern": "Enregistrer la macro",
+    "Makro-Editor": "Éditeur de macros",
+    "Makroliste": "Liste des macros",
+
+    # ---- Geplante Makros / Macros planifiées ----
+    "Geplante Makros": "Macros planifiées",
+    "Geplante Makros Liste": "Liste des macros planifiées",
+    "Geplantes Makro entfernen": "Retirer la macro planifiée",
+    "Geplantes Makro hinzufügen": "Ajouter une macro planifiée",
+
+    # ---- Trigger / Déclencheurs ----
+    "Trigger-Ereignis": "Événement déclencheur",
+    "Trigger-Filter": "Filtre de déclencheur",
+    "Trigger-Makro": "Macro à déclencher",
+    "Trigger-Regeln": "Règles de déclenchement",
+    "Trigger-Regeln Liste": "Liste des règles de déclenchement",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
