@@ -2702,6 +2702,94 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: TTS / Voice / Braille / Accessibility (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- TTS général ----
+    "TTS": "TTS",
+    "TTS Lautstärke": "Volume TTS",
+    "TTS Sprache": "Langue TTS",
+    "TTS Status": "État TTS",
+    "TTS Stimme Filter": "Filtre de voix TTS",
+    "TTS abbrechen": "Annuler le TTS",
+    "TTS abgebrochen": "TTS annulé",
+    "TTS-Erweitert speichern": "Enregistrer TTS avancé",
+    "Sprechen (TTS)": "Parler (TTS)",
+    "Kanal TTS Geschwindigkeit": "Vitesse TTS du canal",
+    "System TTS Geschwindigkeit": "Vitesse TTS système",
+    "System TTS Stimme": "Voix TTS système",
+    "System-Stimme (leer = global):": "Voix système (vide = global) :",
+    "Stichwort TTS ansagen": "Annoncer le mot-clé via TTS",
+    "Stichwort via TTS ansagen": "Annoncer le mot-clé via TTS",
+
+    # ---- Stimmen / Voix ----
+    "Stimme auswählen...": "Sélectionner la voix...",
+    "Stimme stummschalten": "Couper la voix",
+    "Stimme weiterleiten": "Transmettre la voix",
+    "Stimmen und Modelle aktualisieren": "Actualiser les voix et modèles",
+    "Lautstärke Stimme...": "Volume de la voix...",
+
+    # ---- Sprachsteuerung / Commande vocale ----
+    "Sprachaktivierung Nachlauf": "Délai d'activation vocale",
+    "Sprachaktivierung umschalten": "Basculer l'activation vocale",
+    "Sprachsteuerung (Whisper)": "Commande vocale (Whisper)",
+    "Sprachsteuerung Info": "Infos de la commande vocale",
+    "Sprachsteuerung aktivieren": "Activer la commande vocale",
+    "Sprachsteuerung beim Start aktivieren": "Activer la commande vocale au démarrage",
+    "Sprachsteuerung jetzt starten": "Démarrer la commande vocale maintenant",
+    "Sprachsteuerung stoppen": "Arrêter la commande vocale",
+    "Max. Sprachdauer (Sek., 0=aus)": "Durée vocale max. (sec., 0=désactivé)",
+    "Sprechgeschwindigkeit je Kontext (0 = global)": "Vitesse d'élocution par contexte (0 = global)",
+
+    # ---- Sprache / Langue ----
+    "Sprachcode": "Code de langue",
+    "Sprache wird neu geladen…": "Rechargement de la langue…",
+    "Die Sprache wird nach einem Neustart übernommen.": "La langue sera appliquée après un redémarrage.",
+    "Zielsprache": "Langue cible",
+
+    # ---- Aussprache / espeak ----
+    "Aussprache-Wörterbuch": "Dictionnaire de prononciation",
+    "Aussprache-Wörterbuch (Suche → Ersatz, eine Zeile je Regel: Wort=Ersatz)": "Dictionnaire de prononciation (recherche → remplacement, une règle par ligne : mot=remplacement)",
+    "espeak-ng Pfad": "Chemin espeak-ng",
+
+    # ---- ElevenLabs ----
+    "ElevenLabs": "ElevenLabs",
+    "ElevenLabs API-Schlüssel": "Clé API ElevenLabs",
+    "ElevenLabs Info": "Infos ElevenLabs",
+    "ElevenLabs TTS": "ElevenLabs TTS",
+    "ElevenLabs Text-to-Speech": "ElevenLabs synthèse vocale",
+
+    # ---- Handbuch / À propos ----
+    "TeamTalk VoiceOver Client – Handbuch": "TeamTalk VoiceOver Client – Manuel",
+    "Über TeamTalk VoiceOver Client": "À propos de TeamTalk VoiceOver Client",
+
+    # ---- Braille / Plage braille ----
+    "Braille-Status ansagen": "Annoncer l'état braille",
+    "Braille-Status: Kanal": "État braille : canal",
+    "Braille-Status: Nutzeranzahl": "État braille : nombre d'utilisateurs",
+    "Braille-Status: Ping": "État braille : ping",
+    "Braille-Status: Stummschaltstatus": "État braille : état muet",
+    "Braille-Verbosität wechseln": "Changer la verbosité braille",
+    "Braille-Verbositätsstufe": "Niveau de verbosité braille",
+    "Braille: ausführlich": "Braille : détaillé",
+    "Braille: kompakt": "Braille : compact",
+    "Braille: normal": "Braille : normal",
+    "Braillezeilen-Ausgabe": "Sortie braille",
+    "Braillezeilen-Kompaktmodus": "Mode compact braille",
+    "Braillezeilen-Kompaktmodus (kürzere Labels)": "Mode compact braille (étiquettes plus courtes)",
+
+    # ---- Accessibility annotations / Annonces ----
+    "Barrierefreiheitshinweis": "Note d'accessibilité",
+    "Eigene vorlesen": "Lire les miens",
+    "Private vorlesen": "Lire les privés",
+    "Eingangspegel ansagen": "Annoncer le niveau d'entrée",
+    "Kanal-Thema ansagen": "Annoncer le sujet du canal",
+    "Ping ansagen": "Annoncer le ping",
+    "Liste": "Liste",
+
+    # ---- Divers technique ----
+    "Variable Bitrate (VBR)": "Débit variable (VBR)",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
