@@ -2702,6 +2702,56 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Video / Desktop / Hotkeys / Sound-Profile (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Desktop / Bureau ----
+    "Desktop": "Bureau",
+    "Desktop FPS": "FPS du bureau",
+    "Desktop Info": "Infos du bureau",
+    "Desktop Linksklick": "Clic gauche du bureau",
+    "Desktop Mittelklick": "Clic milieu du bureau",
+    "Desktop Rechtsklick": "Clic droit du bureau",
+    "Desktop Skalierung": "Mise à l'échelle du bureau",
+    "Desktop Status": "État du bureau",
+    "Desktop einmal senden": "Envoyer le bureau une fois",
+    "Desktop freigabe beenden": "Arrêter le partage du bureau",
+    "Desktop freigeben": "Partager le bureau",
+    "Desktop-Steuerung (Remote)": "Contrôle du bureau (à distance)",
+    "Desktop-Zugriff erlauben": "Autoriser l'accès au bureau",
+    "Desktopfreigabe": "Partage de bureau",
+    "Desktopfreigabe senden und Status anzeigen.": "Envoyer le partage de bureau et afficher l'état.",
+
+    # ---- Video / Vidéo ----
+    "Video & Desktop": "Vidéo et bureau",
+    "Video anwenden": "Appliquer la vidéo",
+    "Video senden umschalten": "Basculer la transmission vidéo",
+    "Video-Bitrate": "Débit vidéo",
+    "Video-Format": "Format vidéo",
+    "Video-Gerät": "Périphérique vidéo",
+    "Video-Qualität": "Qualité vidéo",
+
+    # ---- Hotkeys / Raccourcis ----
+    "App-Hotkeys (nur innerhalb der App)": "Raccourcis app (uniquement dans l'app)",
+    "Globale Hotkeys (systemweit)": "Raccourcis globaux (tout le système)",
+    "Hinweis: Der Hotkey funktioniert nur innerhalb der App.": "Note : le raccourci ne fonctionne qu'à l'intérieur de l'app.",
+    "Hotkey gespeichert": "Raccourci enregistré",
+    "PTT-Hotkey Anzeige": "Affichage du raccourci PTT",
+    "PTT-Hotkey aufnehmen": "Capturer le raccourci PTT",
+    "PTT-Hotkey: ": "Raccourci PTT : ",
+    "Status-Ansage Felder (Hotkey: Braille-Status):": "Champs d'annonce du statut (raccourci : État braille) :",
+    "Tastenkürzel-Referenz": "Référence des raccourcis",
+
+    # ---- Sound-Profile / Profils sonores ----
+    "Aktives Sound-Profil": "Profil sonore actif",
+    "Als Sound-Profil speichern": "Enregistrer comme profil sonore",
+    "Sound-Ereignisse": "Événements sonores",
+    "Sound-Ereignisse speichern": "Enregistrer les événements sonores",
+    "Sound-Lautstärke": "Volume des sons",
+    "Sound-Profil löschen": "Supprimer le profil sonore",
+    "Sound-Profil wechseln": "Changer de profil sonore",
+    "Sound-Profile": "Profils sonores",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
