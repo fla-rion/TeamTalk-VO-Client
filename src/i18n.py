@@ -2702,6 +2702,131 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Chat / Nachrichten / Benutzer / Status (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Chat / Automation ----
+    "Chat & Automation": "Chat et automation",
+    "Chat & Automation speichern": "Enregistrer chat et automation",
+    "Chat  Automation speichern": "Enregistrer chat et automation",
+    "Chat / Privat (Wörter/Min):": "Chat / privé (mots/min) :",
+    "Chat TTS Geschwindigkeit": "Vitesse TTS du chat",
+    "Chat TTS Stimme": "Voix TTS du chat",
+    "Chat-Filter": "Filtres de chat",
+    "Chat-Stimme (leer = global):": "Voix du chat (vide = global) :",
+    "Chat-Übersetzung aktiviert": "Traduction du chat activée",
+    "Chat-Übersetzung deaktiviert": "Traduction du chat désactivée",
+    "Zeitstempel im Chat anzeigen": "Afficher l'horodatage dans le chat",
+
+    # ---- Chat-Verlauf / Historique ----
+    "Chat-Verlauf Format": "Format de l'historique du chat",
+    "Chat-Verlauf exportiert: {path}": "Historique du chat exporté : {path}",
+    "Chat-Verlauf speichern": "Enregistrer l'historique du chat",
+    "Chat-Verlauf speichern (pro Server)": "Enregistrer l'historique du chat (par serveur)",
+    "Verlauf": "Historique",
+    "Kanal aus Verlauf beitreten": "Rejoindre le canal depuis l'historique",
+    "Kanalverlauf Liste": "Liste de l'historique du canal",
+
+    # ---- Nachrichten ----
+    "Chat-Nachricht": "Message de chat",
+    "Nachricht": "Message",
+    "Nachricht:": "Message :",
+    "Nachricht senden": "Envoyer le message",
+    "Nachricht an alle verbundenen Nutzer senden:": "Envoyer un message à tous les utilisateurs connectés :",
+    "Privatnachricht": "Message privé",
+    "Privatnachricht an ausgewählten Benutzer": "Message privé à l'utilisateur sélectionné",
+    "Privatantwort": "Réponse privée",
+    "Privatantwort bereit": "Réponse privée prête",
+    "Rundnachricht": "Message diffusé",
+    "Servernachricht senden": "Envoyer un message serveur",
+    "Status Nachricht": "Message de statut",
+    "Willkommensnachricht (MOTD)": "Message de bienvenue (MOTD)",
+    "Gespeicherte Nachrichten Liste": "Liste des messages enregistrés",
+    "Keine gespeicherten Nachrichten.": "Aucun message enregistré.",
+    "{n} Nachricht": "{n} message",
+    "{n} Nachrichten": "{n} messages",
+
+    # ---- KI-Antworten / AI replies ----
+    "Antwort verwenden": "Utiliser la réponse",
+    "Auto-Antwort Nachricht": "Message de réponse automatique",
+    "Auto-Antwort aktivieren": "Activer la réponse automatique",
+    "Auto-Antwort auf Privatnachrichten": "Réponse automatique aux messages privés",
+    "KI-Antwortvorschläge": "Suggestions de réponse IA",
+    "KI-Antwortvorschläge werden generiert…": "Génération des suggestions de réponse IA…",
+    "Keine Antwortvorschläge generiert": "Aucune suggestion de réponse générée",
+    "Keine Privatnachricht zum Beantworten": "Aucun message privé auquel répondre",
+
+    # ---- Protokolle / Journaux ----
+    "Ereignisprotokoll": "Journal des événements",
+    "Ereignisprotokoll anzeigen": "Afficher le journal des événements",
+    "Wer-spricht-Protokoll": "Journal des intervenants",
+    "Hinweis: Toolbar und Protokoll sind standardmäßig versteckt\n(empfohlen für Screenreader/VoiceOver/NVDA).": "Note : la barre d'outils et le journal sont masqués par défaut\n(recommandé pour les lecteurs d'écran/VoiceOver/NVDA).",
+
+    # ---- Abwesenheit / Away ----
+    "Abwesenheits-Timer": "Minuteur d'absence",
+    "Abwesenheits-Timer (Min., 0=aus)": "Minuteur d'absence (min., 0=désactivé)",
+    "Abwesenheits-Timer (Minuten)": "Minuteur d'absence (minutes)",
+
+    # ---- BearWare ----
+    "BearWare Benutzername": "Nom d'utilisateur BearWare",
+    "BearWare-Benutzername": "Nom d'utilisateur BearWare",
+    "BearWare Passwort": "Mot de passe BearWare",
+    "BearWare Web-Login": "Connexion Web BearWare",
+    "BearWare Web-Login verwenden": "Utiliser la connexion Web BearWare",
+    "BearWare-Token": "Jeton BearWare",
+
+    # ---- Benutzer / Utilisateurs ----
+    "Benutzer beigetreten": "Arrivée d'utilisateur",
+    "Benutzer verlassen": "Départ d'utilisateur",
+    "Benutzer suchen": "Rechercher des utilisateurs",
+    "Benutzerinfo": "Infos utilisateur",
+    "Benutzername Suchfeld": "Champ de recherche du nom d'utilisateur",
+    "Suche nach Benutzername:": "Recherche par nom d'utilisateur :",
+    "Nickname, Benutzername, Kanal": "Pseudo, Nom d'utilisateur, Canal",
+    "IP, Benutzername, Zeitpunkt": "IP, Nom d'utilisateur, Date",
+    "Feste Lautstärke für alle Nutzer": "Volume fixe pour tous les utilisateurs",
+    "Max. Benutzer (0=Server)": "Utilisateurs max. (0=serveur)",
+    "Nutzer stumm": "Utilisateurs muets",
+    "Nutzeranzahl im Kanal": "Nombre d'utilisateurs dans le canal",
+    "Nutzeranzahl und Ping in Titelleiste anzeigen": "Afficher le nombre d'utilisateurs et le ping dans la barre de titre",
+    "Nutzerinfo ansagen": "Annoncer les infos utilisateur",
+    "Nutzerinfo nicht verfügbar": "Infos utilisateur indisponibles",
+    "Gespeicherte Nutzer-Notizen": "Notes utilisateur enregistrées",
+    "Nutzer-Notiz löschen": "Supprimer la note utilisateur",
+    "Nutzer-Notizen Liste": "Liste des notes utilisateur",
+    "{n} Benutzer": "{n} utilisateur",
+    "{n} Benutzer (Plural)": "{n} utilisateurs",
+
+    # ---- Online-Benutzer ----
+    "Online-Benutzer": "Utilisateurs en ligne",
+    "Online-Benutzer Anzahl": "Nombre d'utilisateurs en ligne",
+    "Online-Benutzer Kopfzeile": "En-tête des utilisateurs en ligne",
+    "Online-Benutzer Liste": "Liste des utilisateurs en ligne",
+    "Online-Benutzer aktualisieren": "Actualiser les utilisateurs en ligne",
+    "Online-Benutzer schließen": "Fermer les utilisateurs en ligne",
+
+    # ---- Kick / Ban ----
+    "Kicken": "Expulser",
+    "Rauswerfen": "Expulser",
+    "Aus Kanal kicken": "Expulser du canal",
+    "Vom Server kicken": "Expulser du serveur",
+    "Vom Server rauswerfen": "Expulser du serveur",
+    "Kicken + Bannen": "Expulser et bannir",
+    "Rauswerfen + Sperren": "Expulser et bannir",
+    "Auf Server sperren": "Bannir sur le serveur",
+    "IP-Adresse bannen...": "Bannir l'adresse IP...",
+
+    # ---- Status (présence utilisateur) ----
+    "Status": "Statut",
+    "Status:": "Statut :",
+    "Status Auswahl": "Sélection du statut",
+    "Status setzen": "Définir le statut",
+    "Status-Vorlage 1": "Modèle de statut 1",
+    "Status-Vorlage 2": "Modèle de statut 2",
+    "Status-Vorlage 3": "Modèle de statut 3",
+    "Status-Vorlagen": "Modèles de statut",
+    "Status-Vorlagen (eine Vorlage je Zeile, max. 3 per Hotkey)": "Modèles de statut (un modèle par ligne, max. 3 par raccourci)",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
