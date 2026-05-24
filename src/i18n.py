@@ -2702,6 +2702,77 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Server / Verbindung / Ports / Statistiken (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Server / Gestion ----
+    "Server hinzufügen": "Ajouter un serveur",
+    "Server bearbeiten": "Modifier le serveur",
+    "Server verbinden": "Se connecter au serveur",
+    "Server trennen": "Se déconnecter du serveur",
+    "Server-URL": "URL du serveur",
+    "Server:": "Serveur :",
+    "Serverdetails": "Détails du serveur",
+    "Serverfilter": "Filtre de serveurs",
+    "Serverliste": "Liste des serveurs",
+    "Serverliste wird abgerufen…": "Récupération de la liste des serveurs…",
+    "Server-Switcher": "Sélecteur de serveurs",
+    "Server in Gruppe": "Serveur dans le groupe",
+    "Server-Gruppe": "Groupe de serveurs",
+    "Server-Gruppen verwalten": "Gérer les groupes de serveurs",
+    "In Serverliste speichern": "Enregistrer dans la liste des serveurs",
+    "Öffentliche Server…": "Serveurs publics…",
+    "Server-Status prüfen": "Vérifier l'état du serveur",
+    "Serverstatus": "État du serveur",
+    "Serverinfo in Titelleiste": "Infos serveur dans la barre de titre",
+    "Fenstertitel zeigt Server/Kanal": "Le titre de la fenêtre affiche le serveur/canal",
+    "Ausgaben und Servermeldungen": "Sorties et messages du serveur",
+
+    # ---- Server-Statistiken ----
+    "Serverstatistiken": "Statistiques du serveur",
+    "Serverstatistiken Liste": "Liste des statistiques du serveur",
+    "Serverstatistiken aktualisieren": "Actualiser les statistiques du serveur",
+    "Serverstatistiken schließen": "Fermer les statistiques du serveur",
+    "Geprüfte Server: {total}  |  Online-Server: {online_servers}  |  Leere Server: {empty}  |  Fehler: {errors}  |  Nutzer online: {online_users}": "Serveurs vérifiés : {total}  |  Serveurs en ligne : {online_servers}  |  Serveurs vides : {empty}  |  Erreurs : {errors}  |  Utilisateurs en ligne : {online_users}",
+
+    # ---- QR-Code / .tt-Datei ----
+    ".tt exportieren": "Exporter .tt",
+    ".tt importieren": "Importer .tt",
+    "Server QR-Code": "QR code du serveur",
+    "Server als QR-Code anzeigen": "Afficher le serveur en QR code",
+    "Server als TT-Datei exportieren": "Exporter le serveur en fichier TT",
+    "Server aus TT-Datei importieren": "Importer le serveur depuis un fichier TT",
+
+    # ---- Passwörter / Mots de passe ----
+    "Operator-Passwort": "Mot de passe opérateur",
+    "Passwort setzen": "Définir le mot de passe",
+    "Hinweis: Einige Optionen erfordern Serverrechte (Kanaleigenschaften).": "Note : certaines options nécessitent des droits serveur (propriétés du canal).",
+
+    # ---- Verbindung / Connexion ----
+    "Verbindung speichern": "Enregistrer la connexion",
+    "Automatische Wiederverbindung": "Reconnexion automatique",
+    "Verbindungsstatistik": "Statistique de connexion",
+    "Verbindungsstatistiken": "Statistiques de connexion",
+    "Verbindungsstatistiken Liste": "Liste des statistiques de connexion",
+    "Verbindungsstatistiken aktualisieren": "Actualiser les statistiques de connexion",
+    "Verbindungsstatistiken schließen": "Fermer les statistiques de connexion",
+    "Verbindungsqualität ansagen": "Annoncer la qualité de la connexion",
+    "Schlechte Verbindungsqualität ansagen": "Annoncer une mauvaise qualité de connexion",
+    "Verbindungsqualität Schwellenwert ms": "Seuil de qualité de la connexion (ms)",
+    "Braille-Status: Verbindungsstatus": "État braille : état de la connexion",
+
+    # ---- Ports ----
+    "Port:": "Port :",
+    "Port-Bindung": "Liaison du port",
+    "TCP-Port (0=auto)": "Port TCP (0=auto)",
+    "TCP-Port Bindung": "Liaison du port TCP",
+    "UDP-Port (0=auto)": "Port UDP (0=auto)",
+    "UDP-Port Bindung": "Liaison du port UDP",
+    "HTTP-API Port": "Port de l'API HTTP",
+
+    # ---- Kick + Ban (Server, variante manquante) ----
+    "Vom Server + Sperren": "Expulser du serveur + bannir",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
