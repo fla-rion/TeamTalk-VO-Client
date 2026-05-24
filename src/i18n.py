@@ -2702,6 +2702,123 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: AI services / Audio Output / PTT / Streaming (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- AI / KI général ----
+    "KI & Integration": "IA et intégration",
+    "KI & Integration speichern": "Enregistrer IA et intégration",
+    "KI-Anbieter": "Fournisseur IA",
+    "KI-Zusammenfassung": "Résumé IA",
+    "API-Dokumentation": "Documentation API",
+    "API-Schlüssel": "Clé API",
+    "Abonnements verwalten": "Gérer les abonnements",
+    "Endpunkte": "Points de terminaison",
+
+    # ---- Claude ----
+    "Claude API-Schlüssel": "Clé API Claude",
+    "Claude Info": "Infos Claude",
+    "Claude KI (Anthropic)": "Claude IA (Anthropic)",
+
+    # ---- Gemini / Google ----
+    "Gemini API-Schlüssel": "Clé API Gemini",
+    "Gemini Auth-Status": "État d'authentification Gemini",
+    "Gemini Info": "Infos Gemini",
+    "Google Abmelden": "Se déconnecter de Google",
+    "Google Gemini KI": "Google Gemini IA",
+    "Via Google anmelden": "Se connecter via Google",
+
+    # ---- HTTP-API / Webhook / SSE ----
+    "HTTP-API": "API HTTP",
+    "HTTP-API aktivieren": "Activer l'API HTTP",
+    "SSE-Events aktiviert": "Événements SSE activés",
+    "Webhook": "Webhook",
+    "Webhook Ereignisse": "Événements webhook",
+    "Webhook-Ereignisse": "Événements webhook",
+    "Webhook URL": "URL du webhook",
+    "Webhook-URL": "URL du webhook",
+    "Webhook-URL:": "URL du webhook :",
+
+    # ---- Audio Output / Sortie ----
+    "Ausgabe:": "Sortie :",
+    "Ausgabe aktiv": "Sortie active",
+    "Ausgabe stummgeschaltet": "Sortie coupée",
+    "Ausgabelautstärke": "Volume de sortie",
+    "Ausgabe-Lautstärke (%):": "Volume de sortie (%) :",
+    "Ausgabe-Lautstärke (0–32000)": "Volume de sortie (0–32000)",
+    "Ausgabe-Lautstärke Prozent": "Volume de sortie en pourcentage",
+
+    # ---- Eingangspegel / Niveau d'entrée ----
+    "Eingangspegel": "Niveau d'entrée",
+    "Pegel:": "Niveau :",
+    "Pegel nicht verfügbar": "Niveau indisponible",
+    "Aktivierungspegel (0–100)": "Niveau d'activation (0–100)",
+
+    # ---- Volume / Lautstärke divers ----
+    "Lautstärke anpassen": "Ajuster le volume",
+    "Lautstärke Mediendatei...": "Volume du fichier média...",
+    "Laut": "Fort",
+    "Lauter": "Plus fort",
+    "Leise": "Faible",
+    "Leiser": "Plus faible",
+
+    # ---- PTT / Push-to-Talk ----
+    "PTT": "PTT",
+    "PTT (Sprechtaste)": "PTT (touche parole)",
+    "PTT aktiv": "PTT actif",
+    "PTT deaktiviert": "PTT désactivé",
+    "PTT-Zeitlimit": "Limite de temps PTT",
+    "PTT-Zeitlimit (Sekunden, 0=aus):": "Limite de temps PTT (secondes, 0=désactivée) :",
+    "PTT-Zeitlimit Sekunden": "Limite de temps PTT en secondes",
+    "Push-to-Talk (Leertaste halten)": "Push-to-talk (maintenir Espace)",
+
+    # ---- Stummschaltung / Mode muet ----
+    "Stumm": "Muet",
+    "Stummgeschaltet": "Muet",
+    "Stummschaltstatus": "État muet",
+    "Stummschaltung aufgehoben": "Audio rétabli",
+    "Alle stummschalten": "Tout couper",
+    "Alles stummschalten/reaktivieren": "Tout couper/réactiver",
+    "Medienstrom stummschalten": "Couper le flux média",
+    "Medienstrom weiterleiten": "Transmettre le flux média",
+
+    # ---- Stille / Silence ----
+    "Stille": "Silence",
+    "Stille ignorieren (DTX)": "Ignorer le silence (DTX)",
+    "Silence ignorieren (DTX)": "Ignorer le silence (DTX)",
+    "Stille-Erkennung aktivieren": "Activer la détection de silence",
+    "Stille-Schwellenwert (%):": "Seuil de silence (%) :",
+    "Stille-Schwellenwert Prozent": "Seuil de silence en pourcentage",
+    "Stille-Timeout (Sekunden):": "Délai de silence (secondes) :",
+    "Stille-Timeout Sekunden": "Délai de silence en secondes",
+
+    # ---- Codec / Réglages ----
+    "OPUS Einstellungen": "Réglages OPUS",
+    "Speex Einstellungen": "Réglages Speex",
+    "Noise Gate / Rauschunterdrückung": "Noise gate / réduction de bruit",
+    "Noise Gate Schwellenwert": "Seuil du noise gate",
+    "Rauschunterdrückung aktivieren": "Activer la réduction de bruit",
+    "Bitrate (kbps)": "Débit (kbps)",
+    "Max. Bitrate (bps, 0=aus)": "Débit max. (bps, 0=désactivé)",
+    "Samplerate (Hz)": "Fréquence d'échantillonnage (Hz)",
+    "Framegröße (ms)": "Taille de trame (ms)",
+    "Qualität (0–10)": "Qualité (0–10)",
+    "Duplex-Modus verwenden (Eingabe/Ausgabe gekoppelt)": "Utiliser le mode duplex (entrée/sortie couplées)",
+    "Nachlauf (ms, 0–5000)": "Délai de relâchement (ms, 0–5000)",
+
+    # ---- Streaming / Diffusion ----
+    "Stream-Typ:": "Type de flux :",
+    "Streaming-Lautstärke (25–400)": "Volume de diffusion (25–400)",
+    "Max. Mediendauer (Sek., 0=aus)": "Durée max. du média (sec., 0=désactivé)",
+    "Einmal senden": "Envoyer une fois",
+
+    # ---- Misc audio ----
+    "Sprechen aktiv": "Parole active",
+    "Musik": "Musique",
+    "FPS": "FPS",
+    "Intervall (ms)": "Intervalle (ms)",
+    "System-Meldungen (Wörter/Min):": "Messages système (mots/min) :",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
