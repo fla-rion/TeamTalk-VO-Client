@@ -2702,6 +2702,131 @@ _TRANSLATIONS_FR.update({
     "Standard": "Par défaut",
 })
 
+# FR-Ergänzungen: Channels-extra / Settings / Backup / About / Tray (PR @math65)
+_TRANSLATIONS_FR.update({
+    # ---- Kanäle / Canaux (compléments) ----
+    "Aktuellen Kanal hinzufügen": "Ajouter le canal actuel",
+    "Auto-Kanal Kanalname": "Auto-canal : nom du canal",
+    "Auto-Kanal beim Verbinden": "Auto-canal à la connexion",
+    "Beigetreten": "Rejoint",
+    "Beitrittscode eingeben": "Saisir le code d'accès",
+    "Kanal beigetreten": "Canal rejoint",
+    "Kanal beitreten...": "Rejoindre le canal...",
+    "Kanal suchen": "Rechercher un canal",
+    "Kanal wechseln": "Changer de canal",
+    "Kanal-Thema (Wörter/Min):": "Sujet du canal (mots/min) :",
+    "Kanalname im Fenstertitel": "Nom du canal dans le titre de la fenêtre",
+    "Kanalname:": "Nom du canal :",
+    "Kanalnamen filtern (Eingabe filtert die Liste)": "Filtrer les noms de canaux (la saisie filtre la liste)",
+    "Kanaltyp": "Type de canal",
+    "Letzten Kanal automatisch beitreten": "Rejoindre automatiquement le dernier canal",
+    "Zielkanal speichern": "Enregistrer le canal de destination",
+    "Zu Kanal bewegen": "Déplacer vers le canal",
+    "Zu gespeichertem Kanal": "Vers le canal enregistré",
+
+    # ---- Lesezeichen / Marque-pages ----
+    "Gespeicherte Lesezeichen": "Marque-pages enregistrés",
+    "Lesezeichen 1": "Marque-page 1",
+    "Lesezeichen 2": "Marque-page 2",
+    "Lesezeichen 3": "Marque-page 3",
+    "Lesezeichen entfernen": "Retirer le marque-page",
+    "Lesezeichen hinzufügen": "Ajouter un marque-page",
+    "Lesezeichen-Liste": "Liste des marque-pages",
+    "Zum Lesezeichen springen": "Aller au marque-page",
+
+    # ---- Operator / Pin / Ping ----
+    "Operator": "Opérateur",
+    "Operator entziehen": "Retirer le statut d'opérateur",
+    "Zum Operator machen": "Promouvoir opérateur",
+    "Pin entfernen": "Retirer l'épingle",
+    "Pinnen": "Épingler",
+    "Ping": "Ping",
+    "Ping nicht verfügbar": "Ping indisponible",
+    "Ping-Schwellenwert (ms):": "Seuil de ping (ms) :",
+
+    # ---- TT-Datei / TeamTalk file ----
+    "TT-Datei generieren": "Générer le fichier TT",
+    "TT-Datei speichern": "Enregistrer le fichier TT",
+    "TT-URL kopieren": "Copier l'URL TT",
+    "TeamTalk-Datei öffnen...": "Ouvrir un fichier TeamTalk...",
+
+    # ---- Settings / Réglages ----
+    "Einstellungen speichern": "Enregistrer les réglages",
+    "Einstellungen...\tF4": "Réglages...\tF4",
+    "Einstellungsbereich": "Section des réglages",
+    "Einstellungsbereich suchen": "Rechercher dans les réglages",
+    "Allgemein  Anzeige speichern": "Enregistrer général et affichage",
+    "Allgemein & Anzeige speichern": "Enregistrer général et affichage",
+    "Allgemeine Informationen": "Informations générales",
+    "Voreinstellung wählen:": "Choisir un préréglage :",
+    "Manuelle Anpassung": "Ajustement manuel",
+    "Schnellaktionen": "Actions rapides",
+    "Skalierung": "Mise à l'échelle",
+    "Verbositätsstufe": "Niveau de verbosité",
+
+    # ---- Display / Affichage / Hauptfenster ----
+    "Anwendung": "Application",
+    "Anzeigen": "Afficher",
+    "Ausblenden": "Masquer",
+    "Hauptfenster": "Fenêtre principale",
+    "Hauptinhalt": "Contenu principal",
+    "Immer im Vordergrund": "Toujours au premier plan",
+
+    # ---- Tray / Zone système ----
+    "Tray-Icon anzeigen": "Afficher l'icône système",
+    "Im Tray minimieren": "Réduire dans la zone système",
+    "Im Tray minimieren (statt schließen)": "Réduire dans la zone système (au lieu de fermer)",
+    "Toolbar / Schnellaktionen anzeigen": "Afficher la barre d'outils / actions rapides",
+    "Toolbar anzeigen": "Afficher la barre d'outils",
+    "Werkzeugleiste anzeigen": "Afficher la barre d'outils",
+
+    # ---- Updates ----
+    "Auf Updates prüfen": "Rechercher des mises à jour",
+    "Beim Start auf Updates prüfen": "Rechercher des mises à jour au démarrage",
+
+    # ---- Backup / Sauvegarde ----
+    "Backup erstellt": "Sauvegarde créée",
+    "Backup fehlgeschlagen": "Échec de la sauvegarde",
+    "Backup wiederhergestellt – App wird neu gestartet…": "Sauvegarde restaurée – l'app redémarre…",
+    "Backup wiederherstellen": "Restaurer la sauvegarde",
+    "Wiederherstellung fehlgeschlagen": "Échec de la restauration",
+    "Beides (ZIP + Kopieren)": "Les deux (ZIP + copier)",
+
+    # ---- Logs / Reports ----
+    "Logs exportieren (ZIP)": "Exporter les journaux (ZIP)",
+    "Logs kopieren": "Copier les journaux",
+    "Nutzungsbericht exportieren": "Exporter le rapport d'utilisation",
+    "Tastenkürzel-Profil exportieren": "Exporter le profil de raccourcis",
+    "Tastenkürzel-Profil importieren": "Importer le profil de raccourcis",
+
+    # ---- About / À propos / Licences ----
+    "Changelog Details": "Détails du changelog",
+    "Changelog Versionen": "Versions du changelog",
+    "Danksagungen": "Remerciements",
+    "Lizenz": "Licence",
+    "Lizenz öffnen": "Ouvrir la licence",
+    "Lizenzen": "Licences",
+    "Lizenzen Liste": "Liste des licences",
+    "Weitere Abhängigkeiten: Lizenzen der jeweiligen Projekte beachten.": "Autres dépendances : respecter les licences des projets correspondants.",
+    "Wähle eine Lizenz aus und klicke auf 'Öffnen':": "Choisis une licence puis clique sur 'Ouvrir' :",
+
+    # ---- États / Status divers ----
+    "Bereit": "Prêt",
+    "Geladen": "Chargé",
+    "Details": "Détails",
+    "Bereichsinfo": "Infos de la section",
+    "Beschreibung:": "Description :",
+    "Bezeichnung": "Libellé",
+    "Suchbegriff": "Terme de recherche",
+    "Suchergebnis Anzahl": "Nombre de résultats de recherche",
+    "Nicht gespeicherte Änderungen": "Modifications non enregistrées",
+
+    # ---- Traduction (méta) ----
+    "Nicht übersetzt": "Non traduit",
+    "Übersetzt": "Traduit",
+    "Übersetzungs-Statistik": "Statistiques de traduction",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
