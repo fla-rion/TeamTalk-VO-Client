@@ -1,6 +1,16 @@
 Changelog
 =========
 
+2026-05-30 (v8.0.2)
+Bugfix: ui_wx/a11y.py zu Re-Export gemacht (deutsche Rollenbeschreibungen blieben aktiv)
+
+- v8.0.1 hat src/ui/a11y.py gepatcht, aber app_wx.py importiert aus src/ui_wx/a11y.py.
+  Die zwei Dateien hatten sich still voneinander entfernt — der Fix in v8.0.1 traf
+  die Datei, die auf macOS nicht geladen wird. Gemeldet von @math65 (PR #28).
+- Lösung: ui_wx/a11y.py ist jetzt ein dünner Re-Export von ui/a11y.py. Künftige
+  Fixes müssen nur noch an einem Ort gepflegt werden.
+- setup_list_accessible(): letztes setAccessibilityRoleDescription_("Liste") entfernt.
+
 2026-05-29 (v8.0.1)
 i18n-Bugfix: VoiceOver spricht jetzt die korrekte Systemsprache (FR/ES/EN)
 

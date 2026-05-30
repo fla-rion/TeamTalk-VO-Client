@@ -35,7 +35,6 @@ def setup_list_accessible(lb: wx.ListBox) -> None:
                 return
 
             tableview.setAccessibilityRole_(NSAccessibilityListRole)
-            tableview.setAccessibilityRoleDescription_("Liste")
         except Exception:
             pass
 
