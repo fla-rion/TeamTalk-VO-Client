@@ -68,11 +68,13 @@ def patch_list_row_accessibility() -> None:
             pass
 
         # 2. NSTableRow: Elementtext vorlesen, "Zeile N" unterdrücken
+        # Formales NSAccessibility-Protokoll (accessibilityChildren / accessibilityValue)
+        # statt dem seit macOS 10.10 veralteten accessibilityAttributeValue_-API.
         def _cell_text(row):
             try:
-                children = row.accessibilityAttributeValue_("AXChildren")
+                children = row.accessibilityChildren()
                 if children:
-                    val = children[0].accessibilityAttributeValue_("AXValue")
+                    val = children[0].accessibilityValue()
                     if val:
                         return str(val)
             except Exception:
@@ -80,7 +82,6 @@ def patch_list_row_accessibility() -> None:
             return ""
 
         _cls_row = objc.lookUpClass("NSTableRow")
-        _orig_attr_value = _cls_row.instanceMethodForSelector_(b"accessibilityAttributeValue:")
 
         class NSTableRow(objc.Category(_cls_row)):
             def accessibilityLabel(self):
@@ -91,16 +92,6 @@ def patch_list_row_accessibility() -> None:
 
             def accessibilityRoleDescription(self):
                 return ""
-
-            @objc.typedSelector(b"@@:@")
-            def accessibilityAttributeValue_(self, attr):
-                if attr in ("AXTitle", "AXLabel", "AXDescription", "AXValue"):
-                    txt = _cell_text(self)
-                    if txt:
-                        return txt
-                if attr == "AXRoleDescription":
-                    return ""
-                return _orig_attr_value(self, attr)
 
     except Exception:
         pass

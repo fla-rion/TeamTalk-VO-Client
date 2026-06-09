@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-06-09 (v8.0.3)
+Kompatibilität: macOS 27 (Golden Gate) – Legacy-Accessibility-API entfernt
+
+- src/ui/a11y.py: _cell_text() in patch_list_row_accessibility() nutzt jetzt das
+  formale NSAccessibility-Protokoll (accessibilityChildren() / accessibilityValue())
+  statt der seit macOS 10.10 veralteten accessibilityAttributeValue_-Methode.
+  Apple drängt die informale AX-API in macOS 27 weiter zurück; der neue Code ist
+  robuster und zukunftssicher.
+- NSTableRow-Kategorie: accessibilityAttributeValue_-Override entfernt (war redundant,
+  da accessibilityLabel und accessibilityValue über das formale Protokoll bereits
+  korrekt gepatcht sind).
+- Alle übrigen Accessibility-Patches (accessibilityRole, accessibilityLabel etc.)
+  via objc.Category bleiben unverändert und sind mit macOS 27 kompatibel.
+
 2026-05-30 (v8.0.2)
 Bugfix: ui_wx/a11y.py zu Re-Export gemacht (deutsche Rollenbeschreibungen blieben aktiv)
 
