@@ -67,25 +67,75 @@ def patch_list_row_accessibility() -> None:
         except Exception:
             pass
 
-        # 2. NSTableRow: Elementtext vorlesen, "Zeile N" unterdrücken
-        # Strategie: erst formales AX-Protokoll, dann Subview-Fallback.
-        # Hintergrund: accessibilityChildren() kann auf macOS 27 leer zurückkommen,
-        # wenn die interne View-Hierarchie des NSTableRow geändert wurde.
+        # 2. NSTableRow / NSTableRowView: Elementtext vorlesen, "Zeile N" unterdrücken
+        # Vier Strategien, um den Zelltext zu lesen – von direkt bis Fallback:
+        #   1. Datenquelle des Table-View (tableView_objectValueForTableColumn_row_)
+        #   2. preparedCellAtColumn_row_ + stringValue
+        #   3. Formales NSAccessibility-Protokoll (accessibilityChildren)
+        #   4. Legacy accessibilityAttributeValue_ + subviews-stringValue
         def _cell_text(row):
-            # 1. Versuch: formales NSAccessibility-Protokoll
+            # Strategie 1+2: Datenquelle / preparedCell (unabhängig vom AX-System)
+            try:
+                table = row.accessibilityParent()
+                if table is None:
+                    table = row.superview()
+                if table is not None:
+                    idx = int(row.accessibilityIndexInParent())
+                    cols = table.tableColumns()
+                    if cols and idx >= 0:
+                        # 1a: Datenquelle direkt
+                        try:
+                            ds = table.dataSource()
+                            if ds is not None:
+                                val = ds.tableView_objectValueForTableColumn_row_(
+                                    table, cols[0], idx)
+                                if val:
+                                    return str(val)
+                        except Exception:
+                            pass
+                        # 1b: preparedCell
+                        try:
+                            cell = table.preparedCellAtColumn_row_(0, idx)
+                            if cell is not None and hasattr(cell, "stringValue"):
+                                val = cell.stringValue()
+                                if val:
+                                    return str(val)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+            # Strategie 3: Formales NSAccessibility-Protokoll
             try:
                 children = row.accessibilityChildren()
                 if children:
                     for child in children:
+                        for getter in ("accessibilityValue", "accessibilityLabel",
+                                       "accessibilityTitle"):
+                            try:
+                                val = getattr(child, getter)()
+                                if val:
+                                    return str(val)
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+
+            # Strategie 4a: Legacy accessibilityAttributeValue_
+            try:
+                children = row.accessibilityAttributeValue_("AXChildren")
+                if children:
+                    for attr in ("AXValue", "AXTitle", "AXLabel"):
                         try:
-                            val = child.accessibilityValue()
+                            val = children[0].accessibilityAttributeValue_(attr)
                             if val:
                                 return str(val)
                         except Exception:
                             pass
             except Exception:
                 pass
-            # 2. Fallback: Subview-Hierarchie nach stringValue durchsuchen
+
+            # Strategie 4b: Subview stringValue
             try:
                 for sv in row.subviews():
                     if hasattr(sv, "stringValue"):
@@ -102,22 +152,46 @@ def patch_list_row_accessibility() -> None:
                         pass
             except Exception:
                 pass
+
             return ""
 
-        _cls_row = objc.lookUpClass("NSTableRow")
+        # NSTableRow (cell-basierte Tabelle) patchen
+        try:
+            _cls_row = objc.lookUpClass("NSTableRow")
 
-        class NSTableRow(objc.Category(_cls_row)):
-            def accessibilityLabel(self):
-                return _cell_text(self)
+            class NSTableRow(objc.Category(_cls_row)):
+                def accessibilityLabel(self):
+                    return _cell_text(self)
 
-            def accessibilityTitle(self):
-                return _cell_text(self)
+                def accessibilityTitle(self):
+                    return _cell_text(self)
 
-            def accessibilityValue(self):
-                return _cell_text(self)
+                def accessibilityValue(self):
+                    return _cell_text(self)
 
-            def accessibilityRoleDescription(self):
-                return ""
+                def accessibilityRoleDescription(self):
+                    return ""
+        except Exception:
+            pass
+
+        # NSTableRowView (view-basierte Tabelle, macOS 10.7+) patchen
+        try:
+            _cls_rvw = objc.lookUpClass("NSTableRowView")
+
+            class NSTableRowView(objc.Category(_cls_rvw)):
+                def accessibilityLabel(self):
+                    return _cell_text(self)
+
+                def accessibilityTitle(self):
+                    return _cell_text(self)
+
+                def accessibilityValue(self):
+                    return _cell_text(self)
+
+                def accessibilityRoleDescription(self):
+                    return ""
+        except Exception:
+            pass
 
     except Exception:
         pass

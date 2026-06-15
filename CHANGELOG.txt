@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-06-16 (v8.0.5)
+Bugfix: VoiceOver liest Serverliste unter macOS 27 korrekt vor (zweiter Anlauf)
+
+- src/ui/a11y.py: _cell_text() komplett überarbeitet – vier Strategien in Reihenfolge:
+  1. Datenquelle direkt befragen (tableView_objectValueForTableColumn_row_) – unabhängig
+     vom AX-System, holt den Text genau so wie er im wx.ListBox-Modell steht.
+  2. preparedCellAtColumn_row_ + stringValue – direkt aus der Zelle.
+  3. Formales NSAccessibility-Protokoll (accessibilityChildren + Value/Label/Title).
+  4. Legacy accessibilityAttributeValue_ + Subview-stringValue als letzte Fallbacks.
+- NSTableRowView (view-basierte Tabelle, macOS 10.7+) wird jetzt zusätzlich zu
+  NSTableRow gepatcht – wxPython verwendet auf aktuellem macOS view-basierte Tabellen,
+  weshalb die bisherigen Patches den falschen Typ angesprochen haben.
+
 2026-06-16 (v8.0.4)
 Bugfix: VoiceOver liest Serverliste unter macOS 27 (Golden Gate) wieder korrekt vor
 
