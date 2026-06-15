@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-06-16 (v8.0.4)
+Bugfix: VoiceOver liest Serverliste unter macOS 27 (Golden Gate) wieder korrekt vor
+
+- src/ui/a11y.py: _cell_text() in patch_list_row_accessibility() nutzt jetzt eine
+  zweistufige Strategie: zuerst formales NSAccessibility-Protokoll
+  (accessibilityChildren() / accessibilityValue()), dann Fallback über die
+  Subview-Hierarchie (stringValue). In macOS 27 kann accessibilityChildren()
+  auf einem NSTableRow leer zurückkommen, wenn Apple die interne View-Hierarchie
+  des NSTableView umstrukturiert hat; der Fallback stellt die Lesbarkeit sicher.
+- NSTableRow-Kategorie: accessibilityTitle() ergänzt – macOS 27 kann für
+  Listeneinträge dieses Attribut gegenüber accessibilityLabel() bevorzugen.
+
 2026-06-09 (v8.0.3)
 Kompatibilität: macOS 27 (Golden Gate) – Legacy-Accessibility-API entfernt
 

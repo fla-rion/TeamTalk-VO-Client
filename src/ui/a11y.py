@@ -68,15 +68,38 @@ def patch_list_row_accessibility() -> None:
             pass
 
         # 2. NSTableRow: Elementtext vorlesen, "Zeile N" unterdrücken
-        # Formales NSAccessibility-Protokoll (accessibilityChildren / accessibilityValue)
-        # statt dem seit macOS 10.10 veralteten accessibilityAttributeValue_-API.
+        # Strategie: erst formales AX-Protokoll, dann Subview-Fallback.
+        # Hintergrund: accessibilityChildren() kann auf macOS 27 leer zurückkommen,
+        # wenn die interne View-Hierarchie des NSTableRow geändert wurde.
         def _cell_text(row):
+            # 1. Versuch: formales NSAccessibility-Protokoll
             try:
                 children = row.accessibilityChildren()
                 if children:
-                    val = children[0].accessibilityValue()
-                    if val:
-                        return str(val)
+                    for child in children:
+                        try:
+                            val = child.accessibilityValue()
+                            if val:
+                                return str(val)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+            # 2. Fallback: Subview-Hierarchie nach stringValue durchsuchen
+            try:
+                for sv in row.subviews():
+                    if hasattr(sv, "stringValue"):
+                        val = sv.stringValue()
+                        if val:
+                            return str(val)
+                    try:
+                        for child in sv.subviews():
+                            if hasattr(child, "stringValue"):
+                                val = child.stringValue()
+                                if val:
+                                    return str(val)
+                    except Exception:
+                        pass
             except Exception:
                 pass
             return ""
@@ -85,6 +108,9 @@ def patch_list_row_accessibility() -> None:
 
         class NSTableRow(objc.Category(_cls_row)):
             def accessibilityLabel(self):
+                return _cell_text(self)
+
+            def accessibilityTitle(self):
                 return _cell_text(self)
 
             def accessibilityValue(self):
