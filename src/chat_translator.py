@@ -1,11 +1,12 @@
-"""ChatTranslatorManager – KI-gestützte Echtzeit-Übersetzung (v3.9.0).
+"""ChatTranslatorManager – KI-gestützte Echtzeit-Übersetzung (v4.0.0).
 
 Übersetzt eingehende Chat-Nachrichten in eine konfigurierbare Zielsprache.
-Backends (gleiche Reihenfolge wie ChatSummaryManager):
-  1. Claude (anthropic SDK / HTTP)
-  2. Gemini
-  3. Ollama
-  4. Fallback: Originaltext mit Hinweis
+Backends:
+  1. Apple FM (on-device, macOS 26+, kein API-Key)
+  2. Claude (anthropic SDK / HTTP)
+  3. Gemini
+  4. Ollama
+  5. Fallback: Originaltext mit Hinweis
 """
 from __future__ import annotations
 
@@ -43,19 +44,24 @@ class ChatTranslatorManager:
         lang = self.target_language()
         prompt = text.strip()
 
-        # 1. Claude
+        # 1. Apple Foundation Models (on-device)
+        result = self._with_apple_fm(prompt, lang)
+        if result:
+            return result
+
+        # 2. Claude
         key = self._claude_key()
         if key:
             result = self._with_claude(prompt, lang, key)
             if result:
                 return result
 
-        # 2. Gemini
+        # 3. Gemini
         result = self._with_gemini(prompt, lang)
         if result:
             return result
 
-        # 3. Ollama
+        # 4. Ollama
         result = self._with_ollama(prompt, lang)
         if result:
             return result
@@ -65,6 +71,13 @@ class ChatTranslatorManager:
     # ------------------------------------------------------------------
     # Backends
     # ------------------------------------------------------------------
+
+    def _with_apple_fm(self, text: str, lang: str) -> Optional[str]:
+        try:
+            from apple_fm import generate
+            return generate(text, system=_SYSTEM_TMPL.format(lang=lang), max_tokens=400)
+        except Exception:
+            return None
 
     def _claude_key(self) -> str:
         key = os.environ.get("ANTHROPIC_API_KEY", "")

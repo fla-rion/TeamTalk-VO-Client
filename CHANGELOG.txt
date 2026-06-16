@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-06-16 (v8.1.0)
+Neu: Apple Foundation Models – on-device KI ohne API-Key (macOS 26+, Apple Silicon)
+
+- src/apple_fm.py (neu): Schlanker Wrapper um das offizielle Apple Foundation Models
+  SDK (applefoundationmodels 0.2.2). Kein API-Key, kein Netz, keine Kosten.
+  Vollständig privat – alle Daten bleiben auf dem Gerät.
+- ChatSummaryManager, AiReplyManager, ChatTranslatorManager: Apple FM als erstes
+  Backend in der Kette (vor Claude, Gemini, Ollama). Auf macOS 26+ mit Apple
+  Intelligence wird Apple FM automatisch verwendet; auf älteren Systemen oder
+  ohne Apple Silicon greift der bisherige Fallback.
+  Betroffene Funktionen: Chat-Zusammenfassung, Antwortvorschläge, Absichtsklassifikation,
+  Text verbessern, Echtzeit-Übersetzung.
+- TeamTalk VO Client.spec: libfoundation_models.dylib ins Bundle aufgenommen.
+- Erfordert: macOS 26+ (Sequoia) oder macOS 27 (Golden Gate), Apple Silicon (M1+).
+
 2026-06-16 (v8.0.5)
 Bugfix: VoiceOver liest Serverliste unter macOS 27 korrekt vor (zweiter Anlauf)
 

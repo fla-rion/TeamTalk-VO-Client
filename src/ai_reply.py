@@ -1,4 +1,4 @@
-"""AiReplyManager – KI-Antwortvorschläge und KI-Integration (v5.2.0).
+"""AiReplyManager – KI-Antwortvorschläge und KI-Integration (v5.3.0).
 
 Analysiert Chat-Nachrichten und bietet:
 - suggest_replies():    2–3 kurze Antwortvorschläge (kontextbewusst, v5.2.0)
@@ -6,7 +6,7 @@ Analysiert Chat-Nachrichten und bietet:
 - classify_intent():    Absichtsklassifikation für intelligentes Routing (v5.2.0)
 
 API-Keys werden jetzt bevorzugt aus der OS-Keychain gelesen (v5.2.0/v4.9.0).
-Gleiche Backend-Reihenfolge wie ChatSummaryManager: Claude → Gemini → Ollama.
+Backend-Reihenfolge: Apple FM (on-device) → Claude → Gemini → Ollama.
 """
 from __future__ import annotations
 
@@ -64,9 +64,11 @@ class AiReplyManager:
             prompt = message
 
         raw: Optional[str] = None
-        key = self._claude_key()
-        if key:
-            raw = self._with_claude(prompt, key)
+        raw = self._with_apple_fm(prompt, system=_SYSTEM_PROMPT)
+        if raw is None:
+            key = self._claude_key()
+            if key:
+                raw = self._with_claude(prompt, key)
         if raw is None:
             raw = self._with_gemini(prompt)
         if raw is None:
@@ -88,9 +90,11 @@ class AiReplyManager:
         prompt = combined
 
         raw: Optional[str] = None
-        key = self._claude_key()
-        if key:
-            raw = self._with_claude(prompt, key, system=_SUMMARY_PROMPT)
+        raw = self._with_apple_fm(combined, system=_SUMMARY_PROMPT)
+        if raw is None:
+            key = self._claude_key()
+            if key:
+                raw = self._with_claude(prompt, key, system=_SUMMARY_PROMPT)
         if raw is None:
             raw = self._with_gemini(prompt, system=_SUMMARY_PROMPT)
         if raw is None:
@@ -108,9 +112,11 @@ class AiReplyManager:
             return "sonstiges"
 
         raw: Optional[str] = None
-        key = self._claude_key()
-        if key:
-            raw = self._with_claude(message, key, system=_INTENT_PROMPT, max_tokens=20)
+        raw = self._with_apple_fm(message, system=_INTENT_PROMPT, max_tokens=20)
+        if raw is None:
+            key = self._claude_key()
+            if key:
+                raw = self._with_claude(message, key, system=_INTENT_PROMPT, max_tokens=20)
         if raw is None:
             raw = self._with_gemini(message, system=_INTENT_PROMPT)
         if raw is None:
@@ -132,9 +138,11 @@ class AiReplyManager:
             return None
 
         raw: Optional[str] = None
-        key = self._claude_key()
-        if key:
-            raw = self._with_claude(text, key, system=_IMPROVE_PROMPT, max_tokens=500)
+        raw = self._with_apple_fm(text, system=_IMPROVE_PROMPT, max_tokens=500)
+        if raw is None:
+            key = self._claude_key()
+            if key:
+                raw = self._with_claude(text, key, system=_IMPROVE_PROMPT, max_tokens=500)
         if raw is None:
             raw = self._with_gemini(text, system=_IMPROVE_PROMPT)
         if raw is None:
@@ -144,6 +152,15 @@ class AiReplyManager:
     # ------------------------------------------------------------------
     # Backends
     # ------------------------------------------------------------------
+
+    def _with_apple_fm(
+        self, message: str, system: str = _SYSTEM_PROMPT, max_tokens: int = 200
+    ) -> Optional[str]:
+        try:
+            from apple_fm import generate
+            return generate(message, system=system, max_tokens=max_tokens)
+        except Exception:
+            return None
 
     def _claude_key(self) -> str:
         key = os.environ.get("ANTHROPIC_API_KEY", "")

@@ -1,12 +1,13 @@
-"""ChatSummaryManager – KI-gestützte Chat-Zusammenfassung (v2.0.2).
+"""ChatSummaryManager – KI-gestützte Chat-Zusammenfassung (v2.1.0).
 
 Fasst verpasste Chat-Nachrichten zusammen wenn der Nutzer zurückkommt
 oder per Hotkey. Backends werden der Reihe nach versucht:
 
-  1. Claude  – via offizielles `anthropic` SDK (API-Key aus Settings/Env)
-  2. Gemini  – via `google-genai` SDK (API-Key oder OAuth-Token)
-  3. Ollama  – lokale Modelle (llama3.2, phi3, mistral …)
-  4. Extraktion – immer verfügbar, kein KI-Backend nötig
+  1. Apple FM – on-device (macOS 26+, Apple Silicon, kein API-Key)
+  2. Claude  – via offizielles `anthropic` SDK (API-Key aus Settings/Env)
+  3. Gemini  – via `google-genai` SDK (API-Key oder OAuth-Token)
+  4. Ollama  – lokale Modelle (llama3.2, phi3, mistral …)
+  5. Extraktion – immer verfügbar, kein KI-Backend nötig
 
 Verwendung:
     mgr = ChatSummaryManager(settings_store, chat_history, gemini_auth)
@@ -69,7 +70,10 @@ class ChatSummaryManager:
 
         summary: Optional[str] = None
 
-        # 1. Claude (Anthropic SDK)
+        # 1. Apple Foundation Models (on-device, macOS 26+)
+        summary = self._summarize_with_apple_fm(messages)
+
+        # 2. Claude (Anthropic SDK)
         claude_key = self._get_claude_api_key()
         if claude_key:
             summary = self._summarize_with_claude_sdk(messages, claude_key)
@@ -77,15 +81,15 @@ class ChatSummaryManager:
                 # Fallback auf manuelles HTTP wenn SDK fehlt
                 summary = self._summarize_with_claude_http(messages, claude_key)
 
-        # 2. Gemini
+        # 3. Gemini
         if summary is None:
             summary = self._summarize_with_gemini(messages)
 
-        # 3. Ollama
+        # 4. Ollama
         if summary is None:
             summary = self._summarize_with_ollama(messages)
 
-        # 4. Einfache Extraktion
+        # 5. Einfache Extraktion
         if summary is None:
             summary = self._summarize_fallback(messages)
 
@@ -128,7 +132,23 @@ class ChatSummaryManager:
             return []
 
     # ------------------------------------------------------------------
-    # Backend 1: Claude via anthropic SDK
+    # Backend 1: Apple Foundation Models (on-device)
+    # ------------------------------------------------------------------
+
+    def _summarize_with_apple_fm(self, messages: List[dict]) -> Optional[str]:
+        """Fasst Nachrichten via Apple on-device Foundation Model zusammen."""
+        try:
+            from apple_fm import generate
+            return generate(
+                self._messages_to_text(messages),
+                system=_SYSTEM_PROMPT,
+                max_tokens=300,
+            )
+        except Exception:
+            return None
+
+    # ------------------------------------------------------------------
+    # Backend 2: Claude via anthropic SDK
     # ------------------------------------------------------------------
 
     def _summarize_with_claude_sdk(
