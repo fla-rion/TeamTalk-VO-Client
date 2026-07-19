@@ -20,14 +20,20 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$SCRIPT_DIR"
 
-# Gitea-Zugangsdaten
-GITEA_TOKEN="e91faa5c35310a376937604fffba15a8d7c66345"
+# Gitea-Zugangsdaten: aus $GITEA_TOKEN oder aus der origin-Remote-URL
+# (https://user:TOKEN@host/...) extrahiert – niemals im Skript hinterlegen.
+GITEA_TOKEN="${GITEA_TOKEN:-$(git remote get-url origin 2>/dev/null | sed -E 's#https://[^:]+:([^@]+)@.*#\1#')}"
 GITEA_BASE="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 UPLOAD=true
 for arg in "$@"; do
   [[ "$arg" == "--no-upload" ]] && UPLOAD=false
 done
+
+if [[ -z "$GITEA_TOKEN" ]]; then
+  echo "WARNUNG: Kein Gitea-Token gefunden (weder \$GITEA_TOKEN noch in origin-URL) – Upload wird übersprungen."
+  UPLOAD=false
+fi
 
 # ---------------------------------------------------------------------------
 # 1. System-Abhängigkeiten prüfen

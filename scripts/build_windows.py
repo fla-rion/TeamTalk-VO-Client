@@ -8,6 +8,7 @@ Aufruf (aus einem beliebigen Verzeichnis):
 """
 
 import json
+import os
 import re
 import sys
 import subprocess
@@ -17,11 +18,31 @@ import zipfile
 import argparse
 from pathlib import Path
 
-GITEA_TOKEN = "e91faa5c35310a376937604fffba15a8d7c66345"
-GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
-
 # Projektverzeichnis immer relativ zu dieser Datei ermitteln
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def _find_gitea_token() -> str:
+    """Aus $GITEA_TOKEN oder aus der origin-Remote-URL (https://user:TOKEN@host/...)
+    extrahiert - niemals im Skript hinterlegen."""
+    token = os.environ.get("GITEA_TOKEN", "")
+    if token:
+        return token
+    try:
+        url = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            cwd=str(ROOT), check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        m = re.match(r"https://[^:]+:([^@]+)@", url)
+        if m:
+            return m.group(1)
+    except Exception:
+        pass
+    return ""
+
+
+GITEA_TOKEN = _find_gitea_token()
+GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 
 def run(*args):
@@ -102,6 +123,10 @@ def api(method, path, body=None, binary=None):
 parser = argparse.ArgumentParser()
 parser.add_argument("--no-upload", action="store_true")
 args = parser.parse_args()
+
+if not GITEA_TOKEN:
+    print("WARNUNG: Kein Gitea-Token gefunden (weder $GITEA_TOKEN noch in origin-URL) – Upload wird übersprungen.")
+    args.no_upload = True
 
 if not args.no_upload:
     step("Gitea-Release")

@@ -6,7 +6,6 @@ param([switch]$NoUpload)
 
 $ErrorActionPreference = "Stop"
 
-$GITEA_TOKEN = "e91faa5c35310a376937604fffba15a8d7c66345"
 $GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 # Projektverzeichnis = eine Ebene ueber dem scripts/-Ordner
@@ -14,6 +13,20 @@ $GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Clie
 $ROOT = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Write-Host "Projektverzeichnis: $ROOT"
 Set-Location $ROOT
+
+# Gitea-Zugangsdaten: aus $env:GITEA_TOKEN oder aus der origin-Remote-URL
+# (https://user:TOKEN@host/...) extrahiert - niemals im Skript hinterlegen.
+$GITEA_TOKEN = $env:GITEA_TOKEN
+if (-not $GITEA_TOKEN) {
+    $originUrl = git remote get-url origin 2>$null
+    if ($originUrl -match 'https://[^:]+:([^@]+)@') {
+        $GITEA_TOKEN = $Matches[1]
+    }
+}
+if (-not $GITEA_TOKEN) {
+    Write-Host "WARNUNG: Kein Gitea-Token gefunden (weder `$env:GITEA_TOKEN noch in origin-URL) - Upload wird uebersprungen."
+    $NoUpload = $true
+}
 
 # -----------------------------------------------------------------------
 # 1. Python suchen
