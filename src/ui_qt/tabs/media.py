@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from i18n import _
+from ui_qt.live_region import LiveRegionAnnouncer
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -90,6 +91,7 @@ class MediaTab(QWidget):
         self._podcast_results: list = []
         self._podcast_episodes: list = []
         self._playlist_tracks: List[str] = []
+        self._search_announcer = LiveRegionAnnouncer(self.window._sr_announce)
         self._pl_streaming = False
         self._playlist_current = -1
 
@@ -611,6 +613,7 @@ class MediaTab(QWidget):
             self.yt_results.setCurrentRow(0)
         self.yt_search_btn.setEnabled(True)
         self.yt_status.setText(f"Status: {len(items)} Treffer")
+        self._search_announcer.announce(f"{_('yt-dlp Treffer')}: {len(items)}")
 
     def _yt_search_failed(self, message: str) -> None:
         self.yt_search_btn.setEnabled(True)

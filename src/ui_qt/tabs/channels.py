@@ -12,6 +12,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QKeyEvent, QFont, QColor
 
+from ui_qt.live_region import LiveRegionAnnouncer
+
 if TYPE_CHECKING:
     from app_qt import MainWindow
 
@@ -36,6 +38,7 @@ class ChannelsTab(QWidget):
         self._all_items: List[Tuple[str, int]] = []
         self._displayed_labels: List[str] = []
         # user notes are persisted in settings_store.settings.user_notes (keyed by username)
+        self._member_announcer = LiveRegionAnnouncer(self.window._sr_announce)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
@@ -335,7 +338,19 @@ class ChannelsTab(QWidget):
         return -1
 
     def _announce_channel_members(self, users, channel_id: int) -> None:
-        pass  # handled by app_qt event system
+        names = [self._format_user_label(u) for u in users]
+        try:
+            channel = self.window.client.get_channel(channel_id)
+            ch_name = self.window.tt_str(channel.szName)
+        except Exception:
+            ch_name = ""
+        if not ch_name:
+            ch_name = _("aktuellen Kanal")
+        if names:
+            text = f"{_('Im Kanal')} {ch_name}: " + ", ".join(names)
+        else:
+            text = f"{_('Im Kanal')} {ch_name} {_('ist niemand.')}"
+        self._member_announcer.announce_delayed(text)
 
     def _find_user(self, user_id: int):
         for user in self._all_users:
