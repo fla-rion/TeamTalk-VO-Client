@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-07-19 (v8.1.3)
+Fix: kaputte Versionserkennung in allen lokalen Build-Skripten + Installer für Linux
+
+- scripts/build_macos.sh, build_linux.sh, build_windows.ps1/.py: Alle vier
+  lasen APP_VERSION aus src/app.py – dort steht sie nie (nur Plattform-Router).
+  Jedes Skript wäre beim Versionsauslesen sofort abgebrochen. Liest jetzt
+  korrekt aus app_wx.py (macOS) bzw. app_qt.py (Windows/Linux).
+- scripts/build_linux.sh: PKG_NAME hatte "linux_x64" fest einprogrammiert,
+  unabhängig von der tatsächlichen Architektur der bauenden Maschine – auf
+  einer arm64-Linux-Maschine wäre das Archiv falsch beschriftet gewesen.
+  Liest jetzt uname -m aus (x86_64/arm64), analog zur CI-Namenskonvention.
+- scripts/install_linux.sh (neu): Installiert ein fertiges Linux-Release
+  (von GitHub oder aus einem lokalen .tar.gz), richtet Menüeintrag +
+  Start-Befehl ein und prüft/installiert fehlende Laufzeit-Abhängigkeiten
+  (Debian/Ubuntu via apt). Erkennt Architektur-Mismatch bei lokalen Archiven
+  und bietet automatischen Download der passenden Version von GitHub an.
+- scripts/README.md: TeamTalk-SDK-Downloads waren als .zip dokumentiert
+  (tatsächlich .7z), Linux-SDK-Dateiname existierte so nicht bei bearware.dk,
+  libgtk-3-dev/GStreamer als Linux-Voraussetzung entfernt (nur für wx nötig,
+  das Linux nicht nutzt), falsche Skript-Flags in der englischen Sektion
+  korrigiert.
+
 2026-07-19 (v8.1.2)
 CI: Offizieller Linux-Build (x86_64 + arm64) via GitHub Actions
 
