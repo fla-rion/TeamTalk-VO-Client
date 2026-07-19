@@ -187,9 +187,42 @@ Alle anderen Dateien (Spec, version_info.txt, CHANGELOG.txt) werden beim nächst
 
 ### Gitea-Release
 
-Der API-Token ist direkt in den Build-Skripten hinterlegt.
-Jeder Aufruf ohne `--no-upload` / `-NoUpload` lädt das Archiv automatisch hoch
-und legt einen Gitea-Release-Tag an (falls noch nicht vorhanden).
+Der API-Token wird zur Laufzeit aus `$GITEA_TOKEN` oder aus der
+`origin`-Remote-URL (`https://user:TOKEN@host/...`) gelesen – er steht nicht
+im Skript. Jeder Aufruf ohne `--no-upload` / `-NoUpload` lädt das Archiv
+automatisch hoch und legt einen Gitea-Release-Tag an (falls noch nicht
+vorhanden).
+
+---
+
+### Installation unter Linux (Endnutzer)
+
+`install_linux.sh` installiert ein fertiges Release (von GitHub oder aus
+einem lokalen `.tar.gz`), richtet einen Menüeintrag ein und prüft/installiert
+fehlende Laufzeit-Abhängigkeiten (Debian/Ubuntu via `apt`).
+
+```bash
+chmod +x scripts/install_linux.sh
+
+# Neuestes Release automatisch von GitHub laden und installieren
+./scripts/install_linux.sh
+
+# Bestimmte Version, systemweit (statt nur für den aktuellen Nutzer)
+./scripts/install_linux.sh --version v8.1.2 --system
+
+# Lokal heruntergeladenes Archiv installieren (Architektur wird geprüft;
+# bei Mismatch wird angeboten, stattdessen die passende Version von GitHub
+# zu laden)
+./scripts/install_linux.sh --file ~/Downloads/TeamTalk_VO_Client_8.1.2_linux_x86_64.tar.gz
+
+# Nur Abhängigkeiten prüfen, nichts installieren
+./scripts/install_linux.sh --check-only
+
+# Wieder entfernen
+./scripts/install_linux.sh --uninstall
+```
+
+Alle Optionen: `./scripts/install_linux.sh --help`
 
 ---
 
@@ -376,9 +409,41 @@ All other files (spec, version_info.txt, CHANGELOG.txt) read this value or must 
 
 ### Gitea Release
 
-The API token is embedded directly in the build scripts.
+The API token is read at runtime from `$GITEA_TOKEN` or from the `origin`
+remote URL (`https://user:TOKEN@host/...`) – it is not stored in the script.
 Every run without `--no-upload` / `-NoUpload` uploads the archive automatically
 and creates a Gitea release tag (if it does not exist yet).
+
+---
+
+### Installing on Linux (end users)
+
+`install_linux.sh` installs a prebuilt release (from GitHub or from a local
+`.tar.gz`), sets up an application-menu entry, and checks/installs missing
+runtime dependencies (Debian/Ubuntu via `apt`).
+
+```bash
+chmod +x scripts/install_linux.sh
+
+# Download and install the latest release from GitHub
+./scripts/install_linux.sh
+
+# Specific version, system-wide (instead of just the current user)
+./scripts/install_linux.sh --version v8.1.2 --system
+
+# Install a locally downloaded archive (architecture is checked; on a
+# mismatch you'll be offered to download the matching build from GitHub
+# instead)
+./scripts/install_linux.sh --file ~/Downloads/TeamTalk_VO_Client_8.1.2_linux_x86_64.tar.gz
+
+# Only check dependencies, install nothing
+./scripts/install_linux.sh --check-only
+
+# Remove it again
+./scripts/install_linux.sh --uninstall
+```
+
+All options: `./scripts/install_linux.sh --help`
 
 ---
 
