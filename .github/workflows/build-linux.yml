@@ -1,0 +1,132 @@
+name: Linux Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+            sdk_suffix: ubuntu22_x86_64
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+            sdk_suffix: raspbian_arm64
+
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Python 3.11 einrichten
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: System-Abhängigkeiten installieren
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y portaudio19-dev p7zip-full \
+            cmake build-essential libspeechd-dev libbrlapi-dev
+
+      - name: TeamTalk SDK (Linux, ${{ matrix.arch }}) herunterladen
+        run: |
+          mkdir -p third_party/teamtalk
+          cd third_party/teamtalk
+          curl -sL -o sdk.7z "https://bearware.dk/teamtalksdk/v5.19a/tt5sdk_v5.19a_${{ matrix.sdk_suffix }}.7z"
+          7z x sdk.7z
+          mv "tt5sdk_v5.19a_${{ matrix.sdk_suffix }}" tt5sdk_v5.19a_linux_x64
+          rm sdk.7z
+
+      - name: SRAL bauen (libSRAL.so)
+        run: |
+          git clone https://github.com/m1maker/SRAL /tmp/SRAL
+          cmake /tmp/SRAL -B /tmp/SRAL/build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_SRAL_TEST=OFF
+          cmake --build /tmp/SRAL/build --config Release
+          mkdir -p third_party/sral/linux
+          cp /tmp/SRAL/build/libSRAL.so third_party/sral/linux/libSRAL.so
+          cp /tmp/SRAL/Bindings/Python/sral.py third_party/sral/sral.py
+
+      - name: Abhängigkeiten installieren
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_linux.txt
+
+      - name: Version aus app_qt.py lesen
+        id: version
+        shell: python
+        run: |
+          import re, os
+          with open("src/app_qt.py", encoding="utf-8") as f:
+              content = f.read()
+          m = re.search(r'APP_VERSION\s*=\s*["\']([^"\']+)["\']', content)
+          version = m.group(1) if m else "unknown"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"version={version}\n")
+
+      - name: PyInstaller Build
+        run: |
+          pyinstaller -y "TeamTalk VO Client_linux.spec"
+
+      - name: tar.gz erstellen
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          tar_name="TeamTalk_VO_Client_${version}_linux_${{ matrix.arch }}.tar.gz"
+          tar -czf "dist/$tar_name" -C dist "TeamTalk VO Client"
+          echo "TAR_NAME=$tar_name" >> "$GITHUB_ENV"
+
+      - name: GitHub Release erstellen und tar.gz hochladen
+        uses: softprops/action-gh-release@v3
+        with:
+          name: "TeamTalk VO Client ${{ steps.version.outputs.version }}"
+          append_body: true
+          body: |
+            Linux-Build (${{ matrix.arch }}) für Version ${{ steps.version.outputs.version }}.
+
+            **Installation:** Archiv entpacken und `TeamTalk VO Client/TeamTalk VO Client` ausführen.
+          files: dist/${{ env.TAR_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Gitea Release synchronisieren
+        env:
+          GITEA_TOKEN: ${{ secrets.GITEA_TOKEN }}
+        run: |
+          set -e
+          tag="${GITHUB_REF_NAME}"
+          base="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+          token="${GITEA_TOKEN}"
+
+          release_id=$(curl -s -H "Authorization: token $token" "$base/releases/tags/$tag" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+
+          if [[ -z "$release_id" || "$release_id" == "None" ]]; then
+            echo "Gitea-Release $tag nicht gefunden – erstelle..."
+            release_id=$(curl -s -X POST "$base/releases" \
+              -H "Authorization: token $token" -H "Content-Type: application/json" \
+              -d "{\"tag_name\":\"$tag\",\"name\":\"$tag\",\"body\":\"Linux-Build $tag\",\"draft\":false,\"prerelease\":false}" \
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          fi
+          echo "Gitea-Release ID: $release_id"
+
+          existing=$(curl -s -H "Authorization: token $token" "$base/releases/$release_id/assets" \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if any(a['name']=='$TAR_NAME' for a in d) else 'no')")
+
+          if [[ "$existing" == "yes" ]]; then
+            echo "$TAR_NAME bereits auf Gitea vorhanden – überspringe Upload"
+            exit 0
+          fi
+
+          echo "Lade $TAR_NAME auf Gitea hoch (Release $release_id)..."
+          curl -s -X POST "$base/releases/$release_id/assets" \
+            -H "Authorization: token $token" \
+            -F "attachment=@dist/$TAR_NAME"
