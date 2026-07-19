@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-07-19 (v8.1.2)
+CI: Offizieller Linux-Build (x86_64 + arm64) via GitHub Actions
+
+- .github/workflows/build-linux.yml (neu): baut bei jedem Tag-Push automatisch
+  für x86_64 (ubuntu-22.04) und arm64 (ubuntu-22.04-arm), lädt das passende
+  TeamTalk-SDK von bearware.dk, kompiliert SRAL (Speech Dispatcher/BrlAPI) und
+  lädt das Ergebnis als tar.gz auf GitHub- und Gitea-Release hoch.
+- TeamTalk VO Client_linux.spec repariert: Das Qt-UI-Paket (ui_qt) fehlte
+  komplett in den gebündelten Daten – die App wäre auf Linux beim Start
+  gecrasht. Fehlende hiddenimports (app_qt, screen_reader, sr_output,
+  ui_qt.tabs.system, PySide6) ergänzt, SRAL-Bibliothek eingebunden.
+- requirements_linux.txt repariert: fehlendes PySide6 ergänzt (Linux nutzt die
+  Qt-Oberfläche), unnötiges wxPython entfernt (nur macOS relevant, hätte auf
+  ARM64 vermutlich einen langwierigen Source-Build samt GTK-Abhängigkeiten
+  ausgelöst).
+- scripts/build_linux.sh, build_macos.sh, build_windows.ps1/.py: Gitea-Token
+  war im Klartext im Skript hinterlegt (öffentlich sichtbar auf dem
+  GitHub-Spiegel) – wird jetzt zur Laufzeit aus $GITEA_TOKEN oder der
+  origin-Remote-URL gelesen. Alter Token wurde widerrufen und neu erzeugt.
+
 2026-07-19 (v8.1.1)
 Bugfix: Apple Foundation Models funktionierte in der gebauten .app gar nicht
 
