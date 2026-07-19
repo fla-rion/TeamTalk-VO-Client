@@ -118,6 +118,36 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </ul>
 </div>
 <div class="new">
+<strong>v8.1.0 (2026-06-16):</strong>
+<ul>
+  <li><strong>Apple Foundation Models – on-device KI ohne API-Key</strong> <span class="platform mac">macOS</span>: Auf macOS 26+ (Tahoe) mit Apple Silicon nutzt die App jetzt zuerst das eingebaute Apple-Intelligence-Modell für Chat-Zusammenfassung, Antwortvorschläge, Absichtsklassifikation, Text-Verbesserung und Echtzeit-Übersetzung — kein API-Key, keine Internetverbindung, keine Kosten, alle Daten bleiben auf dem Gerät. Auf älteren Systemen oder ohne Apple Silicon greift wie bisher der Fallback auf Claude/Gemini/Ollama.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.5 (2026-06-16):</strong>
+<ul>
+  <li><strong>Serverliste unter macOS 27 wieder lesbar (zweiter Anlauf)</strong> <span class="platform mac">macOS</span>: wxPython verwendet auf aktuellem macOS view-basierte Tabellenzeilen (<code>NSTableRowView</code>) statt des bisher gepatchten <code>NSTableRow</code> — die vorherigen Patches trafen daher den falschen Typ. Der Zeilentext wird jetzt zuverlässig direkt aus der Datenquelle gelesen statt über die Accessibility-Hierarchie.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.4 (2026-06-16):</strong>
+<ul>
+  <li><strong>Serverliste unter macOS 27 (Golden Gate) korrigiert</strong> <span class="platform mac">macOS</span>: Zweistufige Strategie für den Zeilentext (formales Accessibility-Protokoll, dann Fallback über die Subview-Hierarchie) — behob das Problem noch nicht vollständig, siehe v8.0.5.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.3 (2026-06-09):</strong>
+<ul>
+  <li><strong>Kompatibilität mit macOS 27 (Golden Gate)</strong> <span class="platform mac">macOS</span>: Die veraltete, informale Accessibility-API wurde durch das formale <code>NSAccessibility</code>-Protokoll ersetzt, das Apple in macOS 27 stärker durchsetzt. Alle Rollenbeschreibungen und Ansagen bleiben unverändert.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.2 (2026-05-30):</strong>
+<ul>
+  <li><strong>Deutsche Ansagen auf FR/ES-Systemen endgültig behoben</strong> <span class="platform mac">macOS</span>: Der Sprach-Fix aus v8.0.1 traf eine Datei, die auf macOS gar nicht geladen wird — <code>ui_wx/a11y.py</code> ist jetzt ein reiner Re-Export von <code>ui/a11y.py</code>, damit künftige Fixes nur noch an einer Stelle gepflegt werden müssen. Gemeldet von <strong>@math65</strong> (PR #28).</li>
+</ul>
+</div>
+<div class="new">
 <strong>v8.0.1 (2026-05-29):</strong>
 <ul>
   <li><strong>VoiceOver-Sprache auf FR/ES-Systemen korrigiert</strong> <span class="platform mac">macOS</span>: Die App erkennt die macOS-Systemsprache jetzt korrekt über <code>NSLocale.preferredLanguages</code>. Auf FR-Systemen öffnet sich die App direkt auf Französisch und VoiceOver spricht mit der französischen Stimme. Gleiches gilt für ES und EN.</li>
