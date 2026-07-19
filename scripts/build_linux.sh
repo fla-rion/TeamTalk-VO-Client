@@ -93,9 +93,9 @@ echo "    Fertig."
 # ---------------------------------------------------------------------------
 # 4. Version ermitteln
 # ---------------------------------------------------------------------------
-VERSION=$(grep 'APP_VERSION = ' src/app.py | cut -d'"' -f2)
+VERSION=$(grep 'APP_VERSION = ' src/app_qt.py | cut -d'"' -f2)
 if [[ -z "$VERSION" ]]; then
-  echo "FEHLER: APP_VERSION nicht in src/app.py gefunden." >&2
+  echo "FEHLER: APP_VERSION nicht in src/app_qt.py gefunden." >&2
   exit 1
 fi
 echo "==> Version: $VERSION"
@@ -120,7 +120,12 @@ echo "==> Build abgeschlossen: dist/TeamTalk VO Client/"
 # ---------------------------------------------------------------------------
 # 7. tar.gz-Archiv erstellen
 # ---------------------------------------------------------------------------
-PKG_NAME="TeamTalk_VO_Client_${VERSION}_linux_x64"
+case "$(uname -m)" in
+  x86_64|amd64) PKG_ARCH="x86_64" ;;
+  aarch64|arm64) PKG_ARCH="arm64" ;;
+  *) PKG_ARCH="$(uname -m)" ;;
+esac
+PKG_NAME="TeamTalk_VO_Client_${VERSION}_linux_${PKG_ARCH}"
 PKG_PATH="dist/${PKG_NAME}.tar.gz"
 echo "==> Erstelle Archiv: ${PKG_NAME}.tar.gz"
 tar -czf "$PKG_PATH" -C dist "TeamTalk VO Client"

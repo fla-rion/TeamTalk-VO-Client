@@ -79,10 +79,10 @@ Write-Host "    Fertig."
 # -----------------------------------------------------------------------
 Write-Host ""
 Write-Host "==> Lese Version..."
-$appPy = Join-Path $ROOT "src\app.py"
+$appPy = Join-Path $ROOT "src\app_qt.py"
 $match = Select-String -Path $appPy -Pattern 'APP_VERSION\s*=\s*"([^"]+)"'
 if (-not $match) {
-    Write-Host "FEHLER: APP_VERSION nicht in src\app.py gefunden."
+    Write-Host "FEHLER: APP_VERSION nicht in src\app_qt.py gefunden."
     exit 1
 }
 $VERSION = $match.Matches[0].Groups[1].Value

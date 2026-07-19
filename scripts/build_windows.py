@@ -68,10 +68,10 @@ run(sys.executable, "-m", "pip", "install", "-r",
 # 2. Version auslesen
 # -----------------------------------------------------------------------
 step("Version auslesen")
-src = (ROOT / "src" / "app.py").read_text(encoding="utf-8")
+src = (ROOT / "src" / "app_qt.py").read_text(encoding="utf-8")
 m = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', src)
 if not m:
-    sys.exit("FEHLER: APP_VERSION nicht in src/app.py gefunden.")
+    sys.exit("FEHLER: APP_VERSION nicht in src/app_qt.py gefunden.")
 VERSION = m.group(1)
 print(f"   {VERSION}")
 

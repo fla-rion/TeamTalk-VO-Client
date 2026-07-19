@@ -72,9 +72,9 @@ echo "    Fertig."
 # ---------------------------------------------------------------------------
 # 3. Version ermitteln
 # ---------------------------------------------------------------------------
-VERSION=$(grep 'APP_VERSION = ' src/app.py | cut -d'"' -f2)
+VERSION=$(grep 'APP_VERSION = ' src/app_wx.py | cut -d'"' -f2)
 if [[ -z "$VERSION" ]]; then
-  echo "FEHLER: APP_VERSION nicht in src/app.py gefunden." >&2
+  echo "FEHLER: APP_VERSION nicht in src/app_wx.py gefunden." >&2
   exit 1
 fi
 echo "==> Version: $VERSION"
