@@ -111,6 +111,13 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 
 <h2>Was ist neu</h2>
 <div class="new">
+<strong>v8.1.1 (2026-07-19):</strong>
+<ul>
+  <li><strong>Apple Foundation Models – Packaging-Fix</strong> <span class="platform mac">macOS</span>: Eine Datendatei des KI-Pakets fehlte im gebauten Bundle, wodurch die on-device KI aus v8.1.0 in jeder gebauten App dauerhaft inaktiv war (stiller Rückfall auf Claude/Gemini/Ollama). Jetzt behoben.</li>
+  <li><strong>Crash-Schutz</strong> <span class="platform mac">macOS</span>: Die Apple-KI läuft jetzt in einem isolierten Hintergrundprozess. Ein Absturz des Frameworks auf einzelnen macOS-Versionen (z. B. Tahoe) betrifft dann nur diesen Prozess, nicht die ganze App.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v8.0.1 (2026-05-29):</strong>
 <ul>
   <li><strong>VoiceOver-Sprache auf FR/ES-Systemen korrigiert</strong> <span class="platform mac">macOS</span>: Die App erkennt die macOS-Systemsprache jetzt korrekt über <code>NSLocale.preferredLanguages</code>. Auf FR-Systemen öffnet sich die App direkt auf Französisch und VoiceOver spricht mit der französischen Stimme. Gleiches gilt für ES und EN.</li>
