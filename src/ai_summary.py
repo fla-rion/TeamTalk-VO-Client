@@ -74,12 +74,13 @@ class ChatSummaryManager:
         summary = self._summarize_with_apple_fm(messages)
 
         # 2. Claude (Anthropic SDK)
-        claude_key = self._get_claude_api_key()
-        if claude_key:
-            summary = self._summarize_with_claude_sdk(messages, claude_key)
-            if summary is None:
-                # Fallback auf manuelles HTTP wenn SDK fehlt
-                summary = self._summarize_with_claude_http(messages, claude_key)
+        if summary is None:
+            claude_key = self._get_claude_api_key()
+            if claude_key:
+                summary = self._summarize_with_claude_sdk(messages, claude_key)
+                if summary is None:
+                    # Fallback auf manuelles HTTP wenn SDK fehlt
+                    summary = self._summarize_with_claude_http(messages, claude_key)
 
         # 3. Gemini
         if summary is None:

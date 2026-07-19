@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-07-19 (v8.1.1)
+Bugfix: Apple Foundation Models funktionierte in der gebauten .app gar nicht
+
+- TeamTalk VO Client.spec: error_codes.json (Datendatei von applefoundationmodels)
+  fehlte im Bundle – die .dylib allein wurde kopiert, aber das Paket lädt beim
+  Import zusätzlich eine JSON-Datei mit Fehlercode-Definitionen. Ohne sie brach
+  der Import mit FileNotFoundError ab und Apple FM war in jeder gebauten .app
+  (unabhängig von der macOS-Version) dauerhaft "nicht verfügbar" – lautlos,
+  ohne Fehlermeldung, mit Rückfall auf Claude/Gemini/Ollama/Extraktion.
+- src/apple_fm.py: generate() läuft jetzt in einem isolierten Subprozess
+  (App/Skript ruft sich selbst mit --apple-fm-worker erneut auf). Schützt vor
+  nativen Abstürzen im Foundation-Models-Framework (z. B. auf noch nicht
+  vollständig unterstützten macOS-Versionen wie Tahoe) – stürzt nur der Worker
+  ab, bleibt die App am Leben und der nächste Backend-Fallback greift.
+- src/ai_summary.py: summarize_missed() überschrieb ein bereits erfolgreiches
+  Apple-FM-Ergebnis bedingungslos mit Claude, sobald ein Claude-API-Key
+  hinterlegt war (fehlende "summary is None"-Prüfung) – Apple FM kam dadurch
+  nie zum Zug, wenn zusätzlich ein Claude-Key gesetzt war.
+
 2026-06-16 (v8.1.0)
 Neu: Apple Foundation Models – on-device KI ohne API-Key (macOS 26+, Apple Silicon)
 
@@ -14,7 +33,7 @@ Neu: Apple Foundation Models – on-device KI ohne API-Key (macOS 26+, Apple Sil
   Betroffene Funktionen: Chat-Zusammenfassung, Antwortvorschläge, Absichtsklassifikation,
   Text verbessern, Echtzeit-Übersetzung.
 - TeamTalk VO Client.spec: libfoundation_models.dylib ins Bundle aufgenommen.
-- Erfordert: macOS 26+ (Sequoia) oder macOS 27 (Golden Gate), Apple Silicon (M1+).
+- Erfordert: macOS 26+ (Tahoe) oder macOS 27 (Golden Gate), Apple Silicon (M1+).
 
 2026-06-16 (v8.0.5)
 Bugfix: VoiceOver liest Serverliste unter macOS 27 korrekt vor (zweiter Anlauf)

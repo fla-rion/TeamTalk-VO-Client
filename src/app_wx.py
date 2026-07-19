@@ -75,7 +75,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "8.1.0"
+APP_VERSION = "8.1.1"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -11036,6 +11036,9 @@ def run_app():
     try:
         if "--probe-server" in sys.argv:
             raise SystemExit(_run_probe_server_once(sys.argv))
+        if "--apple-fm-worker" in sys.argv:
+            import apple_fm
+            raise SystemExit(apple_fm.run_worker(sys.argv))
         app = App(False)
         app.SetAppName("TeamTalk VO Client")
         app.SetVendorName("Flarion")
