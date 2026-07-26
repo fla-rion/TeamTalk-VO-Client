@@ -23,6 +23,7 @@ a = Analysis(
         ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalkPy', 'TeamTalkPy'),
         ('third_party/teamtalk/tt5sdk_v5.19a_win64/Library/TeamTalk_DLL', 'TeamTalk_DLL'),
         ('third_party/yt-dlp', 'yt-dlp'),
+        ('third_party/librespot', 'librespot'),
         ('third_party/espeak-ng', 'espeak-ng'),
         ('src/sounds', 'sounds'),
         ('src/screen_reader.py', '.'),

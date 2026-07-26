@@ -21,6 +21,8 @@ except Exception:
     requests = None
 
 from ui_wx.a11y import setup_list_accessible
+from spotify_streamer import SpotifyStreamer, find_librespot, has_stored_credentials
+from deezer_downloader import DeezerDownloader, search_tracks as dz_search, format_track, load_arl, save_arl, clear_arl, has_arl
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -115,6 +117,10 @@ class MediaTab(wx.Panel):
         self._playlist_tracks: List[str] = []
         self._playlist_current: int = -1
         self._pl_streaming: bool = False
+        self._spotify: Optional[SpotifyStreamer] = None
+        self._spotify_token: str = ""
+        self._deezer: Optional[DeezerDownloader] = None
+        self._deezer_results: list = []
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -199,7 +205,7 @@ class MediaTab(wx.Panel):
         mode_row = wx.BoxSizer(wx.HORIZONTAL)
         mode_row.Add(wx.StaticText(self, label="Streaming-Quelle"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         _yt_names = [name for name, _ in self.YT_SOURCES]
-        self.stream_mode = wx.Choice(self, choices=["Datei"] + _yt_names + ["Webradio", "Podcasts", "Playlist"])
+        self.stream_mode = wx.Choice(self, choices=["Datei"] + _yt_names + ["Webradio", "Podcasts", "Playlist", "Spotify", "Deezer"])
         self.stream_mode.SetName("Streaming-Quelle")
         self.stream_mode.SetSelection(0)
         self.stream_mode.Bind(wx.EVT_CHOICE, self.on_stream_mode)
@@ -526,6 +532,163 @@ class MediaTab(wx.Panel):
         self.playlist_panel.SetSizer(pl_sizer)
         streaming_sizer.Add(self.playlist_panel, 0, wx.ALL | wx.EXPAND, 4)
 
+        # --- Spotify ---
+        self.spotify_panel = wx.Panel(self)
+        sp_box = wx.StaticBox(self.spotify_panel, label="Spotify (Spotify Premium erforderlich)")
+        sp_sizer = wx.StaticBoxSizer(sp_box, wx.VERTICAL)
+
+        sp_info = wx.StaticText(
+            self.spotify_panel,
+            label=(
+                "Benötigt: librespot-Binary (python scripts/download_librespot.py)\n"
+                "Nach dem Start das Gerät in der Spotify-App auswählen."
+            ),
+        )
+        sp_info.Wrap(500)
+        sp_sizer.Add(sp_info, 0, wx.ALL, 4)
+
+        # librespot binary
+        sp_bin_row = wx.BoxSizer(wx.HORIZONTAL)
+        sp_bin_row.Add(wx.StaticText(self.spotify_panel, label="librespot"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.sp_binary = wx.TextCtrl(self.spotify_panel)
+        self.sp_binary.SetName("librespot-Pfad")
+        self.sp_binary.SetValue(find_librespot() or "")
+        sp_bin_browse = wx.Button(self.spotify_panel, label="&...")
+        sp_bin_browse.SetName("librespot auswählen")
+        sp_bin_browse.Bind(wx.EVT_BUTTON, self._on_sp_browse_binary)
+        sp_bin_row.Add(self.sp_binary, 1, wx.RIGHT | wx.EXPAND, 4)
+        sp_bin_row.Add(sp_bin_browse, 0)
+        sp_sizer.Add(sp_bin_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        # Device name
+        sp_name_row = wx.BoxSizer(wx.HORIZONTAL)
+        sp_name_row.Add(wx.StaticText(self.spotify_panel, label="Gerätename"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.sp_device_name = wx.TextCtrl(self.spotify_panel, value="TeamTalk Stream")
+        self.sp_device_name.SetName("Spotify-Gerätename")
+        sp_name_row.Add(self.sp_device_name, 1, wx.EXPAND)
+        sp_sizer.Add(sp_name_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        # Quality
+        sp_quality_row = wx.BoxSizer(wx.HORIZONTAL)
+        sp_quality_row.Add(wx.StaticText(self.spotify_panel, label="Qualität"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.sp_quality = wx.Choice(self.spotify_panel, choices=["320 kbps", "160 kbps", "96 kbps"])
+        self.sp_quality.SetName("Spotify-Qualität")
+        self.sp_quality.SetSelection(0)
+        sp_quality_row.Add(self.sp_quality, 1, wx.EXPAND)
+        sp_sizer.Add(sp_quality_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        # Login status
+        _login_lbl = "Angemeldet (gespeichert)" if has_stored_credentials() else "Nicht angemeldet"
+        self.sp_login_status = wx.StaticText(self.spotify_panel, label=f"Konto: {_login_lbl}")
+        self.sp_login_status.SetName("Spotify-Konto-Status")
+        sp_sizer.Add(self.sp_login_status, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+
+        sp_auth_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.sp_login_btn = wx.Button(self.spotify_panel, label="Mit Spotify &anmelden...")
+        self.sp_login_btn.SetName("Mit Spotify anmelden")
+        self.sp_login_btn.Bind(wx.EVT_BUTTON, self._on_sp_login)
+        self.sp_logout_btn = wx.Button(self.spotify_panel, label="&Abmelden")
+        self.sp_logout_btn.SetName("Spotify abmelden")
+        self.sp_logout_btn.Bind(wx.EVT_BUTTON, self._on_sp_logout)
+        sp_auth_row.Add(self.sp_login_btn, 0, wx.RIGHT, 8)
+        sp_auth_row.Add(self.sp_logout_btn, 0)
+        sp_sizer.Add(sp_auth_row, 0, wx.ALL, 4)
+
+        # Stream status + controls
+        self.sp_status = wx.StaticText(self.spotify_panel, label="Status: bereit")
+        self.sp_status.SetName("Spotify-Stream-Status")
+        sp_sizer.Add(self.sp_status, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+
+        sp_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.sp_start_btn = wx.Button(self.spotify_panel, label="Spotify &starten")
+        self.sp_start_btn.SetName("Spotify starten")
+        self.sp_start_btn.Bind(wx.EVT_BUTTON, self._on_sp_start)
+        self.sp_stop_btn = wx.Button(self.spotify_panel, label="Spotify st&oppen")
+        self.sp_stop_btn.SetName("Spotify stoppen")
+        self.sp_stop_btn.Bind(wx.EVT_BUTTON, self._on_sp_stop)
+        self.sp_stop_btn.Disable()
+        sp_btn_row.Add(self.sp_start_btn, 0, wx.RIGHT, 8)
+        sp_btn_row.Add(self.sp_stop_btn, 0)
+        sp_sizer.Add(sp_btn_row, 0, wx.ALL, 4)
+
+        self.spotify_panel.SetSizer(sp_sizer)
+        streaming_sizer.Add(self.spotify_panel, 0, wx.ALL | wx.EXPAND, 4)
+
+        # --- Deezer ---
+        self.deezer_panel = wx.Panel(self)
+        dz_box = wx.StaticBox(self.deezer_panel, label="Deezer (Deezer Premium empfohlen)")
+        dz_sizer = wx.StaticBoxSizer(dz_box, wx.VERTICAL)
+
+        dz_info = wx.StaticText(
+            self.deezer_panel,
+            label=(
+                "Login via ARL-Token (einmalig aus dem Browser kopieren).\n"
+                "Username/Passwort funktioniert bei Deezer nicht mehr."
+            ),
+        )
+        dz_info.Wrap(500)
+        dz_sizer.Add(dz_info, 0, wx.ALL, 4)
+
+        dz_arl_row = wx.BoxSizer(wx.HORIZONTAL)
+        dz_arl_row.Add(wx.StaticText(self.deezer_panel, label="ARL-Token"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.dz_arl = wx.TextCtrl(self.deezer_panel, style=wx.TE_PASSWORD)
+        self.dz_arl.SetName("Deezer ARL-Token")
+        self.dz_arl.SetValue(load_arl())
+        dz_arl_row.Add(self.dz_arl, 1, wx.EXPAND)
+        dz_sizer.Add(dz_arl_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        dz_auth_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.dz_save_btn = wx.Button(self.deezer_panel, label="Token &speichern")
+        self.dz_save_btn.SetName("Deezer-Token speichern")
+        self.dz_save_btn.Bind(wx.EVT_BUTTON, self._on_dz_save_arl)
+        self.dz_clear_btn = wx.Button(self.deezer_panel, label="Token &löschen")
+        self.dz_clear_btn.SetName("Deezer-Token löschen")
+        self.dz_clear_btn.Bind(wx.EVT_BUTTON, self._on_dz_clear_arl)
+        dz_auth_row.Add(self.dz_save_btn, 0, wx.RIGHT, 8)
+        dz_auth_row.Add(self.dz_clear_btn, 0)
+        dz_sizer.Add(dz_auth_row, 0, wx.ALL, 4)
+
+        _dz_arl_lbl = "Token gespeichert" if has_arl() else "Kein Token"
+        self.dz_arl_status = wx.StaticText(self.deezer_panel, label=f"Konto: {_dz_arl_lbl}")
+        self.dz_arl_status.SetName("Deezer-Konto-Status")
+        dz_sizer.Add(self.dz_arl_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        dz_search_row = wx.BoxSizer(wx.HORIZONTAL)
+        dz_search_row.Add(wx.StaticText(self.deezer_panel, label="Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.dz_search = wx.TextCtrl(self.deezer_panel)
+        self.dz_search.SetName("Deezer Suche")
+        self.dz_search_btn = wx.Button(self.deezer_panel, label="&Suchen")
+        self.dz_search_btn.SetName("Deezer suchen")
+        self.dz_search_btn.Bind(wx.EVT_BUTTON, self._on_dz_search)
+        dz_search_row.Add(self.dz_search, 1, wx.RIGHT | wx.EXPAND, 8)
+        dz_search_row.Add(self.dz_search_btn, 0)
+        dz_sizer.Add(dz_search_row, 0, wx.ALL | wx.EXPAND, 4)
+
+        self.dz_results = wx.ListBox(self.deezer_panel)
+        self.dz_results.SetName("Deezer Suchergebnisse")
+        setup_list_accessible(self.dz_results)
+        self.dz_results.SetMinSize((-1, 140))
+        dz_sizer.Add(self.dz_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+
+        self.dz_status = wx.StaticText(self.deezer_panel, label="Status: bereit")
+        self.dz_status.SetName("Deezer-Status")
+        dz_sizer.Add(self.dz_status, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+
+        dz_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.dz_stream_btn = wx.Button(self.deezer_panel, label="&Streamen")
+        self.dz_stream_btn.SetName("Deezer streamen")
+        self.dz_stream_btn.Bind(wx.EVT_BUTTON, self._on_dz_stream)
+        self.dz_stop_btn = wx.Button(self.deezer_panel, label="St&opp")
+        self.dz_stop_btn.SetName("Deezer stoppen")
+        self.dz_stop_btn.Bind(wx.EVT_BUTTON, self._on_dz_stop)
+        self.dz_stop_btn.Disable()
+        dz_ctrl_row.Add(self.dz_stream_btn, 0, wx.RIGHT, 8)
+        dz_ctrl_row.Add(self.dz_stop_btn, 0)
+        dz_sizer.Add(dz_ctrl_row, 0, wx.ALL, 4)
+
+        self.deezer_panel.SetSizer(dz_sizer)
+        streaming_sizer.Add(self.deezer_panel, 0, wx.ALL | wx.EXPAND, 4)
+
         sizer.Add(streaming_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         self.SetSizer(sizer)
@@ -540,6 +703,12 @@ class MediaTab(wx.Panel):
         if self._streaming:
             self.frame.client.stop_streaming_media()
             self._streaming = False
+        if self._spotify and self._spotify.is_running():
+            self._spotify.stop()
+            self._spotify = None
+        if self._deezer:
+            self._deezer.cleanup()
+            self._deezer = None
 
     # --- Recording ---
 
@@ -753,12 +922,16 @@ class MediaTab(wx.Panel):
         radio_idx = n_yt + 1
         podcast_idx = n_yt + 2
         playlist_idx = n_yt + 3
+        spotify_idx = n_yt + 4
+        deezer_idx = n_yt + 5
 
         self.stream_panel.Show(mode == 0)
         self.ytdlp_panel.Show(is_ytdlp)
         self.radio_panel.Show(mode == radio_idx)
         self.podcast_panel.Show(mode == podcast_idx)
         self.playlist_panel.Show(mode == playlist_idx)
+        self.spotify_panel.Show(mode == spotify_idx)
+        self.deezer_panel.Show(mode == deezer_idx)
 
         if is_ytdlp:
             _, search_prefix = self.YT_SOURCES[mode - 1]
@@ -780,6 +953,10 @@ class MediaTab(wx.Panel):
             self.podcast_search.SetFocus()
         elif mode == playlist_idx:
             self.pl_list.SetFocus()
+        elif mode == spotify_idx:
+            self.sp_start_btn.SetFocus()
+        elif mode == deezer_idx:
+            self.dz_search.SetFocus()
 
     # --- Unified yt-dlp search ---
 
@@ -1374,6 +1551,218 @@ class MediaTab(wx.Panel):
     def _pl_advance(self):
         if self._pl_streaming:
             self._pl_play_track(self._playlist_current + 1)
+
+    # ------------------------------------------------------------------
+    # Spotify
+    # ------------------------------------------------------------------
+
+    def _on_sp_browse_binary(self, _event):
+        with wx.FileDialog(
+            self, "librespot auswählen",
+            wildcard="Ausführbare Datei|librespot;librespot.exe|Alle|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() == wx.ID_OK:
+                self.sp_binary.SetValue(dlg.GetPath())
+
+    def _sp_bitrate(self) -> str:
+        return ["320", "160", "96"][self.sp_quality.GetSelection()]
+
+    def _on_sp_login(self, _event):
+        """Start OAuth flow in background thread; open browser automatically."""
+        from spotify_auth import login as spotify_login
+
+        self.sp_login_btn.Disable()
+        self.sp_login_status.SetLabel("Konto: Browser wird geöffnet...")
+        self.frame.set_status("Spotify-Anmeldung läuft – bitte im Browser bestätigen")
+
+        def worker():
+            try:
+                def show_url(url):
+                    wx.CallAfter(
+                        self.frame.set_status,
+                        f"Spotify-Login: Browser öffnen und einloggen ({url})"
+                    )
+
+                token = spotify_login(on_url=show_url, timeout=180.0)
+                self._spotify_token = token
+                wx.CallAfter(self._on_sp_login_done, None)
+            except Exception as exc:
+                wx.CallAfter(self._on_sp_login_done, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_sp_login_done(self, error: str | None):
+        self.sp_login_btn.Enable()
+        if error:
+            self.sp_login_status.SetLabel("Konto: Anmeldung fehlgeschlagen")
+            self.frame.set_status(f"Spotify-Anmeldung fehlgeschlagen: {error}")
+        else:
+            self.sp_login_status.SetLabel("Konto: Angemeldet ✓")
+            self.frame.set_status("Spotify-Anmeldung erfolgreich")
+
+    def _on_sp_logout(self, _event):
+        import os
+        from spotify_streamer import credentials_path
+        creds = credentials_path()
+        if os.path.exists(creds):
+            os.remove(creds)
+        self._spotify_token = ""
+        self.sp_login_status.SetLabel("Konto: Nicht angemeldet")
+        self.frame.set_status("Spotify-Konto abgemeldet")
+
+    def _on_sp_start(self, _event):
+        if self._spotify and self._spotify.is_running():
+            return
+
+        # Auto-login if no credentials stored and no token in session
+        from spotify_streamer import has_stored_credentials
+        if not has_stored_credentials() and not self._spotify_token:
+            self._on_sp_login(None)
+            self.frame.set_status("Bitte erst anmelden, dann erneut 'Spotify starten' klicken")
+            return
+
+        self._spotify = SpotifyStreamer(self.frame.client)
+
+        def on_status(msg):
+            wx.CallAfter(self.sp_status.SetLabel, f"Status: {msg}")
+            wx.CallAfter(self.frame.set_status, msg)
+
+        def on_error(msg):
+            wx.CallAfter(self.sp_status.SetLabel, f"Fehler: {msg}")
+            wx.CallAfter(self.frame.set_status, f"Spotify-Fehler: {msg}")
+            wx.CallAfter(self.sp_start_btn.Enable)
+            wx.CallAfter(self.sp_stop_btn.Disable)
+
+        self._spotify.on_status = on_status
+        self._spotify.on_error = on_error
+
+        ok = self._spotify.start(
+            librespot_path=self.sp_binary.GetValue(),
+            device_name=self.sp_device_name.GetValue().strip() or "TeamTalk Stream",
+            access_token=self._spotify_token,
+            bitrate=self._sp_bitrate(),
+        )
+        if ok:
+            self.sp_start_btn.Disable()
+            self.sp_stop_btn.Enable()
+        else:
+            self._spotify = None
+
+    def _on_sp_stop(self, _event):
+        if self._spotify:
+            self._spotify.stop()
+            self._spotify = None
+        self.sp_start_btn.Enable()
+        self.sp_stop_btn.Disable()
+        self.sp_status.SetLabel("Status: gestoppt")
+        self.frame.set_status("Spotify gestoppt")
+
+    # ------------------------------------------------------------------
+    # Deezer
+    # ------------------------------------------------------------------
+
+    def _on_dz_save_arl(self, _event):
+        arl = self.dz_arl.GetValue().strip()
+        if not arl:
+            self.frame.set_status("Bitte ARL-Token eingeben")
+            return
+        save_arl(arl)
+        self.dz_arl_status.SetLabel("Konto: Token gespeichert ✓")
+        self.frame.set_status("Deezer ARL-Token gespeichert")
+
+    def _on_dz_clear_arl(self, _event):
+        clear_arl()
+        self.dz_arl.SetValue("")
+        self.dz_arl_status.SetLabel("Konto: Kein Token")
+        self.frame.set_status("Deezer-Token gelöscht")
+
+    def _on_dz_search(self, _event):
+        query = self.dz_search.GetValue().strip()
+        if not query:
+            self.frame.set_status("Bitte Suchbegriff eingeben")
+            return
+        self.dz_search_btn.Disable()
+        self.dz_status.SetLabel("Status: Suche läuft…")
+
+        def worker():
+            try:
+                results = dz_search(query)
+                wx.CallAfter(self._dz_search_done, results, "")
+            except Exception as exc:
+                wx.CallAfter(self._dz_search_done, [], str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _dz_search_done(self, results: list, error: str):
+        self.dz_search_btn.Enable()
+        if error:
+            self.dz_status.SetLabel("Status: Suche fehlgeschlagen")
+            self.frame.set_status(f"Deezer-Suche fehlgeschlagen: {error}")
+            return
+        self._deezer_results = results
+        self.dz_results.Set([format_track(t) for t in results])
+        if results:
+            self.dz_results.SetSelection(0)
+        self.dz_status.SetLabel(f"Status: {len(results)} Treffer")
+
+    def _on_dz_stream(self, _event):
+        idx = self.dz_results.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._deezer_results):
+            self.frame.set_status("Bitte einen Track auswählen")
+            return
+        arl = self.dz_arl.GetValue().strip() or load_arl()
+        if not arl:
+            self.frame.set_status("Bitte ARL-Token eingeben und speichern")
+            return
+
+        track = self._deezer_results[idx]
+        track_id = track.get("id")
+
+        if self._deezer:
+            self._deezer.cleanup()
+        self._deezer = DeezerDownloader()
+
+        self.dz_stream_btn.Disable()
+        self.dz_stop_btn.Enable()
+
+        def on_status(msg):
+            wx.CallAfter(self.dz_status.SetLabel, f"Status: {msg}")
+
+        def on_done(path):
+            wx.CallAfter(self._dz_ready, path)
+
+        def on_error(msg):
+            wx.CallAfter(self._dz_error, msg)
+
+        self._deezer.download(track_id, arl, on_done, on_error, on_status)
+
+    def _dz_ready(self, path: str):
+        self.dz_status.SetLabel("Status: wird gestreamt…")
+        ok = self.frame.client.start_streaming_media_to_channel(path)
+        if ok:
+            self._streaming = True
+            self.frame.set_status(f"Deezer: {path}")
+        else:
+            self._dz_error("Streaming konnte nicht gestartet werden")
+
+    def _dz_error(self, msg: str):
+        self.dz_status.SetLabel(f"Fehler: {msg}")
+        self.dz_stream_btn.Enable()
+        self.dz_stop_btn.Disable()
+        self.frame.set_status(f"Deezer-Fehler: {msg}")
+
+    def _on_dz_stop(self, _event):
+        if self._streaming:
+            self.frame.client.stop_streaming_media()
+            self._streaming = False
+        if self._deezer:
+            self._deezer.cleanup()
+            self._deezer = None
+        self.dz_stream_btn.Enable()
+        self.dz_stop_btn.Disable()
+        self.dz_status.SetLabel("Status: gestoppt")
+        self.frame.set_status("Deezer gestoppt")
 
     @staticmethod
     def _parse_m3u(filepath: str) -> List[str]:

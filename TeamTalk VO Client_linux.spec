@@ -25,6 +25,7 @@ a = Analysis(
         ('third_party/teamtalk/tt5sdk_v5.19a_linux_x64/Library/TeamTalkPy', 'TeamTalkPy'),
         ('third_party/teamtalk/tt5sdk_v5.19a_linux_x64/Library/TeamTalk_DLL', 'TeamTalk_DLL'),
         ('third_party/yt-dlp', 'yt-dlp'),
+        ('third_party/librespot', 'librespot'),
         ('third_party/espeak-ng', 'espeak-ng'),
         ('third_party/sral/linux/libSRAL.so', 'sral/linux'),
         ('third_party/sral/sral.py', 'sral'),

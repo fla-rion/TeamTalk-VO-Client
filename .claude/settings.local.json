@@ -158,7 +158,23 @@
       "Read(//Users/florianlichteblau/**)",
       "Bash(printenv)",
       "Bash(security find-internet-password:*)",
-      "Bash(.venv/bin/python -c \"import ast; ast.parse\\(open\\('src/ui/tabs/connection.py'\\).read\\(\\)\\); print\\('OK'\\)\")"
+      "Bash(.venv/bin/python -c \"import ast; ast.parse\\(open\\('src/ui/tabs/connection.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(.venv/Scripts/pyinstaller -y \"TeamTalk VO Client.spec\")",
+      "Bash(py -m PyInstaller --version)",
+      "Bash(/c/Python313/Scripts/pyinstaller -y \"TeamTalk VO Client_win.spec\" 2>&1)",
+      "Bash(git fetch:*)",
+      "Bash(gh run:*)",
+      "Bash(.venv/Scripts/python.exe src/app.py)",
+      "Bash(py --version)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(grep -rn \"math65\\\\|ttaccessible\\\\|F2.*Verbind\\\\|F5.*aktual\\\\|F6.*Privat\\\\|F9.*PTT\" D:TeamTalk-VO-Client/ --include=*.py --include=*.txt --include=*.md)",
+      "Bash(.venv/Scripts/python.exe -c \"import sys; sys.argv=[''test'']; from app_qt import MainWindow; print\\(''OK''\\)\")",
+      "Bash(../.venv/Scripts/python.exe -c \"import ast; ast.parse\\(open\\(''app_qt.py''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "WebFetch(domain:www.bearware.dk)",
+      "Bash(find D:TeamTalk-VO-Client -name *.dll -o -name TeamTalk5*.py -o -name *.pyd)",
+      "Bash(find D:TeamTalk-VO-Client/src -name *.dll -o -name TeamTalk*.py)",
+      "Bash(find D:TeamTalk-VO-Client/third_party/teamtalk -name *.dll)",
+      "Bash(../.venv/Scripts/python.exe -c \"import ast; ast.parse\\(open\\(''app_qt.py''\\).read\\(\\)\\); print\\(''OK''\\)\")"
     ]
   }
 }

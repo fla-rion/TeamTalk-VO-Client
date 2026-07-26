@@ -35,7 +35,7 @@
 
 <h1>TeamTalk VoiceOver Client – Benutzerhandbuch</h1>
 <p>Barrierefreier TeamTalk-Client für VoiceOver (macOS), NVDA / JAWS (Windows) und Orca (Linux).<br>
-Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>8.0.2</strong></p>
+Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>9.0.0</strong></p>
 
 <!-- ============================================================ -->
 <div id="toc">
@@ -110,6 +110,14 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Die App unterstützt vier Oberflächensprachen: <strong>Deutsch, English, Français, Español</strong>. Die Sprache kann unter <em>Einstellungen → Allgemein → App-Sprache</em> gewechselt werden; die App startet dann neu.</p>
 
 <h2>Was ist neu</h2>
+<div class="new">
+<strong>v9.0.0 (2026-07-26):</strong>
+<ul>
+  <li><strong>Spotify-Streaming</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: TeamTalk erscheint als Spotify-Connect-Gerät in der Spotify-App. Einmalige Web-Anmeldung per OAuth, danach startet der Stream mit einem Klick. Qualitätswahl 320 / 160 / 96 kbps. Erfordert Spotify Premium.</li>
+  <li><strong>Deezer-Streaming</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: Deezer-Tracks suchen und direkt in den Kanal streamen. Authentifizierung via ARL-Token (einmalig aus dem Browser kopieren) — Username/Passwort wurde von Deezer abgeschaltet. Keine zusätzlichen Python-Pakete nötig.</li>
+  <li><strong>macOS-CI-Build</strong> <span class="platform mac">macOS</span>: Automatischer DMG-Build bei jedem Release via GitHub Actions.</li>
+</ul>
+</div>
 <div class="new">
 <strong>v8.1.3 (2026-07-19):</strong>
 <ul>
@@ -829,6 +837,45 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
   <li>Feed laden (Alt+F).</li>
   <li>Episode aus der Liste wählen und <strong>Episode streamen</strong> (Alt+E).</li>
 </ol>
+
+<h3>Playlist</h3>
+<ol>
+  <li>Dateien über <strong>Hinzufügen…</strong> (Alt+H) oder <strong>M3U laden…</strong> (Alt+M) zur Playlist hinzufügen.</li>
+  <li>Reihenfolge mit "Nach oben" / "Nach unten" anpassen.</li>
+  <li><strong>Abspielen</strong> startet ab dem markierten Titel; mit "Automatisch weiter" läuft die Playlist durch.</li>
+  <li>Playlist als M3U exportieren oder einzelne Titel entfernen.</li>
+</ol>
+
+<h3>Spotify <span class="badge-new">NEU</span></h3>
+<div class="note">Erfordert <strong>Spotify Premium</strong> und das gebündelte librespot-Binary.</div>
+<ol>
+  <li>Beim ersten Start auf <strong>Mit Spotify anmelden…</strong> klicken — der Browser öffnet sich automatisch.</li>
+  <li>Im Browser mit dem Spotify-Konto anmelden; die Seite bestätigt den Erfolg.</li>
+  <li>Gerätename nach Wunsch anpassen (Standard: "TeamTalk Stream").</li>
+  <li>Qualität wählen (320 / 160 / 96 kbps).</li>
+  <li><strong>Spotify starten</strong> klicken.</li>
+  <li>In der Spotify-App (Handy, Desktop oder Web) auf das Lautsprecher-Symbol tippen und den Gerätenamen auswählen.</li>
+  <li>Musik in der Spotify-App steuern — der Ton wird live in den Kanal gestreamt.</li>
+</ol>
+<p>Nach dem ersten Login werden die Anmeldedaten lokal gespeichert; beim nächsten Start ist kein erneutes Anmelden nötig. Über <strong>Abmelden</strong> werden die gespeicherten Daten gelöscht.</p>
+<p>Falls librespot fehlt: <code>python scripts/download_librespot.py</code> im Projektverzeichnis ausführen (benötigt Rust / Cargo).</p>
+
+<h3>Deezer <span class="badge-new">NEU</span></h3>
+<div class="note"><strong>ARL-Token erforderlich.</strong> Deezer hat Login per Username/Passwort für Drittanwendungen abgeschaltet.</div>
+<p>So erhält man den ARL-Token:</p>
+<ol>
+  <li>Im Browser auf <strong>deezer.com</strong> einloggen.</li>
+  <li>Entwicklertools öffnen (F12) → <em>Application</em> (Chrome) bzw. <em>Speicher</em> (Firefox) → Cookies → deezer.com.</li>
+  <li>Den Wert des Cookies <code>arl</code> kopieren (192 Zeichen).</li>
+</ol>
+<p>Token im Client verwenden:</p>
+<ol>
+  <li>ARL-Token in das Feld "ARL-Token" einfügen und <strong>Token speichern</strong> klicken (einmalig, wird lokal gespeichert).</li>
+  <li>Suchbegriff eingeben und <strong>Suchen</strong> klicken — die öffentliche Deezer-Suche braucht keinen Account.</li>
+  <li>Track aus der Ergebnisliste auswählen und <strong>Streamen</strong> klicken.</li>
+  <li>Der Track wird heruntergeladen und automatisch in den Kanal gestreamt.</li>
+</ol>
+<p>Der ARL-Token läuft alle 3–6 Monate ab. Bei Fehlermeldung einfach neu aus dem Browser kopieren.</p>
 
 <!-- ============================================================ -->
 <h1 id="desktop">16 · Desktopfreigabe</h1>

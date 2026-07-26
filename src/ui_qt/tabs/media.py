@@ -23,6 +23,8 @@ from PySide6.QtCore import Qt
 
 from i18n import _
 from ui_qt.live_region import LiveRegionAnnouncer
+from spotify_streamer import SpotifyStreamer, find_librespot, has_stored_credentials, credentials_path
+from deezer_downloader import DeezerDownloader, search_tracks as dz_search, format_track, load_arl, save_arl, clear_arl, has_arl
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -94,6 +96,10 @@ class MediaTab(QWidget):
         self._search_announcer = LiveRegionAnnouncer(self.window._sr_announce)
         self._pl_streaming = False
         self._playlist_current = -1
+        self._spotify: Optional[SpotifyStreamer] = None
+        self._spotify_token: str = ""
+        self._deezer: Optional[DeezerDownloader] = None
+        self._deezer_results: list = []
 
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
@@ -111,7 +117,7 @@ class MediaTab(QWidget):
         src_row.addWidget(QLabel(_("Streaming-Quelle:")))
         self._source_combo = QComboBox()
         self._source_combo.setAccessibleName(_("Streaming-Quelle"))
-        for _src_name in (_("URL / Datei"), _("YouTube / yt-dlp"), _("Webradio"), _("Podcasts"), _("Playlist")):
+        for _src_name in (_("URL / Datei"), _("YouTube / yt-dlp"), _("Webradio"), _("Podcasts"), _("Playlist"), _("Spotify"), _("Deezer")):
             self._source_combo.addItem(_src_name)
         src_row.addWidget(self._source_combo, 1)
         root.addLayout(src_row)
@@ -122,6 +128,8 @@ class MediaTab(QWidget):
         self._source_stack.addWidget(self._build_radio_tab())     # 2
         self._source_stack.addWidget(self._build_podcast_tab())   # 3
         self._source_stack.addWidget(self._build_playlist_tab())  # 4
+        self._source_stack.addWidget(self._build_spotify_tab())   # 5
+        self._source_stack.addWidget(self._build_deezer_tab())    # 6
         root.addWidget(self._source_stack, 1)
 
         self._source_combo.currentIndexChanged.connect(self._source_stack.setCurrentIndex)
@@ -433,6 +441,74 @@ class MediaTab(QWidget):
         ctrl_row.addWidget(QLabel(_("Lautstärke:")))
         ctrl_row.addWidget(self.pl_gain)
         layout.addLayout(ctrl_row)
+        return w
+
+    def _build_spotify_tab(self) -> QWidget:
+        w = QWidget()
+        layout = QVBoxLayout(w)
+
+        grp = QGroupBox(_("Spotify (Spotify Premium erforderlich)"))
+        form = QFormLayout(grp)
+
+        info = QLabel(
+            _("Benötigt: librespot-Binary (python scripts/download_librespot.py)\n"
+              "Nach dem Start das Gerät in der Spotify-App auswählen.")
+        )
+        info.setWordWrap(True)
+        form.addRow(info)
+
+        bin_row = QHBoxLayout()
+        self.sp_binary = QLineEdit()
+        self.sp_binary.setPlaceholderText(_("Pfad zu librespot (leer = automatisch)"))
+        self.sp_binary.setText(find_librespot() or "")
+        bin_row.addWidget(self.sp_binary, 1)
+        sp_browse_btn = QPushButton(_("…"))
+        sp_browse_btn.setFixedWidth(36)
+        sp_browse_btn.clicked.connect(self._on_sp_browse_binary)
+        bin_row.addWidget(sp_browse_btn)
+        form.addRow(_("librespot"), bin_row)
+
+        self.sp_device_name = QLineEdit("TeamTalk Stream")
+        self.sp_device_name.setAccessibleName(_("Spotify-Gerätename"))
+        form.addRow(_("Gerätename"), self.sp_device_name)
+
+        self.sp_quality = QComboBox()
+        self.sp_quality.addItems(["320 kbps", "160 kbps", "96 kbps"])
+        self.sp_quality.setAccessibleName(_("Spotify-Qualität"))
+        form.addRow(_("Qualität"), self.sp_quality)
+
+        _login_txt = "Angemeldet (gespeichert)" if has_stored_credentials() else "Nicht angemeldet"
+        self.sp_login_status = QLabel(f"Konto: {_login_txt}")
+        self.sp_login_status.setAccessibleName(_("Spotify-Konto-Status"))
+        form.addRow(self.sp_login_status)
+
+        auth_row = QHBoxLayout()
+        self.sp_login_btn = QPushButton(_("Mit Spotify &anmelden…"))
+        self.sp_login_btn.clicked.connect(self._on_sp_login)
+        self.sp_logout_btn = QPushButton(_("&Abmelden"))
+        self.sp_logout_btn.clicked.connect(self._on_sp_logout)
+        auth_row.addWidget(self.sp_login_btn)
+        auth_row.addWidget(self.sp_logout_btn)
+        auth_row.addStretch()
+        form.addRow(auth_row)
+
+        self.sp_status_label = QLabel(_("Status: bereit"))
+        self.sp_status_label.setAccessibleName(_("Spotify-Stream-Status"))
+        form.addRow(self.sp_status_label)
+
+        layout.addWidget(grp)
+
+        btn_row = QHBoxLayout()
+        self.sp_start_btn = QPushButton(_("Spotify &starten"))
+        self.sp_start_btn.clicked.connect(self._on_sp_start)
+        self.sp_stop_btn = QPushButton(_("Spotify st&oppen"))
+        self.sp_stop_btn.clicked.connect(self._on_sp_stop)
+        self.sp_stop_btn.setEnabled(False)
+        btn_row.addWidget(self.sp_start_btn)
+        btn_row.addWidget(self.sp_stop_btn)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+        layout.addStretch()
         return w
 
     # ------------------------------------------------------------------
@@ -1096,6 +1172,289 @@ class MediaTab(QWidget):
             self._source_combo.setCurrentIndex(_source_map[mode])
 
     # ------------------------------------------------------------------
+    # Spotify
+    # ------------------------------------------------------------------
+
+    def _on_sp_browse_binary(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, _("librespot auswählen"), "",
+            _("Ausführbare Datei (librespot librespot.exe);;Alle Dateien (*.*)")
+        )
+        if path:
+            self.sp_binary.setText(path)
+
+    def _sp_bitrate(self) -> str:
+        return ["320", "160", "96"][self.sp_quality.currentIndex()]
+
+    def _on_sp_login(self) -> None:
+        from spotify_auth import login as spotify_login
+        from ui_qt.call_after import call_after
+
+        self.sp_login_btn.setEnabled(False)
+        self.sp_login_status.setText(_("Konto: Browser wird geöffnet…"))
+        self.window.set_status(_("Spotify-Anmeldung läuft – bitte im Browser bestätigen"))
+
+        def worker():
+            try:
+                def show_url(url):
+                    call_after(
+                        self.window.set_status,
+                        f"Spotify-Login: Browser öffnen und einloggen ({url})"
+                    )
+
+                token = spotify_login(on_url=show_url, timeout=180.0)
+                self._spotify_token = token
+                call_after(self._on_sp_login_done, None)
+            except Exception as exc:
+                call_after(self._on_sp_login_done, str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_sp_login_done(self, error) -> None:
+        self.sp_login_btn.setEnabled(True)
+        if error:
+            self.sp_login_status.setText(_("Konto: Anmeldung fehlgeschlagen"))
+            self.window.set_status(f"Spotify-Anmeldung fehlgeschlagen: {error}")
+        else:
+            self.sp_login_status.setText(_("Konto: Angemeldet ✓"))
+            self.window.set_status(_("Spotify-Anmeldung erfolgreich"))
+
+    def _on_sp_logout(self) -> None:
+        import os
+        creds = credentials_path()
+        if os.path.exists(creds):
+            os.remove(creds)
+        self._spotify_token = ""
+        self.sp_login_status.setText(_("Konto: Nicht angemeldet"))
+        self.window.set_status(_("Spotify-Konto abgemeldet"))
+
+    def _on_sp_start(self) -> None:
+        if self._spotify and self._spotify.is_running():
+            return
+
+        if not has_stored_credentials() and not self._spotify_token:
+            self._on_sp_login()
+            self.window.set_status(_("Bitte erst anmelden, dann 'Spotify starten' erneut klicken"))
+            return
+
+        self._spotify = SpotifyStreamer(self.window.client)
+        from ui_qt.call_after import call_after
+
+        def on_status(msg):
+            call_after(self.sp_status_label.setText, f"Status: {msg}")
+            call_after(self.window.set_status, msg)
+
+        def on_error(msg):
+            call_after(self.sp_status_label.setText, f"Fehler: {msg}")
+            call_after(self.window.set_status, f"Spotify-Fehler: {msg}")
+            call_after(self.sp_start_btn.setEnabled, True)
+            call_after(self.sp_stop_btn.setEnabled, False)
+
+        self._spotify.on_status = on_status
+        self._spotify.on_error = on_error
+
+        ok = self._spotify.start(
+            librespot_path=self.sp_binary.text(),
+            device_name=self.sp_device_name.text().strip() or "TeamTalk Stream",
+            access_token=self._spotify_token,
+            bitrate=self._sp_bitrate(),
+        )
+        if ok:
+            self.sp_start_btn.setEnabled(False)
+            self.sp_stop_btn.setEnabled(True)
+        else:
+            self._spotify = None
+
+    def _on_sp_stop(self) -> None:
+        if self._spotify:
+            self._spotify.stop()
+            self._spotify = None
+        self.sp_start_btn.setEnabled(True)
+        self.sp_stop_btn.setEnabled(False)
+        self.sp_status_label.setText(_("Status: gestoppt"))
+        self.window.set_status(_("Spotify gestoppt"))
+
+    # ------------------------------------------------------------------
+    # Deezer
+    # ------------------------------------------------------------------
+
+    def _build_deezer_tab(self) -> QWidget:
+        from ui_qt.call_after import call_after
+        w = QWidget()
+        layout = QVBoxLayout(w)
+        grp = QGroupBox(_("Deezer (Deezer Premium empfohlen)"))
+        form = QFormLayout(grp)
+
+        info = QLabel(
+            "Login via ARL-Token (einmalig aus dem Browser kopieren).\n"
+            "Username/Passwort funktioniert bei Deezer nicht mehr."
+        )
+        info.setWordWrap(True)
+        form.addRow(info)
+
+        # ARL token
+        self.dz_arl = QLineEdit()
+        self.dz_arl.setAccessibleName(_("Deezer ARL-Token"))
+        self.dz_arl.setPlaceholderText("ARL-Token (192 Zeichen aus deezer.com Cookies)")
+        self.dz_arl.setEchoMode(QLineEdit.Password)
+        self.dz_arl.setText(load_arl())
+        form.addRow(_("ARL-Token:"), self.dz_arl)
+
+        arl_btn_row = QHBoxLayout()
+        self.dz_save_arl_btn = QPushButton(_("Token &speichern"))
+        self.dz_save_arl_btn.clicked.connect(self._on_dz_save_arl)
+        self.dz_clear_arl_btn = QPushButton(_("Token &löschen"))
+        self.dz_clear_arl_btn.clicked.connect(self._on_dz_clear_arl)
+        arl_btn_row.addWidget(self.dz_save_arl_btn)
+        arl_btn_row.addWidget(self.dz_clear_arl_btn)
+        form.addRow(arl_btn_row)
+
+        self.dz_arl_status = QLabel(_("Konto: {}").format(_("Token gespeichert") if has_arl() else _("Kein Token")))
+        self.dz_arl_status.setAccessibleName(_("Deezer-Konto-Status"))
+        form.addRow(self.dz_arl_status)
+
+        # Search
+        search_row = QHBoxLayout()
+        self.dz_search_edit = QLineEdit()
+        self.dz_search_edit.setAccessibleName(_("Deezer Suche"))
+        self.dz_search_edit.setPlaceholderText(_("Künstler oder Titel suchen…"))
+        self.dz_search_edit.returnPressed.connect(self._on_dz_search)
+        self.dz_search_btn = QPushButton(_("&Suchen"))
+        self.dz_search_btn.clicked.connect(self._on_dz_search)
+        search_row.addWidget(self.dz_search_edit, 1)
+        search_row.addWidget(self.dz_search_btn)
+        form.addRow(_("Suche:"), search_row)
+
+        self.dz_results = QListWidget()
+        self.dz_results.setAccessibleName(_("Deezer Suchergebnisse"))
+        self.dz_results.setMinimumHeight(140)
+        form.addRow(self.dz_results)
+
+        # Status + controls
+        self.dz_status = QLabel(_("Status: bereit"))
+        self.dz_status.setAccessibleName(_("Deezer-Status"))
+        form.addRow(self.dz_status)
+
+        ctrl_row = QHBoxLayout()
+        self.dz_stream_btn = QPushButton(_("&Streamen"))
+        self.dz_stream_btn.clicked.connect(self._on_dz_stream)
+        self.dz_stop_btn = QPushButton(_("St&opp"))
+        self.dz_stop_btn.clicked.connect(self._on_dz_stop)
+        self.dz_stop_btn.setEnabled(False)
+        ctrl_row.addWidget(self.dz_stream_btn)
+        ctrl_row.addWidget(self.dz_stop_btn)
+        form.addRow(ctrl_row)
+
+        layout.addWidget(grp)
+        return w
+
+    def _on_dz_save_arl(self) -> None:
+        arl = self.dz_arl.text().strip()
+        if not arl:
+            self.window.set_status(_("Bitte ARL-Token eingeben"))
+            return
+        save_arl(arl)
+        self.dz_arl_status.setText(_("Konto: Token gespeichert ✓"))
+        self.window.set_status(_("Deezer ARL-Token gespeichert"))
+
+    def _on_dz_clear_arl(self) -> None:
+        clear_arl()
+        self.dz_arl.clear()
+        self.dz_arl_status.setText(_("Konto: Kein Token"))
+        self.window.set_status(_("Deezer-Token gelöscht"))
+
+    def _on_dz_search(self) -> None:
+        from ui_qt.call_after import call_after
+        query = self.dz_search_edit.text().strip()
+        if not query:
+            self.window.set_status(_("Bitte Suchbegriff eingeben"))
+            return
+        self.dz_search_btn.setEnabled(False)
+        self.dz_status.setText(_("Status: Suche läuft…"))
+
+        def worker():
+            try:
+                results = dz_search(query)
+                call_after(self._dz_search_done, results)
+            except Exception as exc:
+                call_after(self._dz_search_done, [], str(exc))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _dz_search_done(self, results: list, error: str = "") -> None:
+        self.dz_search_btn.setEnabled(True)
+        if error:
+            self.dz_status.setText(_("Status: Suche fehlgeschlagen"))
+            self.window.set_status(f"Deezer-Suche fehlgeschlagen: {error}")
+            return
+        self._deezer_results = results
+        self.dz_results.clear()
+        for t in results:
+            self.dz_results.addItem(format_track(t))
+        if results:
+            self.dz_results.setCurrentRow(0)
+        self.dz_status.setText(_("Status: {} Treffer").format(len(results)))
+
+    def _on_dz_stream(self) -> None:
+        from ui_qt.call_after import call_after
+        idx = self.dz_results.currentRow()
+        if idx < 0 or idx >= len(self._deezer_results):
+            self.window.set_status(_("Bitte einen Track auswählen"))
+            return
+        arl = self.dz_arl.text().strip() or load_arl()
+        if not arl:
+            self.window.set_status(_("Bitte ARL-Token eingeben und speichern"))
+            return
+
+        track = self._deezer_results[idx]
+        track_id = track.get("id")
+
+        if self._deezer:
+            self._deezer.cleanup()
+        self._deezer = DeezerDownloader()
+
+        self.dz_stream_btn.setEnabled(False)
+        self.dz_stop_btn.setEnabled(True)
+
+        def on_status(msg):
+            call_after(self.dz_status.setText, f"Status: {msg}")
+
+        def on_done(path):
+            call_after(self._dz_ready, path)
+
+        def on_error(msg):
+            call_after(self._dz_error, msg)
+
+        self._deezer.download(track_id, arl, on_done, on_error, on_status)
+
+    def _dz_ready(self, path: str) -> None:
+        self.dz_status.setText(_("Status: wird gestreamt…"))
+        ok = self.window.client.start_streaming_media_to_channel(path)
+        if ok:
+            self._streaming = True
+            self.window.set_status(f"Deezer: {path}")
+        else:
+            self._dz_error(_("Streaming konnte nicht gestartet werden"))
+
+    def _dz_error(self, msg: str) -> None:
+        self.dz_status.setText(f"Fehler: {msg}")
+        self.dz_stream_btn.setEnabled(True)
+        self.dz_stop_btn.setEnabled(False)
+        self.window.set_status(f"Deezer-Fehler: {msg}")
+
+    def _on_dz_stop(self) -> None:
+        if self._streaming:
+            self.window.client.stop_streaming_media()
+            self._streaming = False
+        if self._deezer:
+            self._deezer.cleanup()
+            self._deezer = None
+        self.dz_stream_btn.setEnabled(True)
+        self.dz_stop_btn.setEnabled(False)
+        self.dz_status.setText(_("Status: gestoppt"))
+        self.window.set_status(_("Deezer gestoppt"))
+
+    # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
 
@@ -1112,3 +1471,9 @@ class MediaTab(QWidget):
             except Exception:
                 pass
             self._streaming = False
+        if self._spotify and self._spotify.is_running():
+            self._spotify.stop()
+            self._spotify = None
+        if self._deezer:
+            self._deezer.cleanup()
+            self._deezer = None

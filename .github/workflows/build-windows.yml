@@ -25,6 +25,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements_windows.txt
 
+      - name: Rust einrichten
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: librespot-Cache laden
+        id: librespot-cache
+        uses: actions/cache@v4
+        with:
+          path: third_party/librespot
+          key: librespot-windows-${{ hashFiles('scripts/download_librespot.py') }}
+
+      - name: librespot bauen
+        if: steps.librespot-cache.outputs.cache-hit != 'true'
+        run: python scripts/download_librespot.py
+
       - name: SRAL bauen (SRAL.dll)
         run: |
           git clone https://github.com/m1maker/SRAL C:\SRAL

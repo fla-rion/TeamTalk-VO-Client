@@ -1,6 +1,35 @@
 Changelog
 =========
 
+2026-07-26 (v9.0.0)
+Neues Feature: Spotify-Streaming via librespot + Deezer-Streaming via yt-dlp
+
+Spotify:
+- Neuer Streaming-Modus "Spotify" im Medien-Tab (Spotify Premium erforderlich)
+- Integration via librespot: TeamTalk erscheint als Spotify-Connect-Gerät in
+  der Spotify-App; Gerätename frei wählbar
+- Einmalige Web-Anmeldung per OAuth (PKCE): Browser öffnet sich automatisch,
+  librespot speichert Credentials für alle folgenden Starts
+- Qualitätswahl: 320 / 160 / 96 kbps
+- librespot-Binary gebündelt (third_party/librespot/), manuell via
+  python scripts/download_librespot.py installierbar
+- Neue Dateien: src/spotify_auth.py, src/spotify_streamer.py
+
+Deezer:
+- Neuer Streaming-Modus "Deezer" im Medien-Tab
+- Authentifizierung via ARL-Token (192-Zeichen-Cookie von deezer.com);
+  Username/Passwort wurde von Deezer abgeschaltet
+- Suche über die freie Deezer-Public-API (kein Account zum Suchen nötig)
+- Download und Entschlüsselung via yt-dlp (bereits gebündelt, keine neuen
+  pip-Pakete erforderlich)
+- Token wird lokal gespeichert (~/.config/tt-vo-client/deezer_arl.txt)
+- Neue Datei: src/deezer_downloader.py
+
+CI / Build:
+- build-macos.yml (neu): macOS-Build via GitHub Actions, erzeugt DMG
+- build-windows.yml + build-linux.yml: librespot-Build mit Rust + Cache
+- Alle Plattformen bündeln librespot automatisch im PyInstaller-Bundle
+
 2026-07-19 (v8.1.3)
 Fix: kaputte Versionserkennung in allen lokalen Build-Skripten + Installer für Linux
 
