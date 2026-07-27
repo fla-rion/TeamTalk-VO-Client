@@ -2,12 +2,16 @@
 import os as _os, sysconfig as _sc
 _site = _sc.get_paths()['purelib']
 _am = _os.path.join(_site, 'applefoundationmodels')
+_am_dylib = _os.path.join(_am, 'libfoundation_models.dylib')
+_am_json  = _os.path.join(_am, 'error_codes.json')
+_am_binaries = [(_am_dylib, 'applefoundationmodels')] if _os.path.exists(_am_dylib) else []
+_am_datas    = [(_am_json,  'applefoundationmodels')] if _os.path.exists(_am_json)  else []
 
 a = Analysis(
     ['src/app.py'],
     pathex=['src', 'third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy'],
-    binaries=[(_os.path.join(_am, 'libfoundation_models.dylib'), 'applefoundationmodels')],
-    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('src/ui_wx', 'ui_wx'), ('src/chat_history.py', '.'), ('src/global_hotkeys.py', '.'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('INSTALL_macOS.md', '.'), ('src/manual.html', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/librespot', 'librespot'), ('third_party/espeak-ng', 'espeak-ng'), ('third_party/blackhole', 'third_party/blackhole'), ('src/sounds', 'sounds'), ('third_party/sral/macOS/libSRAL.dylib', 'sral/macOS'), ('third_party/sral/sral.py', 'sral'), (_os.path.join(_am, 'error_codes.json'), 'applefoundationmodels')],
+    binaries=_am_binaries,
+    datas=[('src/teamtalk_client', 'teamtalk_client'), ('src/platform_paths.py', '.'), ('src/ui', 'ui'), ('src/ui_wx', 'ui_wx'), ('src/chat_history.py', '.'), ('src/global_hotkeys.py', '.'), ('licenses', 'licenses'), ('CHANGELOG.txt', '.'), ('INSTALL_macOS.md', '.'), ('src/manual.html', '.'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalkPy', 'TeamTalkPy'), ('third_party/teamtalk/tt5sdk_v5.19a_macos_universal/Library/TeamTalk_DLL', 'TeamTalk_DLL'), ('third_party/yt-dlp', 'yt-dlp'), ('third_party/librespot', 'librespot'), ('third_party/espeak-ng', 'espeak-ng'), ('third_party/blackhole', 'third_party/blackhole'), ('src/sounds', 'sounds'), ('third_party/sral/macOS/libSRAL.dylib', 'sral/macOS'), ('third_party/sral/sral.py', 'sral')] + _am_datas,
     hiddenimports=['app_wx', 'teamtalk_client', 'apple_fm', 'applefoundationmodels', 'teamtalk_client.tt', 'teamtalk_client.client', 'ui.tabs.system', 'ui_wx.tabs.system', 'platform_paths', 'sound_manager', 'objc', 'AppKit', 'Quartz', 'chat_history', 'global_hotkeys', 'pyaudio', 'i18n', 'mss', 'mss.tools', 'screen_capture', 'system_audio', 'qrcode', 'qrcode.image.pil', 'qrcode.image.base', 'PIL', 'PIL.Image', 'PIL.ImageDraw', 'PIL.ImageFont', 'sr_output'],
     hookspath=[],
     hooksconfig={},
