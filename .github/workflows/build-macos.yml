@@ -41,7 +41,7 @@ jobs:
           mkdir -p third_party/teamtalk
           cd third_party/teamtalk
           curl -sL -o sdk.7z "https://bearware.dk/teamtalksdk/v5.19a/tt5sdk_v5.19a_macos_universal.7z"
-          7z x sdk.7z
+          7z x -y sdk.7z
           rm sdk.7z
 
       - name: SRAL bauen (libSRAL.dylib)
