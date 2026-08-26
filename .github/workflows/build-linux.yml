@@ -123,20 +123,26 @@ jobs:
           base="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
           token="${GITEA_TOKEN}"
 
-          release_id=$(curl -s -H "Authorization: token $token" "$base/releases/tags/$tag" \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+          _parse_id() { python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true; }
+
+          release_id=$(curl -s -H "Authorization: token $token" "$base/releases/tags/$tag" | _parse_id)
 
           if [[ -z "$release_id" || "$release_id" == "None" ]]; then
             echo "Gitea-Release $tag nicht gefunden – erstelle..."
             release_id=$(curl -s -X POST "$base/releases" \
               -H "Authorization: token $token" -H "Content-Type: application/json" \
               -d "{\"tag_name\":\"$tag\",\"name\":\"$tag\",\"body\":\"Linux-Build $tag\",\"draft\":false,\"prerelease\":false}" \
-              | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+              | _parse_id)
+          fi
+
+          if [[ -z "$release_id" || "$release_id" == "None" ]]; then
+            echo "Gitea-Release konnte nicht erstellt werden (Tag fehlt auf Gitea?) – überspringe Upload"
+            exit 0
           fi
           echo "Gitea-Release ID: $release_id"
 
           existing=$(curl -s -H "Authorization: token $token" "$base/releases/$release_id/assets" \
-            | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if any(a['name']=='$TAR_NAME' for a in d) else 'no')")
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print('yes' if any(a['name']=='$TAR_NAME' for a in d) else 'no')" 2>/dev/null || echo "no")
 
           if [[ "$existing" == "yes" ]]; then
             echo "$TAR_NAME bereits auf Gitea vorhanden – überspringe Upload"
