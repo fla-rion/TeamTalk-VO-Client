@@ -72,7 +72,7 @@ class SystemTab(QWidget):
         root.addWidget(sys_group, 1)
 
         # TTS settings
-        tts_group = QGroupBox(_("Sprachausgabe (espeak-ng)"))
+        tts_group = QGroupBox(_("Sprachausgabe"))
         tts_layout = QVBoxLayout(tts_group)
 
         row1 = QHBoxLayout()
@@ -82,6 +82,15 @@ class SystemTab(QWidget):
         row1.addWidget(self.tts_interrupt)
         row1.addStretch()
         tts_layout.addLayout(row1)
+
+        backend_row = QHBoxLayout()
+        backend_row.addWidget(QLabel(_("TTS-Engine:")))
+        self.tts_backend = QComboBox()
+        self.tts_backend.setAccessibleName(_("TTS-Engine"))
+        self.tts_backend.addItems(["espeak-ng", "OpenEVV (Eloquence)"])
+        backend_row.addWidget(self.tts_backend)
+        backend_row.addStretch()
+        tts_layout.addLayout(backend_row)
 
         row2 = QHBoxLayout()
         self.tts_chat = QCheckBox(_("&Chat vorlesen"))
@@ -134,6 +143,12 @@ class SystemTab(QWidget):
         self.tts_path = QLineEdit()
         self.tts_path.setAccessibleName(_("espeak-ng Pfad"))
         form.addRow(QLabel(_("espeak-ng Pfad")), self.tts_path)
+
+        self.tts_evv_voice = QSpinBox()
+        self.tts_evv_voice.setRange(1, 8)
+        self.tts_evv_voice.setValue(1)
+        self.tts_evv_voice.setAccessibleName(_("Eloquence Stimme"))
+        form.addRow(QLabel(_("Eloquence Stimme (1–8)")), self.tts_evv_voice)
 
         tts_layout.addLayout(form)
 
@@ -216,6 +231,8 @@ class SystemTab(QWidget):
         self.tts_channel_rate.valueChanged.connect(self._apply_settings)
         self.tts_chat_voice.textChanged.connect(self._apply_settings)
         self.tts_system_voice.textChanged.connect(self._apply_settings)
+        self.tts_backend.currentIndexChanged.connect(self._apply_settings)
+        self.tts_evv_voice.valueChanged.connect(self._apply_settings)
 
     def _sync_from_manager(self) -> None:
         s = self.window.tts.settings
@@ -243,6 +260,10 @@ class SystemTab(QWidget):
         self.tts_rate.setValue(s.rate)
         self.tts_volume.setValue(s.volume)
         self.tts_path.setText(s.espeak_path)
+        self.tts_backend.blockSignals(True)
+        self.tts_backend.setCurrentIndex(1 if s.backend == "openevv" else 0)
+        self.tts_backend.blockSignals(False)
+        self.tts_evv_voice.setValue(max(1, min(8, int(s.openevv_voice))))
         self.tts_chat_rate.setValue(s.chat_rate or 0)
         self.tts_system_rate.setValue(s.system_rate or 0)
         self.tts_channel_rate.setValue(s.channel_rate or 0)
@@ -269,6 +290,8 @@ class SystemTab(QWidget):
         s.rate = self.tts_rate.value()
         s.volume = self.tts_volume.value()
         s.espeak_path = self.tts_path.text().strip()
+        s.backend = "openevv" if self.tts_backend.currentIndex() == 1 else "espeak"
+        s.openevv_voice = self.tts_evv_voice.value()
         app = self.window.settings_store.settings
         app.tts_enabled = s.enabled
         app.tts_speak_chat = s.speak_chat
@@ -281,6 +304,8 @@ class SystemTab(QWidget):
         app.tts_rate = s.rate
         app.tts_volume = s.volume
         app.tts_espeak_path = s.espeak_path
+        app.tts_backend = s.backend
+        app.tts_openevv_voice = s.openevv_voice
         app.tts_speak_user_join = s.speak_user_join
         app.tts_speak_user_leave = s.speak_user_leave
         app.tts_speak_file_transfer = s.speak_file_transfer

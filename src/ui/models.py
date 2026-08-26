@@ -335,6 +335,8 @@ class AppSettings:
     auto_summary_on_connect: bool = False
     # v7.6.0 features
     show_advanced_tabs: bool = False
+    # v8.2.0 openevv (Eloquence)
+    tts_openevv_voice: int = 1
 
 
 class SettingsStore:
@@ -549,6 +551,8 @@ class SettingsStore:
             # v6.10.3
             self.settings.tts_macos_rate = float(data.get("tts_macos_rate", 0.5) or 0.5)
             self.settings.tts_macos_volume = float(data.get("tts_macos_volume", 1.0) or 1.0)
+            # v8.2.0 openevv
+            self.settings.tts_openevv_voice = int(data.get("tts_openevv_voice", 1) or 1)
             _old_priv = bool(data.get("notify_background_private", True))
             self.settings.notify_background_private_mode = str(
                 data.get("notify_background_private_mode", "notification" if _old_priv else "off") or "notification"
@@ -758,6 +762,7 @@ class SettingsStore:
             # v6.10.3
             "tts_macos_rate": float(self.settings.tts_macos_rate if self.settings.tts_macos_rate is not None else 0.5),
             "tts_macos_volume": float(self.settings.tts_macos_volume if self.settings.tts_macos_volume is not None else 1.0),
+            "tts_openevv_voice": int(self.settings.tts_openevv_voice or 1),
             "notify_background_private_mode": str(self.settings.notify_background_private_mode or "notification"),
             "notify_background_channel_mode": str(self.settings.notify_background_channel_mode or "off"),
             "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),

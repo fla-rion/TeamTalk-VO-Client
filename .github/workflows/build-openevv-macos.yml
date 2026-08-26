@@ -1,0 +1,42 @@
+name: Build openevv (macOS)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: openevv aus Quellcode bauen
+        run: |
+          git clone --depth=1 https://github.com/Mudb0y/openevv.git /tmp/openevv
+          cd /tmp/openevv
+          make RULES=bytecode
+          mkdir -p "$GITHUB_WORKSPACE/third_party/openevv"
+          cp build/evv "$GITHUB_WORKSPACE/third_party/openevv/evv"
+          chmod +x "$GITHUB_WORKSPACE/third_party/openevv/evv"
+
+      - name: evv binary testen
+        run: |
+          "$GITHUB_WORKSPACE/third_party/openevv/evv" -h
+
+      - name: Binary ins Repo committen
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add third_party/openevv/evv
+          if git diff --cached --quiet; then
+            echo "Keine Änderung – evv bereits aktuell."
+          else
+            git commit -m "chore: openevv macOS-Binary (evv) via CI gebaut"
+            git push
+          fi

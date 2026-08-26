@@ -35,7 +35,8 @@ class TTSSettings:
     rate: int = 175
     volume: int = 100
     espeak_path: str = ""
-    backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" | "macos_avs" (macOS only)
+    backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" | "macos_avs" (macOS only) | "openevv"
+    openevv_voice: int = 1   # 1–8
     macos_voice: str = ""   # voice name for macos_say/macos_avs (empty = system default)
     macos_rate: float = 0.5  # 0.0–1.0; converted to WPM for say, used directly for AVS
     macos_volume: float = 1.0  # 0.0–1.0; only applied for macos_avs
@@ -119,6 +120,20 @@ class TTSManager:
                 return str(bundled)
         # Repo binary
         local = Path(__file__).resolve().parent.parent / "third_party" / "espeak-ng" / "bin" / exe_name
+        if local.exists():
+            return str(local)
+        return None
+
+    def _resolve_evv_binary(self) -> Optional[str]:
+        exe_name = "evv.exe" if sys.platform == "win32" else "evv"
+        system_bin = shutil.which(exe_name) or shutil.which("evv")
+        if system_bin:
+            return system_bin
+        if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+            bundled = Path(sys._MEIPASS) / "openevv" / exe_name
+            if bundled.exists():
+                return str(bundled)
+        local = Path(__file__).resolve().parent.parent / "third_party" / "openevv" / exe_name
         if local.exists():
             return str(local)
         return None
@@ -449,6 +464,44 @@ class TTSManager:
                         synth.stopSpeakingAtBoundary_(0)
                 except Exception:
                     pass
+                continue
+            if self.settings.backend == "openevv":
+                evv = self._resolve_evv_binary()
+                if not evv:
+                    try:
+                        self.frame.logger.write("TTS: evv (openevv/Eloquence) nicht gefunden")
+                    except Exception:
+                        pass
+                    continue
+                voice_num = max(1, min(8, int(self.settings.openevv_voice)))
+                rate = ctx_rate if ctx_rate else self.settings.rate
+                vol = max(0, min(100, self.settings.volume // 2))
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    cmd = [evv, "-v", str(voice_num), "-s", str(rate), "-V", str(vol), "-r", "-o", tmp_path, text]
+                    proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                    if proc.returncode != 0:
+                        try:
+                            self.frame.logger.write(f"TTS: evv failed {proc.stderr.decode('utf-8', 'ignore')}")
+                        except Exception:
+                            pass
+                    else:
+                        if sys.platform == "win32":
+                            import winsound
+                            winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
+                        else:
+                            self._current_proc = subprocess.Popen(
+                                ["afplay", tmp_path] if sys.platform == "darwin" else ["aplay", "-q", tmp_path],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            )
+                            self._current_proc.wait()
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+                    self._current_proc = None
                 continue
             if self.settings.backend == "macos_say" and sys.platform == "darwin":
                 cmd = ["say"]

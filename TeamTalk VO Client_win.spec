@@ -25,6 +25,7 @@ a = Analysis(
         ('third_party/yt-dlp', 'yt-dlp'),
         ('third_party/librespot', 'librespot'),
         ('third_party/espeak-ng', 'espeak-ng'),
+        ('third_party/openevv', 'openevv'),
         ('src/sounds', 'sounds'),
         ('src/screen_reader.py', '.'),
         ('third_party/tolk', 'tolk'),

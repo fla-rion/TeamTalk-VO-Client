@@ -642,6 +642,7 @@ class MainFrame(wx.Frame):
         self.tts.settings.macos_voice = str(getattr(_ts, "tts_macos_voice", "") or "")
         self.tts.settings.macos_rate = float(getattr(_ts, "tts_macos_rate", 0.5) or 0.5)
         self.tts.settings.macos_volume = float(getattr(_ts, "tts_macos_volume", 1.0) or 1.0)
+        self.tts.settings.openevv_voice = int(getattr(_ts, "tts_openevv_voice", 1) or 1)
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)

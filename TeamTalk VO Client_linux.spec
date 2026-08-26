@@ -27,6 +27,7 @@ a = Analysis(
         ('third_party/yt-dlp', 'yt-dlp'),
         ('third_party/librespot', 'librespot'),
         ('third_party/espeak-ng', 'espeak-ng'),
+        ('third_party/openevv', 'openevv'),
         ('third_party/sral/linux/libSRAL.so', 'sral/linux'),
         ('third_party/sral/sral.py', 'sral'),
         ('src/sounds', 'sounds'),

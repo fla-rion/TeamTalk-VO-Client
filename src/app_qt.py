@@ -248,6 +248,7 @@ class MainWindow(QMainWindow):
         self.tts.settings.rate = _ts.tts_rate
         self.tts.settings.volume = _ts.tts_volume
         self.tts.settings.espeak_path = _ts.tts_espeak_path
+        self.tts.settings.openevv_voice = int(getattr(_ts, "tts_openevv_voice", 1) or 1)
         self.tts.settings.speak_user_join = _ts.tts_speak_user_join
         self.tts.settings.speak_user_leave = _ts.tts_speak_user_leave
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer

@@ -60,6 +60,9 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as out:
               out.write(f"version={version}\n")
 
+      - name: openevv herunterladen
+        run: python scripts/download_openevv.py
+
       - name: PyInstaller Build
         run: |
           pyinstaller -y "TeamTalk VO Client_win.spec"
