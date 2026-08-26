@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-08-26 (v9.1.0)
+Neues Feature: Eloquence TTS (OpenEVV) als zweites TTS-Backend
+
+- IBM Embedded ViaVoice / ETI Eloquence SF über das Open-Source-Projekt
+  OpenEVV (github.com/Mudb0y/openevv) integriert
+- Auswahl im System-Tab unter "TTS-Backend": "OpenEVV (Eloquence)"
+- Stimmenauswahl 1–8 per Regler im System-Tab
+- Binary wird wie espeak-ng gebündelt – kein manueller Pfad nötig
+  (Windows: vorgefertigtes Binary; macOS/Linux arm64: aus Quellcode gebaut)
+- Neue Dateien: scripts/download_openevv.py, third_party/openevv/
+- CI: build-macos.yml, build-windows.yml, build-linux.yml führen
+  download_openevv.py automatisch vor PyInstaller aus
+- Neuer CI-Workflow build-openevv-macos.yml baut das macOS-Binary einmalig
+  und committet es ins Repo
+
 2026-07-26 (v9.0.0)
 Neues Feature: Spotify-Streaming via librespot + Deezer-Streaming via yt-dlp
 
