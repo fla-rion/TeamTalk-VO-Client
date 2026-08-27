@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-08-27 (v9.1.1)
+Bugfix: Apple Foundation Models machte den Client unter macOS 26 unbenutzbar
+
+- src/apple_fm.py: Das aktuelle applefoundationmodels-Paket setzt macOS 27
+  (Golden Gate) voraus – der native Import der .dylib brach auf macOS 26
+  (Tahoe) und älter hart ab (dyld-Fehler statt abfangbarer Python-Exception,
+  Exit-Code 1). Neue Prüfung _min_macos_ok() liest die Systemversion via
+  platform.mac_ver() und verhindert JEDEN Zugriff auf applefoundationmodels
+  unterhalb von macOS 27 – weder is_available() noch generate() starten in
+  dem Fall noch den Worker-Subprozess. Betroffene Funktionen (Chat-
+  Zusammenfassung, Antwortvorschläge, Absichtsklassifikation, Text
+  verbessern, Echtzeit-Übersetzung) fallen auf macOS 26 sofort und lautlos
+  auf Claude/Gemini/Ollama/Extraktion zurück, der Client selbst bleibt
+  uneingeschränkt nutzbar.
+
 2026-08-26 (v9.1.0)
 Neues Feature: Eloquence TTS (OpenEVV) als zweites TTS-Backend
 

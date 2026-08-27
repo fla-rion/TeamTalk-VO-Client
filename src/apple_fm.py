@@ -1,28 +1,51 @@
-"""apple_fm.py – Wrapper für Apple Foundation Models (macOS 26+, Apple Silicon).
+"""apple_fm.py – Wrapper für Apple Foundation Models (macOS 27+, Apple Silicon).
 
 On-device LLM von Apple Intelligence. Kein API-Key, kein Netz, keine Kosten.
 Alle Funktionen geben None zurück wenn das Modell nicht verfügbar ist.
 
-generate() läuft in einem isolierten Subprozess (erneuter Aufruf der eigenen
-.app / des eigenen Skripts mit --apple-fm-worker): das Foundation-Models-
-Framework ist je nach genauer macOS-Version (z. B. Tahoe vs. neuere Beta-Builds)
-noch nicht überall gleich stabil und kann nativ abstürzen – ein Python
-try/except fängt das nicht ab, weil dabei der ganze Prozess stirbt. Stürzt
-nur der Worker ab, bleibt die App am Leben und der nächste Backend-Fallback
-(Claude/Gemini/Ollama/Extraktion) greift.
+Das aktuell gebündelte applefoundationmodels-Paket setzt macOS 27 (Golden
+Gate) voraus – auf macOS 26 (Tahoe) und älter bricht schon der native Import
+der .dylib hart ab (dyld-Fehler, kein abfangbarer Python-Fehler, Exit-Code 1).
+_min_macos_ok() prüft die Systemversion deshalb VOR jedem Zugriff auf das
+Modul, damit auf zu alten Systemen erst gar kein Import/Worker-Aufruf
+versucht wird und der nächste Backend-Fallback (Claude/Gemini/Ollama/
+Extraktion) sofort greift.
+
+generate() läuft zusätzlich in einem isolierten Subprozess (erneuter Aufruf
+der eigenen .app / des eigenen Skripts mit --apple-fm-worker): das
+Foundation-Models-Framework kann auch auf unterstützten Systemen im Detail
+noch instabil sein – ein Python try/except fängt native Abstürze nicht ab,
+weil dabei der ganze Prozess stirbt. Stürzt nur der Worker ab, bleibt die
+App am Leben.
 """
 from __future__ import annotations
 
 import json
 import os
+import platform
 import subprocess
 import sys
 import tempfile
 from typing import List, Optional
 
+MIN_MACOS_MAJOR = 27
+
+
+def _min_macos_ok() -> bool:
+    """True wenn die macOS-Version für applefoundationmodels ausreicht."""
+    if sys.platform != "darwin":
+        return False
+    try:
+        major = int(platform.mac_ver()[0].split(".")[0])
+        return major >= MIN_MACOS_MAJOR
+    except Exception:
+        return False
+
 
 def is_available() -> bool:
     """True wenn Apple Intelligence auf diesem Gerät verfügbar ist."""
+    if not _min_macos_ok():
+        return False
     try:
         import applefoundationmodels as fm
         return bool(fm.apple_intelligence_available())
@@ -36,6 +59,8 @@ def _generate_inprocess(prompt: str, system: str = "", max_tokens: int = 300) ->
     Nur für den isolierten Worker-Subprozess gedacht (siehe ``run_worker``) –
     normale Aufrufer verwenden ``generate()``.
     """
+    if not _min_macos_ok():
+        return None
     try:
         import applefoundationmodels as fm
         if not fm.apple_intelligence_available():
@@ -78,6 +103,9 @@ def generate(
         Generierter Text oder None bei Fehler / Absturz / Nichtverfügbarkeit /
         Timeout.
     """
+    if not _min_macos_ok():
+        return None
+
     cmd = _worker_cmd()
     if cmd is None:
         return _generate_inprocess(prompt, system, max_tokens)

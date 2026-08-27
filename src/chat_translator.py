@@ -2,7 +2,7 @@
 
 Übersetzt eingehende Chat-Nachrichten in eine konfigurierbare Zielsprache.
 Backends:
-  1. Apple FM (on-device, macOS 26+, kein API-Key)
+  1. Apple FM (on-device, macOS 27+, kein API-Key)
   2. Claude (anthropic SDK / HTTP)
   3. Gemini
   4. Ollama

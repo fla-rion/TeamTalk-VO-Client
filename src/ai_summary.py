@@ -3,7 +3,7 @@
 Fasst verpasste Chat-Nachrichten zusammen wenn der Nutzer zurückkommt
 oder per Hotkey. Backends werden der Reihe nach versucht:
 
-  1. Apple FM – on-device (macOS 26+, Apple Silicon, kein API-Key)
+  1. Apple FM – on-device (macOS 27+, Apple Silicon, kein API-Key)
   2. Claude  – via offizielles `anthropic` SDK (API-Key aus Settings/Env)
   3. Gemini  – via `google-genai` SDK (API-Key oder OAuth-Token)
   4. Ollama  – lokale Modelle (llama3.2, phi3, mistral …)
@@ -70,7 +70,7 @@ class ChatSummaryManager:
 
         summary: Optional[str] = None
 
-        # 1. Apple Foundation Models (on-device, macOS 26+)
+        # 1. Apple Foundation Models (on-device, macOS 27+)
         summary = self._summarize_with_apple_fm(messages)
 
         # 2. Claude (Anthropic SDK)
