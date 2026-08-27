@@ -206,20 +206,20 @@ class AdminTab(QWidget):
         self.account_list.clear()
         self._accounts = []
         self._account_form_group.setVisible(False)
-        self._set_status("Benutzerkonten werden geladen...")
+        self._set_status(_("Benutzerkonten werden geladen..."))
 
         def worker():
             try:
                 cmdid = self.window.client.do_list_user_accounts()
                 if cmdid <= 0:
                     call_after(self._set_status,
-                               "Kein Zugriff auf Benutzerkonten (keine Admin-Rechte?)")
+                               _("Kein Zugriff auf Benutzerkonten (keine Admin-Rechte?)"))
                     return
                 import time
                 time.sleep(1.5)
                 call_after(self._finish_load_accounts)
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Laden der Konten: {exc}")
+                call_after(self._set_status, _("Fehler beim Laden der Konten: {}").format(exc))
             finally:
                 call_after(self.load_accounts_btn.setEnabled, True)
 
@@ -229,11 +229,13 @@ class AdminTab(QWidget):
         count = len(self._accounts)
         if count == 0:
             self._set_status(
-                "Keine Benutzerkonten empfangen – "
-                "prüfe Admin-Rechte und 'Nutzerkonten anzeigen'-Berechtigung."
+                _(
+                    "Keine Benutzerkonten empfangen – "
+                    "prüfe Admin-Rechte und 'Nutzerkonten anzeigen'-Berechtigung."
+                )
             )
         else:
-            self._set_status(f"{count} Benutzerkonto(en) geladen")
+            self._set_status(_("{} Benutzerkonto(en) geladen").format(count))
 
     def add_account_to_list(self, account) -> None:
         """Called by MainWindow when a CMD_USERACCOUNT event arrives."""
@@ -242,11 +244,11 @@ class AdminTab(QWidget):
             name  = self._tt_str(account.szUsername)
             utype_val = int(getattr(account, "uUserType", 0))
             if utype_val & _USERTYPE_ADMIN:
-                utype = "Administrator"
+                utype = _("Administrator")
             elif utype_val == _USERTYPE_NONE:
-                utype = "Gesperrt"
+                utype = _("Gesperrt")
             else:
-                utype = "Standard"
+                utype = _("Standard")
             note = self._tt_str(account.szNote) if hasattr(account, "szNote") else ""
             label = f"{name}, {utype}" + (f", {note}" if note else "")
             self.account_list.addItem(label)
@@ -262,11 +264,11 @@ class AdminTab(QWidget):
                 name = tt_str(acc.szUsername)
                 utype_val = int(getattr(acc, "uUserType", 0))
                 if utype_val & _USERTYPE_ADMIN:
-                    utype = "Administrator"
+                    utype = _("Administrator")
                 elif utype_val == _USERTYPE_NONE:
-                    utype = "Gesperrt"
+                    utype = _("Gesperrt")
                 else:
-                    utype = "Standard"
+                    utype = _("Standard")
                 note = tt_str(acc.szNote) if hasattr(acc, "szNote") else ""
                 label = f"{name}, {utype}" + (f", {note}" if note else "")
                 self.account_list.addItem(label)
@@ -288,7 +290,7 @@ class AdminTab(QWidget):
     def on_edit_account(self) -> None:
         row = self.account_list.currentRow()
         if row < 0 or row >= len(self._accounts):
-            self._set_status("Bitte ein Konto auswählen")
+            self._set_status(_("Bitte ein Konto auswählen"))
             return
         acc = self._accounts[row]
         self._selected_account_index = row
@@ -334,7 +336,7 @@ class AdminTab(QWidget):
         if self._cb_download.isChecked():       rights |= _UR_DOWNLOAD
 
         self._save_account_btn.setEnabled(False)
-        self._set_status(f"Konto wird gespeichert: {username}...")
+        self._set_status(_("Konto wird gespeichert: {}...").format(username))
 
         def worker():
             try:
@@ -342,13 +344,13 @@ class AdminTab(QWidget):
                     username, password, utype, user_rights=rights
                 )
                 if cmd_id > 0:
-                    call_after(self._set_status, f"Konto gespeichert: {username}")
+                    call_after(self._set_status, _("Konto gespeichert: {}").format(username))
                     call_after(self._account_form_group.setVisible, False)
                     call_after(self.on_load_accounts)
                 else:
-                    call_after(self._set_status, f"Fehler: Konto konnte nicht gespeichert werden")
+                    call_after(self._set_status, _("Fehler: Konto konnte nicht gespeichert werden"))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Speichern: {exc}")
+                call_after(self._set_status, _("Fehler beim Speichern: {}").format(exc))
             finally:
                 call_after(self._save_account_btn.setEnabled, True)
 
@@ -360,12 +362,12 @@ class AdminTab(QWidget):
     def on_del_account(self) -> None:
         row = self.account_list.currentRow()
         if row < 0 or row >= len(self._accounts):
-            self._set_status("Bitte ein Konto auswählen")
+            self._set_status(_("Bitte ein Konto auswählen"))
             return
         username = self._tt_str(self._accounts[row].szUsername)
         reply = QMessageBox.question(
             self, _("Konto löschen"),
-            f"Konto '{username}' wirklich löschen?",
+            _("Konto '{}' wirklich löschen?").format(username),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -373,18 +375,18 @@ class AdminTab(QWidget):
             return
 
         self.del_account_btn.setEnabled(False)
-        self._set_status(f"Konto wird gelöscht: {username}...")
+        self._set_status(_("Konto wird gelöscht: {}...").format(username))
 
         def worker():
             try:
                 cmd_id = self.window.client.do_delete_user_account(username)
                 if cmd_id > 0:
-                    call_after(self._set_status, f"Konto gelöscht: {username}")
+                    call_after(self._set_status, _("Konto gelöscht: {}").format(username))
                     call_after(self.on_load_accounts)
                 else:
-                    call_after(self._set_status, f"Löschen fehlgeschlagen für: {username}")
+                    call_after(self._set_status, _("Löschen fehlgeschlagen für: {}").format(username))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Löschen: {exc}")
+                call_after(self._set_status, _("Fehler beim Löschen: {}").format(exc))
             finally:
                 call_after(self.del_account_btn.setEnabled, True)
 
@@ -398,14 +400,14 @@ class AdminTab(QWidget):
         self.load_bans_btn.setEnabled(False)
         self.ban_list.clear()
         self._bans = []
-        self._set_status("Sperren werden geladen...")
+        self._set_status(_("Sperren werden geladen..."))
 
         def worker():
             try:
                 self.window.client.do_list_bans()
-                call_after(self._set_status, "Sperren geladen — Warte auf Serverdaten...")
+                call_after(self._set_status, _("Sperren geladen — Warte auf Serverdaten..."))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Laden der Sperren: {exc}")
+                call_after(self._set_status, _("Fehler beim Laden der Sperren: {}").format(exc))
             finally:
                 call_after(self.load_bans_btn.setEnabled, True)
 
@@ -437,27 +439,27 @@ class AdminTab(QWidget):
     def on_unban(self) -> None:
         row = self.ban_list.currentRow()
         if row < 0 or row >= len(self._bans):
-            self._set_status("Bitte eine Sperre auswählen")
+            self._set_status(_("Bitte eine Sperre auswählen"))
             return
         ban = self._bans[row]
         ip = self._tt_str(ban.szIPAddress) if hasattr(ban, "szIPAddress") else ""
         if not ip:
-            self._set_status("Keine IP-Adresse verfügbar")
+            self._set_status(_("Keine IP-Adresse verfügbar"))
             return
 
         self.unban_btn.setEnabled(False)
-        self._set_status(f"Sperre wird aufgehoben für: {ip}...")
+        self._set_status(_("Sperre wird aufgehoben für: {}...").format(ip))
 
         def worker():
             try:
                 cmd_id = self.window.client.do_unban_user(ip)
                 if cmd_id > 0:
-                    call_after(self._set_status, f"Entsperrt: {ip}")
+                    call_after(self._set_status, _("Entsperrt: {}").format(ip))
                     call_after(self.on_load_bans)
                 else:
-                    call_after(self._set_status, f"Entsperren fehlgeschlagen für: {ip}")
+                    call_after(self._set_status, _("Entsperren fehlgeschlagen für: {}").format(ip))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Entsperren: {exc}")
+                call_after(self._set_status, _("Fehler beim Entsperren: {}").format(exc))
             finally:
                 call_after(self.unban_btn.setEnabled, True)
 
@@ -469,13 +471,13 @@ class AdminTab(QWidget):
 
     def on_load_props(self) -> None:
         self.load_props_btn.setEnabled(False)
-        self._set_status("Servereigenschaften werden geladen...")
+        self._set_status(_("Servereigenschaften werden geladen..."))
 
         def worker():
             try:
                 props = self.window.client.get_server_properties()
                 if props is None:
-                    call_after(self._set_status, "Servereigenschaften konnten nicht geladen werden")
+                    call_after(self._set_status, _("Servereigenschaften konnten nicht geladen werden"))
                     return
                 tt_str = self._tt_str
                 name     = tt_str(props.szServerName)
@@ -484,9 +486,9 @@ class AdminTab(QWidget):
                 call_after(self.srv_name.setText, name)
                 call_after(self.srv_motd.setPlainText, motd)
                 call_after(self.srv_maxusers.setValue, maxusers)
-                call_after(self._set_status, "Servereigenschaften geladen")
+                call_after(self._set_status, _("Servereigenschaften geladen"))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Laden: {exc}")
+                call_after(self._set_status, _("Fehler beim Laden: {}").format(exc))
             finally:
                 call_after(self.load_props_btn.setEnabled, True)
 
@@ -498,16 +500,16 @@ class AdminTab(QWidget):
         maxusers = self.srv_maxusers.value()
 
         self.save_props_btn.setEnabled(False)
-        self._set_status("Servereigenschaften werden gespeichert...")
+        self._set_status(_("Servereigenschaften werden gespeichert..."))
 
         def worker():
             try:
                 self.window.client.do_update_server(
                     server_name=name, motd=motd, max_users=maxusers
                 )
-                call_after(self._set_status, "Servereigenschaften gespeichert")
+                call_after(self._set_status, _("Servereigenschaften gespeichert"))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Speichern: {exc}")
+                call_after(self._set_status, _("Fehler beim Speichern: {}").format(exc))
             finally:
                 call_after(self.save_props_btn.setEnabled, True)
 
@@ -515,14 +517,14 @@ class AdminTab(QWidget):
 
     def on_save_config(self) -> None:
         self.save_config_btn.setEnabled(False)
-        self._set_status("Serverkonfiguration wird gespeichert...")
+        self._set_status(_("Serverkonfiguration wird gespeichert..."))
 
         def worker():
             try:
                 self.window.client.do_save_config()
-                call_after(self._set_status, "Serverkonfiguration gespeichert")
+                call_after(self._set_status, _("Serverkonfiguration gespeichert"))
             except Exception as exc:
-                call_after(self._set_status, f"Fehler beim Speichern der Konfiguration: {exc}")
+                call_after(self._set_status, _("Fehler beim Speichern der Konfiguration: {}").format(exc))
             finally:
                 call_after(self.save_config_btn.setEnabled, True)
 

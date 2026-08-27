@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "9.1.1"
+APP_VERSION = "9.2.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -4179,7 +4179,11 @@ class MainWindow(QMainWindow):
     def on_menu_manual(self) -> None:
         try:
             import webbrowser
-            manual_path = Path(__file__).parent / "manual.html"
+            lang = current_language()
+            base = Path(__file__).parent
+            manual_path = base / f"manual_{lang}.html" if lang != "de" else base / "manual.html"
+            if not manual_path.exists():
+                manual_path = base / "manual.html"
             if manual_path.exists():
                 webbrowser.open(str(manual_path))
         except Exception:
@@ -4188,7 +4192,11 @@ class MainWindow(QMainWindow):
     def on_menu_changelog(self) -> None:
         try:
             import webbrowser
-            cl_path = Path(__file__).parent.parent / "CHANGELOG.txt"
+            lang = current_language()
+            base = Path(__file__).parent.parent
+            cl_path = base / f"CHANGELOG_{lang}.txt" if lang != "de" else base / "CHANGELOG.txt"
+            if not cl_path.exists():
+                cl_path = base / "CHANGELOG.txt"
             if cl_path.exists():
                 webbrowser.open(str(cl_path))
         except Exception:

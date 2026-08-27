@@ -6,7 +6,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, List
 
-from i18n import _
+from i18n import _, current_language
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox,
@@ -63,15 +63,15 @@ class ChatTab(QWidget):
         search_row = QHBoxLayout()
         search_row.addWidget(QLabel(_("Suchen:")))
         self.search_input = QLineEdit()
-        self.search_input.setAccessibleName("Verlauf durchsuchen")
-        self.search_input.setPlaceholderText("Im Verlauf suchen …")
+        self.search_input.setAccessibleName(_("Verlauf durchsuchen"))
+        self.search_input.setPlaceholderText(_("Im Verlauf suchen …"))
         self.search_input.returnPressed.connect(self._on_search)
         search_row.addWidget(self.search_input, 1)
         self.search_btn = QPushButton(_("&Suchen"))
         self.search_btn.clicked.connect(self._on_search)
         search_row.addWidget(self.search_btn)
         self.search_count = QLabel(_("0 Treffer"))
-        self.search_count.setAccessibleName("Suchergebnis")
+        self.search_count.setAccessibleName(_("Suchergebnis"))
         search_row.addWidget(self.search_count)
         root.addLayout(search_row)
 
@@ -79,16 +79,16 @@ class ChatTab(QWidget):
         target_group = QGroupBox(_("Chat-Ziel"))
         target_layout = QVBoxLayout(target_group)
         self.chat_target = QLabel(_("Ziel: (kein)"))
-        self.chat_target.setAccessibleName("Chat-Ziel")
+        self.chat_target.setAccessibleName(_("Chat-Ziel"))
         target_layout.addWidget(self.chat_target)
 
         target_row = QHBoxLayout()
         self.private_chat = QCheckBox(_("&Privat"))
-        self.private_chat.setAccessibleName("Privat senden")
+        self.private_chat.setAccessibleName(_("Privat senden"))
         self.private_chat.stateChanged.connect(lambda _: self.update_chat_target())
         lbl_private = QLabel(_("Privat an:"))
         self.private_user = QComboBox()
-        self.private_user.setAccessibleName("Privat an")
+        self.private_user.setAccessibleName(_("Privat an"))
         self.private_user.currentIndexChanged.connect(self._on_private_user_changed)
         target_row.addWidget(self.private_chat)
         target_row.addWidget(lbl_private)
@@ -100,10 +100,12 @@ class ChatTab(QWidget):
         root.addWidget(QLabel(_("Chatverlauf")))
         self.chat_log = QTextEdit()
         self.chat_log.setReadOnly(True)
-        self.chat_log.setAccessibleName("Chatverlauf")
+        self.chat_log.setAccessibleName(_("Chatverlauf"))
         self.chat_log.setAccessibleDescription(
-            "Lese-only Bereich. Strg+C kopiert markierten Text. "
-            "F6 wechselt zur Eingabe."
+            _(
+                "Lese-only Bereich. Strg+C kopiert markierten Text. "
+                "F6 wechselt zur Eingabe."
+            )
         )
         root.addWidget(self.chat_log, 1)
 
@@ -130,12 +132,14 @@ class ChatTab(QWidget):
         # --- Message input ---
         root.addWidget(QLabel(_("Nachricht")))
         self.chat_input = QLineEdit()
-        self.chat_input.setAccessibleName("Nachricht eingeben")
+        self.chat_input.setAccessibleName(_("Nachricht eingeben"))
         self.chat_input.setAccessibleDescription(
-            "Nachricht tippen und Enter drücken oder Senden klicken. "
-            "F6 springt zum Chatverlauf."
+            _(
+                "Nachricht tippen und Enter drücken oder Senden klicken. "
+                "F6 springt zum Chatverlauf."
+            )
         )
-        self.chat_input.setPlaceholderText("Nachricht eingeben …")
+        self.chat_input.setPlaceholderText(_("Nachricht eingeben …"))
         self.chat_input.returnPressed.connect(self._on_send)
         root.addWidget(self.chat_input)
 
@@ -145,13 +149,13 @@ class ChatTab(QWidget):
 
         send_row = QHBoxLayout()
         self.send_btn = QPushButton(_("&Senden"))
-        self.send_btn.setAccessibleName("Nachricht senden")
+        self.send_btn.setAccessibleName(_("Nachricht senden"))
         self.send_btn.clicked.connect(self._on_send)
         self.improve_btn = QPushButton(_("&Verbessern"))
-        self.improve_btn.setAccessibleName("Text verbessern")
+        self.improve_btn.setAccessibleName(_("Text verbessern"))
         self.improve_btn.clicked.connect(self._on_improve_text)
         self.char_count_label = QLabel(_("0 Zeichen"))
-        self.char_count_label.setAccessibleName("Zeichenanzahl")
+        self.char_count_label.setAccessibleName(_("Zeichenanzahl"))
         send_row.addWidget(self.send_btn)
         send_row.addWidget(self.improve_btn)
         send_row.addWidget(self.char_count_label)
@@ -174,7 +178,7 @@ class ChatTab(QWidget):
             self.chat_input.setFocus()
 
     def _on_input_changed(self, text: str) -> None:
-        self.char_count_label.setText(f"{len(text)} Zeichen")
+        self.char_count_label.setText(_("{} Zeichen").format(len(text)))
 
     # ------------------------------------------------------------------
     # Chat target
@@ -189,12 +193,12 @@ class ChatTab(QWidget):
             idx = self.private_user.currentIndex()
             if idx >= 0 and idx < len(self._private_user_ids):
                 name = self.private_user.currentText()
-                self.chat_target.setText(f"Ziel: {name} (privat)")
+                self.chat_target.setText(_("Ziel: {} (privat)").format(name))
             else:
-                self.chat_target.setText("Ziel: (kein Nutzer)")
+                self.chat_target.setText(_("Ziel: (kein Nutzer)"))
         else:
-            ch_name = getattr(self.window, "_current_channel_name", "(kein Kanal)")
-            self.chat_target.setText(f"Ziel: {ch_name} (Kanal)")
+            ch_name = getattr(self.window, "_current_channel_name", _("(kein Kanal)"))
+            self.chat_target.setText(_("Ziel: {} (Kanal)").format(ch_name))
 
     def refresh_private_user_choice(self, users) -> None:
         current_id = (
@@ -246,7 +250,7 @@ class ChatTab(QWidget):
         """Append a formatted chat message with timestamp to the log."""
         text = expand_emoji_shortcodes(_strip_markdown(text))
         ts_str = ts or time.strftime("%H:%M:%S")
-        prefix = "[Privat] " if private else ""
+        prefix = _("[Privat] ") if private else ""
         line = f"[{ts_str}] {prefix}{sender}: {text}"
 
         # Color by message kind
@@ -282,7 +286,7 @@ class ChatTab(QWidget):
     def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
         """wx-compat alias: appends a pre-formatted line to the chat log."""
         if getattr(self.window.settings_store.settings, "chat_relative_timestamps", False):
-            ts_str = "gerade eben"
+            ts_str = _("gerade eben")
         elif getattr(self.window.settings_store.settings, "chat_show_timestamps", True):
             ts_str = time.strftime("%H:%M")
         else:
@@ -333,7 +337,7 @@ class ChatTab(QWidget):
                     self.chat_input.setText(result)
                     self.chat_input.setCursorPosition(len(result))
                     try:
-                        self.window._sr_announce("Text verbessert")
+                        self.window._sr_announce(_("Text verbessert"))
                     except Exception:
                         pass
 
@@ -368,7 +372,7 @@ class ChatTab(QWidget):
         query = self.search_input.text().strip().lower()
         self._search_positions = []
         if not query:
-            self.search_count.setText("0 Treffer")
+            self.search_count.setText(_("0 Treffer"))
             return
         text = self.chat_log.toPlainText()
         lines = text.split("\n")
@@ -381,7 +385,10 @@ class ChatTab(QWidget):
         total = len(hits)
         shown = min(total, 100)
         self._search_positions = [p for _, p in hits[:shown]]
-        label = f"{total} Treffer" if total <= shown else f"{total} Treffer (zeige {shown})"
+        label = (
+            _("{} Treffer").format(total) if total <= shown
+            else _("{} Treffer (zeige {})").format(total, shown)
+        )
         self.search_count.setText(label)
         # Scroll to first hit
         if self._search_positions:
@@ -401,31 +408,31 @@ class ChatTab(QWidget):
     def _on_export_history(self) -> None:
         content = self.chat_log.toPlainText()
         if not content.strip():
-            self.window.set_status("Kein Chat-Verlauf zum Exportieren")
+            self.window.set_status(_("Kein Chat-Verlauf zum Exportieren"))
             return
         default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.txt"
-        path, _ = QFileDialog.getSaveFileName(
+        path, _fmt = QFileDialog.getSaveFileName(
             self, _("Chatverlauf exportieren"), default_name,
-            "Textdateien (*.txt);;Alle Dateien (*.*)"
+            _("Textdateien (*.txt);;Alle Dateien (*.*)")
         )
         if path:
             try:
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(content)
-                self.window.set_status(f"Verlauf exportiert: {path}")
+                self.window.set_status(_("Verlauf exportiert: {}").format(path))
             except Exception as exc:
-                self.window.set_status(f"Export fehlgeschlagen: {exc}")
+                self.window.set_status(_("Export fehlgeschlagen: {}").format(exc))
 
     def _on_export_html(self) -> None:
         content = self.chat_log.toPlainText()
         if not content.strip():
-            self.window.set_status("Kein Chat-Verlauf zum Exportieren")
+            self.window.set_status(_("Kein Chat-Verlauf zum Exportieren"))
             return
         server_name = getattr(self.window, "_current_server_key", "TeamTalk")
         default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.html"
-        path, _ = QFileDialog.getSaveFileName(
+        path, _fmt = QFileDialog.getSaveFileName(
             self, _("Chatverlauf als HTML"), default_name,
-            "HTML-Dateien (*.html);;Alle Dateien (*.*)"
+            _("HTML-Dateien (*.html);;Alle Dateien (*.*)")
         )
         if path:
             try:
@@ -444,25 +451,27 @@ class ChatTab(QWidget):
                     else:
                         css_class = "chat"
                     rows.append(f'<div class="{css_class}">{escaped}</div>')
+                html_lang = current_language() or "de"
+                title_text = _("Chat-Verlauf – {}").format(html.escape(server_name))
+                exported_text = _("Exportiert: {}").format(time.strftime("%Y-%m-%d %H:%M:%S"))
                 html_content = (
-                    f'<!DOCTYPE html><html lang="de"><head>'
-                    f'<meta charset="UTF-8"><title>Chat-Verlauf – {html.escape(server_name)}</title>'
+                    f'<!DOCTYPE html><html lang="{html_lang}"><head>'
+                    f'<meta charset="UTF-8"><title>{title_text}</title>'
                     f'<style>'
                     f'body{{font-family:monospace;max-width:900px;margin:1em auto;background:#fafafa;padding:0 1em}}'
                     f'.chat{{color:#222;margin:.15em 0}}.own{{color:#27ae60}}.private{{color:#2980b9}}'
                     f'.system{{color:#888;font-style:italic}}'
                     f'h1{{font-size:1.1em;color:#555}}'
                     f'</style></head><body>'
-                    f'<h1>Chat-Verlauf – {html.escape(server_name)} – '
-                    f'Exportiert: {time.strftime("%Y-%m-%d %H:%M:%S")}</h1>'
+                    f'<h1>{title_text} – {exported_text}</h1>'
                     + "".join(rows)
                     + "</body></html>"
                 )
                 with open(path, "w", encoding="utf-8") as f:
                     f.write(html_content)
-                self.window.set_status(f"HTML exportiert: {path}")
+                self.window.set_status(_("HTML exportiert: {}").format(path))
             except Exception as exc:
-                self.window.set_status(f"HTML-Export fehlgeschlagen: {exc}")
+                self.window.set_status(_("HTML-Export fehlgeschlagen: {}").format(exc))
 
     def _on_clear_history(self) -> None:
         reply = QMessageBox.question(
@@ -480,7 +489,7 @@ class ChatTab(QWidget):
                     self.window._chat_history.clear(key)
             except Exception:
                 pass
-            self.window.set_status("Chat-Verlauf geleert")
+            self.window.set_status(_("Chat-Verlauf geleert"))
 
     def _on_quote(self) -> None:
         selected = self.chat_log.textCursor().selectedText().strip()
@@ -490,7 +499,7 @@ class ChatTab(QWidget):
             lines = [l for l in full.splitlines() if l.strip()]
             selected = lines[-1] if lines else ""
         if not selected:
-            self.window.set_status("Kein Text zum Zitieren")
+            self.window.set_status(_("Kein Text zum Zitieren"))
             return
         quoted = "\n".join(f"> {line}" for line in selected.splitlines())
         current = self.chat_input.text()
@@ -507,7 +516,7 @@ class ChatTab(QWidget):
             from PySide6.QtWidgets import QApplication
             QApplication.clipboard().setText(cursor.selectedText())
         else:
-            self.window.set_status("Kein Text ausgewählt")
+            self.window.set_status(_("Kein Text ausgewählt"))
 
     def _on_save_msg(self) -> None:
         selected = self.chat_log.textCursor().selectedText().strip()
@@ -516,9 +525,9 @@ class ChatTab(QWidget):
             lines = [l for l in full.splitlines() if l.strip()]
             selected = lines[-1] if lines else ""
         if not selected:
-            self.window.set_status("Kein Text zum Speichern")
+            self.window.set_status(_("Kein Text zum Speichern"))
             return
         try:
             self.window.save_message(selected)
         except Exception as exc:
-            self.window.set_status(f"Speichern fehlgeschlagen: {exc}")
+            self.window.set_status(_("Speichern fehlgeschlagen: {}").format(exc))

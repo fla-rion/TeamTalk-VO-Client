@@ -223,7 +223,18 @@
       "Bash(.venv/bin/python3 -c \"import applefoundationmodels as fm; print\\(fm.__file__\\); print\\(fm.apple_intelligence_available\\(\\)\\)\")",
       "Bash(.venv/bin/python -m py_compile src/apple_fm.py)",
       "Bash(.venv/bin/python *2)",
-      "Bash(.venv/bin/python -m py_compile src/apple_fm.py src/ai_summary.py src/chat_translator.py src/ai_reply.py src/app_wx.py src/app_qt.py2)"
+      "Bash(.venv/bin/python -m py_compile src/apple_fm.py src/ai_summary.py src/chat_translator.py src/ai_reply.py src/app_wx.py src/app_qt.py2)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git config *)",
+      "Bash(echo \"email exit: $?\")",
+      "Bash(echo \"name exit: $?\")",
+      "Bash(.venv/bin/python3 *2)",
+      "Bash(.venv/bin/python3 -c ' *2)",
+      "Bash(awk '/def _get_manual_text_de/,/def _get_manual_text_en/' src/app_wx.py)",
+      "Bash(awk '/def _get_manual_text_en/{f=1} f{print} f && /^    def [a-z_]+\\\\\\(self/ && !/_get_manual_text_en/{exit}' src/app_wx.py)",
+      "Bash(awk -F: '$2>6831')",
+      "Bash(awk -F: '$1>6831 && $1<8000'2)"
     ]
   }
 }

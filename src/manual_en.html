@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeamTalk VoiceOver Client – User Manual</title>
+<style>
+  body { font-family: sans-serif; font-size: 14px; margin: 0; padding: 16px 24px; background: #fff; color: #111; line-height: 1.6; }
+  h1 { font-size: 1.8em; border-bottom: 2px solid #333; padding-bottom: 6px; margin-top: 32px; }
+  h2 { font-size: 1.4em; border-bottom: 1px solid #999; padding-bottom: 4px; margin-top: 24px; color: #222; }
+  h3 { font-size: 1.1em; margin-top: 16px; color: #333; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+  th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; vertical-align: top; }
+  th { background: #eee; font-weight: bold; }
+  code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-family: monospace; }
+  ul, ol { margin: 6px 0 6px 22px; padding: 0; }
+  li { margin: 3px 0; }
+  .platform { display: inline-block; font-size: 0.85em; font-weight: bold; padding: 1px 6px; border-radius: 3px; margin-right: 4px; }
+  .mac { background: #d0e8ff; color: #003366; }
+  .win { background: #dff0d8; color: #1a4a00; }
+  .lin { background: #fff3cd; color: #5a4000; }
+  .note { background: #fffbe6; border-left: 4px solid #e6b800; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  .tip  { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  .new  { background: #eef6ff; border-left: 4px solid #1a73e8; padding: 8px 12px; margin: 10px 0; border-radius: 3px; }
+  .part-header { background: #f0f0f0; border-left: 5px solid #555; padding: 6px 14px; margin-top: 40px; font-size: 1.0em; font-weight: bold; letter-spacing: 0.04em; color: #444; }
+  #toc { background: #f7f7f7; border: 1px solid #ddd; padding: 12px 20px; display: inline-block; min-width: 320px; margin-bottom: 20px; }
+  #toc h2 { margin-top: 0; border: none; font-size: 1.1em; }
+  #toc .toc-part { margin-top: 10px; font-weight: bold; color: #444; font-size: 0.9em; letter-spacing: 0.03em; list-style: none; padding-left: 0; }
+  #toc ol { margin: 2px 0 2px 16px; }
+  #toc li { margin: 2px 0; font-size: 0.95em; }
+  .badge-new { display: inline-block; background: #1a73e8; color: #fff; font-size: 0.7em; font-weight: bold; padding: 0 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<h1>TeamTalk VoiceOver Client – User Manual</h1>
+<p>Accessible TeamTalk client for VoiceOver (macOS), NVDA / JAWS (Windows) and Orca (Linux).<br>
+Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Version <strong>9.1.1</strong></p>
+
+<!-- ============================================================ -->
+<div id="toc">
+<h2>Table of Contents</h2>
+
+<p class="toc-part">Part A · Getting Started</p>
+<ol>
+  <li><a href="#ueber">About This App &amp; What's New</a></li>
+  <li><a href="#systemanforderungen">System Requirements</a></li>
+  <li><a href="#installation">Installation &amp; First Launch</a></li>
+</ol>
+
+<p class="toc-part">Part B · Main Window &amp; Navigation</p>
+<ol start="4">
+  <li><a href="#hauptfenster">Main Window – Overview</a></li>
+  <li><a href="#menue">Menu Bar</a></li>
+  <li><a href="#fokus">Focus Shortcuts (Cmd+1–4)</a></li>
+  <li><a href="#schnellaktionen">Quick Actions Bar &amp; Tray Icon</a></li>
+</ol>
+
+<p class="toc-part">Part C · Connection &amp; Communication</p>
+<ol start="8">
+  <li><a href="#verbindung">Connecting to a Server</a></li>
+  <li><a href="#kanaelechat">Channels, User List &amp; Chat</a></li>
+  <li><a href="#benachrichtigungen">Notifications</a></li>
+</ol>
+
+<p class="toc-part">Part D · Audio</p>
+<ol start="11">
+  <li><a href="#audio">Audio Settings</a></li>
+  <li><a href="#mikverarbeitung">Microphone Processing</a></li>
+  <li><a href="#systemtts">System TTS (espeak-ng)</a></li>
+  <li><a href="#sprechen">Speak (ElevenLabs TTS)</a></li>
+</ol>
+
+<p class="toc-part">Part E · Media &amp; Files</p>
+<ol start="15">
+  <li><a href="#medien">Recording and Media Streaming</a></li>
+  <li><a href="#desktop">Desktop Sharing</a></li>
+  <li><a href="#dateien">Files</a></li>
+</ol>
+
+<p class="toc-part">Part F · Settings &amp; Customization</p>
+<ol start="18">
+  <li><a href="#einstellungen">Settings</a></li>
+  <li><a href="#kuerzel">Keyboard Shortcuts &amp; Global Hotkeys</a></li>
+</ol>
+
+<p class="toc-part">Part G · Server Administration</p>
+<ol start="20">
+  <li><a href="#admin">Administration</a></li>
+</ol>
+
+<p class="toc-part">Part H · Reference</p>
+<ol start="21">
+  <li><a href="#plattform">Platform Differences</a></li>
+  <li><a href="#probleme">Common Problems &amp; Solutions</a></li>
+</ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="part-header">Part A · Getting Started</div>
+
+<h1 id="ueber">1 · About This App &amp; What's New</h1>
+<p>The <strong>TeamTalk VoiceOver Client</strong> is a graphical client for the TeamTalk protocol, built specifically for blind and visually impaired users. All controls are optimized for screen readers:</p>
+<ul>
+  <li><strong>macOS</strong> – VoiceOver with braille display support (primary platform)</li>
+  <li><strong>Windows</strong> – NVDA, JAWS (fully supported, Alt+letter shortcuts for all buttons)</li>
+  <li><strong>Linux</strong> – Orca (basic support)</li>
+</ul>
+<p>TeamTalk is a voice communication service similar to Mumble or Discord. The client connects to a TeamTalk server, joins channels, and enables voice and text communication.</p>
+<p>The app supports four interface languages: <strong>German, English, French, Spanish</strong>. The language can be changed under <em>Settings → General → App Language</em>; the app then restarts.</p>
+
+<h2>What's New</h2>
+<div class="new">
+<strong>v9.2.0 (2026-08-27):</strong>
+<ul>
+  <li><strong>Full multilingual support (DE/EN/FR/ES)</strong>: Over 550 missing FR/ES translations added (including many labels in the macOS Audio, Media, and Settings tabs that previously had no translation entry at all). On Windows/Linux, previously hardcoded status and error messages in Administration, channel list, chat, and ElevenLabs text-to-speech now go through translation too. The manual and changelog are now fully available in English, French, and Spanish as dedicated files; Windows/Linux automatically show the matching language version.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v9.1.1 (2026-08-27):</strong>
+<ul>
+  <li><strong>Apple Foundation Models – compatibility fix</strong> <span class="platform mac">macOS</span>: The AI package now requires macOS 27, which caused the on-device AI to crash hard on macOS 26 and older (Apple FM is wired in as the first backend, ahead of Claude/Gemini/Ollama). The app now checks the system version beforehand and automatically skips Apple FM on systems that are too old — the client remains fully usable on macOS 26, and the fallback to Claude/Gemini/Ollama/extraction kicks in as usual.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v9.0.0 (2026-07-26):</strong>
+<ul>
+  <li><strong>Spotify streaming</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: TeamTalk appears as a Spotify Connect device in the Spotify app. One-time web login via OAuth, then the stream starts with one click. Quality choice of 320 / 160 / 96 kbps. Requires Spotify Premium.</li>
+  <li><strong>Deezer streaming</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: Search Deezer tracks and stream them directly into the channel. Authentication via ARL token (copy once from the browser) — username/password login was disabled by Deezer. No extra Python packages needed.</li>
+  <li><strong>macOS CI build</strong> <span class="platform mac">macOS</span>: Automatic DMG build on every release via GitHub Actions.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.1.3 (2026-07-19):</strong>
+<ul>
+  <li><strong>Linux installer</strong> <span class="platform win">Linux</span>: New script <code>install_linux.sh</code> automatically downloads the matching release from GitHub (or installs a local archive), sets up a menu entry, and checks for missing system packages.</li>
+  <li><strong>Build scripts fixed</strong>: The local developer build scripts for macOS/Windows/Linux no longer detected the version number correctly and would have failed.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.1.2 (2026-07-19):</strong>
+<ul>
+  <li><strong>Official Linux build</strong> <span class="platform win">Linux</span>: From now on, ready-to-use Linux packages for x86_64 and arm64 are automatically built and published with every release — no more manual compiling needed.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.1.1 (2026-07-19):</strong>
+<ul>
+  <li><strong>Apple Foundation Models – packaging fix</strong> <span class="platform mac">macOS</span>: A data file for the AI package was missing from the built bundle, which meant the on-device AI from v8.1.0 was permanently inactive in every built app (silent fallback to Claude/Gemini/Ollama). Now fixed.</li>
+  <li><strong>Crash protection</strong> <span class="platform mac">macOS</span>: The Apple AI now runs in an isolated background process. A framework crash on individual macOS versions (e.g. Tahoe) now only affects that process, not the whole app.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.1.0 (2026-06-16):</strong>
+<ul>
+  <li><strong>Apple Foundation Models – on-device AI without an API key</strong> <span class="platform mac">macOS</span>: On macOS 26+ (Tahoe) with Apple Silicon, the app now first uses the built-in Apple Intelligence model for chat summaries, reply suggestions, intent classification, text improvement, and real-time translation — no API key, no internet connection, no cost, all data stays on the device. On older systems or without Apple Silicon, the previous fallback to Claude/Gemini/Ollama applies as before.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.5 (2026-06-16):</strong>
+<ul>
+  <li><strong>Server list readable again on macOS 27 (second attempt)</strong> <span class="platform mac">macOS</span>: wxPython now uses view-based table rows (<code>NSTableRowView</code>) on current macOS instead of the previously patched <code>NSTableRow</code> — the earlier patches were therefore hitting the wrong type. Row text is now read reliably straight from the data source instead of via the accessibility hierarchy.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.4 (2026-06-16):</strong>
+<ul>
+  <li><strong>Server list fixed on macOS 27 (Golden Gate)</strong> <span class="platform mac">macOS</span>: Two-stage strategy for row text (formal accessibility protocol, then fallback via the subview hierarchy) — did not fully fix the problem yet, see v8.0.5.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.3 (2026-06-09):</strong>
+<ul>
+  <li><strong>Compatibility with macOS 27 (Golden Gate)</strong> <span class="platform mac">macOS</span>: The legacy, informal accessibility API was replaced with the formal <code>NSAccessibility</code> protocol, which Apple enforces more strictly in macOS 27. All role descriptions and announcements remain unchanged.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.2 (2026-05-30):</strong>
+<ul>
+  <li><strong>German announcements on FR/ES systems finally fixed</strong> <span class="platform mac">macOS</span>: The language fix from v8.0.1 patched a file that isn't even loaded on macOS — <code>ui_wx/a11y.py</code> is now a pure re-export of <code>ui/a11y.py</code>, so future fixes only need to be maintained in one place. Reported by <strong>@math65</strong> (PR #28).</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.1 (2026-05-29):</strong>
+<ul>
+  <li><strong>VoiceOver language fixed on FR/ES systems</strong> <span class="platform mac">macOS</span>: The app now correctly detects the macOS system language via <code>NSLocale.preferredLanguages</code>. On FR systems, the app now opens directly in French and VoiceOver speaks with the French voice. The same applies to ES and EN.</li>
+  <li><strong>Bundle localization fixed</strong> <span class="platform mac">macOS</span>: <code>de/en/fr/es.lproj</code> directories are now generated during the build. Without these stubs, macOS ignored <code>CFBundleLocalizations</code> entirely.</li>
+  <li><strong>Mixed announcements fixed</strong> <span class="platform mac">macOS</span>: Removed hardcoded German role descriptions ("Taste", "Regler", etc.) — VoiceOver now says "button"/"slider" instead of the German terms on FR systems. Reported by <strong>@math65</strong> (Issue #27).</li>
+</ul>
+</div>
+<div class="new">
+<strong>v8.0.0 (2026-05-27):</strong>
+<ul>
+  <li><strong>SRAL integration</strong> <span class="platform win">Windows</span> <span class="platform mac">macOS</span>: Unified screen-reader output layer (<code>sr_output</code>) based on SRAL v0.3. Windows: NVDA / JAWS / SAPI / Narrator + braille via BRLTTY. Linux: Speech Dispatcher + libbrlapi. macOS: still uses the direct NSAccessibility API (higher quality than SRAL).</li>
+  <li><strong>Braille output</strong> <span class="platform win">Windows</span>: All screen-reader announcements are now also forwarded to connected braille displays (BRLTTY).</li>
+  <li><strong>Linux support</strong> <span class="platform win">Linux</span>: Speech Dispatcher + libbrlapi via SRAL — first officially supported Linux configuration.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.8.1 (2026-05-27):</strong>
+<ul>
+  <li><strong>VoiceOver patches refactored</strong> <span class="platform mac">macOS</span>: Accessibility patches now use <code>objc.Category</code> instead of <code>classAddMethod</code> – methods grouped per class, no boilerplate. Behavior identical to v7.8.0. Recommendation from <strong>@ronaldoussoren</strong> (PyObjC).</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.8.0 (2026-05-26):</strong>
+<ul>
+  <li><strong>WASAPI per-app audio</strong> <span class="platform win">Windows</span>: Stream Spotify, Firefox, games, and more into the channel without a virtual loopback driver. Menu: Audio › Capture app audio. Contribution by <strong>@math65</strong>.</li>
+  <li><strong>i18n completeness</strong> <span class="platform win">Windows</span>: ~940 Qt strings now correctly translated – FR/ES users finally see the interface in their language. Contribution by <strong>@math65</strong> (PR #26).</li>
+  <li><strong>PTT/VA guard</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Clear VoiceOver/NVDA announcement when PTT or voice activation is triggered without a configured input device.</li>
+  <li><strong>Advanced tabs (opt-in)</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Admin, Desktop, and Speak are hidden by default. Enable via Menu › Show Advanced Tabs.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.7.0 (2026-05-25):</strong>
+<ul>
+  <li><strong>AI reply suggestions (Windows)</strong> <span class="platform win">Windows</span>: Feature parity with macOS – after receiving a private message, generate 3 AI suggestions via hotkey, select one, and insert it directly into the input field (Claude/Gemini/Ollama).</li>
+  <li><strong>Connection summary</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: When joining a channel, the AI automatically summarizes the last 2 hours of chat history and reads it aloud. Enable in Settings › Chat &amp; Automation.</li>
+  <li><strong>AI writing assistant</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: New "Improve" button in chat – type a message and click "Improve" to have the AI rephrase it more clearly and naturally.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.6.0 (2026-05-25):</strong>
+<ul>
+  <li><strong>Qt live regions (NVDA/Windows)</strong> <span class="platform win">Windows</span>: NVDA now automatically announces when someone joins/leaves the channel, a new message arrives, media streaming starts/stops, or you switch channels – without moving focus.</li>
+  <li><strong>Full Spanish translation (100%)</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: All tabs, menus, and dialogs are now fully available in Spanish. Choose the language under Settings › General › App Language.</li>
+  <li><strong>Braille optimizations (macOS)</strong> <span class="platform mac">macOS</span>: Prevented double announcements in the channel list; fixed tab order in the connection tab; shortened accessible names for the braille display.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.10 (2026-05-25):</strong>
+<ul>
+  <li><strong>Full French translation (~100%)</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Thanks to a contribution by <strong>@math65</strong>, all tabs, menus, dialogs, and error messages are now available in French (previously ~34%). Choose the language under Settings › General › App Language.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.9 (2026-05-25):</strong>
+<ul>
+  <li><strong>Automatic greeting message</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: When joining a channel, a configurable text is automatically sent (Settings › Chat &amp; Automation).</li>
+  <li><strong>Private message history browser</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: New dialog (Server menu) for browsing saved PM histories by conversation partner, with filtering and export.</li>
+  <li><strong>Status favorites</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: In the status dialog, frequently used status messages can be saved and applied with one click.</li>
+  <li><strong>Reconnection announcements</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: VoiceOver / NVDA announce the countdown and attempt counter on every reconnection attempt.</li>
+  <li><strong>Private chat window (macOS)</strong> <span class="platform mac">macOS</span>: Writing to a user opens a dedicated chat window per conversation partner – matching Windows behavior. History, export, Ctrl+W to close.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.8 (2026-05-25):</strong>
+<ul>
+  <li><strong>Saved messages – full dialog</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: New dialog with live search field, individual deletion, copying, and VoiceOver announcements. Fixed a Qt bug (messages were not displayed).</li>
+  <li><strong>Session statistics in the System tab</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Shows connection duration, messages sent/received, and connection count with refresh and reset buttons.</li>
+  <li><strong>File transfer: speed + ETA</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: During a file transfer, KB/s and estimated remaining time are shown. VoiceOver/NVDA announces completion.</li>
+  <li><strong>Speak tab: text history</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: The last 10 spoken ElevenLabs texts are saved. Double-click or "Speak again" for quick access.</li>
+  <li><strong>Kick with reason</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Before every kick, an input field for a reason appears, which is sent as a channel message. VoiceOver/NVDA confirms the kick.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.7 (2026-05-25):</strong>
+<ul>
+  <li><strong>Offline queue: individual delete &amp; send</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: In the dialog <em>Automation → Offline Queue…</em>, individual entries can now be removed selectively. New "Send all now" button manually flushes queued messages (only active while connected). Channel and private messages are distinguished correctly. VoiceOver gives feedback when deleting.</li>
+  <li>Fixed a Qt bug: the simple, broken dialog is now replaced with the full one.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.6 (2026-05-25):</strong>
+<ul>
+  <li><strong>Auto-away: VoiceOver/NVDA announcements</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: VoiceOver and NVDA now announce when the away status is automatically set or cleared.</li>
+  <li><strong>Chat search: result count announced</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: After a search, VoiceOver/NVDA reads out the number of results. While navigating the results list, VoiceOver announces position and text ("Result 2 of 5: …").</li>
+  <li><strong>Qt timer bugfix</strong> <span class="platform win">Windows</span>: The auto-away countdown now correctly runs from the last keystroke – the previous bug made it fire periodically regardless of user activity.</li>
+  <li>The away status is now cleanly reset when disconnecting from the server. Activity is now also detected when sending a chat message and when using PTT.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.5 (2026-05-25):</strong>
+<ul>
+  <li><strong>Fix: VoiceOver speaks the system language</strong> <span class="platform mac">macOS</span>: The app bundle was missing <code>CFBundleDevelopmentRegion</code> and <code>CFBundleLocalizations</code> in Info.plist. As a result, macOS fell back to English, even on German, French, and Spanish systems. Now fixed: <code>de</code> as the development region, all four languages (de, en, fr, es) declared as localizations. VoiceOver now automatically selects the language of the system setting.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.4 (2026-05-24):</strong>
+<ul>
+  <li><strong>Shortcuts tab: categories + search</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Hotkeys are now organized into 4 categories (Audio &amp; Recording, Announcements &amp; TTS, Navigation &amp; Chat, AI &amp; Automation). A search field filters all entries live. New "Reset all" button clears all keyboard shortcuts after confirmation.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.3 (2026-05-24):</strong>
+<ul>
+  <li><strong>Manage channel passwords</strong> <span class="platform mac">macOS</span>: New dialog under <em>Settings → General → Manage Saved Passwords…</em> shows all channel passwords saved via Keychain. Individual entries or all at once can be deleted – without restarting and without rejoining.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.2 (2026-05-24):</strong>
+<ul>
+  <li><strong>Merge import for server profiles</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: <em>File → Import server list</em> now detects duplicates. On conflicts, the app asks whether to only add new profiles or replace the entire list – existing profiles are no longer lost.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.1 (2026-05-24):</strong>
+<ul>
+  <li><strong>Braille display compact mode</strong> <span class="platform mac">macOS</span> <span class="platform win">Windows</span>: Channel labels in compact mode show user count as <code>3N</code> / <code>3/7N</code>, password as <code>[P]</code> – no topic, no spelled-out "users". User labels show only the first status flag. Applies to both the macOS and Windows list.</li>
+  <li><strong>Verbosity-dependent channel announcements</strong>: When joining a channel, VoiceOver now uses the verbosity-dependent format from <code>BrailleOutputManager</code> (e.g. "General (3)" in compact mode, "Channel: General, 3 users" in normal mode).</li>
+  <li><strong>Braille-safe announcements</strong>: All VoiceOver announcements now pass through <code>strip_for_braille()</code> – removes emoji, arrows, and special characters that render poorly on braille displays.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.5.0 (2026-05-24):</strong>
+<ul>
+  <li><strong>VoiceOver live regions</strong> <span class="platform mac">macOS</span>: Channel join, user join/leave, and the member list of the current channel are now announced directly via VoiceOver (<code>NSAccessibilityAnnouncementRequestedNotification</code>), without requiring espeak-ng TTS to be enabled.</li>
+  <li><strong>NVDA live regions</strong> <span class="platform win">Windows</span>: Channel and user events, plus incoming messages, are sent via <code>_sr_announce()</code> as a non-interrupting NVDA live region (tolk.dll, nvdaControllerClient64.dll, or SAPI). Also works when espeak-ng TTS is disabled.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.4.0 (2026-05-24):</strong>
+<ul>
+  <li><strong>Keyword filter in notification rules</strong>: Rules can now include an optional keyword. The rule then only applies if the message contains that word (case-insensitive). Available for chat and private-message events (→ <a href="#benachrichtigungen">Section 10</a>).</li>
+  <li><strong>Spanish translation complete</strong>: +339 new strings bring Español to 555 entries – parity with Français. All areas of the interface are now fully translated.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.3.x (2026-05-23):</strong>
+<ul>
+  <li><strong>Qt accessibility</strong> <span class="platform win">Windows</span> <span class="platform lin">Linux</span>: All checkboxes, dropdowns, lists, and number fields now have explicit, &amp;-free names – NVDA and other screen readers read out consistent labels.</li>
+  <li><strong>System language detection</strong>: On first launch, the app automatically detects the operating system language (de, en, fr, es) and sets it as the default.</li>
+  <li><strong>App language (Qt)</strong>: The settings field now shows all 4 supported languages (German, English, French, Spanish).</li>
+  <li><strong>Extended French translation</strong>: 99 more strings for files, media streaming, and administration (contribution: @math65).</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.2.0 (2026-05-20):</strong>
+<ul>
+  <li><strong>Multilingual support (Qt)</strong> <span class="platform win">Windows</span>: All menu items are now localized via the translation system. Qt mnemonic characters (&amp;) are normalized.</li>
+  <li><strong>French translation</strong>: 77 new strings for chat, audio, connection, and channels (contribution: @math65). Contributors now appear in the About dialog.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.1.x (2026-05-21):</strong>
+<ul>
+  <li><strong>Notification rules</strong>: Fine-grained control over TTS and sounds for each event type – global, per-server, per-channel, or per-user (→ <a href="#benachrichtigungen">Section 10</a>).</li>
+  <li><strong>Media tab</strong> <span class="platform win">Windows</span>: Streaming sources (file, YouTube, web radio, podcast, playlist) shown as a dropdown instead of tabs.</li>
+</ul>
+</div>
+<div class="new">
+<strong>v7.0.x (2026-05-18):</strong>
+<ul>
+  <li><strong>Macro engine</strong>: Trigger-based text macros and a pronunciation dictionary for TTS (macOS and Windows/Linux).</li>
+  <li><strong>Accessibility fix</strong>: VoiceOver announcement and macro trigger for incoming private messages always active – regardless of the real-time translator.</li>
+</ul>
+</div>
+
+<!-- ============================================================ -->
+<h1 id="systemanforderungen">2 · System Requirements</h1>
+
+<table>
+<tr><th>Feature</th><th><span class="platform mac">macOS</span></th><th><span class="platform win">Windows</span></th><th><span class="platform lin">Linux</span></th></tr>
+<tr><td>Minimum version</td><td>macOS 11 Big Sur</td><td>Windows 10 (64-bit)</td><td>Ubuntu 20.04 or comparable</td></tr>
+<tr><td>Screen reader</td><td>VoiceOver (built-in)</td><td>NVDA, JAWS</td><td>Orca</td></tr>
+<tr><td>TTS output</td><td>afplay (built-in)</td><td>winsound (built-in)</td><td>directly via espeak-ng</td></tr>
+<tr><td>Button shortcuts</td><td>Not needed (VoiceOver navigates directly)</td><td>Alt+underlined letter</td><td>Alt+underlined letter</td></tr>
+<tr><td>List announcements</td><td>"List, N items" (VoiceOver patch active)</td><td>NVDA/JAWS read items normally</td><td>Orca reads items aloud</td></tr>
+<tr><td>Tray icon</td><td>Top-right menu bar</td><td>System tray, bottom right</td><td>System tray (if available)</td></tr>
+<tr><td>Closing the window</td><td>Minimizes to tray (red X), Cmd+Q quits</td><td>Minimizes to tray, File → Quit</td><td>Minimizes to tray, File → Quit</td></tr>
+</table>
+
+<div class="note">
+<strong>macOS:</strong> Closing the main window (red X or Cmd+W) minimizes the app to the menu bar – the connection stays active. To actually quit: <em>File → Quit</em> or Cmd+Q.
+</div>
+<div class="note">
+<strong>Windows:</strong> Alt+letter directly activates the underlined button (e.g. Alt+V for "Connect"). This works within the currently displayed area.
+</div>
+
+<!-- ============================================================ -->
+<h1 id="installation">3 · Installation &amp; First Launch</h1>
+
+<h2><span class="platform mac">macOS</span></h2>
+<ol>
+  <li>Open the DMG file (double-click).</li>
+  <li>Drag "TeamTalk VO Client.app" into the Applications folder.</li>
+  <li>On first launch: right-click → "Open" (one-time, due to the Gatekeeper warning).</li>
+  <li>Grant microphone and, if needed, screen recording permission when prompted.</li>
+</ol>
+
+<h2><span class="platform win">Windows</span></h2>
+<ol>
+  <li>Download the EXE or ZIP file.</li>
+  <li>Extract the ZIP contents into a folder (e.g. <code>C:\Program Files\TeamTalk VO Client</code>).</li>
+  <li>Start <code>TeamTalk VO Client.exe</code>.</li>
+  <li>Windows Defender / SmartScreen: choose "Run anyway".</li>
+</ol>
+
+<h2><span class="platform lin">Linux</span></h2>
+<ol>
+  <li>Download and extract the AppImage or tar.gz.</li>
+  <li>Make the AppImage executable: <code>chmod +x TeamTalk*.AppImage</code></li>
+  <li>Launch: <code>./TeamTalk*.AppImage</code></li>
+  <li>Install espeak-ng if not already present: <code>sudo apt install espeak-ng</code></li>
+</ol>
+
+<h2>First Launch</h2>
+<p>On first launch, the main window opens. To connect, first open the connection window via <em>File → Connect</em> or the <em>Connect</em> button in the quick actions bar. Server connections are saved as profiles and restored on every launch.</p>
+
+<h2>App Update</h2>
+<p>Via <em>Help → Check for Updates</em>, the app checks whether a new version is available. The update DMG (macOS) is downloaded and saved directly within the app – no browser access to the repository required.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Part B · Main Window &amp; Navigation</div>
+
+<h1 id="hauptfenster">4 · Main Window – Overview</h1>
+<p>From top to bottom, the main window is divided into the following areas:</p>
+
+<table>
+<tr><th>Element</th><th>Description</th></tr>
+<tr><td>Menu bar</td><td>File, Sound, Channel, Speech, Help – all important functions as menu items</td></tr>
+<tr><td>Area selector</td><td>"Area:" dropdown for switching between main areas (Channels and Chat, Recording and Media, Desktop, Files, Administration)</td></tr>
+<tr><td>Area info</td><td>Short description of the currently selected area</td></tr>
+<tr><td>Main content</td><td>The current area (panel), e.g. channel list + user list + chat</td></tr>
+<tr><td>Status bar</td><td>Shows the connection status (e.g. "Connected as Florian on server XY")</td></tr>
+<tr><td>Event log</td><td>Multi-line log of all events (can optionally be shown/hidden)</td></tr>
+<tr><td>Quick actions</td><td>Checkboxes for PTT, voice activation, video, desktop, mute, recording, question mode; volume number fields; VU meter (optional)</td></tr>
+</table>
+
+<h2>Screen Reader Navigation</h2>
+<table>
+<tr><th>Platform</th><th>Navigate between elements</th><th>Activate element</th><th>Switch area</th></tr>
+<tr><td><span class="platform mac">macOS VoiceOver</span></td><td>VO+arrow keys, Tab</td><td>VO+Space</td><td>Tab to the "Area" dropdown, arrow keys</td></tr>
+<tr><td><span class="platform win">Windows NVDA/JAWS</span></td><td>Tab / Shift+Tab</td><td>Enter or Space</td><td>Tab to the "Area" dropdown, arrow keys</td></tr>
+<tr><td><span class="platform lin">Linux Orca</span></td><td>Tab / Shift+Tab</td><td>Enter or Space</td><td>Tab to the "Area" dropdown, arrow keys</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h1 id="menue">5 · Menu Bar</h1>
+
+<h2>Menu: File</h2>
+<table>
+<tr><th>Menu item</th><th>Shortcut</th><th>Function</th></tr>
+<tr><td>Open TeamTalk file…</td><td>Ctrl+O / Cmd+O</td><td>Opens a .tt file and connects directly to the server stored in it</td></tr>
+<tr><td>Start new client</td><td>Ctrl+N / Cmd+N</td><td>Launches a second instance of the app (for multiple servers at once)</td></tr>
+<tr><td>Sound configuration → Input devices</td><td>–</td><td>Lists all available microphones; check to activate</td></tr>
+<tr><td>Sound configuration → Output devices</td><td>–</td><td>Lists all available speakers/headphones</td></tr>
+<tr><td>Sound configuration → Audio settings…</td><td>–</td><td>Opens the settings window directly on the Audio tab</td></tr>
+<tr><td>Sound configuration → Apply audio</td><td>–</td><td>Applies the current audio devices immediately</td></tr>
+<tr><td>Sound configuration → Refresh devices</td><td>–</td><td>Scans for new audio devices (after connecting USB devices, etc.)</td></tr>
+<tr><td>Sound configuration → Apply effects</td><td>–</td><td>Enables AGC, noise suppression, and echo cancellation</td></tr>
+<tr><td>Record conversations…</td><td>–</td><td>Opens the settings for automatic recordings</td></tr>
+<tr><td>Settings…</td><td>F4 / Cmd+,</td><td>Opens the settings window</td></tr>
+<tr><td>Connect</td><td>–</td><td>Connects to the most recently configured server</td></tr>
+<tr><td>Disconnect</td><td>–</td><td>Disconnects the current connection</td></tr>
+<tr><td>Reconnect</td><td>–</td><td>Reconnects to the last server</td></tr>
+<tr><td>Auto-reconnect</td><td>–</td><td>Toggle: automatically restore the connection after a drop</td></tr>
+<tr><td>Keep in foreground</td><td>–</td><td>Window always stays in front</td></tr>
+<tr><td>Quit</td><td>Cmd+Q / Alt+F4</td><td>Quits the app completely</td></tr>
+</table>
+
+<h2>Menu: Sound</h2>
+<table>
+<tr><th>Menu item</th><th>Function</th></tr>
+<tr><td>Enable Push-to-Talk</td><td>Enables/disables PTT mode</td></tr>
+<tr><td>Enable voice activation</td><td>Enables/disables automatic voice detection</td></tr>
+<tr><td>Test microphone</td><td>Starts a local microphone loopback test</td></tr>
+<tr><td>Mute all</td><td>Mutes all other users at once</td></tr>
+<tr><td>TTS on/off</td><td>Turns the text-to-speech system announcements on or off</td></tr>
+</table>
+
+<h2>Menu: Channel</h2>
+<table>
+<tr><th>Menu item</th><th>Function</th></tr>
+<tr><td>Join channel</td><td>Joins the channel currently selected in the list</td></tr>
+<tr><td>Join root channel</td><td>Switches directly to the server's root channel</td></tr>
+<tr><td>Leave channel</td><td>Leaves the current channel</td></tr>
+<tr><td>Start/stop streaming</td><td>Starts or stops the current media streaming</td></tr>
+<tr><td>Share desktop</td><td>Starts desktop sharing</td></tr>
+<tr><td>Move to target position</td><td>Moves to the previously defined target channel</td></tr>
+<tr><td>Set target position</td><td>Remembers the current channel as the jump target</td></tr>
+<tr><td>Channel statistics</td><td>Shows statistics for the current channel (users, packets)</td></tr>
+<tr><td>Ban user…</td><td>Opens the dialog to ban a user (admins only)</td></tr>
+</table>
+
+<h2>Menu: Speech</h2>
+<table>
+<tr><th>Menu item</th><th>Shortcut</th><th>Function</th></tr>
+<tr><td>Speak</td><td>F5</td><td>Opens the Speak tab (ElevenLabs TTS)</td></tr>
+<tr><td>Repeat last text</td><td>F6</td><td>Repeats the last spoken text (ElevenLabs)</td></tr>
+<tr><td>Stop streaming</td><td>F7</td><td>Stops the currently running audio streaming</td></tr>
+</table>
+
+<h2>Menu: Help</h2>
+<table>
+<tr><th>Menu item</th><th>Function</th></tr>
+<tr><td>Manual</td><td>Opens this manual</td></tr>
+<tr><td>Health report</td><td>Shows system status and health check results</td></tr>
+<tr><td>Usage report</td><td>Shows local usage statistics (analytics); export as JSON possible</td></tr>
+<tr><td>Check for updates</td><td>Checks whether a new version is available and downloads the update</td></tr>
+<tr><td>About TeamTalk VoiceOver Client…</td><td>Shows version, feature status, licenses, and acknowledgments</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h1 id="fokus">6 · Focus Shortcuts (Cmd+1–4)</h1>
+<p>On <span class="platform mac">macOS</span>, you can use Cmd+number to move focus directly to the desired element in the "Channels and Chat" area:</p>
+
+<table>
+<tr><th>Shortcut</th><th>Target</th><th>When useful</th></tr>
+<tr><td><code>Cmd+1</code></td><td>Channel list</td><td>Switch channels without tab navigation</td></tr>
+<tr><td><code>Cmd+2</code></td><td>Chat history</td><td>Read messages directly</td></tr>
+<tr><td><code>Cmd+3</code></td><td>Message input</td><td>Start typing immediately without navigating first</td></tr>
+<tr><td><code>Cmd+4</code></td><td>Event log</td><td>Look up system events</td></tr>
+</table>
+
+<div class="tip">These shortcuts only work while the "Channels and Chat" area is active and the main window is focused.</div>
+<div class="note">Focus shortcuts are only available on macOS. On Windows and Linux, navigate with Tab/Shift+Tab.</div>
+
+<!-- ============================================================ -->
+<h1 id="schnellaktionen">7 · Quick Actions Bar &amp; Tray Icon</h1>
+
+<h2>Quick Actions Bar</h2>
+<p>The quick actions bar (toolbar) is hidden by default and can be enabled via <em>Settings → Display → Show Toolbar</em>.</p>
+<table>
+<tr><th>Element</th><th>Alt shortcut</th><th>Description</th></tr>
+<tr><td>PTT (checkbox)</td><td>Alt+P</td><td>Quickly toggle Push-to-Talk on/off</td></tr>
+<tr><td>Voice activation (checkbox)</td><td>Alt+S</td><td>Quickly toggle voice activation on/off</td></tr>
+<tr><td>Video (checkbox)</td><td>Alt+V</td><td>Start/stop camera transmission</td></tr>
+<tr><td>Desktop (checkbox)</td><td>Alt+D</td><td>Start/stop desktop sharing</td></tr>
+<tr><td>Mute (checkbox)</td><td>Alt+T</td><td>Mutes all other users</td></tr>
+<tr><td>Recording (checkbox)</td><td>Alt+A</td><td>Start/stop channel recording</td></tr>
+<tr><td>?-mode (checkbox)</td><td>Alt+M</td><td>Sets the question-mark status (signals a request to speak)</td></tr>
+<tr><td>Output (number field 0–200)</td><td>–</td><td>Quickly adjust output volume</td></tr>
+<tr><td>Microphone (number field 0–200)</td><td>–</td><td>Quickly adjust microphone gain</td></tr>
+<tr><td>Level (progress bar)</td><td>–</td><td>Current microphone input level (VU meter)</td></tr>
+</table>
+
+<h2>Tray Icon</h2>
+<p>The tray icon appears automatically as soon as the app is running and follows status changes (connected/disconnected).</p>
+<ul>
+  <li><span class="platform mac">macOS</span>: Top-right menu bar. Click opens a menu with Show Window, Connect/Disconnect, Mute, and Quit.</li>
+  <li><span class="platform win">Windows</span>: System tray, bottom right. Double-click brings the window back. Right-click opens the tray menu.</li>
+  <li><span class="platform lin">Linux</span>: System tray (works with GNOME + AppIndicator extension, KDE).</li>
+</ul>
+<p>If you close the main window (X button), it is hidden in the tray – the connection stays active. To actually quit the app: <em>File → Quit</em> or Cmd+Q.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Part C · Connection &amp; Communication</div>
+
+<h1 id="verbindung">8 · Connecting to a Server</h1>
+<p>The <strong>connection window</strong> is the first area shown on launch. It contains the server list and all connection fields.</p>
+
+<h2>Server List</h2>
+<p>The server list shows all saved servers. Use the buttons below to manage servers:</p>
+<table>
+<tr><th>Button</th><th>Alt shortcut</th><th>Function</th></tr>
+<tr><td>New</td><td>Alt+N</td><td>Saves the currently entered data as a new server</td></tr>
+<tr><td>Edit</td><td>Alt+B</td><td>Updates the selected server with the current form data</td></tr>
+<tr><td>Remove</td><td>Alt+E</td><td>Deletes the selected server (with confirmation)</td></tr>
+<tr><td>Enter join code</td><td>Alt+T</td><td>Connects via a tt:// URL or a .tt file</td></tr>
+</table>
+<p>Double-click or Enter on a list entry connects immediately. Right-click opens a context menu (duplicate, generate TT file).</p>
+
+<h2>Connection Fields</h2>
+<table>
+<tr><th>Field</th><th>Description</th></tr>
+<tr><td>Server</td><td>Hostname or IP address of the TeamTalk server (e.g. <code>tt.example.com</code>)</td></tr>
+<tr><td>TCP Port</td><td>TCP port of the server (default: 10333)</td></tr>
+<tr><td>UDP Port</td><td>UDP port of the server (default: 10333; often identical to TCP)</td></tr>
+<tr><td>Nickname</td><td>Your display name on the server</td></tr>
+<tr><td>Username</td><td>Login name (often <code>guest</code> for guest access)</td></tr>
+<tr><td>Password</td><td>Login password (often <code>guest</code> for guest access)</td></tr>
+<tr><td>Client name</td><td>Name of the client (shown to other users, default: "TeamTalk VO")</td></tr>
+<tr><td>ElevenLabs API key</td><td>API key for ElevenLabs TTS (optional, for the Speak tab)</td></tr>
+<tr><td>Encrypted</td><td>Check this if the server uses TLS/SSL</td></tr>
+</table>
+
+<h2>Action Buttons</h2>
+<table>
+<tr><th>Button</th><th>Alt shortcut</th><th>Function</th></tr>
+<tr><td>Connect</td><td>Alt+V</td><td>Connects to the server</td></tr>
+<tr><td>Reconnect</td><td>Alt+D</td><td>Disconnects and immediately reconnects</td></tr>
+<tr><td>Check server</td><td>Alt+S</td><td>Checks all servers in the list for active users</td></tr>
+<tr><td>Join root channel</td><td>Alt+R</td><td>Switches to the root channel</td></tr>
+<tr><td>Leave channel</td><td>Alt+K</td><td>Leaves the current channel</td></tr>
+<tr><td>Log out</td><td>Alt+A</td><td>Logs out from the server without dropping the connection</td></tr>
+<tr><td>Copy TT URL</td><td>Alt+U</td><td>Copies a tt:// link to the clipboard (for sharing)</td></tr>
+<tr><td>Save TT file</td><td>Alt+P</td><td>Saves a .tt file for this server</td></tr>
+</table>
+
+<h2>Connecting via Join Code</h2>
+<p>With "Enter join code" you can:</p>
+<ul>
+  <li>Paste a <strong>tt:// URL</strong> (e.g. <code>tt://server.example.com/?tcpport=10333&amp;udpport=10333</code>)</li>
+  <li>Enter the path to a <strong>.tt file</strong></li>
+</ul>
+<p>After entering it, the app asks whether to connect right away.</p>
+
+<!-- ============================================================ -->
+<h1 id="kanaelechat">9 · Channels, User List &amp; Chat</h1>
+<p>This is the main "Channels and Chat" area. It is divided into two halves:</p>
+
+<h2>Left Half: Channels &amp; Users</h2>
+<ul>
+  <li><strong>Channel list</strong>: Shows all channels on the server. Format: <code>Channel name, Users: N, Password: Yes/No</code>. Double-click or Enter joins the channel. Channel passwords are requested when needed.</li>
+  <li><strong>User list</strong>: Shows all users in the current channel. Format: <code>Nickname, Username, Status</code>. Double-click opens a private chat with that user.</li>
+</ul>
+<p>The <strong>Join channel</strong> button (Alt+K) joins the selected channel.</p>
+
+<h2>Right Half: Chat</h2>
+<ul>
+  <li><strong>Chat history</strong>: Multi-line text field with channel and private messages.</li>
+  <li><strong>Input field</strong>: Type a message, then press Enter or "Send" (Alt+S).</li>
+  <li><strong>Private checkbox</strong> (Alt+P): Send the message as a private message to the selected user.</li>
+  <li><strong>Export history</strong> (Alt+E): Saves the chat history as a TXT file.</li>
+  <li><strong>Clear history</strong> (Alt+L): Deletes the displayed history after confirmation. If history saving is enabled, the saved file is also deleted.</li>
+</ul>
+
+<h2>Saving Chat History (optional)</h2>
+<p>When enabled under <em>Settings → General → Save chat history</em>, messages are saved per server in a JSON file (max. 200 entries). The history is automatically loaded the next time you connect to the same server.</p>
+<div class="note">The history can be reset at any time via "Clear history".</div>
+
+<!-- ============================================================ -->
+<h1 id="benachrichtigungen">10 · Notifications</h1>
+
+<h2><span class="platform mac">macOS</span> – Native Notifications</h2>
+<p>macOS system notifications for channel events appear <strong>only</strong> when the affected user is in the same channel as you. This reduces irrelevant notifications on crowded servers.</p>
+<p>Notifications can be turned on and off centrally via <em>Settings → Display → Enable Notifications</em>.</p>
+
+<table>
+<tr><th>Event</th><th>Notification (example)</th></tr>
+<tr><td>User joins your channel</td><td>"Florian has joined – channel Lounge"</td></tr>
+<tr><td>User leaves your channel</td><td>"Florian has left – channel Lounge"</td></tr>
+<tr><td>New private message</td><td>Sender name + message preview</td></tr>
+</table>
+
+<div class="tip">To disable notifications: turn off <em>Settings → Display → Enable Notifications</em>. Alternatively, you can disable them globally in <em>System Settings → Notifications → TeamTalk VO Client</em>.</div>
+
+<h2>Sound Events</h2>
+<p>In addition to native notifications, a custom sound can be played for each event. Configuration is done under <em>Settings → Sound Events</em> (→ <a href="#einstellungen">Section 18</a>).</p>
+
+<h2>Notification Rules <span class="badge-new">NEW as of v7.1</span></h2>
+<p>Via <em>Settings → Notification Rules…</em>, you finely control which events trigger TTS, a sound, both, or nothing. Rules apply from specific to general: a user rule beats a channel rule, which beats a server rule, which beats a global rule.</p>
+
+<h3>Fields of a Rule</h3>
+<table>
+<tr><th>Field</th><th>Description</th></tr>
+<tr><td>Event</td><td>Which event this rule affects: all, user joins/leaves channel, channel chat, private message, etc.</td></tr>
+<tr><td>Keyword <span class="badge-new">NEW v7.4</span></td><td>Optional: the rule only applies if the message contains this word (case-insensitive). Only active for message events.</td></tr>
+<tr><td>Scope</td><td>Global, server, channel, or user</td></tr>
+<tr><td>Value</td><td>Name of the server / channel / user (leave empty for Global)</td></tr>
+<tr><td>Action</td><td>TTS + sound, TTS only, sound only, or mute (suppress everything)</td></tr>
+</table>
+
+<h3>Examples</h3>
+<ul>
+  <li><strong>Suppress all chat messages except in the "Lounge" channel</strong>: global rule "Chat → Mute", then a more specific rule "Chat, channel: Lounge → TTS + sound".</li>
+  <li><strong>TTS only when the keyword "important" appears</strong>: rule "Chat, keyword: important → TTS". No TTS is triggered without the keyword in the message.</li>
+  <li><strong>Always read out private messages from user "Max"</strong>: rule "Private message, user: Max → TTS + sound".</li>
+</ul>
+
+<h3>Order and Priority</h3>
+<p>Rules are searched from top to bottom. The first matching rule wins. More specific rules (user before channel before server before global) should therefore be placed higher up. Use "Move up"/"Move down" to adjust the order.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Part D · Audio</div>
+
+<h1 id="audio">11 · Audio Settings</h1>
+<p>Accessible via: <em>File → Sound configuration → Audio settings…</em> or <em>Settings → Audio</em></p>
+
+<h2>Enabling the Microphone</h2>
+<ol>
+  <li>Open Audio Settings.</li>
+  <li>Select your microphone from "Input device" (dropdown).</li>
+  <li>Select "Output device" (speakers/headphones).</li>
+  <li>Click <strong>Apply Audio</strong> (Alt+N).</li>
+</ol>
+<div class="tip">After connecting for the first time, you need to apply the audio settings once for the microphone to become active.</div>
+
+<h2>Voice Activation</h2>
+<p>Voice activation automatically transmits when you speak – without pressing any key.</p>
+<table>
+<tr><th>Setting</th><th>Description</th></tr>
+<tr><td>Voice activation (checkbox)</td><td>Turn on/off (Alt+S)</td></tr>
+<tr><td>Activation level (0–100)</td><td>Threshold above which transmission starts. Lower value = more sensitive. Default: 30</td></tr>
+<tr><td>Hangover in ms (0–5000)</td><td>How long transmission continues after silence. Default: 0 ms</td></tr>
+</table>
+
+<h2>Push-to-Talk (PTT)</h2>
+<p>In PTT mode, transmission only occurs while you hold down a hotkey.</p>
+<ol>
+  <li>Enable "Push-to-Talk" (checkbox).</li>
+  <li>Click <strong>Record Hotkey</strong> (Alt+H).</li>
+  <li>Press the desired key (default: Space).</li>
+  <li>Click again or press Enter to finish.</li>
+</ol>
+<div class="note">PTT and voice activation are mutually exclusive – only one can be active at a time.</div>
+
+<h2>Improving Sound Quality</h2>
+<table>
+<tr><th>Option</th><th>Alt shortcut</th><th>Recommendation</th></tr>
+<tr><td>AGC (automatic gain control)</td><td>Alt+C</td><td>Enable – keeps volume constant</td></tr>
+<tr><td>Noise suppression</td><td>Alt+R</td><td>Enable – filters background noise</td></tr>
+<tr><td>Echo cancellation</td><td>Alt+E</td><td>Enable when using speakers</td></tr>
+<tr><td>Duplex mode</td><td>Alt+D</td><td>Only if echo cancellation is needed – increases latency</td></tr>
+</table>
+
+<h2>Additional Audio Options</h2>
+<table>
+<tr><th>Option</th><th>Description</th></tr>
+<tr><td>Mute output</td><td>Mutes all other users</td></tr>
+<tr><td>Microphone gain (0–32000)</td><td>Amplifies the microphone signal. Default: 2000</td></tr>
+<tr><td>Output volume (0–32000)</td><td>Global output volume. Default: 1000</td></tr>
+<tr><td>Audio profiles</td><td>Save the current settings as a profile and load them again</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h1 id="mikverarbeitung">12 · Microphone Processing</h1>
+<p>The "Microphone Processing" section is located in the Audio tab and provides advanced signal processing for your microphone signal before it is transmitted.</p>
+
+<h2>Processing Modes</h2>
+<table>
+<tr><th>Mode</th><th>Description</th><th>Recommendation</th></tr>
+<tr><td>None</td><td>No additional processing</td><td>If the microphone already delivers good quality</td></tr>
+<tr><td>Noise Gate</td><td>Cuts off everything below the threshold – no background noise when you're not speaking</td><td>Loud environment</td></tr>
+<tr><td>Expander</td><td>Increases the contrast between loud signal and noise</td><td>Quiet microphone with background noise</td></tr>
+<tr><td>Limiter</td><td>Limits peaks to prevent clipping</td><td>If you sometimes speak very loudly</td></tr>
+<tr><td>Expander+Limiter</td><td>Combines Expander and Limiter</td><td>General recommendation for inconsistent environments</td></tr>
+</table>
+
+<h2>Parameters</h2>
+<table>
+<tr><th>Parameter</th><th>Description</th></tr>
+<tr><td>Threshold (dB)</td><td>Level below (Gate/Expander) or above (Limiter) which the mode intervenes</td></tr>
+<tr><td>Noise suppression (dB)</td><td>Strength of attenuation below the threshold (for Noise Gate and Expander)</td></tr>
+</table>
+
+<h2>Microphone Preview</h2>
+<p>Use the <strong>Start/Stop Preview</strong> button to hear yourself via loopback, without being connected to a server. This lets you test the processing settings directly.</p>
+<div class="tip">Use the preview together with the VU meter in the quick actions bar to find the optimal threshold setting.</div>
+<div class="note">All processing settings are saved in the audio profile and restored when a profile is loaded.</div>
+
+<!-- ============================================================ -->
+<h1 id="systemtts">13 · System TTS (espeak-ng)</h1>
+<p>Accessible via: <em>Settings → System &amp; TTS</em></p>
+<p>The built-in TTS feature (espeak-ng) automatically reads out system messages, chat, and private messages.</p>
+
+<h2>Turning TTS On/Off</h2>
+<ul>
+  <li><strong>TTS active</strong> (Alt+T): Enables voice output.</li>
+  <li><strong>New message interrupts</strong> (Alt+N): Interrupts an ongoing announcement when a new one arrives.</li>
+</ul>
+
+<h2>What Should Be Read Aloud?</h2>
+<table>
+<tr><th>Option</th><th>Alt shortcut</th><th>Description</th></tr>
+<tr><td>Read chat</td><td>Alt+C</td><td>Channel chat messages</td></tr>
+<tr><td>Read private</td><td>Alt+P</td><td>Private messages</td></tr>
+<tr><td>Read system</td><td>Alt+S</td><td>System messages (connect, disconnect, etc.)</td></tr>
+<tr><td>Read own messages</td><td>Alt+E</td><td>Your own sent messages</td></tr>
+</table>
+
+<h2>Setting the Voice</h2>
+<ol>
+  <li>Turn on <strong>TTS active</strong>.</li>
+  <li>Select a language in the dropdown (e.g. "en" for English, "All" for all languages).</li>
+  <li>Optional: enter a filter to search the voice list.</li>
+  <li>Select a voice from the list.</li>
+  <li><strong>Speech rate (80–400)</strong>: default 175. Higher = faster.</li>
+  <li><strong>Volume (0–200)</strong>: default 100.</li>
+  <li><strong>Refresh voices</strong> (Alt+I): reloads the voice list.</li>
+  <li><strong>Test speech</strong> (Alt+R): plays a test text with the current settings.</li>
+</ol>
+
+<h2>espeak-ng Path</h2>
+<p>Normally, espeak-ng is found automatically. If not, the path to the binary can be entered manually (e.g. <code>/usr/bin/espeak-ng</code>).</p>
+
+<!-- ============================================================ -->
+<h1 id="sprechen">14 · Speak (ElevenLabs TTS)</h1>
+<p>With the Speak tab, you stream text through ElevenLabs Text-to-Speech into the channel – other users hear a high-quality AI voice.</p>
+<p>Prerequisite: a valid ElevenLabs API key must be entered in the connection form.</p>
+
+<h2>Setup</h2>
+<ol>
+  <li>Enter the ElevenLabs API key in the connection form.</li>
+  <li>Connect – voices and models are loaded automatically.</li>
+  <li>Open the Speak tab (Speech menu → Speak, or F5).</li>
+</ol>
+
+<h2>Usage</h2>
+<table>
+<tr><th>Element</th><th>Description</th></tr>
+<tr><td>Voice</td><td>Dropdown of all available ElevenLabs voices</td></tr>
+<tr><td>Model</td><td>AI model (e.g. eleven_multilingual_v2, eleven_v3)</td></tr>
+<tr><td>Stability (0–100)</td><td>Higher = more stable/monotone, lower = more expressive. Default: 50</td></tr>
+<tr><td>Similarity (0–100)</td><td>Closeness to the original voice. Default: 75</td></tr>
+<tr><td>Style (0–100)</td><td>Style exaggeration. Default: 0</td></tr>
+<tr><td>Speaker boost</td><td>Improves voice clarity (not for v3 models)</td></tr>
+<tr><td>Text to speak</td><td>Enter the text to be read aloud</td></tr>
+<tr><td>Speak (Alt+P)</td><td>Generates audio and streams it into the channel</td></tr>
+<tr><td>Stop (Alt+T)</td><td>Stops the running stream immediately</td></tr>
+<tr><td>Refresh (Alt+A)</td><td>Reloads voices and models from the API</td></tr>
+</table>
+
+<!-- ============================================================ -->
+<div class="part-header">Part E · Media &amp; Files</div>
+
+<h1 id="medien">15 · Recording and Media Streaming</h1>
+<p>Accessible via: area dropdown → "Recording and Media"</p>
+
+<h2>Recording the Channel</h2>
+<ol>
+  <li>Select the recording format (WAV, MP3 16k–320k).</li>
+  <li>Click <strong>Start Recording</strong> (Alt+A) and choose a save location.</li>
+  <li>Click <strong>Stop Recording</strong> (Alt+S) when done.</li>
+</ol>
+
+<h2>Recording Conversations Automatically</h2>
+<p>When enabled, every user who speaks is recorded separately:</p>
+<ol>
+  <li>Check "Auto-record" (Alt+M).</li>
+  <li>Choose a target folder.</li>
+  <li>Set the filename pattern (placeholders: <code>%Y%m%d-%H%M%S</code>, <code>#userid#</code>, <code>%username%</code>).</li>
+  <li>Choose the format and "Include own voice" (Alt+E) as needed.</li>
+  <li>Click <strong>Apply</strong> (Alt+W).</li>
+</ol>
+
+<h2>Streaming Sources</h2>
+<p>Select the source in the "Streaming source" dropdown:</p>
+
+<h3>File</h3>
+<ol>
+  <li>Enter the media file path or click <strong>Browse</strong> (Alt+D).</li>
+  <li>Supported formats: WAV, MP3, OGG, Opus, MP4, AVI, MKV.</li>
+  <li><strong>Play</strong> (Alt+A) – streams the file into the current channel.</li>
+  <li>Position (0–1000): number field to jump within the file.</li>
+  <li>Streaming volume (25–400): 100 = normal, 200 = double volume.</li>
+</ol>
+
+<h3>YouTube, SoundCloud, Twitch, Bandcamp, Vimeo, Mixcloud (via yt-dlp)</h3>
+<ol>
+  <li>For YouTube/SoundCloud: enter a search term and click <strong>Search</strong> (Alt+S).</li>
+  <li>Select a result from the list – the link is entered automatically.</li>
+  <li>Or paste a link directly.</li>
+  <li>Click <strong>Stream</strong> (Alt+R).</li>
+</ol>
+<div class="note">yt-dlp must be installed or included in the app bundle. For Twitch, Bandcamp, Vimeo, Mixcloud: paste the link directly.</div>
+
+<h3>Web Radio</h3>
+<ol>
+  <li>Choose a station from the predefined list, or search for stations (Alt+S).</li>
+  <li>The stream URL can also be entered manually.</li>
+  <li>Click <strong>Stream Web Radio</strong> (Alt+W).</li>
+</ol>
+
+<h3>Podcasts</h3>
+<ol>
+  <li>Search for a podcast name (Alt+S) or enter the feed URL directly.</li>
+  <li>Load the feed (Alt+F).</li>
+  <li>Select an episode from the list and click <strong>Stream Episode</strong> (Alt+E).</li>
+</ol>
+
+<h3>Playlist</h3>
+<ol>
+  <li>Add files via <strong>Add…</strong> (Alt+H) or <strong>Load M3U…</strong> (Alt+M) to the playlist.</li>
+  <li>Adjust the order with "Move up" / "Move down".</li>
+  <li><strong>Play</strong> starts from the selected track; with "Auto-advance" the playlist plays through automatically.</li>
+  <li>Export the playlist as M3U or remove individual tracks.</li>
+</ol>
+
+<h3>Spotify <span class="badge-new">NEW</span></h3>
+<div class="note">Requires <strong>Spotify Premium</strong> and the bundled librespot binary.</div>
+<ol>
+  <li>On first launch, click <strong>Log in with Spotify…</strong> — the browser opens automatically.</li>
+  <li>Log in with your Spotify account in the browser; the page confirms success.</li>
+  <li>Customize the device name as desired (default: "TeamTalk Stream").</li>
+  <li>Choose the quality (320 / 160 / 96 kbps).</li>
+  <li>Click <strong>Start Spotify</strong>.</li>
+  <li>In the Spotify app (phone, desktop, or web), tap the speaker icon and select the device name.</li>
+  <li>Control the music in the Spotify app — the audio is streamed live into the channel.</li>
+</ol>
+<p>After the first login, the credentials are saved locally; no need to log in again on subsequent launches. Use <strong>Log out</strong> to delete the saved credentials.</p>
+<p>If librespot is missing: run <code>python scripts/download_librespot.py</code> in the project directory (requires Rust / Cargo).</p>
+
+<h3>Deezer <span class="badge-new">NEW</span></h3>
+<div class="note"><strong>ARL token required.</strong> Deezer has disabled username/password login for third-party applications.</div>
+<p>How to get the ARL token:</p>
+<ol>
+  <li>Log in to <strong>deezer.com</strong> in your browser.</li>
+  <li>Open developer tools (F12) → <em>Application</em> (Chrome) or <em>Storage</em> (Firefox) → Cookies → deezer.com.</li>
+  <li>Copy the value of the <code>arl</code> cookie (192 characters).</li>
+</ol>
+<p>Using the token in the client:</p>
+<ol>
+  <li>Paste the ARL token into the "ARL Token" field and click <strong>Save Token</strong> (one-time, saved locally).</li>
+  <li>Enter a search term and click <strong>Search</strong> — the public Deezer search doesn't require an account.</li>
+  <li>Select a track from the results list and click <strong>Stream</strong>.</li>
+  <li>The track is downloaded and automatically streamed into the channel.</li>
+</ol>
+<p>The ARL token expires every 3–6 months. If you get an error, simply copy a new one from the browser.</p>
+
+<!-- ============================================================ -->
+<h1 id="desktop">16 · Desktop Sharing</h1>
+<p>Accessible via: area dropdown → "Desktop"</p>
+<p>Shares your screen with other users in the channel.</p>
+<table>
+<tr><th>Button</th><th>Function</th></tr>
+<tr><td>Send desktop (Alt+D)</td><td>Starts continuous desktop sharing</td></tr>
+<tr><td>Send once (Alt+E)</td><td>Sends a single screenshot</td></tr>
+<tr><td>Stop sharing (Alt+F)</td><td>Stops desktop sharing</td></tr>
+</table>
+<p>The Left Click (Alt+L), Right Click (Alt+R), and Middle Click (Alt+M) buttons enable remote mouse input on the receiving device.</p>
+<div class="note"><span class="platform lin">Linux</span>: Desktop sharing and mouse remote control may be limited depending on the compositor.</div>
+
+<!-- ============================================================ -->
+<h1 id="dateien">17 · Files</h1>
+<p>Accessible via: area dropdown → "Files"</p>
+<p>Shows all files in the current channel. Format: <code>Filename, Size, Uploaded by, Date</code></p>
+<table>
+<tr><th>Button</th><th>Alt shortcut</th><th>Function</th></tr>
+<tr><td>Upload</td><td>Alt+H</td><td>Selects a local file and uploads it to the channel</td></tr>
+<tr><td>Download</td><td>Alt+R</td><td>Downloads the selected file (choose save location)</td></tr>
+<tr><td>Delete</td><td>Alt+L</td><td>Deletes the selected file (own files only, or admin)</td></tr>
+<tr><td>Refresh</td><td>Alt+A</td><td>Refreshes the file list</td></tr>
+</table>
+<p>Uploads and downloads are logged in the file transfer history, which can be accessed via the <strong>History</strong> button.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Part F · Settings &amp; Customization</div>
+
+<h1 id="einstellungen">18 · Settings</h1>
+<p>Accessible via: <em>File → Settings…</em> or F4 / Cmd+,</p>
+<p>The settings window is divided into sections (via the "Area" dropdown):</p>
+
+<h2>Section: General</h2>
+<table>
+<tr><th>Option</th><th>Description</th></tr>
+<tr><td>BearWare web login</td><td>Uses BearWare.dk credentials for servers that require it</td></tr>
+<tr><td>Username / Password</td><td>BearWare credentials</td></tr>
+<tr><td>App language</td><td>Switches the interface language (German, English, French, Spanish); restart required</td></tr>
+<tr><td>Save chat history</td><td>Saves chat messages per server as JSON (max. 200 entries). History is automatically loaded on the next connection.</td></tr>
+<tr><td>Auto-join last channel</td><td>Automatically joins the last used channel of this server after connecting</td></tr>
+<tr><td>Away timer (minutes)</td><td>Automatically sets an away status if you haven't pressed a key for the configured number of minutes. 0 = auto-away disabled.</td></tr>
+</table>
+
+<h2>Section: Display</h2>
+<table>
+<tr><th>Option</th><th>Description</th></tr>
+<tr><td>Minimize to tray</td><td>Closing the window minimizes it to the tray instead of quitting (default: enabled)</td></tr>
+<tr><td>Always on top</td><td>Window stays in front of all others</td></tr>
+<tr><td>Enable notifications</td><td>Turns desktop notifications for channel events and private messages on/off</td></tr>
+<tr><td>Show VU meter</td><td>Shows the input level in the quick actions bar</td></tr>
+<tr><td>Update window title</td><td>Current channel appears in the window title</td></tr>
+<tr><td>Show toolbar</td><td>Shows/hides the quick actions bar</td></tr>
+<tr><td>Show event log</td><td>Shows/hides the log window</td></tr>
+</table>
+
+<h2>Section: Connection</h2>
+<p>Controls which data is subscribed to from other users:</p>
+<table>
+<tr><th>Subscription</th><th>Meaning</th></tr>
+<tr><td>User media</td><td>Receive audio and video from other users</td></tr>
+<tr><td>Channel messages</td><td>Receive chat messages in the channel</td></tr>
+<tr><td>Broadcast messages</td><td>Receive server-wide messages</td></tr>
+<tr><td>Desktop sharing</td><td>Receive others' desktop streams</td></tr>
+<tr><td>Video</td><td>Receive others' webcam video</td></tr>
+</table>
+
+<h2>Section: Sound Events</h2>
+<p>Assigns sounds to events (user joins, leaves, new message, etc.). A WAV file can be selected for each event. Use "Test" to preview the sound. The sound volume (0–100) controls all event sounds at once.</p>
+
+<h2>Notification Rules <span class="badge-new">NEW as of v7.1</span></h2>
+<p>Use the <strong>Notification Rules…</strong> button in the settings dialog to open the rule editor. Here you decide for each combination of event, scope, and (optional) keyword whether TTS, sound, both, or nothing is triggered. See → <a href="#benachrichtigungen">Section 10</a> for a detailed description.</p>
+
+<h2>Section: System &amp; TTS</h2>
+<p>Settings for the built-in text-to-speech output (espeak-ng). See → <a href="#systemtts">Section 13</a>.</p>
+
+<h2>Section: Integrations</h2>
+<p>Controls the built-in HTTP companion server, which provides a local REST API for controlling the app from outside (e.g. from helper tools, macros, Automator scripts).</p>
+<table>
+<tr><th>Option</th><th>Description</th></tr>
+<tr><td>Enable companion server</td><td>Starts the local HTTP server when connecting (default: enabled)</td></tr>
+<tr><td>Companion server port</td><td>Port of the local HTTP server (default: 19880). Changes take effect after the next connection.</td></tr>
+</table>
+<div class="note">The companion server is only reachable locally (<code>http://localhost:&lt;port&gt;</code>). It is only started when a server connection is active.</div>
+
+<!-- ============================================================ -->
+<h1 id="kuerzel">19 · Keyboard Shortcuts &amp; Global Hotkeys</h1>
+<p>Accessible via: <em>Settings → Keyboard Shortcuts</em></p>
+
+<h2>App Hotkeys (within the app)</h2>
+<p>These hotkeys only work while the app window is focused.</p>
+<table>
+<tr><th>Action</th><th>Description</th></tr>
+<tr><td>Mute all</td><td>Mutes/unmutes all other users</td></tr>
+<tr><td>Toggle voice activation</td><td>Turns voice activation on/off</td></tr>
+<tr><td>Toggle send video</td><td>Turns camera transmission on/off</td></tr>
+</table>
+<ol>
+  <li>Click <strong>Record Hotkey</strong>.</li>
+  <li>Press the desired key.</li>
+  <li>The hotkey is saved immediately.</li>
+</ol>
+
+<h2>Global Hotkeys <span class="platform mac">macOS</span></h2>
+<p>Global hotkeys work system-wide – even when the app is in the background or minimized.</p>
+<table>
+<tr><th>Option</th><th>Description</th></tr>
+<tr><td>Enable global hotkeys</td><td>Turns on system-wide monitoring (via NSEvent monitor, no interception)</td></tr>
+<tr><td>PTT (talk key)</td><td>Hold to talk, release to stop transmission</td></tr>
+<tr><td>Toggle mute</td><td>A single key press mutes or unmutes all users</td></tr>
+</table>
+<ol>
+  <li>Turn on "Enable global hotkeys".</li>
+  <li>For PTT or Mute: click <strong>Record Hotkey</strong>.</li>
+  <li>Press the desired key – the macOS virtual key code is saved.</li>
+  <li>ESC cancels the recording.</li>
+</ol>
+<div class="note">Global hotkeys are only available on macOS.</div>
+
+<h2>Focus Shortcuts <span class="platform mac">macOS</span></h2>
+<p>Cmd+1–4 set focus within the "Channels and Chat" area. These shortcuts are fixed and cannot be changed. See → <a href="#fokus">Section 6</a>.</p>
+
+<!-- ============================================================ -->
+<div class="part-header">Part G · Server Administration</div>
+
+<h1 id="admin">20 · Administration</h1>
+<p>Accessible via: area dropdown → "Administration" (visible to administrators only)</p>
+
+<h2>User Accounts</h2>
+<ul>
+  <li><strong>Load accounts</strong>: Loads all accounts from the server.</li>
+  <li><strong>Add account</strong>: Creates a new account. Fields: username, password, account type (Administrator checkbox for admin rights).</li>
+  <li><strong>Delete account</strong>: Deletes the selected account.</li>
+</ul>
+
+<h2>Bans</h2>
+<ul>
+  <li><strong>Load bans</strong>: Loads the current ban list.</li>
+  <li><strong>Unban</strong>: Removes the ban for the selected user.</li>
+</ul>
+
+<h2>Server Configuration</h2>
+<ul>
+  <li><strong>Load</strong>: Loads the server settings (name, MOTD, user limits).</li>
+  <li><strong>Save</strong>: Saves the changed server settings.</li>
+  <li><strong>Save configuration</strong>: Permanently writes the configuration to the server.</li>
+</ul>
+
+<!-- ============================================================ -->
+<div class="part-header">Part H · Reference</div>
+
+<h1 id="plattform">21 · Platform Differences</h1>
+
+<h2><span class="platform mac">macOS</span></h2>
+<ul>
+  <li><strong>VoiceOver navigation</strong>: VO+arrow keys move through all elements. VO+Space activates. VO+M for the menu bar.</li>
+  <li><strong>Lists</strong>: Announced as "List, N items" (VoiceOver patch active). Up/down arrow keys navigate.</li>
+  <li><strong>Dropdowns</strong>: Announced as "pop-up button". Arrow keys change the value.</li>
+  <li><strong>Number fields (SpinCtrl)</strong>: Arrow keys change the value; direct entry is possible.</li>
+  <li><strong>Focus shortcuts</strong>: Cmd+1–4 set focus to the channel list, chat history, input, log.</li>
+  <li><strong>Closing the window</strong>: Cmd+W minimizes to the tray. Cmd+Q quits completely.</li>
+  <li><strong>Standard shortcuts</strong>: Cmd+O (open file), Cmd+N (new client), Cmd+, (settings).</li>
+  <li><strong>Microphone permission</strong>: macOS asks for microphone access once. Grant it in System Settings → Privacy.</li>
+  <li><strong>Braille display</strong>: All control names and roles are named in your chosen interface language.</li>
+  <li><strong>Notifications</strong>: Native macOS notifications for channel events (channel-based filtering since v6.1.6).</li>
+</ul>
+
+<h2><span class="platform win">Windows</span></h2>
+<ul>
+  <li><strong>NVDA/JAWS navigation</strong>: Tab/Shift+Tab navigates, Enter/Space activates. In forms mode, arrow keys navigate within lists.</li>
+  <li><strong>Keyboard shortcuts</strong>: Alt+underlined letter activates buttons/checkboxes. All buttons have unique shortcuts per area.</li>
+  <li><strong>Menu navigation</strong>: Alt opens the menu bar, then letters.</li>
+  <li><strong>Standard shortcuts</strong>: Ctrl+O, Ctrl+N, F4 (settings).</li>
+  <li><strong>Tray</strong>: Double-click the tray icon to reopen the window. Right-click opens the tray menu.</li>
+  <li><strong>Windows Defender</strong>: You may need to add an exception on first launch.</li>
+</ul>
+
+<h2><span class="platform lin">Linux</span></h2>
+<ul>
+  <li><strong>Orca navigation</strong>: Similar to Windows. Insert+Tab for the elements list.</li>
+  <li><strong>Audio devices</strong>: PulseAudio or ALSA. Choose the device name in the dropdown.</li>
+  <li><strong>espeak-ng</strong>: The system version is preferred (<code>sudo apt install espeak-ng</code>).</li>
+  <li><strong>Tray</strong>: Works with compatible desktop environments (GNOME with AppIndicator extension, KDE).</li>
+  <li><strong>Limitations</strong>: Desktop sharing and mouse remote control may be limited depending on the compositor.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h1 id="probleme">22 · Common Problems &amp; Solutions</h1>
+
+<table>
+<tr><th>Problem</th><th>Cause</th><th>Solution</th></tr>
+<tr><td>No sound despite being connected</td><td>Audio device not applied</td><td>File → Sound configuration → Apply audio</td></tr>
+<tr><td>Others can't hear me</td><td>Microphone not enabled, or wrong VA/PTT setting</td><td>Enable voice activation or PTT; apply audio settings</td></tr>
+<tr><td>Microphone sounds bad</td><td>No processing filters active</td><td>Microphone processing → choose "Expander+Limiter" mode and test with the preview</td></tr>
+<tr><td>Connection keeps dropping</td><td>Network issue or wrong port</td><td>Check the TCP/UDP port; enable "Auto-reconnect"</td></tr>
+<tr><td>TTS doesn't speak</td><td>TTS active not enabled</td><td>Settings → System &amp; TTS → enable TTS active</td></tr>
+<tr><td>Voices won't load (ElevenLabs)</td><td>API key missing or invalid</td><td>Enter a valid API key in the connection form</td></tr>
+<tr><td>yt-dlp stream won't start</td><td>yt-dlp not found or outdated</td><td>Update yt-dlp: <code>yt-dlp -U</code></td></tr>
+<tr><td>Lists announced as "table" <span class="platform mac">macOS</span></td><td>VoiceOver patch not loaded</td><td>Restart the app; check accessibility permission in System Settings</td></tr>
+<tr><td>Cmd+1–4 doesn't respond <span class="platform mac">macOS</span></td><td>"Channels and Chat" isn't the active area</td><td>Set the area dropdown to "Channels and Chat"</td></tr>
+<tr><td>App doesn't respond when quitting <span class="platform win">Windows</span></td><td>Background process still running</td><td>Task Manager → end TeamTalk VO Client</td></tr>
+<tr><td>App language hasn't changed</td><td>Restart hasn't happened yet</td><td>Settings → General → choose language → the app restarts automatically</td></tr>
+</table>
+
+<hr>
+<h2>Acknowledgments &amp; Sources of Inspiration</h2>
+
+<h3>Sources of Inspiration</h3>
+<p>
+  <strong>ttaccessible</strong> – Mathieu Ramage (<a href="https://github.com/math65/ttaccessible">github.com/math65/ttaccessible</a>)<br>
+  A native, accessible TeamTalk client for macOS, developed by a VoiceOver user.
+  Versions 6.9.4–6.9.8 of the TeamTalk VO Client were significantly inspired by this work and
+  collaboration with Mathieu: the connection flow (⌘J, ⌘L, F2), batch TTS announcements,
+  granular TTS control, away message, channel favorites, per-user TTS muting,
+  and other improvements trace back to ideas from ttaccessible.
+</p>
+
+<h3>Contributors</h3>
+<p>
+  <strong>Mathieu Ramage (@math65)</strong> – French translation (549 strings), Qt menu localization, system language detection, bugfixes<br>
+  <strong>@danijel1124</strong> – Qt bugfixes: chat sending, nickname, channel sounds, layout (v7.0.2)
+</p>
+
+<h3>Beta Testers and Supporters</h3>
+<p>
+  <strong>Garo</strong> – Git server, Windows testing<br>
+  <strong>FVH</strong> – Tab structure, ElevenLabs integration<br>
+  <strong>DHT</strong> – Windows and macOS testing<br>
+  <strong>Korn</strong> – Testing on Apple M1<br>
+  <strong>de Losse</strong> – Testing on Mac mini
+</p>
+
+<hr>
+<p><em>TeamTalk VoiceOver Client v9.1.1 – User Manual. Lead developer: Florian Lichteblau (Flarion). Sources of inspiration: ttaccessible (Mathieu Ramage). Acknowledgments: Garo, FVH, DHT, Korn, de Losse.</em></p>
+
+</body>
+</html>

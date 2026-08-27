@@ -40,7 +40,7 @@ class SpeakTab(QWidget):
         sel_form = QFormLayout()
         voice_row = QHBoxLayout()
         self.voice_choice = QComboBox()
-        self.voice_choice.setAccessibleName("Stimme")
+        self.voice_choice.setAccessibleName(_("Stimme"))
         self.refresh_btn = QPushButton(_("&Aktualisieren"))
         self.refresh_btn.clicked.connect(self.on_refresh)
         voice_row.addWidget(self.voice_choice, 1)
@@ -48,12 +48,12 @@ class SpeakTab(QWidget):
         sel_form.addRow(_("Stimme"), voice_row)
 
         self.model_choice = QComboBox()
-        self.model_choice.setAccessibleName("Modell")
+        self.model_choice.setAccessibleName(_("Modell"))
         self.model_choice.currentIndexChanged.connect(self.on_model_changed)
         sel_form.addRow(_("Modell"), self.model_choice)
 
         self.streaming_check = QCheckBox(_("&Echtzeit-Streaming"))
-        self.streaming_check.setAccessibleName("Echtzeit-Streaming")
+        self.streaming_check.setAccessibleName(_("Echtzeit-Streaming"))
         sel_form.addRow("", self.streaming_check)
         tts_layout.addLayout(sel_form)
 
@@ -61,35 +61,35 @@ class SpeakTab(QWidget):
         self.stability_slider = QSpinBox()
         self.stability_slider.setRange(0, 100)
         self.stability_slider.setValue(50)
-        self.stability_slider.setAccessibleName("Stabilität (0–100)")
+        self.stability_slider.setAccessibleName(_("Stabilität (0–100)"))
         settings_form.addRow(_("Stabilität (0–100)"), self.stability_slider)
 
         self.similarity_slider = QSpinBox()
         self.similarity_slider.setRange(0, 100)
         self.similarity_slider.setValue(75)
-        self.similarity_slider.setAccessibleName("Ähnlichkeit (0–100)")
+        self.similarity_slider.setAccessibleName(_("Ähnlichkeit (0–100)"))
         settings_form.addRow(_("Ähnlichkeit (0–100)"), self.similarity_slider)
 
         self.style_slider = QSpinBox()
         self.style_slider.setRange(0, 100)
         self.style_slider.setValue(0)
-        self.style_slider.setAccessibleName("Stil (0–100)")
+        self.style_slider.setAccessibleName(_("Stil (0–100)"))
         settings_form.addRow(_("Stil (0–100)"), self.style_slider)
 
         self.speaker_boost = QCheckBox(_("&Sprecher-Boost"))
-        self.speaker_boost.setAccessibleName("Sprecher-Boost")
+        self.speaker_boost.setAccessibleName(_("Sprecher-Boost"))
         self.speaker_boost.setChecked(True)
         settings_form.addRow("", self.speaker_boost)
 
         self.api_key_field = QLineEdit()
         self.api_key_field.setEchoMode(QLineEdit.EchoMode.Password)
-        self.api_key_field.setPlaceholderText("API-Key eingeben...")
+        self.api_key_field.setPlaceholderText(_("API-Key eingeben..."))
         settings_form.addRow(_("API-Key"), self.api_key_field)
         tts_layout.addLayout(settings_form)
 
         tts_layout.addWidget(QLabel(_("Text zum Sprechen")))
         self.text_input = QTextEdit()
-        self.text_input.setPlaceholderText("Text hier eingeben...")
+        self.text_input.setPlaceholderText(_("Text hier eingeben..."))
         tts_layout.addWidget(self.text_input, 1)
 
         btn_row = QHBoxLayout()
@@ -110,7 +110,7 @@ class SpeakTab(QWidget):
         # --- Textverlauf ---
         tts_layout.addWidget(QLabel(_("Verlauf (letzte Texte):")))
         self.history_lw = QListWidget()
-        self.history_lw.setAccessibleName("Textverlauf")
+        self.history_lw.setAccessibleName(_("Textverlauf"))
         self.history_lw.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.history_lw.setMinimumHeight(80)
         self.history_lw.itemDoubleClicked.connect(self._on_history_double_clicked)
@@ -140,7 +140,7 @@ class SpeakTab(QWidget):
     def set_api_key(self, key: str) -> None:
         self._api_key = key
         if key.strip():
-            self._set_status("Lade Stimmen und Modelle...")
+            self._set_status(_("Lade Stimmen und Modelle..."))
             threading.Thread(target=self._load_voices_and_models, daemon=True).start()
 
     def _load_voices_and_models(self) -> None:
@@ -153,9 +153,9 @@ class SpeakTab(QWidget):
                 timeout=10,
             )
             if resp.status_code != 200:
-                msg = f"ElevenLabs API Fehler: HTTP {resp.status_code}"
+                msg = _("ElevenLabs API Fehler: HTTP {}").format(resp.status_code)
                 if resp.status_code == 401:
-                    msg = "ElevenLabs API Key ungültig (401)"
+                    msg = _("ElevenLabs API Key ungültig (401)")
                 call_after(self._set_status, msg)
                 return
             voices = [
@@ -173,13 +173,13 @@ class SpeakTab(QWidget):
             )
             call_after(self._populate_voices, voices)
             call_after(self._populate_models, models)
-            call_after(self._set_status, f"{len(voices)} Stimmen, {len(models)} Modelle geladen")
+            call_after(self._set_status, _("{} Stimmen, {} Modelle geladen").format(len(voices), len(models)))
         except ImportError:
             from ui_qt.call_after import call_after as _ca
-            _ca(self._set_status, "Fehlendes Modul: requests")
+            _ca(self._set_status, _("Fehlendes Modul: requests"))
         except Exception as exc:
             from ui_qt.call_after import call_after as _ca
-            _ca(self._set_status, f"Fehler beim Laden: {exc}")
+            _ca(self._set_status, _("Fehler beim Laden: {}").format(exc))
 
     def _populate_voices(self, voices: list) -> None:
         self._voice_ids = [v["voice_id"] for v in voices]
@@ -202,7 +202,7 @@ class SpeakTab(QWidget):
         key = self.api_key_field.text().strip() or self._api_key
         if key:
             self._api_key = key
-            self._set_status("Aktualisiere...")
+            self._set_status(_("Aktualisiere..."))
             threading.Thread(target=self._load_voices_and_models, daemon=True).start()
 
     def on_model_changed(self, idx: int) -> None:
@@ -221,15 +221,15 @@ class SpeakTab(QWidget):
     def on_speak(self) -> None:
         text = self.text_input.toPlainText().strip()
         if not text:
-            self._set_status("Bitte Text eingeben")
+            self._set_status(_("Bitte Text eingeben"))
             return
         vi = self.voice_choice.currentIndex()
         mi = self.model_choice.currentIndex()
         if vi < 0 or vi >= len(self._voice_ids):
-            self._set_status("Bitte eine Stimme auswählen")
+            self._set_status(_("Bitte eine Stimme auswählen"))
             return
         if mi < 0 or mi >= len(self._model_ids):
-            self._set_status("Bitte ein Modell auswählen")
+            self._set_status(_("Bitte ein Modell auswählen"))
             return
 
         voice_id = self._voice_ids[vi]
@@ -249,14 +249,14 @@ class SpeakTab(QWidget):
         self._generating = True
         self.speak_btn.setEnabled(False)
         if use_streaming:
-            self._set_status("Echtzeit-Streaming...")
+            self._set_status(_("Echtzeit-Streaming..."))
             threading.Thread(
                 target=self._generate_streaming,
                 args=(text, voice_id, model_id, stability, similarity, style, use_boost),
                 daemon=True,
             ).start()
         else:
-            self._set_status("Generiere Audio...")
+            self._set_status(_("Generiere Audio..."))
             threading.Thread(
                 target=self._speak_worker,
                 args=(text, voice_id, model_id, stability, similarity, style, use_boost),
@@ -278,7 +278,7 @@ class SpeakTab(QWidget):
     def _on_repeat(self) -> None:
         idx = self.history_lw.currentRow()
         if idx < 0 or idx >= len(self._history):
-            self._set_status("Kein Verlaufseintrag ausgewählt")
+            self._set_status(_("Kein Verlaufseintrag ausgewählt"))
             return
         self.text_input.setPlainText(self._history[idx])
         self.on_speak()
@@ -307,7 +307,7 @@ class SpeakTab(QWidget):
                 timeout=30,
             )
             if resp.status_code != 200:
-                call_after(self._set_status, f"ElevenLabs Fehler: HTTP {resp.status_code}")
+                call_after(self._set_status, _("ElevenLabs Fehler: HTTP {}").format(resp.status_code))
                 return
             audio_bytes = resp.content
             self._cleanup_temp()
@@ -317,11 +317,11 @@ class SpeakTab(QWidget):
             self.window.client.stop_streaming_media()
             ok = self.window.client.start_streaming_media_to_channel(self._temp_file)
             if ok:
-                call_after(self._set_status, f"Streaming gestartet ({len(audio_bytes) // 1024} KB)")
+                call_after(self._set_status, _("Streaming gestartet ({} KB)").format(len(audio_bytes) // 1024))
             else:
-                call_after(self._set_status, "Streaming konnte nicht gestartet werden")
+                call_after(self._set_status, _("Streaming konnte nicht gestartet werden"))
         except Exception as exc:
-            call_after(self._set_status, f"Fehler: {exc}")
+            call_after(self._set_status, _("Fehler: {}").format(exc))
         finally:
             self._generating = False
             call_after(lambda: self.speak_btn.setEnabled(True))
@@ -334,7 +334,7 @@ class SpeakTab(QWidget):
         try:
             import requests as _req
         except ImportError:
-            call_after(self._set_status, "Fehlendes Modul: requests")
+            call_after(self._set_status, _("Fehlendes Modul: requests"))
             self._generating = False
             call_after(lambda: self.speak_btn.setEnabled(True))
             return
@@ -361,7 +361,7 @@ class SpeakTab(QWidget):
                 timeout=30,
             ) as resp:
                 if resp.status_code != 200:
-                    call_after(self._set_status, f"ElevenLabs Fehler: HTTP {resp.status_code}")
+                    call_after(self._set_status, _("ElevenLabs Fehler: HTTP {}").format(resp.status_code))
                     return
                 with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
                     self._streaming_temp_file = tmp.name
@@ -379,9 +379,9 @@ class SpeakTab(QWidget):
                                 call_after(self._start_streaming_playback, self._streaming_temp_file)
                 if not playback_started and self._streaming_temp_file:
                     call_after(self._start_streaming_playback, self._streaming_temp_file)
-                call_after(self._set_status, f"Streaming abgeschlossen ({received // 1024} KB)")
+                call_after(self._set_status, _("Streaming abgeschlossen ({} KB)").format(received // 1024))
         except Exception as exc:
-            call_after(self._set_status, f"Streaming Fehler: {exc}")
+            call_after(self._set_status, _("Streaming Fehler: {}").format(exc))
         finally:
             self._generating = False
             call_after(lambda: self.speak_btn.setEnabled(True))
@@ -391,9 +391,9 @@ class SpeakTab(QWidget):
             self.window.client.stop_streaming_media()
             ok = self.window.client.start_streaming_media_to_channel(filepath)
             if not ok:
-                self._set_status("Streaming-Wiedergabe konnte nicht gestartet werden")
+                self._set_status(_("Streaming-Wiedergabe konnte nicht gestartet werden"))
         except Exception as exc:
-            self._set_status(f"Wiedergabe-Fehler: {exc}")
+            self._set_status(_("Wiedergabe-Fehler: {}").format(exc))
 
     def on_stop(self) -> None:
         self._generating = False
@@ -403,7 +403,7 @@ class SpeakTab(QWidget):
             pass
         self._cleanup_temp()
         self._cleanup_streaming_temp()
-        self._set_status("Streaming gestoppt")
+        self._set_status(_("Streaming gestoppt"))
 
     def on_save_api_key(self) -> None:
         key = self.api_key_field.text().strip()
@@ -411,11 +411,11 @@ class SpeakTab(QWidget):
         try:
             self.window.settings_store.settings.elevenlabs_api_key = key
             self.window.settings_store.save()
-            self.window.set_status("ElevenLabs API-Key gespeichert")
+            self.window.set_status(_("ElevenLabs API-Key gespeichert"))
             if key:
                 self.set_api_key(key)
         except Exception as exc:
-            self.window.set_status(f"Fehler: {exc}")
+            self.window.set_status(_("Fehler: {}").format(exc))
 
     # ------------------------------------------------------------------
     # Helpers

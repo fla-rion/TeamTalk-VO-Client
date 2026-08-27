@@ -75,7 +75,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "9.1.1"
+APP_VERSION = "9.2.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -8442,12 +8442,15 @@ class MainFrame(wx.Frame):
 
     def _build_changelog_text(self) -> str:
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
-        changelog_path = base / "CHANGELOG.txt"
+        lang = current_language()
+        changelog_path = base / f"CHANGELOG_{lang}.txt" if lang != "de" else base / "CHANGELOG.txt"
+        if not changelog_path.exists():
+            changelog_path = base / "CHANGELOG.txt"
         if not changelog_path.exists():
             return _translate_ui_text("Kein Changelog vorhanden.")
         try:
             text = changelog_path.read_text(encoding="utf-8", errors="replace")
-            if current_language() in ("fr", "es"):
+            if changelog_path.name == "CHANGELOG.txt" and lang in ("en", "fr", "es"):
                 return self._localize_document_text(text)
             return text
         except Exception:

@@ -1,0 +1,3189 @@
+Changelog
+=========
+
+2026-08-27 (v9.2.0)
+New: Full multilingual support (DE/EN/FR/ES) for UI, manual, and changelog
+
+- src/i18n.py: Filled in all previously missing FR/ES dictionary entries
+  (over 550 new translations). Bugfix: when a FR/ES entry was missing,
+  _lookup_direct() silently fell back to English instead of the actual
+  target language – so occasional English words showed up in the middle
+  of the French/Spanish UI. This affected, among others, many labels in
+  ui_wx/tabs/settings.py, audio.py, media.py that previously had no
+  dictionary entry at all (not even English).
+- src/ui_qt/tabs/admin.py, channels.py, chat.py, speak.py: all previously
+  hardcoded German status, error, and dialog texts (account and ban-list
+  management, channel context menu, kick/ban/operator actions, chat
+  export, ElevenLabs streaming status, and more) now go through the
+  translation infrastructure – previously these stayed German regardless
+  of the selected language.
+- The manual and changelog are now fully available in English, French, and
+  Spanish as dedicated files (manual_en/fr/es.html, CHANGELOG_en/fr/es.txt).
+  Windows/Linux (Qt) automatically show the file matching the app language;
+  macOS (wx) now also reads the matching changelog file instead of the
+  previous line-by-line substitution, which almost never matched on prose
+  text. Bugfix: the previous macOS changelog dialog accidentally showed
+  English-speaking users the entire changelog in German (missing "en"
+  branch).
+- The macOS manual (text embedded in app_wx.py, independent of
+  manual.html) intentionally remains a separate source and was not
+  touched.
+
+2026-08-27 (v9.1.1)
+Bugfix: Apple Foundation Models made the client unusable on macOS 26
+
+- src/apple_fm.py: The current applefoundationmodels package now requires
+  macOS 27 (Golden Gate) – the native import of the .dylib crashed hard on
+  macOS 26 (Tahoe) and older (dyld error instead of a catchable Python
+  exception, exit code 1). New check _min_macos_ok() reads the system
+  version via platform.mac_ver() and prevents ANY access to
+  applefoundationmodels below macOS 27 – neither is_available() nor
+  generate() start the worker subprocess in that case. Affected functions
+  (chat summary, reply suggestions, intent classification, text
+  improvement, real-time translation) fall back on macOS 26 immediately
+  and silently to Claude/Gemini/Ollama/extraction; the client itself
+  remains fully usable.
+
+2026-08-26 (v9.1.0)
+New feature: Eloquence TTS (OpenEVV) as a second TTS backend
+
+- Integrated IBM Embedded ViaVoice / ETI Eloquence SF via the open-source
+  project OpenEVV (github.com/Mudb0y/openevv)
+- Selectable in the System tab under "TTS backend": "OpenEVV (Eloquence)"
+- Voice selection 1–8 via slider in the System tab
+- Binary is bundled like espeak-ng – no manual path needed
+  (Windows: prebuilt binary; macOS/Linux arm64: built from source)
+- New files: scripts/download_openevv.py, third_party/openevv/
+- CI: build-macos.yml, build-windows.yml, build-linux.yml run
+  download_openevv.py automatically before PyInstaller
+- New CI workflow build-openevv-macos.yml builds the macOS binary once
+  and commits it to the repo
+
+2026-07-26 (v9.0.0)
+New feature: Spotify streaming via librespot + Deezer streaming via yt-dlp
+
+Spotify:
+- New streaming mode "Spotify" in the Media tab (Spotify Premium required)
+- Integration via librespot: TeamTalk appears as a Spotify Connect device
+  in the Spotify app; device name freely customizable
+- One-time web login via OAuth (PKCE): browser opens automatically,
+  librespot stores credentials for all subsequent launches
+- Quality choice: 320 / 160 / 96 kbps
+- librespot binary bundled (third_party/librespot/), can also be
+  installed manually via python scripts/download_librespot.py
+- New files: src/spotify_auth.py, src/spotify_streamer.py
+
+Deezer:
+- New streaming mode "Deezer" in the Media tab
+- Authentication via ARL token (192-character cookie from deezer.com);
+  username/password login was disabled by Deezer
+- Search via the free Deezer public API (no account needed to search)
+- Download and decryption via yt-dlp (already bundled, no new
+  pip packages required)
+- Token is stored locally (~/.config/tt-vo-client/deezer_arl.txt)
+- New file: src/deezer_downloader.py
+
+CI / Build:
+- build-macos.yml (new): macOS build via GitHub Actions, produces a DMG
+- build-windows.yml + build-linux.yml: librespot build with Rust + cache
+- All platforms bundle librespot automatically in the PyInstaller bundle
+
+2026-07-19 (v8.1.3)
+Fix: broken version detection in all local build scripts + Linux installer
+
+- scripts/build_macos.sh, build_linux.sh, build_windows.ps1/.py: all four
+  read APP_VERSION from src/app.py – it is never defined there (only the
+  platform router). Every script would have aborted immediately when
+  reading the version. Now reads correctly from app_wx.py (macOS) or
+  app_qt.py (Windows/Linux).
+- scripts/build_linux.sh: PKG_NAME had "linux_x64" hardcoded, regardless
+  of the actual architecture of the building machine – on an arm64 Linux
+  machine the archive would have been mislabeled. Now reads uname -m
+  (x86_64/arm64), matching the CI naming convention.
+- scripts/install_linux.sh (new): installs a finished Linux release
+  (from GitHub or from a local .tar.gz), sets up a menu entry + start
+  command, and checks/installs missing runtime dependencies
+  (Debian/Ubuntu via apt). Detects an architecture mismatch in local
+  archives and offers an automatic download of the matching version
+  from GitHub.
+- scripts/README.md: TeamTalk SDK downloads were documented as .zip
+  (actually .7z), the Linux SDK filename did not exist as documented on
+  bearware.dk, libgtk-3-dev/GStreamer removed as a Linux requirement
+  (only needed for wx, which Linux doesn't use), incorrect script flags
+  in the English section corrected.
+
+2026-07-19 (v8.1.2)
+CI: official Linux build (x86_64 + arm64) via GitHub Actions
+
+- .github/workflows/build-linux.yml (new): builds automatically on every
+  tag push for x86_64 (ubuntu-22.04) and arm64 (ubuntu-22.04-arm), downloads
+  the matching TeamTalk SDK from bearware.dk, compiles SRAL (Speech
+  Dispatcher/BrlAPI), and uploads the result as a tar.gz to the GitHub and
+  Gitea release.
+- TeamTalk VO Client_linux.spec fixed: the Qt UI package (ui_qt) was
+  completely missing from the bundled data – the app would have crashed
+  on startup on Linux. Missing hidden imports (app_qt, screen_reader,
+  sr_output, ui_qt.tabs.system, PySide6) added, SRAL library included.
+- requirements_linux.txt fixed: missing PySide6 added (Linux uses the Qt
+  interface), unnecessary wxPython removed (only relevant on macOS,
+  would likely have triggered a lengthy source build with GTK
+  dependencies on ARM64).
+- scripts/build_linux.sh, build_macos.sh, build_windows.ps1/.py: the
+  Gitea token was stored in plain text in the script (publicly visible on
+  the GitHub mirror) – it is now read at runtime from $GITEA_TOKEN or the
+  origin remote URL. The old token was revoked and a new one generated.
+
+2026-07-19 (v8.1.1)
+Bugfix: Apple Foundation Models didn't work at all in the built .app
+
+- TeamTalk VO Client.spec: error_codes.json (a data file from
+  applefoundationmodels) was missing from the bundle – only the .dylib
+  was copied, but the package also loads a JSON file with error code
+  definitions on import. Without it, the import failed with
+  FileNotFoundError and Apple FM was permanently "unavailable" in every
+  built .app (regardless of macOS version) – silently, with no error
+  message, falling back to Claude/Gemini/Ollama/extraction.
+- src/apple_fm.py: generate() now runs in an isolated subprocess (the
+  app/script relaunches itself with --apple-fm-worker). Protects against
+  native crashes in the Foundation Models framework (e.g. on macOS
+  versions not yet fully supported, such as Tahoe) – only the worker
+  crashes, the app stays alive and the next backend fallback kicks in.
+- src/ai_summary.py: summarize_missed() unconditionally overwrote an
+  already-successful Apple FM result with Claude as soon as a Claude API
+  key was configured (missing "summary is None" check) – Apple FM
+  therefore never got used when a Claude key was also set.
+
+2026-06-16 (v8.1.0)
+New: Apple Foundation Models – on-device AI without an API key (macOS 26+, Apple Silicon)
+
+- src/apple_fm.py (new): lightweight wrapper around the official Apple
+  Foundation Models SDK (applefoundationmodels 0.2.2). No API key, no
+  network, no cost. Fully private – all data stays on the device.
+- ChatSummaryManager, AiReplyManager, ChatTranslatorManager: Apple FM as
+  the first backend in the chain (before Claude, Gemini, Ollama). On
+  macOS 26+ with Apple Intelligence, Apple FM is used automatically; on
+  older systems or without Apple Silicon, the previous fallback applies.
+  Affected functions: chat summary, reply suggestions, intent
+  classification, text improvement, real-time translation.
+- TeamTalk VO Client.spec: libfoundation_models.dylib added to the
+  bundle.
+- Requires: macOS 26+ (Tahoe) or macOS 27 (Golden Gate), Apple Silicon
+  (M1+).
+
+2026-06-16 (v8.0.5)
+Bugfix: VoiceOver reads the server list correctly on macOS 27 (second attempt)
+
+- src/ui/a11y.py: _cell_text() completely reworked – four strategies in
+  order:
+  1. Query the data source directly (tableView_objectValueForTableColumn_row_)
+     – independent of the AX system, gets the text exactly as it is in the
+     wx.ListBox model.
+  2. preparedCellAtColumn_row_ + stringValue – directly from the cell.
+  3. Formal NSAccessibility protocol (accessibilityChildren +
+     Value/Label/Title).
+  4. Legacy accessibilityAttributeValue_ + subview stringValue as last
+     resorts.
+- NSTableRowView (view-based table, macOS 10.7+) is now patched in
+  addition to NSTableRow – wxPython uses view-based tables on current
+  macOS, which is why the previous patches were addressing the wrong
+  type.
+
+2026-06-16 (v8.0.4)
+Bugfix: VoiceOver reads the server list correctly again on macOS 27 (Golden Gate)
+
+- src/ui/a11y.py: _cell_text() in patch_list_row_accessibility() now uses
+  a two-stage strategy: first the formal NSAccessibility protocol
+  (accessibilityChildren() / accessibilityValue()), then a fallback via
+  the subview hierarchy (stringValue). On macOS 27, accessibilityChildren()
+  can return empty on an NSTableRow if Apple has restructured the internal
+  view hierarchy of NSTableView; the fallback ensures readability.
+- NSTableRow category: accessibilityTitle() added – macOS 27 may prefer
+  this attribute over accessibilityLabel() for list entries.
+
+2026-06-09 (v8.0.3)
+Compatibility: macOS 27 (Golden Gate) – legacy accessibility API removed
+
+- src/ui/a11y.py: _cell_text() in patch_list_row_accessibility() now uses
+  the formal NSAccessibility protocol (accessibilityChildren() /
+  accessibilityValue()) instead of the accessibilityAttributeValue_
+  method, deprecated since macOS 10.10. Apple is further deprecating the
+  informal AX API in macOS 27; the new code is more robust and
+  future-proof.
+- NSTableRow category: accessibilityAttributeValue_ override removed
+  (was redundant, since accessibilityLabel and accessibilityValue are
+  already correctly patched via the formal protocol).
+- All remaining accessibility patches (accessibilityRole,
+  accessibilityLabel, etc.) via objc.Category remain unchanged and are
+  compatible with macOS 27.
+
+2026-05-30 (v8.0.2)
+Bugfix: ui_wx/a11y.py turned into a re-export (German role descriptions remained active)
+
+- v8.0.1 patched src/ui/a11y.py, but app_wx.py imports from
+  src/ui_wx/a11y.py. The two files had silently drifted apart – the fix
+  in v8.0.1 hit the file that isn't loaded on macOS. Reported by @math65
+  (PR #28).
+- Fix: ui_wx/a11y.py is now a thin re-export of ui/a11y.py. Future fixes
+  now only need to be maintained in one place.
+- setup_list_accessible(): last remaining setAccessibilityRoleDescription_("Liste")
+  call removed.
+
+2026-05-29 (v8.0.1)
+i18n bugfix: VoiceOver now speaks the correct system language (FR/ES/EN)
+
+- Fixed macOS language detection: detect_system_language() now uses
+  NSLocale.preferredLanguages (PyObjC) instead of locale.getlocale(). In
+  .app bundles, locale.getlocale() always returns (None,None) or
+  'en_US' – the macOS API is the only reliable source for the user's
+  actual UI language.
+- Fixed bundle localization: the .spec now creates de/en/fr/es.lproj
+  directories with InfoPlist.strings after the build. Without these
+  stubs, macOS ignores CFBundleLocalizations and VoiceOver always
+  chooses the English voice.
+- Removed redundant German role descriptions: accessibilityRoleDescription
+  overrides in a11y.py that used hardcoded DE strings ("Taste", "Regler",
+  etc.) were dropped. VoiceOver localizes these roles correctly on its
+  own in FR/ES/EN. The accessibilityRole overrides (AXButton, AXList,
+  etc.) remain. The accessibilityValue fix for NSStepper (numeric value)
+  also remains.
+- Reported by @math65 (Issue #27). Reproducible on macOS 15.5 / FR
+  system.
+
+2026-05-27 (v8.0.0)
+SRAL integration: unified screen-reader output layer (speech + braille)
+
+- Integrated SRAL (Screen Reader Abstraction Library) as the new SR
+  output layer. Unified API: sr_output.speak() / sr_output.braille() /
+  sr_output.output(). Windows: SRAL (NVDA / JAWS / SAPI / Narrator) +
+  braille via BRLTTY. Linux: SRAL with Speech Dispatcher + libbrlapi.
+  macOS: still uses NSAccessibilityPostNotificationWithUserInfo (higher
+  quality than SRAL/VoiceOver.mm, since priority is set); braille
+  automatically via VO.
+- screen_reader.py (Windows tolk/NVDA/SAPI) remains as a fallback if
+  SRAL.dll cannot be loaded.
+- sr_output.py is the new canonical interface for SR output throughout
+  the project (app_wx.py and app_qt.py).
+- SRAL: universal binary (arm64 + x86_64) on macOS, x64 on Windows (CI).
+  Based on SRAL v0.3 by m1maker (MIT license).
+
+2026-05-27 (v7.8.1)
+Accessibility code maintenance: objc.Category pattern for VoiceOver patches
+
+- VoiceOver patches (macOS) now use objc.Category instead of
+  classAddMethod. All accessibility methods of a class are now grouped
+  together – more readable, no more @objc.typedSelector boilerplate.
+  Behavior and runtime effect identical to v7.8.0. Recommendation from
+  Ronald Oussoren (@ronaldoussoren, PyObjC).
+
+2026-05-26 (v7.8.0)
+WASAPI per-app audio, i18n completeness, PTT guard, UI decluttering
+
+- WASAPI per-app audio (Windows 10 2004+): stream Spotify, Firefox,
+  games, etc. directly into the channel – without a virtual loopback
+  driver (BlackHole, VB-Cable, etc.). Menu: Audio › Capture app audio.
+  Contribution by @math65.
+- i18n call sites: ~940 Qt widget strings now wrapped with _() – FR/ES
+  users now actually see the interface in their language (dialogs,
+  menus, tabs). Contribution by @math65 (PR #26) + automatic scan.
+- PTT/VA guard: on the first PTT or voice-activation attempt without a
+  configured input device, a clear VoiceOver/NVDA announcement now
+  appears instead of silence.
+- Advanced tabs (opt-in): Admin, Desktop, and Speak are hidden by
+  default. Enable via Menu › Show advanced tabs. Significantly reduces
+  the tab order for screen-reader users.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-25 (v7.7.0)
+AI features: reply suggestions (Qt), connection summary, writing assistant
+
+- AI reply suggestions (Windows/Qt): NVDA users now get the same AI
+  dialog as macOS – after receiving a private message, generate 3
+  suggestions via hotkey, select one, and insert it directly into the
+  input field (Claude/Gemini/Ollama backend).
+- Connection summary: when joining a channel, the AI automatically
+  summarizes the last 2 hours of chat history and reads it aloud via
+  VoiceOver/NVDA (opt-in in Settings › Chat & Automation).
+- AI writing assistant: new "Improve" button next to the chat input
+  field – type a message and click "Improve" to have the AI rephrase it
+  more clearly and naturally (macOS + Windows, Claude/Gemini/Ollama).
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-25 (v7.6.0)
+Accessibility & translations: NVDA live regions, Spanish 100%, braille optimizations
+
+- Qt live regions (NVDA/Windows): NVDA now automatically announces when
+  a user joins or leaves the channel, a new channel or private message
+  arrives, media streaming starts or stops, and on your own channel
+  switch – without moving focus. Announcements are limited to 80
+  characters; private messages only name the sender (no message text,
+  privacy). User events only in your own channel.
+- Full Spanish translation (100%): all ~670 missing strings translated –
+  the app is now fully available in Spanish (all tabs, menus, dialogs,
+  error messages).
+- Braille optimizations (macOS): prevented double announcements in the
+  channel list (only on an actual change); fixed tab order in the
+  connection tab (filter → list → buttons); shortened accessible names
+  for the braille display (max. 50 characters, no redundancy).
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-25 (v7.5.10)
+Full French translation (~100%) thanks to @math65
+
+- French (FR): over 800 new strings translated – coverage raised from
+  ~34% to ~100%. All tabs, menus, dialogs, and error messages are now
+  available in French. The language can be chosen under Settings ›
+  Language.
+- Contributed by @math65 (9 PRs: audio, chat, plugins, server, video,
+  TTS, AI, channels/settings, final batch).
+
+2026-05-25 (v7.5.9)
+5 new features: greeting, PM history, status favorites, reconnect announcements, PM window
+
+- Automatic greeting message: when joining a channel, a configurable
+  text is automatically sent (can be toggled in Settings › Chat &
+  Automation).
+- Private message history browser: new dialog (Server menu) for browsing
+  saved PM histories by conversation partner, with export function.
+- Status favorites: in the status dialog, frequently used status
+  messages can be saved as favorites and applied with one click ("Save
+  as favorite" button).
+- Reconnection announcements: VoiceOver (macOS) and NVDA (Windows) now
+  announce the countdown and attempt counter on every reconnection
+  attempt.
+- Wx private chat window: on macOS, writing to a user (Enter key in the
+  user list, or the User menu) now opens a dedicated chat window per
+  conversation partner – matching the Qt/Windows variant (history,
+  export, Ctrl+W).
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6) – both UIs
+  respectively.
+
+2026-05-25 (v7.5.8)
+5 new features: messages, statistics, transfer, history, kick
+
+- Saved messages: dedicated dialog with live search, individual
+  deletion, copying, VoiceOver announcements. Fixed a Qt bug (messages
+  were not displayed).
+- System tab: session statistics show connection duration, message
+  counters, and connection count; with refresh and reset buttons.
+- Files tab: transfer speed (KB/s) and estimated remaining time (ETA)
+  are shown during active file transfers. VoiceOver/NVDA announcement
+  when a transfer completes.
+- Speak tab: text history of the last 10 ElevenLabs texts; double-click
+  or "Speak again" button for quick access.
+- Kick with reason: before every kick, an input field for a reason
+  appears. It is sent as a channel message (format: "[Admin] Name was
+  kicked: reason"). VoiceOver/NVDA announcement.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6) – both UIs
+  respectively.
+
+2026-05-25 (v7.5.7)
+Offline queue improved: individual delete, send, VoiceOver
+
+- "Remove entry": individual messages can now be selectively removed
+  from the queue (previously only "discard all").
+- "Send all now": manually flush the queue once reconnected (button is
+  only active when a connection exists).
+- Correct distinction between channel and private message on send.
+- VoiceOver announcements when removing entries and clearing the queue.
+- Fixed a Qt bug: the simple dialog was replaced with the full one,
+  which previously existed but was never opened.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-25 (v7.5.6)
+Auto-away: VoiceOver/NVDA announcements, timer fix, activity detection
+
+- VoiceOver (macOS) and NVDA (Windows) now announce when the away status
+  is set or cleared automatically.
+- Chat search: the number of results is announced by VoiceOver/NVDA
+  after a search. While navigating the results list, VoiceOver reads out
+  text and position ("Result 2 of 5: …").
+- Qt/Windows: fixed a timer bug – the countdown now correctly runs from
+  the last keystroke, instead of firing periodically regardless of
+  activity.
+- The away status is now cleanly reset when disconnecting from the
+  server.
+- Activity is now also detected when sending a chat message or using
+  PTT.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-25 (v7.5.5)
+Fix: VoiceOver now speaks the system language instead of always English
+
+- Info.plist was missing CFBundleDevelopmentRegion and
+  CFBundleLocalizations. macOS therefore used English as a fallback,
+  even on German systems. Now correct: CFBundleDevelopmentRegion=de,
+  localizations: de, en, fr, es. VoiceOver automatically selects the
+  appropriate language according to the system setting. (macOS)
+
+2026-05-24 (v7.5.4)
+Shortcuts tab: categories, search field, reset all
+
+- Hotkeys now organized into 4 categories: Audio & Recording,
+  Announcements & TTS, Navigation & Chat, AI & Automation.
+- New search field at the top: filters all entries live by keyword.
+- New "Reset all" button: clears all keyboard shortcuts after
+  confirmation.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-24 (v7.5.3)
+Manage channel passwords
+
+- New dialog "Manage saved channel passwords" in Settings → General:
+  shows all channel passwords saved via Keychain (server + channel
+  name) and allows individual or complete deletion of entries.
+- The index of saved passwords is now persisted in settings, so the
+  dialog also works without an active server connection. (macOS)
+
+2026-05-24 (v7.5.2)
+Connection profiles: merge import with duplicate detection
+
+- Importing the server list (File → Import server list) now detects
+  duplicates: on conflicts, the app asks whether to only add new
+  profiles or replace the entire list.
+- Applies to macOS (wxPython) and Windows/Linux (Qt/PySide6).
+
+2026-05-24 (v7.5.1)
+Braille display optimization: channel/user list and announcements
+
+- Channel labels in compact mode: user count as "3N" / "3/7N" instead of
+  "3 users"; password as "[P]" instead of "Password"; no topic text in
+  the list. (wx macOS + Qt Windows/Linux)
+- User labels in compact mode: only the first status flag ("Admin" or
+  "Speaking"), no status text in the Qt list.
+- Channel join announcement: VoiceOver/NVDA now uses
+  BrailleOutputManager.announce_channel_join() with user count and a
+  verbosity-dependent format (e.g. "General (3)" in compact mode).
+- All VoiceOver announcements (join/leave/member list) are now routed
+  through strip_for_braille() – removes emoji, arrows, and pipe
+  characters that render poorly on braille displays.
+
+2026-05-24 (v7.5.0)
+Accessibility: VoiceOver live regions (macOS) + NVDA live regions (Windows)
+
+- macOS/VoiceOver: joining a channel is now announced directly via
+  VoiceOver – the channel's name and topic are output via
+  NSAccessibilityAnnouncementRequestedNotification on join, regardless
+  of the espeak-ng TTS status.
+- macOS/VoiceOver: when another user joins or leaves your channel, the
+  message is now also sent as a VoiceOver announcement in addition to
+  the TTS announcement.
+- macOS/VoiceOver: the member list of the current channel (after a
+  channel switch and refresh) is now announced as a VoiceOver live
+  region ("In channel X: user A, B, C").
+- Windows/NVDA: new method _sr_announce() sends dynamic events as a live
+  region to NVDA (and other screen readers via tolk.dll), without
+  interrupting the current speech. Affected: joining a channel, users
+  joining/leaving, incoming chat and private messages.
+
+2026-05-24 (v7.4.1)
+AI services settings: key verification + Gemini OAuth fix
+
+- New: "Check key" button for ElevenLabs, Claude (Anthropic), and Google
+  Gemini – immediately verifies the entered API key against the
+  respective API and shows the result (e.g. "✓ Valid – Florian
+  (creator)").
+- Fix: Gemini "Sign in with Google" only showed a truncated error
+  message when client_secrets.json was missing. A complete dialog now
+  appears with a step-by-step guide for the Google Cloud Console, the
+  exact save path for the file, and a note about the simpler API key
+  alternative.
+- Qt (Windows/Linux): the Claude API key field was completely missing,
+  it now exists with its own verify button. All three AI services have
+  their own sections with verification feedback instead of a shared
+  block with no feedback.
+
+2026-05-24 (v7.4.0)
+Keyword notifications + Spanish translation (parity)
+
+- New: notification rules now support an optional keyword field. If a
+  keyword is entered, the rule only applies if the message contains
+  that keyword (case-insensitive). Available for all message events
+  (chat, private, all events).
+- Notification dialog (wx + Qt): a new keyword field appears between
+  event and scope; it is only active when a message event is selected.
+- Spanish translation significantly expanded: +339 new strings bring ES
+  to 555 entries (parity with French, 549). All UI areas are now
+  covered: audio, recording, media streaming, channels, administration,
+  files, playlists, web radio, podcasts, settings, notifications, and
+  more.
+
+2026-05-23 (v7.3.1)
+Qt accessibility: setAccessibleName() for all missing widgets
+
+- Qt (Windows/Linux): all QCheckBox, QComboBox, QListWidget, and
+  QSpinBox instances without an explicit name now get
+  setAccessibleName(). NVDA and other screen readers now read out
+  consistent, &-free names. Affected: audio, media, settings, chat,
+  ElevenLabs TTS tab.
+
+2026-05-23 (v7.3.0)
+i18n: system language detection, Qt language selector, 99 more FR strings
+
+- New: automatic system language detection on first launch (macOS +
+  Windows/Linux). The app detects the operating system language and
+  sets it as the default, provided it is supported (de, en, fr, es).
+  Already-configured languages are kept.
+- Qt (Windows/Linux): the language selector in settings now shows all 4
+  supported languages (Deutsch, English, Français, Español).
+- Extended French translation: 99 new strings for files, media
+  streaming, and administration (contribution: @math65).
+- Test suite: new tests for system language detection and
+  initialization.
+
+2026-05-23 (v7.2.0)
+i18n: French translation + Qt menu localization
+
+- Extended French translation: 77 new strings in the areas of chat,
+  audio, connection, and channels (contribution: @math65).
+- Qt (Windows/Linux): all menu strings are now translated via _() –
+  foundation for full multilingual support of the Qt interface.
+- i18n engine: transparent normalization of Qt mnemonics (&) and
+  trailing '...' during lookup – no more dictionary bloat needed.
+- Bugfix (macOS): Cmd+Q opened the QR code dialog instead of quitting.
+- Bugfix: qrcode library now included in the bundle.
+- About dialog: contributors (math65, danijel1124) added.
+
+2026-05-21 (v7.1.1)
+Qt Media tab: streaming sources as a dropdown (accessibility)
+
+- Qt (Windows/Linux) Media tab: inner tabs (URL, YouTube, Radio,
+  Podcasts, Playlist) replaced with a "Streaming source:" dropdown +
+  a switching content area. Recording controls remain always visible.
+  More accessible for screen readers (NVDA/Narrator).
+- Notification engine: connected/disconnected events now carry server
+  context (rules at the server level now apply correctly).
+
+2026-05-21 (v7.1.0)
+Notification engine (macOS + Windows/Linux)
+
+- New: fine-grained notification rules for TTS and sound. Under
+  "Automation → Notification rules", rules can be defined that
+  determine, for each event (user joins/leaves channel, channel/private
+  message, channel switch, connection), whether TTS, sound, both, or
+  nothing is output.
+- Scopes: global, server, channel, or individual user. More specific
+  rules override more general ones (user > channel > server > global).
+- Supported events: user joins/leaves channel, channel message, private
+  message, own channel switch, connected, disconnected.
+- Supported actions: TTS + sound, TTS only, sound only, mute.
+- Full parity between macOS (wx) and Windows/Linux (Qt).
+- Settings are stored in the database and loaded on startup.
+
+2026-05-20 (v7.0.2)
+Qt UI (Windows/Linux): channel list, chat, sound – bugfixes and UI improvements
+
+- Chat: message sending was completely broken (text was passed as
+  channel_id) – fixed.
+- Chat: nickname instead of login username was shown in the chat
+  history – fixed.
+- Sound: the channel_join sound was missing on your own channel switch
+  (parity with macOS) – added.
+- Channel list: refresh fallback 1 s after connect (SDK timing) –
+  fixed.
+- Channel list: added a manual "Refresh" button.
+- Channel list: channels bold, users normal (visual hierarchy).
+- Channel list: more padding in list entries for better readability.
+- Layout: QSplitter instead of a rigid 50/50 layout (channels 38%, chat
+  62%, draggable).
+- Channel search: fixed an ordering bug in the diff update.
+  Contribution by @danijel1124.
+
+2026-05-19 (v7.0.1)
+Qt UI (Windows/Linux): macro editor + pronunciation dictionary + bugfixes
+
+- Macro editor (Automation → Macro editor): full 3-tab dialog on
+  Windows/Linux — create/edit/duplicate macros, action list, trigger
+  rules, schedule. Replaces the previous three separate inline dialogs.
+- Pronunciation dictionary (Automation → Pronunciation dictionary): new
+  dialog on Windows/Linux with rule list, editor (regex, word boundary,
+  case sensitivity), live test, JSON import/export — full parity with
+  the macOS version.
+- Menu "Pronunciation dictionary..." added to the Automation menu.
+- Windows: chat logs are now correctly saved in the AppData directory.
+- Windows: the log file (client.log) is now correctly created on
+  startup.
+- Windows: fixed sound playback.
+  Contribution by @danijel1124.
+
+2026-05-19 (v7.0.0)
+Macro engine + pronunciation dictionary: entirely new automation and TTS personalization
+
+- New macro editor dialog (Automation → Macro editor) with three tabs:
+  * Macros: create, edit, duplicate, delete; action list with graphical
+    type selection, reorder (up/down).
+  * Triggers: event-based rules — automatically run a macro on user
+    join/leave, channel switch, chat message, connect/disconnect.
+  * Schedule: run a macro daily at HH:MM.
+- New action types: send_message (channel message), send_private
+  (private message), send_broadcast (broadcast), play_sound (audio
+  file with a file browser).
+- Template variables in action values: {user}, {channel}, {message},
+  {time}.
+- Trigger filter: optional regex mode; for chat message triggers, the
+  message content is checked (not the username).
+- New trigger events: connected, disconnected.
+- The macro editor opens the schedule tab directly via Automation →
+  Scheduled macros.
+
+Pronunciation dictionary (Automation → Pronunciation dictionary):
+- Standalone dialog with a VoiceOver-friendly rule list.
+- Per rule: search term, replacement, word boundaries, regex mode,
+  case sensitivity, enable/disable without deleting.
+- Order adjustable via move up/down.
+- Live test: enter text and see the result immediately.
+- Import/export as JSON (share or back up rules).
+- Backward compatible: existing pronunciation_dict entries are
+  automatically migrated to the new format.
+
+2026-05-19 (v6.10.10)
+Qt UI (Windows): several bugs fixed
+
+- TT file import: imported servers are now correctly saved in the
+  server list, and the channel/channel password from the TT file are
+  applied.
+- Connection dialog: the "Check server" button no longer closes the
+  dialog — the TCP check now runs inline, entered data is preserved.
+- Connection dialog: the "Save" button now works correctly (the channel
+  password field was not correctly applied to the profile).
+- ServerProfile: the "channel" and "channel password" fields are now
+  persisted.
+- Log files: are now written to the correct logs directory.
+- Dark mode: removed duplicate palette application; Fusion style and
+  colors are now set consistently from App.__init__ (including tooltip
+  colors).
+- PTT (push-to-talk): the F9 key and the menu/toolbar button now stay
+  in sync; fixed a double-toggle issue with F9.
+
+2026-05-18 (v6.10.9)
+i18n: extended French translation (coverage 18.3% → 22.0%)
+
+- Translated 45 missing menu strings into French (File, Channel, User,
+  Server, Profile, Audio, Video, Recordings, Automation, Help).
+- Contribution by Mathieu Ramage (@math65) — merci!
+
+2026-05-18 (v6.10.8)
+Update manager: bugfixes (Cmd+Q, list format, changelog display)
+
+- Cmd+Q now also quits the app from within the update manager dialog.
+- List entries use a comma as separator instead of double space/parens
+  (better VoiceOver readability).
+- Changelog text: Windows line endings (\r\n) are now correctly
+  normalized on macOS.
+
+2026-05-18 (v6.10.7)
+Update manager: Help menu → "Updates & Versions…"
+
+- New dialog in the Help menu (macOS + Windows): all releases are
+  loaded via the public GitHub API — no token needed.
+- Shows all available versions with date, asset size, and a ★ NEW /
+  ✓ current marker.
+- The changelog of the selected version is shown on the right.
+- Downloads the matching asset (DMG on macOS, ZIP on Windows) into
+  ~/Downloads with a progress bar.
+- After the download: "Open DMG?" (macOS) or "Show in Explorer"
+  (Windows).
+- Older versions can be downloaded just like the latest one.
+
+2026-05-18 (v6.10.6)
+Windows: improved SDK demo dialog suppressor
+
+- The demo dialog suppressor now polls every 100 ms instead of every
+  second — the dialog disappears before it becomes visible or audible.
+- Now checks the process ID: only dialogs from the app's own process
+  are closed, no foreign system dialogs.
+- More keywords: "bearware", "trial", "license", "lizenz".
+- Closes with WM_CLOSE + WM_COMMAND IDOK (fallback) instead of just
+  WM_COMMAND.
+- No change on macOS.
+
+2026-05-18 (v6.10.5)
+Streaming volume: default lowered from 100 to 50, minimum extended to 10
+
+- Streaming volume default for all sources (URL, yt-dlp, web radio,
+  podcast, playlist) lowered from 100 to 50 (factor 0.5 = −6 dB). Web
+  radio streams are normalized to broadcast level and sounded too loud
+  at the default 100%.
+- Minimum lowered from 25 to 10 for finer attenuation of very loud
+  streams.
+- Range display updated: "(10–400, default: 50)".
+- Applies equally to wx (macOS) and Qt (Windows/Linux).
+
+2026-05-18 (v6.10.4)
+Four more ttaccessible ideas: per-user stereo balance, persistent session history, smart audio resolver
+
+- Per-user stereo balance — via the user menu (Channels tab), the
+  stereo position can be set to "Normal", "Left only", or "Right only"
+  for each participant. The setting is saved per username and
+  automatically applied on the next join.
+- Persistent session history — connections, channel switches, and
+  logins/logouts are permanently logged in a JSONL file
+  (session_history.jsonl in the app data directory). Export as a text
+  file via File → "Export session history…".
+- Smart audio device resolver — when auto-initializing audio devices
+  after login, built-in hardware (Built-in, Microphone, MacBook
+  microphone) is now preferred over virtual loopback devices to avoid
+  accidental silence.
+
+2026-05-17 (v6.10.3)
+Four more ttaccessible ideas: AVSpeechSynthesizer backend, TTS rate/volume for macOS, per-type notification mode, root channel auto-join
+
+- AVSpeechSynthesizer (PyObjC) — new TTS backend "AVSpeechSynthesizer
+  (PyObjC)". Uses Apple's AVFoundation directly via PyObjC — more
+  reliable than the say process, supports rate and volume per
+  utterance.
+- TTS speech rate & volume for macOS backends — two new sliders in the
+  TTS section (macOS only): "Speech rate (0–100)" and "Volume (0–100)".
+  For "macOS say", the speech rate is converted to WPM (50–400); for
+  "AVSpeechSynthesizer", both parameters are set directly.
+- Notification mode per message type — the three checkboxes for
+  background notifications (private messages / channel messages /
+  broadcast messages) are now dropdowns with four modes: "Off",
+  "Notification", "TTS", "VoiceOver". TTS and VoiceOver read out the
+  message via speech when the app is not in the foreground.
+- Root channel auto-join — new setting "Automatically join root channel
+  after login" (General tab). When enabled, the root channel is
+  automatically joined after every successful login.
+
+2026-05-17 (v6.10.2)
+Four new features derived from ttaccessible: granular TTS toggles, macOS voice, jitter buffer, recording mode
+
+- TTS: login/logout separately controllable — new "Login/logout"
+  checkbox in the TTS section. Server login/logout events are now
+  controlled independently of "Read system".
+- TTS: channel file event — new "File added/removed" checkbox. When a
+  file appears or is removed in the current channel, the filename is
+  announced via TTS.
+- macOS TTS voice (say command) — third TTS backend "macOS say (choose
+  voice)". Uses the macOS `say` command with a selectable voice
+  (dropdown with all voices available on the system).
+- Adaptive jitter buffer (SDK) — the existing "Adaptive jitter buffer"
+  setting (Settings tab) is now actually applied at the SDK level
+  (TT_SetUserJitterControl) when a user joins the channel.
+- Recording mode — when starting a recording, you can now choose
+  between "Mixed (muxed)", "Per user (separate)", and "Both". The mode
+  is saved.
+
+2026-05-17 (v6.10.1)
+Two new features: media file muting (⌘Ctrl⇧M), per-channel TTS muting
+
+- Media file muting (⌘Ctrl⇧M): the user selected in the user list can be
+  muted or unmuted with this shortcut with respect to their media-file
+  audio stream. Status is confirmed via TTS and the status bar.
+- Per-channel TTS muting: the channel context menu (right-click on a
+  channel) now shows "Mute TTS announcements" or "Unmute TTS
+  announcements". Muted channels suppress TTS announcements for users
+  joining and leaving. The setting is stored permanently.
+
+2026-05-17 (v6.10.0)
+Three new features: VoiceOver TTS, away announcements, ⌘K quick channel switcher
+
+- VoiceOver TTS backend (macOS): in the "System & TTS" tab, "TTS
+  engine" can now be switched between espeak-ng and "VoiceOver
+  (macOS)". VoiceOver mode speaks text directly via the macOS VoiceOver
+  voice (AppleScript interface), without espeak-ng.
+- Away/back TTS: new TTS event "Announce away/back" (default: off).
+  When a user switches to away mode or returns, this is announced via
+  TTS ("Name is now away" / "Name is available again").
+- Quick channel switcher (⌘K): opens a search window with all available
+  channels. Typing filters the list in real time; Enter joins the
+  selected channel. Only active while connected.
+
+2026-05-17 (v6.9.9)
+Acknowledgments and manual: ttaccessible reference added
+
+- About dialog (macOS): new "Sources of inspiration" section in the
+  "General" tab referencing ttaccessible (Mathieu Ramage / math65,
+  https://github.com/math65/ttaccessible).
+- About dialog: "Acknowledgments" tab now includes a dedicated section
+  for Mathieu Ramage with a description of his contributions and a
+  link to the repo.
+- Manual: new section "Acknowledgments & sources of inspiration" with
+  cross-references to ttaccessible and a list of the features it
+  inspired (v6.9.4–6.9.8).
+- Manual footer updated (v6.4.3 → v6.9.8, Mathieu added).
+
+2026-05-17 (v6.9.8)
+Windows hotfix: fixed QShortcut import error
+
+- QShortcut was moved in PySide6 6.4 from QtWidgets to QtGui. The
+  incorrect import in ui_qt/tabs/chat.py and
+  ui_qt/private_chat_dialog.py completely prevented the Windows version
+  from starting.
+
+2026-05-17 (v6.9.7)
+Five new features for VoiceOver users:
+
+- Mute TTS per user: joining/leaving of individual users can be hidden
+  from speech output via right-click → "Mute join TTS". The list is
+  saved in settings (tts_muted_join_users).
+- Connection loss announced via TTS: on connection loss (CON_LOST),
+  "Connection lost" is now spoken via TTS (wx + Qt).
+- User note in the right-click context menu: create or edit notes for
+  individual users directly from the user list via the context menu
+  (shows [✓] when a note exists).
+- Cmd+F focuses chat search: in the chat tab, Cmd+F (macOS) or Ctrl+F
+  (Windows) jumps directly to the search field and selects its
+  content.
+- Channel favorites with a star marker: channels can be marked as
+  favorites via right-click → "☆ Mark as favorite". Favorited channels
+  appear with "★ " in the channel list.
+
+2026-05-17 (v6.9.6)
+All ttaccessible blocks integrated — settings, TTS, connection, notifications:
+
+Block 1 — granular TTS events:
+- New TTS checkboxes: "Broadcast message" and "Kicked" separately
+  toggleable
+- Broadcast messages now have their own TTS kind "broadcast" (was
+  "system")
+
+Block 2 — auto-reconnect + channel (already in 6.9.x, now complete):
+- Qt: fixed the away_timer_min attribute name (was away_timer_minutes →
+  the setting was not saved)
+
+Block 3 — auto-away:
+- New settings field: custom away status message
+- wx: on auto-away, the configured message is now set
+
+Block 5 — background notifications per type:
+- New settings: private messages / channel messages / broadcast
+  messages separately toggleable in the background
+
+Block 6 — server list sorting:
+- New setting: sort server list by name, host, or manually
+
+Block 7 — relative timestamps as a toggle:
+- New "Relative timestamps" checkbox (just now / X min. ago / HH:MM)
+- In both UIs (wx + Qt)
+
+Block 8 — kick confirmation + adaptive jitter buffer:
+- New setting: skip kick confirmation (kick directly)
+- New setting: adaptive jitter buffer (Qt/Windows)
+
+2026-05-17 (v6.9.5)
+UI improvements inspired by ttaccessible:
+
+- Batch announcements: multiple join/leave events are collected over
+  300 ms and combined into a single TTS announcement (instead of
+  individual interruptions)
+- Chat timestamps without seconds (HH:MM instead of HH:MM:SS) — quieter
+  when read aloud
+- Channel list: user count as direct/total (e.g. "3/5 users") — also
+  shows users in subchannels
+- User context menu: mute entries with dynamic titles ("Mute voice" /
+  "Unmute voice") instead of a checkbox (macOS)
+
+2026-05-17 (v6.9.4)
+Connection flow, keyboard shortcuts, and UI optimizations (inspired by ttaccessible):
+
+- Connection window opens automatically on app launch
+- After a successful connection: the connection window closes, the main
+  window comes to the foreground, focus jumps to the channel list
+- After disconnecting: the connection window automatically opens again
+- F2 (macOS): smart toggle — disconnect if connected, connect if
+  disconnected
+- New shortcut ⌘J (macOS): join the selected channel
+- New shortcut ⌘L (macOS): leave the channel
+- New shortcut ⌘⇧A (macOS): toggle microphone transmission
+- Join/leave channel now shown with their shortcuts (Ctrl+J / Ctrl+L)
+  in the menu
+- Qt (Windows): after a successful connection, the tab automatically
+  switches to "Channels & Chat"
+
+2026-05-17 (v6.9.3)
+Sound pack manager, stereo position, audio hotplug (inspired by ttaccessible):
+
+New features (Qt / Windows):
+- Sound pack folder: under Settings → Sound events, a folder of .wav
+  files can be set as a complete sound pack (filenames like the default
+  pack). Priority: single file path > pack folder > embedded default
+  pack
+- Test button (▶) for every event sound directly in the Settings tab
+- Sound events: Qt now correctly uses the sound_events dict (like wx)
+  instead of individual attributes — individual sounds are now actually
+  played
+- New sound event: "Channel active" (voiceact_on.wav — was already in
+  the bundle, but was missing from the mapping table)
+- Per-user stereo position: User menu → Stereo position... (Left /
+  Both / Right), saved persistently per username
+- Audio hotplug: the device list is automatically refreshed when an
+  audio device is plugged in or removed (5-second monitoring)
+
+2026-05-14 (v6.9.2)
+Qt UI parity: kick+ban server, move target, streaming services, TTS flags, audio file streaming:
+
+New features (Qt / Windows):
+- Kick from server + ban: new menu item in the user menu (with a
+  confirmation prompt)
+- Remember move target / move to target: two new menu items for quickly
+  moving users into a saved channel
+- Read channel info (Ctrl+S): now reads the SELECTED channel (not just
+  your own); shows user count, maximum, disk quota, and topic
+- Read user info (Ctrl+I): shows the channel name instead of the
+  channel ID
+- TTS notification flags in the profile menu: chat, private, system,
+  own as individually toggleable checkboxes directly in the menu
+  (synchronized with the System tab)
+- Stream an audio file directly: Channel → Streaming → Stream audio
+  file directly... opens a file dialog and starts streaming without the
+  Media tab
+- Streaming menu extended: Bandcamp, Vimeo, Mixcloud as separate entries
+  in Channel → Streaming
+- Media tab: implemented switch_to_mode; all channel-menu streaming
+  entries (YouTube, SoundCloud, Twitch, Bandcamp, Vimeo, Mixcloud, web
+  radio, podcast, file, playlist) now correctly switch to the right tab
+  and, if applicable, the right source
+
+2026-05-14 (v6.9.1)
+Qt UI parity: TTS context settings, status dialog, auto channel summary, more menu items:
+
+New features (Qt / Windows):
+- Improved status dialog: choice of mode (available / away / question)
+  and status message in a form dialog (previously just a plain text
+  input field)
+- TTS context settings: the System tab can now configure separate
+  speech rate and voice values for chat, system, and channel events
+  (0 = global)
+- Pronunciation dictionary: pronunciation rules (word=replacement, one
+  per line) can now be saved directly in the System tab; changes take
+  effect immediately without a restart
+- Auto channel summary: Automation menu → Auto channel summary reads
+  out the last 30 minutes via AI summary (requires an enabled AI
+  service)
+- Read statistics: Help menu → Read statistics announces UDP/TCP ping
+  via TTS
+- Sound configuration: File menu → Sound configuration (submenu) with
+  audio settings and device refresh
+- Per-server sound profiles also reachable from the Automation menu
+- Startup profiler: Help menu → Startup profiler shows startup phase
+  timings in a dialog
+
+Technical:
+- TTS context rates (chat_rate, system_rate, channel_rate, chat_voice,
+  system_voice) are now correctly loaded from the settings database
+  into tts.settings on startup
+
+2026-05-14 (v6.9.0)
+Global hotkeys (Qt), per-server auto channel, persistent user notes:
+
+New features (Qt / Windows):
+- Global hotkeys fully implemented: PTT and mute work even when the app
+  is not in the foreground
+  macOS Qt: NSEvent monitor (like the macOS wxPython UI)
+  Windows Qt: GetAsyncKeyState polling (Win32 VK codes, 50 ms sampling
+  rate)
+- Global hotkey capture: macOS uses NSEvent, Windows uses focus-based
+  input (nativeVirtualKey() for correct Win32 VK codes)
+- Per-server auto channel: in the Connection settings tab, a channel
+  name can be set that is automatically joined after connecting (saved
+  per server key, applies if no channel is set in the profile)
+- Persistent user notes: notes are now permanently saved in the
+  settings database (previously only for the current session)
+
+Technical:
+- GlobalHotkeyManager (macOS) now supports a configurable call_after
+  dispatcher (wx.CallAfter or Qt QTimer.singleShot) – no more wx import
+  needed in a Qt context
+- New module win32_hotkeys.py for Windows global hotkeys
+
+2026-05-14 (v6.8.4)
+Full NVDA focus, chat export, TTS repeat, shortcut reference:
+
+New features:
+- Export chat log: save channel messages as .txt or .html (Chat menu →
+  Export chat log)
+- Repeat last TTS announcement: Ctrl+Shift+S (Chat menu → Repeat last
+  TTS announcement)
+- Shortcut reference: complete overview of all shortcuts in a dialog
+  window, F2 (Help menu)
+- New "Chat" menu in the menu bar
+
+NVDA focus (Windows) – full coverage:
+- After closing any dialog (create/edit channel, ban list, move user,
+  subscriptions, 3D position, all other menu dialogs), focus
+  automatically returns to the channel list
+- 21 dialog invocations automatically equipped with focus return
+
+2026-05-14 (v6.8.3)
+Media volume shortcuts, initial-value fix, NVDA focus improvements:
+
+New features:
+- Media volume up/down: Ctrl+Alt+Up/Down (step 1000, independent of
+  voice volume), also in the User menu
+
+Bugfixes:
+- The volume dialog in the right-click menu now shows the actual
+  current level instead of always 1000
+
+NVDA focus (Windows):
+- Connect dialog: focus automatically jumps to the server list on open
+  (if entries exist) or to the host field (if the list is empty)
+- Connect dialog: correct tab order set (server list → form fields →
+  connect button)
+- Settings dialog: focus on the tab widget on open
+- After closing the connect, online-users, server-statistics, and
+  server-browser dialogs, focus automatically returns to the channel
+  list
+
+2026-05-14 (v6.8.2)
+Media stream muting and volume in the right-click menu:
+
+- Right-click on a user → "Mute/unmute media stream": mute a user's
+  media stream (YouTube, radio, file streaming, etc.) separately
+- Right-click on a user → "Media stream volume...": adjust the volume
+  of the media stream independently of the voice volume (0–32000)
+- Fallback: USERSTATE_MUTE_MEDIAFILE is missing in some SDK versions →
+  mute state is tracked locally in the app
+- The media mute state is now synchronized consistently between the
+  menu (User) and the context menu
+
+2026-05-14 (v6.8.1)
+Bugfixes and feature parity:
+
+Bugfixes:
+- Recordings browser: the "rec_directory" setting was not read (wrong
+  attribute _last_recording_dir)
+- Save server configuration: more robust guard for a missing
+  do_save_config in the SDK
+- Recently visited channels menu: guard against database errors at
+  startup
+
+New features (Qt parity with macOS):
+- Media file muting: mute a user's media stream separately from voice
+  (User menu)
+- Usage report: show connection and usage statistics and export them
+  as JSON (Help menu)
+
+2026-05-13 (v6.8.0)
+Windows Qt UI – volume shortcuts, channel statistics, server config, recordings browser, recently visited channels:
+
+New features:
+- Volume up/down for the selected user (Ctrl+Shift+Up/Down, step: 1000
+  units)
+- Announce channel statistics: user count in your own channel via TTS
+  (Channel menu)
+- Announce channel state: who is currently speaking (voice/media) via
+  TTS (Channel menu)
+- Save server configuration (Server menu → Save configuration)
+- Recently visited channels: dynamic submenu in the Channel menu (up to
+  8 entries, click to join directly)
+- Recordings browser: shows .wav/.mp3 files in the recordings folder
+  and downloads, play, open folder, delete (Recordings menu →
+  Recordings browser)
+
+2026-05-13 (v6.7.9)
+Windows Qt UI – server browser, stubs implemented, TTS improvements:
+
+New features:
+- Public server list (bearware.dk): window for browsing, connecting,
+  and saving
+- Server group dialog: organize and manage servers in groups
+- File transfer history now accessible
+- Create accounts in the Admin tab via a menu (navigates to the Admin
+  tab)
+- Export a TT file from the connection dialog
+
+Shortcuts:
+- Ctrl+P: announce ping via TTS (UDP + TCP ms)
+
+TTS improvements:
+- File transfer completion announced via TTS
+- Channel info announcement (Ctrl+S) now includes the user count
+- Keyword detection in chat (speaks "Keyword: X" on a match)
+
+Context menus:
+- Ban list in the channel context menu now functional
+
+2026-05-13 (v6.7.8)
+Windows Qt UI – BearWare shortcuts, accessibility, UI cleanup:
+
+Shortcuts (BearWare-compatible):
+- Channel: Ctrl+J (join), Ctrl+L (leave), Ctrl+Shift+N (create), Ctrl+S
+  (channel info), F3 (channel message)
+- User: Ctrl+I (info), Ctrl+T (private message), Ctrl+M (mute), Ctrl+K
+  (kick), Ctrl+Shift+K (kick+ban), F7 (mute all)
+- Profile: Ctrl+R (nickname), F6 (hear yourself)
+- Audio: F5 (push-to-talk), F4 (voice activation)
+- File: Ctrl+W (disconnect), Ctrl+Shift+R (reconnect)
+- Server: Ctrl+U (online users), Ctrl+B (ban list), Ctrl+A
+  (administration)
+- Automation: Ctrl+Shift+M (macros), Ctrl+F (chat search)
+- Help: F1 (manual)
+- Alt+1–9 switch directly to the respective tabs
+
+Accessibility (NVDA/Windows):
+- setAccessibleName consistently set on all tabs, dialogs, and the main
+  window (audio, files, settings, admin, channels, chat, video,
+  desktop, shortcuts, system, dialogs)
+- Sound event fields and browse buttons with descriptive accessible
+  names
+- Spinboxes and combo boxes in QFormLayout rows given
+  setAccessibleName
+- Tab switch announces the tab name via TTS
+
+Context menus extended:
+- Channel context menu: create, edit, delete channel
+- User context menu: move user
+
+2026-05-13 (v6.7.7)
+Windows Qt UI – full feature parity with the macOS version (categories 1–4):
+
+Menus (category 1):
+- File: start new client, check server, import/export server list,
+  backup/restore settings
+- Channel: show bans, show channel messages, channel history
+- User: subscriptions, position user, relay actions (voice/media)
+- Profile: TTS active (toggle)
+- Audio: AGC/denoise/echo/loopback as menu toggles, refresh devices,
+  apply effects
+- Recordings: scheduled recordings
+- Server: session overview
+- Automation: scheduled macros, trigger rules, plugin manager
+
+Settings (category 2):
+- New "Audio extras" tab: noise gate, PTT time limit, VU level alarm
+- New "User volumes" tab: manage volume profiles
+- Connection: added BearWare login fields
+- Recordings: segmentation and silence detection configurable
+
+Connection dialog (category 3):
+- Filter field with live search in the server list
+- Client name field in the form
+- ".tt export" and "Save TT file" buttons
+- Server status check (TCP check) with a ✓/✗ indicator
+- Action area: reconnect, join root channel, leave channel, log out
+- Auto-reconnect checkbox synced with the main window
+- Live ping statistics (UDP/TCP) every 2 seconds
+
+Audio tab (category 4):
+- Duplex mode, PTT toggle, and microphone test grouped in an action
+  group
+- Output mute
+- Explicit apply button for device effects
+- Preprocessing mode selection (None / SpeexDSP / WebRTC)
+- Microphone processing: noise gate, expander, limiter, combination
+  with preview
+- PTT hotkey: display and recording of the shortcut
+- Save / restore / delete audio settings
+- Auto-apply on start and on device change
+- Local playback: file selection, play / pause / stop
+- Device poll timer (every 5 s) with auto-apply on device change
+- QScrollArea for long tab content
+
+2026-05-13 (v6.7.6)
+Version bump for the Windows release with all Qt UI improvements since
+v6.7.5. All changes for this version are documented under v6.7.5.
+
+2026-05-13 (v6.7.5)
+Windows Qt UI – UI cleanup round 2:
+- Fix: the Windows SDK showed a "trial running" dialog on startup –
+  TT_SetLicenseInformation("", "") is now called before the first
+  TeamTalk() call, to suppress the dialog (same behavior as macOS).
+- UI: the "Speak" tab (ElevenLabs TTS) is now, as in the macOS version,
+  only shown when an ElevenLabs API key is configured; the tab is
+  dynamically shown/hidden as soon as the key is changed in settings.
+- Cleanup: the screen reader (ScreenReaderAnnouncer) is cleanly
+  unloaded when the app quits (stop() in force_close).
+
+Windows Qt UI – screen reader & UI cleanup:
+- New: screen_reader.py – Windows screen reader integration via
+  tolk.dll, nvdaControllerClient64.dll, or an SAPI5 fallback; supports
+  NVDA, JAWS, ZoomText, SuperNova, and others. Status messages are
+  automatically forwarded to the active screen reader (set_status →
+  ScreenReaderAnnouncer.speak).
+- New: third_party/tolk/ – storage location for tolk.dll and
+  nvdaControllerClient64.dll including a README with installation
+  instructions.
+- UI: removed the "Settings" tab from the main window; settings now
+  open as a separate dialog (Menu → Settings / Ctrl+,).
+- UI: removed the unused "Connect" tab / connection.py from the Qt UI
+  (was dead code – connecting already runs as a dialog).
+- Fix (Qt/Windows): administration – loading user accounts now shows
+  feedback when 0 accounts were received (same solution as the macOS
+  fix).
+- Build: the Windows spec now bundles screen_reader.py and
+  third_party/tolk/*.
+
+macOS bugfixes (bug report 2026-05-11):
+- Fix: the microphone loopback test crashed with "TTType has no
+  attribute SoundDeviceEffects" – missing try/except protection in
+  start_sound_loopback_test (affects certain TeamTalk SDK versions
+  without SoundDeviceEffects support).
+- Fix: the server list showed 0 entries after selecting a server group
+  or after opening the group management dialog – reload_server_list
+  ignored the active group filter; _on_manage_groups did not call
+  _apply_combined_filter.
+- Fix: the status prefix (✓/✗) disappeared from the server list after
+  switching the group filter.
+- VoiceOver: renamed the tab "Aufnahme & Medien" to "Aufnahme und
+  Medien" – VoiceOver read the & character as "ampersand".
+- VoiceOver: NSStepper patch in a11y.py – SpinCtrl volume sliders now
+  announce the actual numeric value instead of "50% slider" (macOS).
+- Administration/load users: clearer status message when 0 accounts
+  were received, including a hint about missing admin rights / server
+  permissions.
+- i18n: updated the translation key for "Aufnahme und Medien".
+
+2026-05-11 (v6.7.4)
+Windows Qt UI: implemented ElevenLabs TTS and full media streaming:
+- New: ElevenLabs tab — load voices/models via API, normal TTS and
+  real-time streaming (from 32 KB), style/speaker-boost sliders, save
+  API key.
+- New: Media tab subtab "File" — stream a URL/file path with volume.
+- New: Media tab subtab "YouTube/yt-dlp" — YouTube, SoundCloud, Twitch,
+  Bandcamp, Vimeo, Mixcloud; search (where supported) + direct URL
+  entry.
+- New: Media tab subtab "Web radio" — 33 presets + live search via
+  radio-browser.info.
+- New: Media tab subtab "Podcasts" — iTunes search, RSS/Atom feed
+  loader, episode list with individual streaming.
+- New: Media tab subtab "Playlist" — add files, load/export M3U,
+  reorder, auto-advance mode.
+- New: conversation recording configuration in the Recording tab.
+- Fix: start_media_stream/stop_media_stream used the wrong SDK method
+  names.
+- Fix: speak_tab.cleanup() and media_tab.stop_all() are now called on
+  quit.
+
+2026-05-11 (v6.7.3)
+Windows Qt UI: implemented missing functions + SDK shutdown fix:
+- Fix: the TeamTalk SDK kept running in the background after the app
+  was closed; client.close() (closeTeamTalk) is now called on quit,
+  followed by os._exit(0) to guarantee process termination.
+- New: audio device selection now works (init_sound_input/output_device).
+- New: microphone and output gain, as well as VA hangover, are now set
+  via the SDK.
+- New: recording implemented via
+  start_recording_muxed/stop_recording_muxed.
+- New: PTT via the configured key (keyPressEvent/keyReleaseEvent →
+  enable_voice_transmission).
+- New: online users dialog with search and refresh.
+- New: server statistics dialog.
+- New: macro manager dialog with a run function.
+- Fix: TT URL copy and .tt file import now use ui.tt_file_parser
+  instead of ui_wx (no wxPython on Windows).
+
+2026-05-11 (v6.7.2)
+Improved Windows appearance:
+- New: app.manifest with a Common Controls 6.0 dependency and
+  PerMonitorV2 DPI awareness. Controls (buttons, checkboxes,
+  scrollbars, tabs) now look natively Windows 10/11-themed instead of
+  Windows XP style.
+- New: automatic dark title bar on Windows 10 (1809+) / 11 when the
+  system is in dark mode (DwmSetWindowAttribute
+  DWMWA_USE_IMMERSIVE_DARK_MODE).
+- New: SetDoubleBuffered(True) for all panels on Windows; reduces
+  flicker when scrolling and switching tabs.
+- New: the Segoe UI font is now explicitly set as the default on
+  Windows.
+- Fix: App.OnInit called macOS accessibility patches on all platforms;
+  it now only runs under darwin.
+
+2026-05-11 (v6.7.1)
+- Fix: the auto channel summary called wx.CallLater() from the worker
+  thread (join_channel runs on a background thread). wx.CallLater is
+  not thread-safe; replaced with wx.CallAfter.
+
+2026-05-11 (v6.7.0)
+- New: auto channel summary (Automation → Auto channel summary) – when
+  joining a channel, an AI summary of the last 30 minutes of channel
+  chat is automatically announced via TTS (requires an AI API key).
+- New: macro action type reply_last_private=Message – sends a message
+  to the sender of the last received private message; useful as an
+  auto-reply in trigger macros. Documented as help text in the macro
+  editor.
+
+2026-05-11 (v6.6.1)
+- Fix: _apply_server_audio_profile() incorrectly called
+  apply_audio_prefs() on sound event profiles (which have no "prefs"
+  key). Correction: now sets active_sound_profile directly (like
+  _cycle_sound_profile); is also applied immediately when saved from
+  the dialog if connected.
+- Fix: corrected the menu and dialog label from "Audioprofile" to
+  "Soundprofile", since the function controls sound event profiles,
+  not audio devices.
+
+2026-05-10 (v6.6.0)
+- New: offline message queue – messages written in offline mode are
+  placed in a persistent queue and automatically delivered after the
+  next reconnect. Managed via Automation → Offline queue...
+- New: per-server audio profiles – each server can be assigned an audio
+  profile that is automatically applied when connecting. Configured via
+  Automation → Per-server audio profiles...
+
+2026-05-10 (v6.5.1)
+- Fix: version_info.txt still had the outdated filevers/prodvers tuple
+  (6, 3, 6, 0) instead of the current version; now kept in sync with
+  APP_VERSION.
+- Fix: the TTS transcript dialog read the _transcript list without a
+  snapshot, which could cause a RuntimeError when written to
+  concurrently from the TTS thread; a copy of the list (list(...)) is
+  now made before iterating.
+- Fix: chat history search was completely locked offline; existing
+  history files are now listed and the user can select a server
+  (added ChatHistoryManager.list_server_keys()).
+
+2026-05-10 (v6.5.0)
+- New: TTS transcript window (Automation → TTS transcript...) – shows
+  the last 200 texts spoken by espeak-ng with timestamp and category.
+  Can be cleared and refreshed at any time.
+- New: user watcher (Automation → User watcher...) – list of watched
+  usernames. If a watched user joins a channel, a TTS announcement and
+  a desktop notification are triggered.
+- New: chat history search (Automation → Search chat history...) –
+  full-text search in the saved channel chat history of the current
+  server.
+- Improved: the macro editor now supports all known action types
+  (speak, channel, status, ptt_on, ptt_off, mute_toggle, wait) in the
+  inline help and persists macros immediately on save.
+
+2026-05-10 (v6.4.7)
+- Fix: the macro trigger filter checked kwargs["channel"] – no event
+  sends this key. user_joined/user_left send channel_name=. The filter
+  now checks user=, from_user=, channel_name=, and channel= in this
+  order, so filtering by channel name now works correctly for join and
+  leave events.
+- Fix: the HTTP API endpoint /info returned an empty version string
+  because getattr(frame, "_app_version", "") found no instance
+  variable. MainFrame now sets self._app_version = APP_VERSION in
+  __init__.
+
+2026-05-10 (v6.4.6)
+- Fix: the macro trigger with a filter for chat_message events used the
+  wrong keyword parameter (user= instead of from_user=). Incoming
+  private messages never triggered filtered triggers. The filter now
+  checks user=, from_user=, and channel= in this order.
+
+2026-05-10 (v6.4.5)
+- Fix: the "Auto-reconnect" checkbox in the connection tab did not save
+  changes to settings – the menu item and the setting were not
+  synchronized. The checkbox handler now correctly writes to
+  settings_db.
+- Fix: macro triggers (fire_event) and scheduled macros
+  (check_scheduled) failed with an AttributeError because the fields
+  macro_triggers and scheduled_macros were not declared in
+  AppSettings. They are now correctly persisted.
+- Fix: the equalizer preset (eq_active_preset, eq_mic_gain_pct,
+  eq_out_volume_pct) was reset to default values after an app restart,
+  because these fields were not saved in AppSettings/settings_db.
+
+2026-05-10 (v6.4.4)
+- Fix: the "Auto-reconnect" checkbox and menu item were not initialized
+  from the saved value after app start – the checkbox was always
+  disabled, even when the setting was saved.
+- Fix: the companion server API /channels and /users always returned
+  empty lists, because internal SDK attribute names
+  (nChannelID/szName/nUserID/szNickname) were incorrectly accessed as
+  Python names (channelid/name/userid/nickname).
+
+2026-05-09 (v6.4.3)
+- Fix: the VoiceOver announcement and macro trigger for incoming
+  private messages were only triggered when the real-time translator
+  was active. They are now always triggered, regardless of translator
+  status.
+
+2026-05-10 (v6.4.2)
+- Fix: the toolbar desktop button read
+  client.is_desktop_sharing_active() (which does not exist, only
+  guarded via hasattr → always False). Now reads the actual state from
+  desktop_tab.share_toggle.
+
+2026-05-10 (v6.4.1)
+- Fix: _companion_send() passed parameters in the wrong order to
+  send_channel_message(text, channel_id) instead of (channel_id,
+  text) – companion server messages were never sent correctly.
+- Fix: the braille status called client.get_my_channel() (which does
+  not exist); correct: client.get_channel(client.get_my_channel_id()).
+- Fix: _companion_users() called client.get_users() (which does not
+  exist); correct: client.get_server_users().
+- Fix: the global mute hotkey called client.mute_all() (which does not
+  exist); correct: client.set_sound_output_mute().
+- Fix: scheduled silence (MuteScheduler) called
+  client.set_sound_input_mute() (which does not exist); correct:
+  client.set_sound_output_mute().
+- Fix: TeamTalkClient.disconnect() was missing as a public method;
+  server_session could not cleanly disconnect sessions.
+
+2026-05-09 (v6.4.0)
+- New: desktop notifications can now be turned on and off in Settings →
+  General & Display (previously always active with no toggle).
+- New: the companion server is now configurable (Settings → AI &
+  Integration → "Companion server"): enable/disable and set the port
+  (default 19880). Changes take effect immediately without a restart.
+
+2026-05-09 (v6.3.9)
+- Fix: client.get_channels() does not exist – the correct method is
+  client.get_server_channels(). Affected: app.py (3×),
+  macro_manager.py, http_api.py, voice_control.py. All six call sites
+  crashed with an AttributeError when called (macros, HTTP API channel
+  list, voice control).
+- Fix: plugin_api.py called client.send_private_message() (which does
+  not exist); the correct method is client.send_user_message(). Plugin
+  private messages were never sent.
+
+2026-05-09 (v6.3.8)
+- Fix: the toolbar question button called client.set_away_status()
+  (which does not exist); the correct method is client.change_status().
+  Status was never actually set.
+- Fix: Admin tab – do_new_user_account(), do_delete_user_account(), and
+  do_unban_user() return an int (command ID); a negative value means an
+  error. `if success:` was always True for -1. Corrected to
+  `if success > 0:`.
+- Fix: the minimize_to_tray setting was saved but never evaluated. Now:
+  enabled = X closes to the tray (previous behavior, new default),
+  disabled = X actually quits the app. Default set to True (backward
+  compatible).
+- New: auto-away (Settings → General → Away timer): if no key is
+  pressed, the timer automatically sets the status to away after the
+  configured number of minutes. The first keystroke restores the
+  Available status.
+
+2026-05-09 (v6.3.7)
+- Fix: auto-reply (AutoReplyManager) called send_private_message(),
+  which does not exist in the TeamTalk client. The correct method is
+  send_user_message(). The private-message auto-reply was therefore
+  completely non-functional.
+- Fix: dead sync code in settings.py (_on_save_chat_status) tried to
+  set .enabled and .message on AutoReplyManager; these attributes do
+  not exist – the manager reads settings directly from
+  settings_store.settings. Removed.
+
+2026-05-09 (v6.3.6)
+- New: management UI for saved user volumes (Settings → Audio &
+  Recording → "Saved user volumes"): list of all volume presets saved
+  via the menu, with delete and delete-all buttons. Volumes continue to
+  be applied automatically on channel join.
+- Note: server groups (group filter + group dialog in the connection
+  tab) had already been fully implemented since v3.0.0.
+
+2026-05-09 (v6.3.5)
+- Fix: hotkey_tts_cancel and hotkey_announce_status were missing from
+  AppSettings and settings_db.py – the key bindings were not saved and
+  were reset to 0 on every restart. Now real dataclass fields,
+  persisted in SQLite.
+- Fix: hotkey_tts_cancel was missing from shortcuts.py update_labels()
+  – the hotkey was always shown as "(not set)", even when configured.
+- Expansion: bookmarks 4–9 (hotkey_bookmark_4–9) and AI reply
+  suggestions (hotkey_ai_reply_suggestions) are now configurable in the
+  Shortcuts tab. Capture handlers in app.py added for all missing
+  bookmark hotkeys.
+
+2026-05-09 (v6.3.4)
+- Fix: _message_buffers (multi-part message buffers) are now cleared on
+  connect; previously, fragments from an interrupted session could
+  corrupt the first message of the next session if the same key
+  (sender/channel/type) was reused.
+- Fix: "channel TTS speed" was only applied to channel-topic
+  announcements; it now also applies to user join/leave and file
+  transfers, matching the name of the setting.
+
+2026-05-09 (v6.3.3)
+- Persistence fix: 33 more AppSettings fields were not persisted in
+  settings_db.py (load/save were missing): auto_reconnect_enabled,
+  notifications_enabled, channel_bookmarks, hotkey_bookmark_1–9,
+  hotkey_ai_reply_suggestions, pronunciation_dict,
+  auto_join_channel_per_server, mute_schedule, macros,
+  user_volume_presets, hotkey_record_toggle, status_templates,
+  hotkey_status_template_1–3, http_api_enabled, http_api_port,
+  user_notes, recent_channels, alert_keywords,
+  hotkey_mic_boost_up/down, server_groups,
+  tts_speak_channel_topic_on_join, disabled_plugins.
+- models.py: braille_status_show_* and silence_detection_* declared as
+  real AppSettings fields (previously only dynamic attributes); default
+  values now present even without a settings_db.py load.
+- Tray cleanup fix: RemoveIcon() is now called before Destroy(); the
+  macOS menu bar icon no longer gets stuck after the app quits.
+
+2026-05-09 (v6.3.2)
+- Critical persistence fix: 27 settings were saved in the UI but not
+  loaded from the database on restart, so they were lost on every
+  restart. Affects: auto-reply, braille status fields, connection
+  quality, noise gate, PTT max seconds, recording limits, silence
+  detection, TTS voices/rates, VU alarm, webhook URL/events, server
+  info in the title bar, and more.
+  settings_db.py: all 27 fields added to load() and save(); new
+  _json() helper for list fields.
+- files.py: the return value of delete_file() is now checked; on a
+  failed deletion, an error message appears instead of a false success
+  message.
+
+2026-05-09 (v6.3.1)
+- Fix: _on_transcription_result used self._app_dir (which does not
+  exist); corrected to app_data_dir() from platform_paths – autosave
+  files now correctly land in the app data directory.
+- Fix: _TRANSLATE_LANGS was defined twice as a local variable in
+  settings.py (UI build and save); consolidated into a module constant
+  – an index shift when only one list is changed in the future is no
+  longer possible.
+
+2026-05-09 (v6.3.0)
+- Settings (AI & accessibility): new section "Chat translation" with a
+  "Enable chat translation" toggle and a target-language selector (13
+  languages); settings are correctly saved in the database and loaded
+  on startup.
+- Settings (AI & accessibility): new option "Automatically save
+  transcription" – when live transcription is enabled, results are
+  automatically written to daily files under
+  <AppData>/transcripts/YYYY-MM-DD.txt.
+- Cleanup: OfflineMessageQueue (offline_queue.py) had been dead since
+  v4.5.0 (never called, replaced by an internal list); import and
+  instantiation removed.
+
+2026-05-09 (v6.2.2)
+- Help menu: new entry "Check for updates..." – starts a manual update
+  check; shows a message if no update is available or an error
+  occurred.
+- Stability fix: on app quit, the timers for recording segmentation,
+  silence detection, and scheduled macros were not stopped; they could
+  still fire after Destroy() and cause crashes.
+- Channel list: removed a dead elif branch in the
+  _diff_update_listbox call (unreachable since v4.6.0, since
+  _diff_update_listbox handles all cases itself).
+
+2026-05-09 (v6.2.1)
+- Update check: the notification now only appears if the server
+  version is actually greater than the installed version (semantic
+  version comparison); no more false update notice when the current
+  version is already installed.
+
+2026-04-01 (v6.2.0)
+- Desktop streaming: new cross-platform backend (screen_capture.py) via
+  mss – replaces wx.ScreenDC; 10–30× faster, no more RGB conversion
+  loop; BGRA is now correct directly for TeamTalk BMP_RGB32 (R/B were
+  previously swapped).
+- Desktop streaming: window selection UI – full screen (monitor
+  selection) or a single window from the system list (macOS via
+  Quartz, Windows via win32gui, Linux via xdotool, Wayland via a grim
+  subprocess).
+- System audio detection (system_audio.py): loopback/monitor devices in
+  the device list are now automatically marked with "[System audio]";
+  new UI box in the Audio tab with platform-specific hint text and an
+  "Install BlackHole" button (macOS).
+- BlackHole 2ch v0.6.1 included in the app bundle
+  (third_party/blackhole/BlackHole2ch.pkg); one-click installation
+  directly from within the app; fallback to Homebrew or hint text.
+- macOS installation guide in four languages (DE/EN/FR/ES):
+  INSTALL_macOS.md – explains client installation, BlackHole setup, and
+  the first server connection.
+
+2026-03-31 (v6.1.6)
+- Microphone processing: new section in the Audio tab with noise gate,
+  expander, limiter, and expander+limiter; mode, threshold, and noise
+  suppression dB configurable and saved/restored in the audio profile.
+- Microphone preview: direct "Start/stop preview" button in the new
+  processing section – hear yourself without a server connection
+  (loopback).
+- Cmd+1–4 focus shortcuts (macOS): Cmd+1 = channel list, Cmd+2 = chat
+  history, Cmd+3 = message input, Cmd+4 = event log.
+- Channel-based notifications: macOS notifications for user-join and
+  user-leave are now only triggered when the affected user is in your
+  own channel; notification titles show the name and channel
+  direction.
+
+2026-03-30 (v6.1.5)
+- Performed a changelog audit against the codebase and cleaned up
+  documented discrepancies.
+- Fixed version alignment: `src/platform_info.py` now also uses the
+  current app version `6.1.5` instead of an outdated `6.0.0` value.
+- Extended the About dialog: the feature status described in the
+  changelog from `feature_summary()` is now visible as its own tab.
+- Corrected manual text about language support: instead of only
+  German/English, the DE and EN manuals now list the actually
+  supported UI languages German, English, French, and Spanish.
+- The plugin marketplace is now actually reachable in the UI: the
+  plugin manager now includes a marketplace section with catalog URL,
+  search, results list, detail view, and installation from `.ttplugin`
+  packages.
+- The companion server was previously only instantiated but not
+  started: start on app init and stop on shutdown added.
+- Health report and usage report now reachable from the Help menu;
+  health checks and local analytics can be shown directly, and
+  analytics can additionally be exported as JSON.
+- Added multi-server session persistence: sessions are saved on quit
+  and read back in on the next start; there is also now a session
+  overview in the Server menu.
+- FileManager is now actually connected to the Files tab: uploads/
+  downloads now land in the file transfer history, including a history
+  dialog and completion marker.
+- Analytics integrated more deeply: sent/received messages, channel
+  switches, disconnects, and connection errors now flow into the usage
+  report.
+- TLS fingerprint management is now reachable in the connection tab:
+  check, pin, and remove a server's fingerprint directly from the UI.
+- Video extensions made more visible: video statistics, video
+  description, and video recording history are now directly accessible
+  in the Video area.
+- Further completed UI localization: many texts still remaining in
+  German in menus, settings, connection dialogs, file/media areas, and
+  context menus are now translated into English; French and Spanish
+  benefit via the EN fallback.
+- Localized dynamic popup menus: the tray menu, log sharing, server
+  list, channel/user context menus, and online-users menus now also
+  follow the chosen app language.
+- The macOS menu bar icon is now actually active: `MenuBarIcon` is
+  shown on startup, follows status changes, and is cleanly removed on
+  quit.
+- Spotlight metadata practically wired up: exported log ZIP files now
+  get a Spotlight comment on macOS.
+
+2026-03-30 (v6.1.4)
+- Extended UI localization: windows, dialogs, menus, buttons, labels,
+  notebook tabs, and many static UI texts are now localized centrally
+  based on the chosen app language when built.
+- Area navigation and settings sections now work with stable internal
+  keys and translated display texts, so the UI language can be switched
+  without breaking the logic.
+- Wired the manual and changelog dialogs into the language logic;
+  dialog titles, buttons, and document display are now built
+  language-dependently.
+
+2026-03-30 (v6.1.3)
+- Bugfix update download: the download endpoint /releases/assets/{id}
+  only returns JSON metadata, not the file – the saved "DMG" was
+  therefore JSON. Fix: browser_download_url + ?token=… is now used for
+  the actual file download.
+- Update download: chunk streaming (64 KB blocks) instead of loading it
+  all into RAM; progress display "X% (Y MB)" in the status bar during
+  the download.
+- Bugfix language: `app_language` is now correctly loaded and saved in
+  all settings stores (SQLite and the JSON compatibility store). This
+  keeps the chosen app language persistent across restarts.
+- Bugfix language: `chat_show_timestamps` is now also correctly saved
+  persistently and reloaded on startup.
+- Manual updated: the language selection section now lists the actually
+  supported UI languages German, English, French, and Spanish.
+- Version alignment: app, macOS bundle, and `version_info.txt`
+  synchronized to `6.1.3`.
+
+2026-03-30 (v6.1.2)
+- Bugfix language: after changing the app language in settings, the app
+  now automatically restarts; previously no restart was triggered and
+  the language setting therefore had no effect.
+- Bugfix language: French and Spanish were implemented in i18n.py but
+  did not appear in the language selection dropdown – now all 4
+  languages are visible: German, English, French, Spanish.
+- Bundle optimization: excluded Whisper/PyTorch/llvmlite/numba/tiktoken
+  from the bundle; saves ~325 MB (559 MB → ~234 MB) and speeds up
+  startup; local speech recognition (live transcription, voice control)
+  is now only available if openai-whisper is manually installed in the
+  Python environment.
+- CFBundleVersion in the app bundle updated to 6.1.2 (was still 3.0.0).
+- PyInstaller optimize=2 (more compact .pyc, slightly faster startup).
+
+2026-03-30 (v6.1.1)
+- Bugfix startup crash: settings.py – cq_box was added to a sizer
+  twice (once directly, once via StaticBoxSizer); the second add was
+  removed (wxAssertionError: Adding a window already in a sizer, detach
+  it first!).
+
+2026-03-30 (v6.1.0)
+- Update download directly in the app: no browser needed anymore; the
+  DMG is downloaded via the Gitea API with a token (private repo is not
+  a problem).
+- Save-location dialog: the user chooses where the DMG is saved.
+- Success message after download: message box + TTS announcement +
+  status bar.
+- The asset URL now uses the /releases/assets/<id> API endpoint instead
+  of browser_download_url (which is not accessible without a browser
+  for private repos).
+- The download runs on a background thread, the UI stays responsive.
+
+2026-03-29 (v6.0.0) "Libero"
+- MAJOR RELEASE: full integration of all features since v4.0.0.
+- PlatformInfo module (platform_info.py): platform_info(),
+  capabilities(), feature_summary() – consistent version information
+  and feature flags.
+- Codename "Libero" for v6.0.0.
+- capabilities() shows the availability of all optional features at
+  runtime (VoiceOver, Keychain, AI backends, Companion, plugin
+  marketplace, analytics).
+- version_tuple() and is_newer_than() for update detection.
+- feature_summary() outputs a readable feature status for the About
+  dialog.
+- All v4.x–v5.x features production-ready:
+  4.0.0 AsyncBusBridge | 4.1.0 tests | 4.2.0 plugin system | 4.3.0 HTTP
+  API
+  4.4.0 braille displays | 4.5.0 chat | 4.6.0 performance | 4.7.0
+  audio/EQ
+  4.8.0 multilingual support | 4.9.0 security | 4.10.0 plugin
+  marketplace
+  5.0.0 multi-server | 5.1.0 companion | 5.2.0 AI integration | 5.3.0
+  macOS
+  5.4.0 accessibility | 5.5.0 file management | 5.6.0 video | 5.7.0
+  analytics
+  5.8.0 maintainability | 5.9.0 internationalization (DE/EN/FR/ES)
+
+2026-03-29 (v5.9.0)
+- Spanish translation: _TRANSLATIONS_ES with ~90 entries (all core UI
+  text)
+- set_language() now also accepts 'es' (Spanish)
+- Extended French translation: ~30 new entries; coverage now ~70%
+- Pluralization: ngettext(singular, plural, n) – helper function with
+  _() translation
+- Locale-aware date formatting: format_date(ts) – EN: MM/DD/YYYY,
+  DE/FR/ES: DD.MM.YYYY
+- translation_stats(): now returns coverage_pct (percentage) +
+  coverage (readable string)
+- _SUPPORTED_LANGUAGES constant exported
+
+2026-03-29 (v5.8.0)
+- EventBus metrics: metrics() returns total_emitted, handler_errors,
+  active_events, top_events(10); handler_count(event="") for total or
+  per-event count
+- Error counter: _handler_errors increments on every handler exception
+- HealthChecker (health_check.py): register(name, fn), run_all(),
+  overall_status(), text_report(); HealthCheckResult with latency_ms
+- Predefined checks: check_disk_space(min_mb=50),
+  check_event_bus(bus), check_settings_db(db_path)
+- frame._health as the app interface with disk_space and event_bus
+  checks
+
+2026-03-29 (v5.7.0)
+- UsageAnalytics (analytics.py): local usage metrics without external
+  tracking; SessionRecord per connection; on_connect/on_disconnect/
+  on_message_sent/on_message_received/on_channel_switch/on_error
+- App-launch counter and total connection time logged automatically
+- summary() and text_report() for readable reports; export_json(path)
+- purge_older_than_days() for automatic cleanup
+- Wired into handle_connect_result: Analytics.on_connect() on success
+- frame._analytics as the app interface
+
+2026-03-29 (v5.6.0)
+- VideoStatsCollector: resolution, FPS, and packet loss per
+  participant; update(), summary_lines(), quality_label()
+  (Good/Medium/Poor)
+- VideoRecorder: recording management with metadata persisted in
+  video_recordings.json; start_recording(), stop_recording(),
+  add_frame(), is_recording(), history()
+- generate_video_alt_text(): accessible text description of a video
+  stream (resolution, FPS, quality) for VoiceOver users
+- VideoRecording dataclass with a duration_s property
+- frame._video_stats and frame._video_recorder as app interfaces
+
+2026-03-29 (v5.5.0)
+- FileManager (file_manager.py): download/upload history persisted as
+  JSON (max. 1000 entries); add(), mark_completed(), recent(n),
+  by_category(), purge_older_than_days(), stats()
+- File categorization: categorize_file() by extension
+  (audio/video/image/document/archive/code/other)
+- Safe filenames: safe_filename() sanitizes invalid characters;
+  auto_rename() prevents file collisions in the download directory
+- suggest_local_path() suggests a collision-free path in the download
+  directory
+- Transfer statistics: stats() returns count/bytes for downloads/
+  uploads per category
+- frame._file_manager as the app interface
+
+2026-03-29 (v5.4.0)
+- LiveRegionAnnouncer: class in a11y.py with deduplication and debounce;
+  announce(text, force=False) / announce_delayed(text, delay_ms=300) /
+  reset() for panel switches
+- Tab order: setup_tab_order(controls) explicitly sets
+  MoveAfterInTabOrder() for reliable keyboard navigation on macOS
+- set_accessible_name() / set_accessible_help(): convenient wrapper for
+  SetName() + SetHelpText() + SetToolTip()
+- Accessibility audit: audit_accessibility(panel) checks button labels,
+  TextCtrl names, and ListBox names; returns a warning list for
+  developers
+- VoiceOver announcements via post_voiceover_announcement() with high
+  priority
+
+2026-03-29 (v5.3.0)
+- Native macOS notifications: send_notification() uses
+  UNUserNotificationCenter (macOS 10.14+) with a fallback to
+  NSUserNotification
+- Dock badge: set_dock_badge(n) / clear_dock_badge() for unread
+  messages; frame._unread_count + _update_unread_badge() /
+  _clear_unread_badge()
+- Dark mode watcher: DarkModeWatcher polls effectiveAppearance every 2
+  seconds; dark_mode_changed bus event with is_dark=True/False on
+  change
+- Spotlight metadata: set_spotlight_comment() sets kMDItemComment via
+  Finder
+- Menu bar icon: MenuBarIcon (NSStatusItem) as an optional status icon
+- All features gracefully degrade if PyObjC is unavailable
+
+2026-03-29 (v5.2.0)
+- Context-aware AI reply suggestions: suggest_replies(context=[...])
+  passes up to 5 previous messages as conversation context to the
+  backend
+- AI summary: AiReplyManager.summarize(messages) summarizes up to 50
+  channel messages in 2–4 sentences; all three backends supported
+- Intent classification: classify_intent(text) classifies messages
+  into question/answer/greeting/farewell/announcement/help/other
+- Keychain integration for API keys: _claude_key() and _gemini_key()
+  read keys preferentially from the OS keychain (claude_api_key /
+  gemini_api_key)
+- Backend methods now accept system and max_tokens parameters
+- _gemini_key() extracted into its own method (DRY, uses Keychain)
+
+2026-03-29 (v5.1.0)
+- Mobile companion server: CompanionServer (companion_server.py) starts
+  on localhost:19880; endpoints: GET /status, /channels, /users, GET
+  /events (SSE), POST /say, POST /push_token; runs as a daemon thread
+  alongside the main loop
+- Authentication via an X-Companion-Token header (optional, like
+  HttpApiServer)
+- SSE event queue (max. 200 events) with a keepalive heartbeat every 15
+  seconds
+- Push token registration (iOS/Android) saved via POST /push_token
+- frame._companion as the app interface; callbacks: status, channels,
+  users, send
+
+2026-03-29 (v5.0.0)
+- Full multi-server rollout: ServerManager now supports up to 8
+  simultaneous sessions (MAX_SESSIONS); add_session() raises
+  ValueError when the limit is reached
+- session_added / session_removed bus events for UI reactivity
+- session_labels() returns a (session_id, ascii_label) list for
+  dropdowns
+- is_connected(session_id): quick query of connection status
+- close_all(): cleanly disconnects all sessions on app shutdown
+- save_sessions(path): persists session metadata as JSON
+- per_session_stats(): overview of all sessions with state and activity
+  info
+- MAX_SESSIONS exported as a module constant
+
+2026-03-29 (v4.10.0)
+- .ttplugin package format: PluginPackage/plugin_package.py – a ZIP
+  with manifest.json and a main plugin file; read_package(),
+  install_package(), create_package(); required fields: name,
+  display_name, version, author
+- Plugin signing: SHA-256 hash of the main plugin file in manifest.json
+  as "signature"; verify_signature() checks it on install;
+  create_package() automatically computes the signature
+- In-app plugin browser: PluginMarketplace (plugin_marketplace.py)
+  loads a JSON catalog from a repository URL; fetch_catalog(),
+  search(), all_entries(); download_package() with SHA-256
+  verification; install() automates download + signature verification
+  + installation
+- frame._marketplace as an accessible interface; plugins_dir =
+  app_dir/plugins
+
+2026-03-29 (v4.9.0)
+- Keychain API key storage: save_api_key/get_api_key/delete_api_key in
+  keychain.py; securely stores claude_api_key and gemini_api_key in
+  the OS keychain (separate service name TeamTalkVOClient-APIKeys)
+- Saved messages TTL: SavedMessageManager.expire() removes entries
+  older than max_age_days (default: 30 days); called automatically on
+  app start; expired entries are skipped directly when loading
+- Audit log: AuditLog (audit_log.py) logs sensitive actions as JSONL in
+  audit.jsonl; predefined action constants (A_SERVER_CONNECT,
+  A_API_KEY_SAVED, A_PLUGIN_LOADED, and many more);
+  purge_older_than_days() for automatic cleanup; server connects are
+  now logged
+- TLS fingerprint verification: CertPinStore (tls_verify.py) stores
+  SHA-256 fingerprints per host in cert_pins.json; verify() checks on
+  connection setup; get_cert_fingerprint() reads the fingerprint
+  directly from the TLS handshake (without CA validation, standard
+  library only)
+
+2026-03-29 (v4.8.0)
+- Extended EN translations: ~50 new entries for v4.1–v4.7 features in
+  _TRANSLATIONS (plugin reload, EQ presets, chat HTML, braille display
+  modes…)
+- French skeleton: _TRANSLATIONS_FR with 80+ common terms;
+  set_language("fr") activates French; _(text) uses _TRANSLATIONS_FR
+- set_language now accepts 'de', 'en', and 'fr'
+- translation_stats(lang): returns translation statistics (entry count)
+- v4.8.0 entries marked in i18n for later live-reload preparation
+
+2026-03-29 (v4.7.0)
+- EQ preset import/export: EqPresetsManager (eq_presets.py) manages
+  built-in and user-defined presets; JSON export/import; the EQ dialog
+  extended with "Save as…", "Import…", "Export…" buttons
+- EQ presets persisted in app_dir (eq_presets.json)
+- Silence detection: SilenceDetector (silence_detector.py) analyzes
+  WAV files and returns silent sections as a (start_s, end_s) list;
+  audio_waveform_text() generates an ASCII waveform for VoiceOver users
+- frame._eq_presets available as a public interface
+
+2026-03-29 (v4.6.0)
+- StartupProfiler (startup_profiler.py): measures all initialization
+  phases, writes a JSONL entry to startup.jsonl, prints a summary to
+  stdout; slowest(n) returns the n slowest phases
+- Channel tree diff update: _diff_update_listbox() replaces only
+  changed labels instead of a full clear+insert; less UI flicker and
+  fewer VoiceOver interruptions on user list updates
+- _displayed_labels cache in ChannelsTab: remembers the last displayed
+  labels for the diff comparison
+- OfflineMessageQueue integrated into app.py (frame._offline_queue)
+- StartupProfiler available as a global instance
+  (_get_startup_profiler())
+
+2026-03-29 (v4.5.0)
+- Chat HTML export: new "As HTML" button exports the chat history as a
+  color-coded HTML page (own messages green, private blue, system
+  gray)
+- Emoji shortcodes: :+1: :heart: :fire: :wave: :ok: :tada: and more are
+  automatically converted to Unicode emoji when sending (25
+  shortcodes)
+- Offline message queue: OfflineMessageQueue (offline_queue.py) buffers
+  messages during connection interruptions; max. 100 entries, 1h TTL,
+  persisted as JSON; frame._offline_queue accessible
+- Cleaned up import: OfflineMessageQueue is initialized on startup
+
+2026-03-29 (v4.4.0)
+- Improved VoiceOver announcements:
+  BrailleOutputManager.announce_channel_join() and
+  announce_channel_leave() provide verbosity-dependent text with user
+  count
+- Braille display abbreviations: configurable abbreviation table
+  (add_abbreviation, remove_abbreviation, apply_abbreviations);
+  standard abbreviations for common terms (Admin, Conn, Disc, PM…);
+  only active in compact mode
+- Focus management: FocusRestoreHelper (ui/a11y.py) saves the focused
+  widget before a dialog and restores it afterward, including ListBox
+  selection
+- Keyboard navigation: bind_listbox_keyboard_nav() binds
+  Home/End/PgUp/PgDn to wx.ListBox instances (macOS workaround); fires
+  EVT_LISTBOX after a jump
+
+2026-03-29 (v4.3.0)
+- HTTP API v3: SSE token authentication via an X-Api-Token header or a
+  ?token=... query param; HttpApiServer.set_token(token) configures it
+- New REST endpoints: GET /server (server info), GET /channels
+  (channel list), GET /users (users in the current channel)
+- OpenAPI documentation: GET /docs returns an HTML page with all
+  endpoints, parameters, and response format
+- Webhook retry: exponential backoff (1s → 2s → 4s), max. 3 attempts;
+  WebhookManager.sent_total / failed_total for statistics
+- SSE payload safety: bus-event values that are not JSON-serializable
+  are automatically converted to strings (no more 500 errors)
+
+2026-03-29 (v4.2.0)
+- Plugin hotkey API: PluginAPI.register_hotkey(plugin_name,
+  action_name, callback) registers app-internal hotkeys for plugins;
+  unregister_hotkey() removes them; get_all_plugin_hotkeys() returns
+  the global hotkey table
+- Plugin DB settings: PluginAPI.get_db_config(plugin_name) returns a
+  SQLite-based store (table plugin_settings in settings.db);
+  thread-safe, persistent, JSON-serialized
+- Plugin reload without restart: PluginLoader.reload_plugin(filename)
+  reloads a single plugin; the plugin manager dialog has a new
+  "Reload" button
+- Plugin dependencies: a requires field in metadata; topological
+  sorting ensures dependencies load before the plugins that depend on
+  them
+- PluginAPI.set_status(text): sets text in the app status bar
+
+2026-03-29 (v4.1.0)
+- Plugin loader isolation: faulty plugins are now caught in isolation
+  per plugin (traceback saved in _errors); no abort of the loading
+  phase; load_all() now accepts a disabled list to skip plugins
+- AsyncBusBridge queue overflow handling: dropped events are counted
+  (dropped_events property) and logged periodically; no blocking of
+  the wx thread when the buffer is full
+- AsyncBusBridge Python 3.9 fix: the asyncio.Queue is now created
+  inside the loop thread to avoid loop-binding errors; a
+  threading.Event synchronizes queue readiness before the first bus
+  subscription
+- Startup log JSON: a structured JSONL log (startup.jsonl) alongside
+  the text log; contains timestamp, argv, frozen, platform, Python
+  version
+- Unit test scaffolding: tests/ with 25 tests for EventBus,
+  AsyncBusBridge, and PluginLoader; pytest used as a dev dependency
+
+2026-03-29 (v4.0.1)
+- Bugfix: the app no longer started (AttributeError: 'MainFrame' object
+  has no attribute 'bus'); cause: AsyncBusBridge was instantiated in
+  MainFrame.__init__ before self.bus (EventBus) was created; order
+  fixed
+
+2026-03-29 (v4.0.0)
+- Asyncio bridge (async_bridge.py): AsyncBusBridge decouples bus events
+  from the wx main thread via an asyncio queue; plugins can now
+  register async handlers; EventBus extended with on_any()/off_any()
+  (wildcard handlers); async_bridge is started/stopped with the app;
+  frame._async_bridge is the public plugin interface
+- Plugin manager UI: Automation → Plugin manager... lists all installed
+  plugins with metadata (name, version, author, description, status);
+  individual plugins can be disabled/enabled without touching the file
+  system; open the plugin folder directly in Finder
+- HTTP API v2: new /events/stream SSE endpoint (text/event-stream) for
+  real-time events without polling; all bus events are automatically
+  pushed (chat_message, user_joined, user_left, channel_joined,
+  connection_state_changed, file_transfer_complete); new POST /chat
+  endpoint for sending channel messages; HttpApiServer.push_event() for
+  manually pushing events
+
+2026-03-29 (v3.10.0)
+- QR code for server: new "QR code" button in the connection bar shows
+  the current server profile's tt:// URL as a QR image (optional,
+  needs the qrcode library) or as a copyable text fallback
+- Settings backup: File → Backup settings... exports all data
+  (settings.db, JSON, saved_messages, channel_notes) as a ZIP
+- Settings restore: File → Restore settings... restores a ZIP backup
+  and restarts the app
+- i18n extended: ~60 new entries for all v3.7–v3.10 features in DE/EN
+  (quote, saved messages, channel note, channel history, chat
+  translation, AI reply suggestions, QR code, backup)
+
+2026-03-29 (v3.9.0)
+- Real-time translation: optionally translate incoming chat messages
+  into a configurable target language (Automation → Enable chat
+  translation); translation runs on a background thread and appears as
+  "↳ [language] text" below the original message.
+  Backends: Claude, Gemini, Ollama (same order as the AI summary)
+- AI reply suggestions: a new hotkey (hotkey_ai_reply_suggestions)
+  generates 2–3 short replies to the last private message; the
+  selection is inserted directly into the private chat input field
+- Transcription export: new "Export" button in the transcription panel
+  saves all lines with a timestamp as a .txt file
+
+2026-03-29 (v3.8.0)
+- Channel notes: save, edit, and delete local free-text notes per
+  channel (Channel menu → Edit channel note, or right-click a channel).
+  Notes are saved as JSON in app_data_dir
+- Channel history dialog: Channel → Channel history... lists recently
+  visited channels; double-click or "Join" jumps directly to the
+  channel, the history can be cleared
+- Bookmark hotkeys 1–9: AppSettings extended with hotkey_bookmark_4
+  through hotkey_bookmark_9, all 9 slots visible and configurable in
+  the shortcut reference
+
+2026-03-29 (v3.7.0)
+- Message quotes: a "Quote" button in the Chat tab takes the selected
+  text (or the last line) as "> quote" into the input field
+- Saved messages: a "Save" button permanently marks any chat message
+  (max. 500 entries, JSON file in the app directory). View, delete, and
+  copy via Help → Saved messages...
+- Chat formatting: Markdown markers (**bold**, *italic*, `code`) are
+  automatically removed when displaying and reading aloud (VoiceOver-
+  friendly)
+- File drag & drop: dragging files from Finder onto the Chat tab starts
+  the upload into the current channel directly, without a file dialog
+
+2026-03-29 (v3.6.1)
+- Fully bilingual manual (DE/EN): both languages cover all chapters,
+  including automation, global hotkeys, braille output, AI features,
+  HTTP API, webhook, and language selection (chapters 21–27)
+- Massively expanded i18n dictionary: ~300 entries (settings fields,
+  buttons, status messages, context menu, macro editor, hotkey labels,
+  and more)
+- Bugfix: fixed a race condition in the HTTP API – PTT toggle and mute
+  toggle now run atomically on the main thread (wx.CallAfter)
+- Bugfix: webhook URL validation – only http:// and https:// are
+  accepted; invalid schemes (file://, gopher://, etc.) are rejected
+- German manual: table of contents and tab-12 description extended
+  with language selection, timestamp option, and search field; tab-13
+  description extended with all configurable hotkeys
+- Manual chapter 25 (HTTP API) detailed: response format, all
+  endpoints with example responses, practical examples (shell, Python,
+  AppleScript, Streamdeck, Home Assistant), error handling – in DE and
+  EN
+- Manual chapter 26 (webhook) detailed: payload format, all events with
+  example JSON, practical examples (n8n, custom Python server) – in DE
+  and EN
+- Manual chapter 28 (plugin manager) new: plugin directory, structure,
+  EventBus API, PluginAPI reference, threading rules, 4 example
+  plugins, debugging tips – in DE and EN
+- docs/plugin_entwicklung.md updated: version bumped to v3.6.1, a
+  complete English translation of the entire developer documentation
+  added
+
+2026-03-28 (v3.6.0)
+- English language support: new i18n module with a DE/EN dictionary for
+  all menu bar entries and important UI text
+- Language selection in Settings → General (restart required)
+- Menu bar (File, Channel, User, Server, Profile, Audio, Video,
+  Recordings, Automation, Help) fully translated
+- Foundation for further translations in future versions
+
+2026-03-28 (v3.5.0)
+- New "Automation" menu with three submenus:
+- Macro editor: graphical editor for creating, editing, and deleting
+  macros (name, action list with speak/channel/status/ptt/wait)
+- Scheduled macros: automatically run macros daily at a configured time
+  (HH:MM)
+- Trigger rules: automatically run macros on events (user_join,
+  user_leave, chat_message, private_msg, channel_join), optionally with
+  a name filter
+
+2026-03-28 (v3.4.0)
+- Recordings browser: new menu item Recordings → Browse recordings
+  lists past .wav/.mp3 recordings from common directories; play,
+  delete, and open in Finder directly from the dialog
+- Silence detection: a recording is automatically stopped when the
+  input level stays below the threshold for a configurable time
+  (Settings → Audio & Recording)
+- Equalizer presets: Audio → Equalizer presets with six presets
+  (Default, Voice, Music, Loud, Quiet, Silent) and manual fine-tuning
+  of microphone/output volume
+
+2026-03-28 (v3.3.0)
+- VoiceOver announcement for incoming private messages via
+  NSAccessibilityAnnouncementRequested (macOS)
+- Shortcut reference: new menu item Help → Shortcut reference shows all
+  configured hotkeys in a clear text dialog
+- New hotkey "Announce braille status": reads a configurable status
+  (channel, user count, ping, mute status, connection) via TTS
+- Braille status fields configurable in Settings → AI & Integration
+  (Braille output section)
+
+2026-03-28 (v3.2.0)
+- Server .tt import: a button in the connection list imports a server
+  directly from a .tt file and adds it to the list
+- Server .tt export: save the selected server from the list as a .tt
+  file (no active server required)
+- Ping history: connection status shows avg/min/max of the last 10
+  measurements
+
+2026-03-28 (v3.1.0)
+- Search field in settings: type an area name to jump directly to it
+- Server status indicator: "Check status" button checks TCP
+  reachability for all servers and marks them with ✓ / ✗ in the list
+- Chat timestamps: optional [HH:MM:SS] prefix in chat messages
+  (Settings → General → Show timestamps in chat)
+- Cancel TTS: a configurable hotkey stops the current announcement and
+  clears the queue (Settings → Shortcuts)
+
+2026-03-28 (v3.0.1)
+- Cleaned up the settings menu: 13 sections merged into 9 (Audio &
+  Recording, TTS, Chat & Automation, AI & Integration)
+
+2026-03-28 (v3.0.0)
+- Server groups: filter servers in the connection view by group
+  ("Manage group" button; groups are saved in settings)
+- Read channel topic on join: optional TTS announcement of the channel
+  topic after a successful channel switch (Settings → Automation or
+  directly on join)
+- Extended plugin management: new "Plugins" section in settings with
+  enable/disable and reload functions
+- Who's-speaking log: tracks speech events with timestamp and duration;
+  view via Server → Who's-speaking log
+
+2026-03-28 (v2.9.0)
+- Microphone boost hotkeys: increase/decrease microphone gain via a
+  configurable hotkey (shortcuts: microphone boost up/down)
+- VU level alarm: TTS announcement "Input level too high" on 3
+  consecutive readings above the configured threshold (Settings → PTT &
+  Advanced)
+- Recording segmentation: automatically restart a recording when the
+  max file size (MB) or max recording duration (minutes) is exceeded
+  (Settings → PTT & Advanced)
+- Stream an audio file: Channel menu → Stream audio file into channel
+
+2026-03-28 (v2.8.0)
+- User notes: save notes on individual users (User menu → Edit note);
+  the note is announced via TTS when the user joins the channel
+  (management: Settings → User notes)
+- PTT time limit: automatic PTT deactivation after a configurable time
+  (Settings → PTT & Advanced, seconds, 0=disabled)
+- Recent channels: up to 8 recently visited channels under Channel →
+  Recent channels
+- Keyword alert: a sound is played and optionally announced via TTS
+  when configured keywords appear in channel messages (Settings →
+  Keyword alert)
+
+2026-03-28 (v2.7.0)
+- Webhook integration: outgoing HTTP POST events to a configured URL
+  (events: private message, channel message, user joined/left,
+  connection) (Settings: Integration & API)
+- HTTP control API: local HTTP server on 127.0.0.1:PORT for external
+  control (endpoints: /ptt/on|off|toggle, /mute/on|off|toggle,
+  /channel/<name>, /status/<text>, /speak/<text>, /info) – ideal for
+  Streamdeck, Home Assistant
+- Settings: new "Integration & API" section for webhook and HTTP API
+
+2026-03-28 (v2.6.0)
+- Connection quality: background ping monitoring, TTS announcement when
+  the configured threshold is exceeded (Settings: Connection & Display)
+- Server info in the title bar: optional display of user count and ping
+  in the window title
+- Quick channel search was already introduced in v2.4.0
+
+2026-03-28 (v2.5.0)
+- Auto-reply: automatic reply to private messages when away, 5-minute
+  cooldown per sender, reset on reconnect
+- Status templates: set up to 3 status messages via a hotkey
+  (shortcuts: status template 1/2/3)
+- Settings: new "Chat & Status" section for auto-reply and templates
+
+2026-03-28 (v2.4.0)
+- v2.4.0: volume presets – once set, per-user volumes are automatically
+  restored the next time that user joins
+- v2.4.0: noise gate – noise suppression can be enabled via the SDK
+  (Settings → Recording & Audio Extras)
+- v2.4.0: recording hotkey – start/stop recording via a configurable
+  in-app hotkey (Shortcuts → Toggle recording)
+- v2.4.0: quick channel search – a text field above the channel list
+  filters entries by the entered search term (case-insensitive)
+- v2.5.0: auto-reply – automatic reply to private messages (Settings →
+  Chat & Status), reset on reconnect
+- v2.5.0: status templates – set up to 3 status messages via a hotkey
+  (Shortcuts → status template 1/2/3)
+- v2.6.0: connection quality monitoring – configurable ping threshold,
+  TTS announcement on poor quality (Settings → Connection & Display)
+- v2.6.0: server info in the title bar – optionally show user count and
+  ping in the window title
+- v2.7.0: webhook integration – outgoing HTTP webhooks for events
+  (private message, channel message, user joined/left, connection)
+- v2.7.0: HTTP API – a simple local HTTP server for external control
+  (Settings → Integration & API), start/stop on connect/disconnect
+
+2026-03-28 (v2.3.0)
+- Automation: auto channel – automatically joins a channel by name
+  after connecting (configurable per server, Settings → Automation)
+- Automation: scheduled silence – the microphone is automatically muted
+  during configured time windows (e.g. 12:00–13:00 lunch break)
+- Automation: macro system – define arbitrary action sequences (speak,
+  switch channel, PTT, set status, wait) as JSON and trigger them via a
+  hotkey
+- Shortcuts: macro hotkeys are executed by MacroManager
+
+2026-03-28 (v2.2.0)
+- Accessibility: TTS contexts – separate speech rate and voice for
+  chat/private, system messages, and channel topics (Settings → TTS
+  contexts)
+- Accessibility: pronunciation dictionary – replace abbreviations/names
+  before TTS (e.g. TT→TeamTalk, configurable in Settings → TTS
+  contexts)
+- Accessibility: channel bookmarks – save up to 9 channels, 3 of them
+  reachable directly via a hotkey (Settings → Bookmarks)
+- Shortcuts: bookmarks 1–3 as new hotkey rows
+
+2026-03-28 (v2.1.0)
+- Update: dialog with a download button when a newer version is
+  available
+- Connection: the auto-reconnect setting is now saved persistently
+  (default: on)
+- Notifications: macOS Notification Center integration via osascript
+  (instead of wx.adv.NotificationMessage); setting to disable it
+- Chat history: the timestamp now includes date and time (YYYY-MM-DD
+  HH:MM:SS), maximum raised to 500 messages
+
+2026-03-28 (v2.0.3)
+- Whisper (openai-whisper) and PyAudio are now firmly bundled
+  dependencies (requirements.txt). No more manual `pip install`
+  needed.
+- Settings page "AI & Accessibility": removed hints about `pip
+  install`, since the packages are now shipped automatically.
+- PyInstaller spec: correctly configured Whisper assets
+  (mel_filters.npz, tiktoken) and hidden imports (whisper, pyaudio,
+  numba, llvmlite) for the app bundle.
+
+2026-03-28 (v2.0.2)
+- AI: integrated the Anthropic Python SDK (`anthropic`) – Claude
+  summaries now run via the official SDK instead of manual HTTP
+  requests. Falls back to HTTP if the SDK is not installed (backward
+  compatible).
+- AI: added Google Gemini as a second AI backend (`google-genai` SDK).
+  Two authentication paths:
+  1. An API key from https://aistudio.google.com/app/apikey (simple)
+  2. OAuth browser login (no key needed, requires client_secrets.json
+     from the Google Cloud Console → "Sign in with Google" button opens
+     the browser, the token is saved locally and refreshed
+     automatically)
+- AI: summary order: Claude SDK → Gemini → Ollama → extraction
+- Settings "AI & Accessibility": new "Google Gemini AI" block with an
+  API key field, "Sign in with Google" and "Sign out" buttons, and an
+  auth status indicator
+- New: src/gemini_auth.py – GeminiAuthManager for token management and
+  the OAuth flow
+
+2026-03-28 (v2.0.1)
+- UI: new settings page "AI & Accessibility" in the settings window.
+  Claude API key, voice control on/off with start-now/stop buttons,
+  braille verbosity level (compact/normal/verbose), live transcription
+  on/off.
+- UI: multi-server switcher in the main window (above the area
+  selector). Automatically shown when more than one server session is
+  active. The choice list shows all sessions with connection status,
+  connect/disconnect buttons. Switch between sessions via the dropdown
+  or server_manager.switch_to().
+- UI: transcription panel in the "Channels and Chat" tab (hidden by
+  default). Appears automatically as soon as the Whisper model is
+  loaded or a transcription arrives. Shows timestamp + text, max. 50
+  lines. Hide/clear buttons.
+- Shortcuts: "Cycle braille verbosity" and "Announce AI summary" can
+  now be assigned in the Shortcuts tab. Are correctly saved and loaded.
+
+2026-03-28 (v2.0.0)
+- Pillar 1 – architecture:
+  * SQLite settings database (settings_db.py): all app settings and
+    server profiles are now stored in a single SQLite file
+    (settings.db). Automatic migration from JSON files on first
+    launch. SQLiteSettingsStore / SQLiteServerStore have an identical
+    API to the old SettingsStore / ServerStore – full backward
+    compatibility.
+  * Native multi-server (server_session.py): ServerSession wraps a
+    single TeamTalkClient each, ServerManager manages any number of
+    sessions. Events: active_server_changed, server_state_changed on
+    the bus. The active session controls the main UI; switch via
+    ServerManager.switch_to().
+  * Plugin system: already fully implemented in v1.10.x.
+
+- Pillar 2 – accessibility first:
+  * Braille display output (braille_output.py): BrailleOutputManager
+    with three verbosity levels (compact / normal / verbose). Hotkey
+    to cycle through them (hotkey_cycle_braille_verbosity). Focus
+    tracking with automatic announcements on area changes.
+    strip_for_braille() removes emoji and special characters.
+    format_channel_entry() / format_user_entry() / format_message()
+    adjust the output per verbosity level.
+  * Voice control (voice_control.py): VoiceCommandManager with a
+    Whisper backend (openai-whisper + pyaudio, optional). Recognizes
+    commands: mute, speak, channel <name> (fuzzy), status, help, quit.
+    VAD-based listening on a background thread. Graceful fallback if
+    Whisper is not installed. Enabled via
+    settings.voice_control_enabled.
+
+- Pillar 3 – media & AI:
+  * Live transcription (transcription.py): TranscriptionManager buffers
+    PCM audio and transcribes it every 5 seconds via Whisper. Result as
+    a transcription_result event on the bus. Resamples any sample rate
+    to 16 kHz. Optional model loading on a background thread.
+  * AI chat summary (ai_summary.py): ChatSummaryManager summarizes
+    missed messages. Backends: Claude API
+    (claude-haiku-4-5-20251001) → Ollama (llama3.2/phi3/mistral) →
+    simple extraction (always available). Hotkey hotkey_ai_summary.
+    Automatically invocable after returning from "away".
+  * ElevenLabs real-time streaming (speak.py): new "Real-time streaming"
+    checkbox in the Speak tab. Uses the
+    /v1/text-to-speech/{id}/stream API. Playback starts progressively
+    from ~32 KB of received data. _can_stream() checks model
+    compatibility. Independent temp-file management for streaming.
+
+2026-03-28 (v1.10.7)
+- Bugfix: made the channel list accessible to VoiceOver.
+  wx.TreeCtrl (NSOutlineView) had no patches for item text – VoiceOver
+  read no entries. Replaced with wx.ListBox (NSTableRow fully patched:
+  AXLabel/AXValue per row).
+- UI: channels and chat combined again ("Channels and Chat"), as in
+  v1.10.5. Flat channel list with indentation (spaces per channel
+  level) for the braille display. Users appear directly under their
+  channel, sorted alphabetically.
+
+2026-03-28 (v1.10.6)
+- UI: the channel tree and chat separated again into distinct areas
+  ("Channels" / "Chat"). The combined "Channels and Chat" tab was too
+  cramped – the channel tree was pushed out by the chat area
+  (min. ~310px height) and became hard to find.
+
+2026-03-28 (v1.10.5)
+- Bugfix: the channel tree now shows the server name as the root
+  channel's label (like the official Bearware Qt client), instead of
+  the root channel's empty szName field.
+- Bugfix: channels and users are now inserted in alphabetical order
+  (Bearware-compliant).
+
+2026-03-27 (v1.10.4)
+- UI: replaced the SplitterWindow in ChannelsChatTab with a fixed
+  BoxSizer layout. The channel tree (60%) and chat (40%) are now
+  always visible without an interactive splitter. Fixes rendering
+  issues with wx.TreeCtrl inside wx.SplitterWindow on macOS.
+
+2026-03-27 (v1.10.3)
+- Bugfix: the channel tree stayed empty when the SDK returned None
+  instead of an empty list right after login (TypeError caught in
+  _refresh_channels_with_retry via or []).
+- Bugfix: fixed a double tree rebuild on channel join
+  (refresh_channels_and_users was called redundantly alongside
+  refresh_members_for_my_channel).
+- Stability: event handlers in the channel tree (_on_tree_sel_changed,
+  _on_tree_right_click) are now guarded with try/except so exceptions
+  don't block further events.
+
+2026-03-27 (v1.10.2)
+- UI: completely reworked the channel tree – the user list is now
+  integrated into the tree. Users now appear as child nodes under their
+  channel (Server → Channel → User). Channel nodes show the user count
+  ("General, 3 users") and a password hint. User nodes show their
+  status comma-separated ("Alice, Admin, Speaking").
+- UI: removed the flat quick-join list box. Join a channel via
+  double-click/Enter directly in the tree. Double-clicking a user node
+  switches to the Chat tab.
+- Accessibility: TTS announcement while navigating the tree – the
+  channel name or user info is spoken automatically when a node is
+  selected.
+- Accessibility: context menu on user nodes via right-click or
+  Shift+F10. No pipe character in labels (VoiceOver-compliant, only a
+  comma as a separator).
+- Accessibility: selection is restored after a tree rebuild (e.g. after
+  a user joins/leaves).
+
+2026-03-27 (v1.10.1)
+- Architecture: plugin API (src/plugin_api.py) – plugins now receive a
+  PluginAPI instance as a second parameter: register(bus, api).
+  Available methods: speak(), is_connected(), get_server_name(),
+  get_my_user_id(), get_my_channel_id(), get_channel_users(),
+  send_channel_message(), send_private_message(), join_channel(),
+  get_config(). Backward compatible: register(bus) without the api
+  parameter is still possible.
+- Architecture: plugin configuration (src/plugin_config.py) –
+  persistent key-value store per plugin (JSON in ~/Library/Application
+  Support/TeamTalkVOClient/plugin_configs/).
+- Architecture: extended bus events – user_joined, user_left,
+  chat_message, channel_joined, file_transfer_complete, app_startup are
+  now fired by the bus.
+- Architecture: plugin metadata – plugins can export a metadata dict
+  (name, version, description, author). Read by the plugin loader.
+- Documentation: the plugin developer manual
+  (docs/plugin_entwicklung.md) fully revised – new API, all events
+  documented, 5 example plugins.
+
+2026-03-27 (v1.10.0)
+- Architecture: event bus (src/event_bus.py) – a simple synchronous
+  observer (on/off/emit) as the foundation for the future plugin system
+  and multi-server support. Already fires: connection_state_changed,
+  more events to follow.
+- Architecture: plugin loader stub (src/plugin_loader.py) – loads
+  Python files from the plugins/ directory and registers them on the
+  event bus. Plugins must export a register(bus) function. Currently
+  just a foundation.
+
+2026-03-27 (v1.9.0)
+- Feature: sound profiles – three built-in profiles: Default (all
+  sounds), Minimal (connection + private message only), Silent (no
+  sound). Custom profiles can be created and saved via "Save as
+  profile..." in the Sound Events tab. The "Cycle sound profile"
+  hotkey cycles through all profiles and announces the profile name via
+  TTS.
+
+2026-03-27 (v1.8.0)
+- Feature: scheduled recordings – new menu item Recordings → Scheduled
+  recordings. Recordings can be scheduled by weekday, time, and
+  duration. The manager checks every 30 seconds whether a recording is
+  due and starts/stops it automatically. Persisted in
+  scheduled_recordings.json.
+
+2026-03-27 (v1.7.0)
+- Feature: channel password in Keychain – new option "Save channel
+  passwords in Keychain" (Settings → General). Passwords are
+  automatically saved in the operating system's keychain and
+  automatically used on the next join. Incorrect saved passwords are
+  automatically deleted. Requires the optional `keyring` library (pip
+  install keyring).
+- Feature: private-reply hotkey – a new app hotkey "Private reply (last
+  sender)" opens the private chat directly with the user who last wrote
+  to you.
+- Feature: shortcut profiles – new "Export profile" and "Import
+  profile" buttons in the Shortcuts tab. Allows saving and restoring
+  all app hotkey bindings as a JSON file.
+
+2026-03-27 (v1.6.0)
+- Feature: chat history search – a new search field in the Chat tab
+  searches the current chat history for a keyword. Results are shown in
+  a list; selecting one jumps to the corresponding place in the
+  history.
+- Feature: announce user info – a new app hotkey (Settings → Shortcuts)
+  reads out info about the selected user via TTS: name, admin status,
+  whether they are currently speaking, muted, or away.
+- Feature: announce ping – a new app hotkey reads out the current UDP
+  and TCP ping to the connected server via TTS.
+
+2026-03-27 (v1.5.0)
+- Feature: extended TTS events – user join/leave, channel topic, file
+  transfer, and connection announcement as separate, individually
+  toggleable TTS kinds (System & TTS → new checkboxes: join, leave,
+  file transfer, channel topic, connection).
+- Feature: status announcement on connect – after a successful login,
+  TTS automatically announces the server name and current channel (can
+  be disabled).
+- Feature: spoken level meter – a new app hotkey "Announce input level"
+  reads the current microphone level as a percentage (Settings →
+  Shortcuts).
+- Feature: chat notification filter – highlight keywords ([!] prefix)
+  and mute users via a comma-separated list (Settings → General).
+- Feature: private message history – separately saved history per
+  partner and per server (enable in Settings → General).
+- Feature: configurable reconnection retry – max. attempts and minimum
+  delay adjustable (Settings → Connection).
+- Feature: offline event log – missed channel messages and user events
+  are buffered during a connection interruption (max. 50) and shown in
+  chat after reconnecting.
+- Feature: server favorites quick-dial – File menu "Quick connect
+  (Cmd+1–9)" connects directly to the Nth server in the server list.
+- Feature: app update checker – on launch, checks in the background
+  whether a newer version is available on the Git server (can be
+  disabled).
+- Feature: braille display compact mode – an option shortens selected
+  widget labels for braille display use (Settings → General).
+- Note: push-to-record was already available (toolbar "Recording", or
+  File menu → Start/stop recording).
+- Note: switching devices without a restart was already possible via
+  Audio → "Apply audio".
+
+2026-03-27 (v1.4.0)
+- Feature: public server list (bearware.dk) – a new "Public servers…"
+  button in the connection tab fetches the public server list from
+  bearware.dk and shows it in an accessible dialog. Any server can be
+  connected to directly or saved to the personal server list. Fetching
+  happens in the background without blocking the UI.
+- Bugfix: tts.py – the temporary WAV file was not deleted when
+  espeak-ng returned with an error code (file leak).
+- Bugfix: tts.py – empty espeak output (proc.stdout empty) is now
+  caught; no more writing an empty WAV file.
+- Bugfix: sound_manager.py – afplay processes are now properly awaited
+  via .wait() (prevents zombie processes on macOS).
+- Bugfix: chat.py – GetClientData() in private chat sending is now
+  checked for None before using the user ID.
+- Bugfix: app.py – _vu_timer.Stop() in force_close() is now only
+  called if the attribute exists (prevents an AttributeError on an
+  early crash).
+- Bugfix: global_hotkeys.py – the hotkey thread is now cleanly awaited
+  via .join(timeout=1.0) when stopping.
+
+2026-03-26 (v1.3.2)
+- User:
+    - Allow desktop access (subscribe to desktop input).
+    - Position: set the user's (3D) position.
+    - Allow transmission: voice/video/desktop/media/channel text + all.
+- Subscriptions:
+    - Added desktop access (SUBSCRIBE_DESKTOPINPUT).
+- Channel:
+    - Show channel messages (dialog).
+
+2026-03-22 (v1.3.1)
+- Feature: export chat history – a new "Export history" button in the
+  Chat area saves the current history as a TXT file.
+- Feature: clear chat history – a new "Clear history" button deletes
+  the displayed chat history and (with history saving enabled) also the
+  saved JSON file for the current server.
+- Manual: added v1.3 features to the Chat, Settings, and Keyboard
+  Shortcuts sections (export/clear history, save chat history,
+  auto-join, global hotkeys).
+
+2026-03-22 (v1.3.0)
+- Feature: global hotkeys (macOS) – PTT and mute now work system-wide,
+  even while the app is in the background. Configuration in the
+  Settings tab under "Shortcuts" → "Global hotkeys". Uses the macOS
+  NSEvent global monitor on its own background thread.
+- Feature: save chat history – messages can optionally be saved per
+  server as JSON (max. 200 entries) and are automatically loaded on the
+  next connect. Setting: Settings → General → "Save chat history".
+- Feature: auto-join last channel – after connecting to a server, the
+  last used channel is automatically joined. Setting: Settings →
+  General → "Automatically join last channel".
+
+2026-03-22 (v1.2.5)
+- Bugfix: Audio tab on_apply_audio / on_loopback_toggle: missing upper
+  bounds check for the device index (only NOT_FOUND was checked, not
+  whether the index < list length). Could lead to an IndexError on a
+  list-sync issue.
+- Robustness: connection.py _set_tab_order() also guarded with
+  try/except (like media.py), so a MoveAfterInTabOrder error doesn't
+  block tab initialization.
+
+2026-03-22 (v1.2.4)
+- Bugfix: the sound device menu (input/output) triggered an
+  AttributeError because wx.Menu has no Clear() method. Replaced with
+  a DestroyItem() loop.
+- Bugfix: the "Recording & Media" tab could not be opened – a
+  wxAssertionError in _set_tab_order() (MoveAfterInTabOrder: win is not
+  a sibling) aborted tab initialization. The error is now caught, since
+  the tab order is cosmetic and must not block tab loading. In
+  addition, a safeguard in _replace_lazy_tab prevents the error from
+  being triggered repeatedly on every tab switch.
+
+2026-03-22 (v1.2.3)
+- Bugfix: after manually disconnecting ("Disconnect" in the menu), no
+  new connection could be established. The cause was a double-close of
+  the internal TeamTalk SDK handle in _recreate_client(): the explicit
+  closeTeamTalk() call followed by the automatic __del__ call closed
+  the just-recreated SDK object due to pointer reuse, causing connect()
+  to permanently return False. Fix: removed the explicit closeTeamTalk()
+  call – Python's refcount GC handles the single correct close.
+
+2026-03-22 (v1.2.2)
+- Bugfix: corrected the wrong error code for password-protected
+  channels. The actual SDK error is
+  CMDERR_INCORRECT_CHANNEL_PASSWORD (2001), not 2002
+  (CMDERR_INVALID_ACCOUNT). The password input dialog now correctly
+  appears when joining password-protected channels.
+
+2026-03-22 (v1.2.1)
+- Bugfix: joining a password-protected channel now shows a password
+  input dialog (CMDERR_INCORRECT_CHANNEL_PASSWORD, error code 2001).
+  Previously, the error was only shown in the status bar.
+- Bugfix: the app can now be closed even when a dialog (e.g. manual,
+  changelog) is in the foreground. On quit, all open modal dialogs are
+  now automatically closed before the app tears down.
+
+2026-03-21 (v1.2.0)
+- New: playlist streaming in the Media tab (streaming source
+  "Playlist").
+  - Add multiple local files via a multi-select dialog.
+  - Import an M3U / M3U8 file (relative paths are resolved correctly).
+  - Adjust the order via "Move up" / "Move down".
+  - Remove individual tracks or clear the entire playlist.
+  - Export the playlist as an .m3u file.
+  - "Auto-advance" option: after each track ends, the client
+    automatically jumps to the next entry.
+  - Streaming volume adjustable separately.
+- New: menu item "Stream playlist..." under Channel → Streaming.
+- Manual: the playlist section is now fully documented.
+
+2026-03-21 (v1.1.2)
+- Manual updated: documented local playback (Audio tab), banning an IP
+  address (Admin tab), and user search in the online users dialog.
+
+2026-03-21 (v1.1.1)
+- Correction: moved local playback from the Admin tab to the Audio tab
+  (Tab 4) – the feature only plays files locally (only you hear it, no
+  channel streaming) and is available to all users.
+
+2026-03-21 (v1.1.0)
+- New: ban an IP address directly – a new "Ban IP address..." button in
+  the Admin tab (Bans section). Bans any IP without requiring the user
+  to be currently connected (doBanIPAddress).
+- New: search for users by username in the online users list. A search
+  field with Enter support finds the entry in the list and selects it
+  (getUserByUsername).
+- New: local playback (admin only) – a new section in the Admin tab.
+  Play, pause, and stop an audio file locally without channel streaming.
+  Restricted to admins, as in the original TeamTalk client
+  (initLocalPlayback / updateLocalPlayback / stopLocalPlayback).
+
+2026-03-21 (v1.0.2)
+- Bugfix: Video tab – when no device was selected, GetSelection()=-1
+  accessed the last list item instead of aborting (affects on_apply and
+  _ensure_video_ready). Now has an explicit bounds check with a status
+  message.
+- Bugfix: Settings – show_toolbar was incorrectly set to False when
+  loaded without a saved value (the dataclass default was True).
+  Default corrected.
+
+2026-03-21 (v1.0.1)
+- Channel menu → Streaming: added SoundCloud, Bandcamp, Vimeo, and
+  Mixcloud as standalone menu items (previously missing).
+- Bugfix: Web radio, podcast, and Twitch pointed to the wrong modes in
+  the menu (indices 2/3/4 instead of 7/8/3) – all indices corrected.
+- Manual: updated the streaming sources in the Channel menu section.
+
+2026-03-20 (v1.0.0) – First stable release
+- Connection tab: the ping display now uses a comma instead of a
+  vertical bar ("UDP ping: X ms, TCP ping: Y ms") – VoiceOver read "|"
+  as "vertical bar".
+- Settings → Display: the "Show VU meter" checkbox is now correctly
+  initialized from the saved settings (previously always "on").
+- Settings → Display: VU meter visibility is now saved persistently
+  (AppSettings.show_vu_meter, SettingsStore) and applied on startup.
+- Bugfix: _on_vu_meter_changed incorrectly addressed audio_tab.vu_meter
+  instead of frame.vu_meter – the checkbox therefore had no effect at
+  all.
+- "Save" in the Display tab now applies VU meter visibility
+  immediately.
+
+2026-03-20 (v0.10.18)
+- TTS settings are now saved persistently (AppSettings / SettingsStore):
+  enabled state, voice, language, rate, volume, options, espeak-ng
+  path – all preserved after a restart.
+- TTS settings are loaded from the configuration file on startup.
+- ServerProfile: new field "Profile name" (display_name) in the
+  connection form – allows a custom display name independent of the
+  hostname. If left empty, the hostname is used as the name.
+- BroadcastMessageDialog, ClientStatisticsDialog, ChangeStatusDialog:
+  added Cmd+W to close.
+
+2026-03-20 (v0.10.17)
+- Removed the ElevenLabs API key from the connection tab and moved it
+  to its own settings section: Settings → ElevenLabs. The key now
+  applies globally to all server profiles.
+- AppSettings / SettingsStore: elevenlabs_api_key is saved and loaded.
+- ServerProfile.elevenlabs_api_key remains in the data model for
+  backward compatibility (no longer shown in the UI).
+- Manual: the ElevenLabs section updated to reflect the new storage
+  location.
+
+2026-03-20 (v0.10.16)
+- OnlineUsersDialog: added Cmd+W to close (accelerator table).
+- OnlineUsersDialog: added a "Private message" button directly in the
+  dialog, so users from the list can be messaged without the context
+  menu.
+- ServerStatisticsDialog, BanListDialog: also added Cmd+W to close.
+- Manual: the version number is now dynamically taken from APP_VERSION
+  (always current).
+- Manual: added a note that the manual may change with every version.
+- Manual: corrected the ElevenLabs API key location (connection tab,
+  not settings).
+- Manual: added a first-launch audio guide in section 6 (Audio tab).
+
+2026-03-20 (v0.10.15)
+- Fixed the manual dialog: replaced the unreliable wx.html.HtmlWindow
+  with a reliable wx.TextCtrl (multi-line, read-only) – the content was
+  previously not displayed.
+- The manual was completely rewritten: all 15 tabs, the full menu bar,
+  push-to-talk, voice activation, TTS, platform differences on
+  macOS/Windows/Linux, embedded directly in app.py.
+
+2026-03-20 (v0.10.14)
+- Fixed a crash on quit (macOS "unexpectedly quit" dialog):
+    - App.OnExit: os._exit(0) prevents a PyObjC destructor crash.
+    - force_close: the _closing flag is set before teardown begins; the
+      VU timer and all other timers are stopped first; the SDK event
+      thread is awaited (stop_event_loop_and_wait) before wx objects
+      are destroyed.
+    - _stats_timer, reconnect, and leave/logout workers: abort when
+      _closing is set.
+- tts.py: replaced duplicate env setup in _list_voices_from_binary /
+  _worker with a shared _build_env() method.
+- tts.py: logger access after app quit is now guarded (_stop check).
+- Manual added (Help → Manual):
+    - Complete user manual in German.
+    - All functions, menu items, settings, UI elements explained.
+    - Platform differences macOS / Windows / Linux documented.
+    - Step-by-step guides for connection, microphone, VA, PTT,
+      streaming, TTS, desktop sharing, administration.
+
+2026-03-20 (v0.10.13)
+- Added keyboard mnemonics to all buttons and checkboxes throughout the
+  entire user interface:
+    - Connection, Channel, Chat, Audio, Media, Files, Admin, Speak,
+      Desktop, Settings, System, and Shortcuts tabs.
+    - Quick actions bar (main window).
+    - Server helper dialogs (online users, bans, statistics).
+  Windows users can now activate buttons and checkboxes directly via
+  Alt+letter, without having to tab through them. No effect on macOS
+  and Linux.
+
+2026-03-20 (v0.10.12)
+- Replaced the remaining wx.Slider controls with wx.SpinCtrl (UI
+  unification):
+    - System tab: TTS speech rate (80–400), TTS volume (0–200).
+    - Media tab: seek position (0–1000), streaming volume for file,
+      yt-dlp, web radio, and podcast sources (25–400).
+  All input fields now behave identically on macOS, Windows, and Linux;
+  no more platform-specific sliders.
+
+2026-03-20 (v0.10.11)
+- Replaced all sliders (wx.Slider) with number input fields
+  (wx.SpinCtrl):
+    - Audio tab: activation level, hangover, microphone gain, output
+      volume.
+    - Speak tab (ElevenLabs): stability, similarity, style.
+    - Settings tab: sound volume.
+    - Quick access bar: output and microphone sliders.
+  SpinCtrl shows the exact numeric value, is operable via arrow keys,
+  and is announced identically and correctly by VoiceOver (macOS) as
+  well as NVDA/JAWS (Windows) – no more platform-dependent differences.
+
+2026-03-20 (v0.10.10)
+- "About" dialog: corrections and additions:
+    - Corrected a name: "Karo" → "Garo".
+    - Garo: added acknowledgment for Windows testing support and
+      active contributions throughout the project's lifetime.
+    - "General" tab: added a note about platform support – macOS is
+      the primary development and testing environment; Windows and
+      Linux users may occasionally encounter platform-specific
+      limitations.
+
+2026-03-20 (v0.10.9)
+- Completely reworked the "About" dialog (Help menu → "About"):
+    - "General" tab: app name, version, lead developer, libraries used,
+      and supported platforms.
+    - "Acknowledgments" tab: named all beta testers and supporters
+      (Karo, FVH, DHT, Korn, de Losse) with a description of their
+      respective contributions.
+    - "Licenses" tab: a selection list of available license files;
+      "Open license" or double-click shows the full license text in
+      its own window.
+
+2026-03-20 (v0.10.8)
+- VoiceOver improvements (macOS):
+    - Sliders (wx.Slider) are now announced as "slider" in the chosen
+      interface language instead of the English default.
+    - Single-line text fields are announced as "text field".
+    - Multi-line text areas are announced as "text area".
+    - Tree views (channel list) are announced as "outline view".
+    - Progress indicators are announced as "progress indicator".
+- List entries: the separator in all lists changed from " | " to ", ",
+  so VoiceOver no longer reads "vertical bar". Affects: user list,
+  channel list, file list, account list, ban list, online users
+  dialog.
+- Stability: an invalid entry on "Reconnect" is now caught cleanly and
+  shown in the status bar instead of failing silently.
+- File list: a parallel filename list prevents fragile string splitting
+  when deleting and downloading files.
+
+2026-03-20 (v0.10.7)
+- Online users (Server menu → "Online users..."):
+    - Shows all users currently connected to the server (nickname,
+      username, channel) – a server-wide view, independent of your own
+      channel.
+    - Right-click or Shift+F10 context menu with actions:
+        - User info: nickname, username, ID, channel, status.
+        - Send a private message: a direct message to any server user
+          (even outside your own channel).
+        - Move user: choose a target channel from the channel list.
+        - Kick from channel / kick from server.
+        - Ban (IP or username, channel or server level).
+        - Kick + ban combined.
+    - Double-clicking a user opens the private message dialog directly.
+- Cleaned up the "Channels" tab: removed the redundant "Members in the
+  current channel" list; the same information is available in the
+  channel list and user list, as well as via the status bar.
+- "Recording & Media" tab: the streaming section is now visually
+  grouped into its own "Media Streaming" group for a clear separation
+  from the recording options (already prepared in 0.10.6, now
+  complete).
+- Versioning: app version bumped to 0.10.7.
+
+2026-03-20 (v0.10.6)
+- Media streaming: unified yt-dlp panel for all streaming sources.
+    - Extended the streaming-source menu: YouTube, SoundCloud, Twitch,
+      Bandcamp, Vimeo, Mixcloud (new), as well as web radio and
+      podcasts, which remain.
+    - All yt-dlp sources use a unified panel with a search field (for
+      sources with yt-dlp search support: YouTube via ytsearch,
+      SoundCloud via scsearch), a results list, and URL entry.
+    - Streaming via yt-dlp -g (direct stream URL, no more waiting for a
+      download).
+    - Pause, stop, and volume work the same way for all sources.
+- Versioning: app version bumped to 0.10.6.
+
+2026-03-20 (v0.10.5)
+- Sound events:
+    - Embedded the official TeamTalk5 sound pack (BearWare/TeamTalk5,
+      Setup/Client/Sounds) (17 WAV files).
+    - New sound manager (sound_manager.py): plays event sounds
+      asynchronously; automatically falls back to the embedded sound
+      pack when no custom path is configured.
+    - The following events trigger sounds:
+        - User joins your own channel → newuser.wav
+        - User leaves the channel → removeuser.wav
+        - Server connection lost → serverlost.wav
+        - Private message received / sent → user_msg.wav /
+          user_msg_sent.wav
+        - Channel message received / sent → channel_msg.wav /
+          channel_msg_sent.wav
+        - File transfer completed → filetx_complete.wav
+        - Desktop session started → desktopsession.wav
+        - User logged on / logged off → logged_on.wav / logged_off.wav
+    - The test button in the sound events settings automatically plays
+      the default sound when no custom path is entered.
+- Sound timing corrections:
+    - Server connection sound: now plays immediately after login
+      confirmation (CMD_SUCCESS), not only after the full channel/user
+      sync.
+    - Channel join sound: now plays directly after a successful join
+      (the event loop was stopped during the join, which is why the
+      SDK event did not arrive).
+    - Channel leave sound (your own departure): now played directly in
+      on_leave_channel; analogous to the channel join.
+    - Disconnect sound: now also played on manual disconnect and
+      logout (previously only on a connection drop).
+- Versioning: app version bumped to 0.10.5.
+
+2026-03-20 (v0.10.4)
+- VoiceOver improvements:
+    - List entries are now read out in full (NSTableRow.AXTitle/AXLabel
+      determined from NSTableViewCellProxy.AXValue).
+    - Dropdowns (wx.Choice): VoiceOver now says "pop-up button".
+    - Combo boxes (wx.ComboBox): VoiceOver now says "combo box".
+    - Microphone permission dialog: text grammatically corrected and
+      the app name unified ("TeamTalk VO Client needs access to the
+      microphone…").
+- Versioning: app version bumped to 0.10.4.
+
+2026-03-20 (v0.10.3)
+- VoiceOver accessibility:
+    - wx.Accessible (ROLE_SYSTEM_LIST) set for all wx.ListBox controls —
+      VoiceOver now reads "list" instead of "table" (applies to the
+      channel, admin, connection, files, system, media, server tools,
+      and statistics tabs).
+    - wx.ToggleButton → wx.CheckBox in the quick actions bar (PTT, voice
+      activation, video, desktop, mute, recording, question mode) and
+      the Audio tab (PTT, microphone test) — VoiceOver now reads
+      "checkbox" instead of "button".
+    - Added column headers ("Nickname | Username | Status" etc.) as
+      StaticText labels.
+    - Added SetName for DataViewListCtrl in the server status dialog.
+    - Slider name "TTS Rate" → "TTS speech rate" (matches the localized
+      label).
+- Labels / accessibility:
+    - "Shortcuts" label consistency fixed across the settings section
+      picker.
+    - Fixed spelling/typos in the About dialog.
+    - Corrected all remaining English and umlaut-substituted button
+      labels to match the chosen interface language (e.g. Files tab
+      "Delete"/"Transfer", System tab "Rate"/"Test speak", Connection
+      tab "Logout", Video tab "Video device"/"Device", Settings sound
+      events "Test", gender selection "Male", tray-close wording,
+      "User leaves channel" wording, "Close" wording plus SetName
+      entries in client_stats.py and server_tools.py, "No statistics
+      available" wording, files-tab "Size" column, and "Frame size" in
+      the channel dialog for OPUS).
+- Versioning: app version bumped to 0.10.3.
+
+2026-03-20 (v0.10.2)
+- Help menu:
+    - Removed "Manual" and "BearWare.dk Website".
+- Dialogs / accessibility:
+    - All Yes/No dialogs: added SetYesNoLabels("Yes", "No").
+    - All custom wx.Dialog windows: added Cmd+W to close.
+    - Corrected English labels in the Audio tab to match the localized
+      interface (Voice Activation, VU Meter, Microphone Gain).
+    - Speak tab: Stability, Similarity, Style, Speaker Boost localized.
+    - Fixed remaining umlaut substitutions in visible strings.
+- Versioning: app version bumped to 0.10.2.
+
+2026-03-20 (v0.10.1)
+- Navigation:
+    - Replaced wx.Notebook with a panel switcher: VoiceOver/NVDA now
+      only sees the dropdown (wx.Choice), no more duplicate tab
+      buttons.
+    - Moved the toolbar (sliders, toggle buttons, VU meter) to the end
+      of the window, so screen-reader users reach the content first.
+    - The toolbar is now visible by default (was: hidden), since it is
+      now at the bottom and out of the navigation path.
+- Connection:
+    - Removed a redundant duplicate SDK re-initialization before the
+      first attempt.
+    - Reduced the event-loop poll interval from 200 ms to 100 ms.
+    - Shortened the stop_event_loop_and_wait() timeout from 2.0 s to
+      0.4 s.
+    - Reduced the connect timeout from 12 s to 8 s.
+- Language / spelling:
+    - Corrected all umlauts in visible strings.
+    - Unified "Channel" wording in German status and error messages.
+    - Unified terminology: volume, devices, quality, channels, noise
+      suppression, echo cancellation, input device, output device,
+      streaming volume, sound file, channel selection, user volume.
+
+2026-03-19 (v0.10.0)
+- Accessibility / main window:
+    - Toolbar and event log hidden by default (fewer tab stops for
+      VoiceOver/NVDA).
+    - Settings > Display: "Show toolbar" and "Show event log" options.
+    - Removed the title text from the window body (now only in the
+      title bar).
+    - More compact window height (700px instead of 980px).
+- Main window toolbar / quick actions (optional, default: hidden):
+    - Toggle buttons for PTT, voice activation, video, desktop, mute,
+      recording, question mode.
+    - Master volume and microphone gain sliders.
+    - VU meter (input level, 10 Hz).
+- Channel dialog:
+    - OPUS settings: app type, sample rate, channels, bitrate, VBR,
+      DTX, interval, frame size.
+    - Speex / Speex VBR: sample rate, quality, max bitrate, DTX,
+      interval.
+    - Fixed volume for all channel users.
+    - Stream timeout timer (voice and media).
+- Settings (4 new sections):
+    - General: gender, away timer, BearWare web login.
+    - Display: minimize to tray, always on top, chat format, VU meter
+      visibility, window title, toolbar visibility, log visibility.
+    - Connection: default subscriptions (7 options), TCP/UDP port
+      binding.
+    - Sound events: 16 events with sound file selection, test
+      function, volume, mode.
+- Server list:
+    - Context menu: duplicate, generate TT file, enter join code.
+    - Double-click + Enter to connect.
+    - Live name filter.
+- User menu:
+    - Mute submenu: voice and media file separated.
+    - Kick/ban submenu: from channel, from server (each with/without a
+      ban).
+    - Transmission control submenu for operators (voice/video/desktop/
+      media/messages).
+    - Relay voice/media stream (relay via intercept).
+    - Grant/revoke desktop access.
+    - Mute all in the user menu.
+- Channel menu:
+    - Create channel: F7 shortcut.
+    - Read channel state (who is currently transmitting).
+- Help menu:
+    - Manual (opens the BearWare docs in the browser).
+    - BearWare.dk website.
+- Keyboard shortcuts:
+    - F2: connection window / server list.
+    - F6: private message to the selected user.
+    - F7: create channel.
+- Connection:
+    - Copy TT URL and save TT file.
+- File:
+    - Start new client (menu).
+    - Sound configuration submenu (input/output as a list, audio,
+      effects).
+    - Record conversations + settings in the File menu.
+- Profile:
+    - Question mode as a quick toggle.
+    - Hear yourself (microphone test) as a menu item.
+    - TTS active as a menu item.
+    - Send desktop as a menu item.
+    - Notifications (chat/private/system/own) as menu items.
+- Server:
+    - Show bans (server).
+    - Open administration.
+    - Open server properties + save configuration (menu).
+- Audio:
+    - Open audio settings.
+    - Effects (AGC/noise suppression/echo cancellation) as menu toggles
+      including apply.
+- User:
+    - Send a private message directly from the menu.
+    - Advanced menu for quick volume adjustment.
+    - Ban/kick+ban directly from the User menu.
+- Recordings:
+    - Shortcut to conversation recording in the Media tab.
+- User subscriptions:
+    - Added intercept options (User/Channel/Voice/Video/Media/Custom).
+- Channel:
+    - Channel info dialog.
+    - Read channel info.
+    - Read channel statistics.
+    - Copy TT URL for the channel.
+    - Show bans in the channel.
+    - Files menu (upload/download/delete/refresh) in the channel.
+    - Streaming menu (file/YouTube/web radio/podcast/Twitch) in the
+      channel.
+- User:
+    - Read user info.
+    - Remember target channel + move a user to the target channel.
+- Help:
+    - Read connection statistics.
+
+2026-03-19 (v0.9.9)
+- Desktop:
+    - Remote control: send left-click/right-click/middle-click.
+
+2026-03-19 (v0.9.8)
+- Help:
+    - Connection statistics (client stats) dialog.
+
+2026-03-19 (v0.9.7)
+- Desktop:
+    - New Desktop tab with desktop sharing (one-time or continuous).
+    - Status display for incoming desktop streams.
+
+2026-03-19 (v0.9.6)
+- Profile:
+    - Change nickname.
+    - Set status (available/away/question).
+
+2026-03-19 (v0.9.5)
+- Server menu:
+    - Online users dialog.
+    - Send a server message (broadcast).
+    - Show server statistics.
+
+2026-03-19 (v0.9.4)
+- Shortcuts:
+    - Hotkeys for mute-all, voice activation, and send video.
+
+2026-03-19 (v0.9.3)
+- User: move to another channel (menu + context menu).
+- Audio: mute all (master mute).
+
+2026-03-19 (v0.9.2)
+- Video settings:
+    - Choose, save, and refresh the video device/format.
+    - Send video including bitrate/quality.
+
+2026-03-19 (v0.9.1)
+- Automatic conversation recording:
+    - Per-user recording by folder/filename/format (WAV, MP3
+      128/256).
+    - Optionally include your own voice.
+
+2026-03-19 (v0.9.0)
+- Extended channel creation/editing:
+    - Added Speex/Speex VBR to the audio codec (default profiles).
+    - Temporary channels are now correctly created via join if server
+      rights are missing.
+
+2026-03-19 (v0.8.0)
+- Channel creation/editing:
+    - Rights-aware: options are locked when server rights are missing.
+- User context menu:
+    - Ban selection (IP/username, channel/server) and kick+ban with a
+      selection.
+- Navigation:
+    - Area selection + info line for screen readers/NVDA remote.
+
+2026-03-18 (v0.7.4)
+- Channel creation/editing:
+    - Audio codec selection (Opus/no audio/parent channel) and operator
+      password.
+    - File quota (MB), max. users, additional channel types.
+
+2026-03-15 (v0.7.3)
+- Code cleanup and bugfixes:
+    - Fixed a `TTMessage` undefined name error.
+    - Fixed a "module level import not at top of file" issue in
+      `app.py`.
+    - Removed unused local variables in `media.py`.
+    - Renamed ambiguous variable names in `system.py`.
+    - Improved server check robustness with increased retries and a
+      connection timeout.
+    - Fixed a `wxAssertionError` by removing explicit tab-order
+      definitions in UI tabs.
+    - Fixed `AttributeError: 'TeamTalk' object has no attribute
+      'enableVoiceActivation'` by correcting the function call.
+    - Improved error messages for the server check with more detailed
+      tracebacks.
+    - Fixed `ModuleNotFoundError: No module named 'CoreVideo'` (and
+      related errors in `screen_share.py`) by removing references to
+      nonexistent/broken screen-sharing modules.
+    - Fixed `SyntaxError: unexpected character after line continuation
+      character` in `ui/tabs/audio.py`.
+    - Fixed dialogs with missing OK/Cancel buttons (text inputs).
+    - Made lazy tab switching compatible with wxPython without
+      `GetPageIndex`.
+    - Stabilized Chat tab methods/bindings.
+
+2026-03-13 (v0.7.2)
+- Improvement: made the changelog easier to read via a clear split
+  (left version list, right detail view).
+
+2026-03-13 (v0.7.1)
+- Fix: fixed a startup crash caused by tab order in
+  Channels/Chat.
+
+2026-03-13 (v0.7.0)
+- The server check now shows a summary (total, online, errors, users)
+  and sorts the results.
+- The server check now asks for confirmation before starting.
+- The server check now uses an inline probe (no subprocess) for more
+  stable results.
+- The server check for unencrypted servers now uses more retries and a
+  short pause between servers.
+- Connection: automatic TLS fallback when a plain server expects TLS.
+- Audio/Settings: PTT hotkey recording, audio options restructured.
+- UI: combined Channels and Chat, moved Settings into a separate
+  window.
+- Updated the About dialog and included licenses.
+- CI: added a Gitea Actions workflow for Windows builds.
+- UI: grouped the Channels view, unified labels, clearer chat target.
+- UI: Connection/Files/Admin/Speak/System with clearer groups and
+  labels.
+- Integrated the changelog into the Help menu.
+- Versioning: set app version 0.7.0 and bundle/Windows metadata.
+
+2026-03-10 (v0.6.0)
+- Connection as its own window (instead of a tab), Cmd+W closes the
+  window.
+- Settings as its own window in the Help menu, Cmd+, opens settings.
+- Reorganized tabs; merged Channels + Chat.
+- More stable reconnect and connection logic between TLS/plain.
+- Server check results shown as a table (dialog).
+
+2026-03-05 (v0.5.0)
+- Expanded the Audio section: devices, levels, effects, preprocessing,
+  actions.
+- Save/apply/delete audio preferences; auto-apply on device change.
+- Capture the PTT hotkey within the app.
+- Improved status messages and log export.
+
+2026-02-28 (v0.4.0)
+- Expanded the media/streaming section (YouTube/web radio/Twitch).
+- Files tab: upload/download/delete, progress indicator.
+- Admin tab: accounts, bans, server properties.
+
+2026-02-20 (v0.3.0)
+- System & TTS: espeak-ng settings, voice selection, tests.
+- Chat tab with private messages and chat history.
+- Channel list/user list with context menus and actions.
+
+2026-02-12 (v0.2.0)
+- Basic connection dialog with a server list.
+- Save/import/export the server list.
+- Auto-reconnect, basic logging, basic TTS functionality.
+
+2026-02-06 (v0.1.0)
+- Project foundation: set up the TeamTalk VO Client.
+- Basic UI structure and first tabs.

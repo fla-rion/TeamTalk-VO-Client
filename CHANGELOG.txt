@@ -1,6 +1,34 @@
 Changelog
 =========
 
+2026-08-27 (v9.2.0)
+Neu: Vollständige Mehrsprachigkeit (DE/EN/FR/ES) für UI, Handbuch und Changelog
+
+- src/i18n.py: Alle bisher fehlenden FR/ES-Wörterbucheinträge ergänzt (über
+  550 neue Übersetzungen). Bugfix: _lookup_direct() fiel bei fehlendem
+  FR/ES-Eintrag bisher stillschweigend auf Englisch statt auf eine echte
+  Übersetzung zurück – dadurch tauchten mitten in französischer/spanischer
+  UI vereinzelt englische Wörter auf. Betroffen waren u. a. viele Labels in
+  ui_wx/tabs/settings.py, audio.py, media.py, die bislang komplett ohne
+  jeden Wörterbucheintrag (auch ohne Englisch) waren.
+- src/ui_qt/tabs/admin.py, channels.py, chat.py, speak.py: sämtliche bisher
+  hartkodierten deutschen Status-, Fehler- und Dialogtexte (Konten- und
+  Sperrlisten-Verwaltung, Kanalkontextmenü, Kick/Bann/Operator-Aktionen,
+  Chat-Export, ElevenLabs-Streaming-Status u. v. m.) laufen jetzt über die
+  Übersetzungsinfrastruktur – zuvor blieben diese unabhängig von der
+  eingestellten Sprache immer Deutsch.
+- Handbuch und Changelog gibt es jetzt vollständig auf Englisch, Französisch
+  und Spanisch als eigene Dateien (manual_en/fr/es.html,
+  CHANGELOG_en/fr/es.txt). Windows/Linux (Qt) zeigen automatisch die zur
+  App-Sprache passende Datei; macOS (wx) liest für den Changelog ebenfalls
+  die passende Datei statt wie bisher einer unwirksamen Zeilen-für-Zeilen-
+  Ersetzung, die bei Fließtext praktisch nie traf. Bugfix: Der bisherige
+  macOS-Changelog-Dialog zeigte englischsprachigen Nutzern versehentlich
+  den kompletten Changelog auf Deutsch (fehlender "en"-Zweig).
+- Das macOS-Handbuch (in app_wx.py eingebetteter Text, unabhängig von
+  manual.html) bleibt bewusst eine separate Quelle und wurde nicht
+  angefasst.
+
 2026-08-27 (v9.1.1)
 Bugfix: Apple Foundation Models machte den Client unter macOS 26 unbenutzbar
 
