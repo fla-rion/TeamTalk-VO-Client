@@ -6991,6 +6991,17 @@ _TRANSLATIONS_ES.update({
     "{} Uploads gestartet": "{} subidas iniciadas",
 })
 
+# v10.1.0 – ui_wx/tabs/system.py: dynamischer TTS-Test-String
+_TRANSLATIONS.update({
+    "Das ist ein TTS Test": "This is a TTS test",
+})
+_TRANSLATIONS_FR.update({
+    "Das ist ein TTS Test": "Ceci est un test TTS",
+})
+_TRANSLATIONS_ES.update({
+    "Das ist ein TTS Test": "Esta es una prueba de TTS",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
