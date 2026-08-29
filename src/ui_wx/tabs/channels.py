@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import wx
 
+from i18n import _
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -138,7 +139,7 @@ class ChannelsTab(wx.Panel):
         if not server_name and root_channel:
             server_name = tt_str(root_channel.szName)
         if not server_name:
-            server_name = "Server"
+            server_name = _("Server")
 
         channels_by_id = {c.nChannelID: c for c in channels}
 
@@ -260,13 +261,13 @@ class ChannelsTab(wx.Panel):
         else:
             parts = [name]
             if has_pw:
-                parts.append("Passwort")
+                parts.append(_("Passwort"))
             if total > n:
-                parts.append(f"{n}/{total} Nutzer")
+                parts.append(_("{}/{} Nutzer").format(n, total))
             elif n == 1:
-                parts.append("1 Nutzer")
+                parts.append(_("1 Nutzer"))
             elif n > 1:
-                parts.append(f"{n} Nutzer")
+                parts.append(_("{} Nutzer").format(n))
             label = ", ".join(parts)
         # v6.9.7: Favoriten-Stern voranstellen
         if chan is not None:
@@ -278,22 +279,22 @@ class ChannelsTab(wx.Panel):
 
     def _format_user_label(self, user) -> str:
         try:
-            name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Benutzer"
+            name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer")
         except Exception:
-            name = "Benutzer"
+            name = _("Benutzer")
         flags = []
         try:
             tt = self.frame.client.tt
             if user.uUserType & tt.UserType.USERTYPE_ADMIN:
-                flags.append("Admin")
+                flags.append(_("Admin"))
         except Exception:
             pass
         try:
             tt = self.frame.client.tt
             if user.uUserState & tt.UserState.USERSTATE_VOICE:
-                flags.append("Spricht")
+                flags.append(_("Spricht"))
             elif user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE:
-                flags.append("Stumm")
+                flags.append(_("Stumm"))
         except Exception:
             pass
         braille = getattr(self.frame, "braille", None)
@@ -407,11 +408,11 @@ class ChannelsTab(wx.Panel):
         except Exception:
             ch_name = ""
         if not ch_name:
-            ch_name = "aktuellen Kanal"
+            ch_name = _("aktuellen Kanal")
         if names:
-            announce = f"Im Kanal {ch_name}: " + ", ".join(names)
+            announce = f"{_('Im Kanal')} {ch_name}: " + ", ".join(names)
         else:
-            announce = f"Im Kanal {ch_name} ist niemand."
+            announce = f"{_('Im Kanal')} {ch_name} {_('ist niemand.')}"
         self.frame.set_status(announce)
         try:
             from ui_wx.a11y import post_voiceover_announcement
@@ -448,32 +449,32 @@ class ChannelsTab(wx.Panel):
 
     def announce_selected_user_info(self) -> None:
         if self._selected_user_id is None:
-            self.frame.tts.speak("Kein Nutzer ausgewählt", kind="system")
+            self.frame.tts.speak(_("Kein Nutzer ausgewählt"), kind="system")
             return
         user = self._find_user(self._selected_user_id)
         if user is None:
-            self.frame.tts.speak("Nutzer nicht gefunden", kind="system")
+            self.frame.tts.speak(_("Nutzer nicht gefunden"), kind="system")
             return
         tt = self.frame.client.tt
-        name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Unbekannt"
+        name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Unbekannt")
         parts = [name]
         try:
             if user.uUserType & tt.UserType.USERTYPE_ADMIN:
-                parts.append("Administrator")
+                parts.append(_("Administrator"))
             else:
-                parts.append("Normaler Nutzer")
+                parts.append(_("Normaler Nutzer"))
         except Exception:
             pass
         try:
             if user.uUserState & tt.UserState.USERSTATE_VOICE:
-                parts.append("spricht gerade")
+                parts.append(_("spricht gerade"))
             elif user.uUserState & tt.UserState.USERSTATE_MUTE_VOICE:
-                parts.append("stummgeschaltet")
+                parts.append(_("stummgeschaltet"))
         except Exception:
             pass
         try:
             if user.nStatusMode != 0:
-                parts.append("abwesend")
+                parts.append(_("abwesend"))
         except Exception:
             pass
         self.frame.tts.speak(", ".join(parts), kind="system")
@@ -538,7 +539,7 @@ class ChannelsTab(wx.Panel):
         if self._selected_channel_id:
             self.frame.join_channel(self._selected_channel_id)
         else:
-            self.frame.set_status("Bitte zuerst einen Kanal in der Liste auswählen")
+            self.frame.set_status(_("Bitte zuerst einen Kanal in der Liste auswählen"))
 
     def _on_list_key(self, event) -> None:
         key = event.GetKeyCode()
@@ -612,10 +613,10 @@ class ChannelsTab(wx.Panel):
             cf = list(getattr(self.frame.settings_store.settings, "channel_favorites", []) or [])
             if channel_id in cf:
                 cf.remove(channel_id)
-                self.frame.set_status("Favorit entfernt")
+                self.frame.set_status(_("Favorit entfernt"))
             else:
                 cf.append(channel_id)
-                self.frame.set_status("Als Favorit markiert")
+                self.frame.set_status(_("Als Favorit markiert"))
             self.frame.settings_store.settings.channel_favorites = cf
             self.frame.settings_store.save()
             wx.CallAfter(self.refresh_channels_and_users)
@@ -633,10 +634,10 @@ class ChannelsTab(wx.Panel):
             chs = list(getattr(self.frame.settings_store.settings, "tts_muted_channels", []) or [])
             if channel_id in chs:
                 chs.remove(channel_id)
-                self.frame.set_status("Kanal-TTS entstummt")
+                self.frame.set_status(_("Kanal-TTS entstummt"))
             else:
                 chs.append(channel_id)
-                self.frame.set_status("Kanal-TTS stummgeschaltet")
+                self.frame.set_status(_("Kanal-TTS stummgeschaltet"))
             self.frame.settings_store.settings.tts_muted_channels = chs
             self.frame.settings_store.save()
 
@@ -656,7 +657,7 @@ class ChannelsTab(wx.Panel):
         if user is None:
             return
         tt = self.frame.client.tt
-        user_name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or "Benutzer"
+        user_name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer")
 
         menu = wx.Menu()
 
@@ -688,21 +689,21 @@ class ChannelsTab(wx.Panel):
 
         sub_menu = wx.Menu()
         sub_flags = [
-            ("Sprache", tt.Subscription.SUBSCRIBE_VOICE),
-            ("Video", tt.Subscription.SUBSCRIBE_VIDEOCAPTURE),
-            ("Mediendatei", tt.Subscription.SUBSCRIBE_MEDIAFILE),
-            ("Benutzernachrichten", tt.Subscription.SUBSCRIBE_USER_MSG),
-            ("Kanalnachrichten", tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
-            ("Rundnachricht", tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
-            ("Desktop", tt.Subscription.SUBSCRIBE_DESKTOP),
-            ("Desktop-Steuerung", tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
-            ("Desktop abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
-            ("Benutzernachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
-            ("Kanalnachrichten abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
-            ("Sprache abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
-            ("Video abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
-            ("Mediendatei abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
-            ("Benutzerdefiniert abfangen", tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
+            (_("Sprache"), tt.Subscription.SUBSCRIBE_VOICE),
+            (_("Video"), tt.Subscription.SUBSCRIBE_VIDEOCAPTURE),
+            (_("Mediendatei"), tt.Subscription.SUBSCRIBE_MEDIAFILE),
+            (_("Benutzernachrichten"), tt.Subscription.SUBSCRIBE_USER_MSG),
+            (_("Kanalnachrichten"), tt.Subscription.SUBSCRIBE_CHANNEL_MSG),
+            (_("Rundnachricht"), tt.Subscription.SUBSCRIBE_BROADCAST_MSG),
+            (_("Desktop"), tt.Subscription.SUBSCRIBE_DESKTOP),
+            (_("Desktop-Steuerung"), tt.Subscription.SUBSCRIBE_DESKTOPINPUT),
+            (_("Desktop abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_DESKTOP),
+            (_("Benutzernachrichten abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_USER_MSG),
+            (_("Kanalnachrichten abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_CHANNEL_MSG),
+            (_("Sprache abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_VOICE),
+            (_("Video abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_VIDEOCAPTURE),
+            (_("Mediendatei abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_MEDIAFILE),
+            (_("Benutzerdefiniert abfangen"), tt.Subscription.SUBSCRIBE_INTERCEPT_CUSTOM_MSG),
         ]
         sub_items = []
         current_subs = int(getattr(user, "uLocalSubscriptions", 0) or 0)
@@ -729,10 +730,10 @@ class ChannelsTab(wx.Panel):
             low = user_name.lower()
             if low in [u.lower() for u in lst]:
                 lst = [u for u in lst if u.lower() != low]
-                self.frame.set_status(f"TTS-Beitritt entstummt: {user_name}")
+                self.frame.set_status(_("TTS-Beitritt entstummt: {}").format(user_name))
             else:
                 lst.append(user_name)
-                self.frame.set_status(f"TTS-Beitritt stummgeschaltet: {user_name}")
+                self.frame.set_status(_("TTS-Beitritt stummgeschaltet: {}").format(user_name))
             self.frame.settings_store.settings.tts_muted_join_users = ", ".join(lst)
             self.frame.settings_store.save()
 
@@ -740,8 +741,8 @@ class ChannelsTab(wx.Panel):
             self.frame.on_menu_user_note(None)
 
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_info(user_id), info_item)
-        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), "Stimme"), vol_voice_item)
-        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), "Mediendatei"), vol_media_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_VOICE), _("Stimme")), vol_voice_item)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_user_volume(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), _("Mediendatei")), vol_media_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_VOICE), e.IsChecked()), mute_voice_item)
         self.Bind(wx.EVT_MENU, lambda e: self._on_user_mute(user_id, int(tt.StreamType.STREAMTYPE_MEDIAFILE), e.IsChecked()), mute_media_item)
         self.Bind(wx.EVT_MENU, _toggle_tts_join, tts_join_item)
@@ -765,134 +766,134 @@ class ChannelsTab(wx.Panel):
     def _on_user_info(self, user_id: int) -> None:
         user = self._find_user(user_id)
         if not user:
-            self.frame.set_status("Benutzer nicht gefunden")
+            self.frame.set_status(_("Benutzer nicht gefunden"))
             return
         details = [
-            f"Nickname: {self.frame.tt_str(user.szNickname)}",
-            f"Benutzername: {self.frame.tt_str(user.szUsername)}",
-            f"ID: {int(user.nUserID)}",
-            f"Kanal: {int(user.nChannelID)}",
-            f"Status: {int(user.nStatusMode)}",
+            _("Nickname: {}").format(self.frame.tt_str(user.szNickname)),
+            _("Benutzername: {}").format(self.frame.tt_str(user.szUsername)),
+            _("ID: {}").format(int(user.nUserID)),
+            _("Kanal: {}").format(int(user.nChannelID)),
+            _("Status: {}").format(int(user.nStatusMode)),
         ]
-        dlg = wx.MessageDialog(self, "\n".join(details), "Benutzerinfo", wx.OK | wx.ICON_INFORMATION)
+        dlg = wx.MessageDialog(self, "\n".join(details), _("Benutzerinfo"), wx.OK | wx.ICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
 
     def _on_user_volume(self, user_id: int, stream_type: int, label: str) -> None:
-        dlg = wx.NumberEntryDialog(self, "Lautstärke (0–32000)", "Lautstärke:", f"{label}-Lautstärke", 1000, 0, 32000)
+        dlg = wx.NumberEntryDialog(self, _("Lautstärke (0–32000)"), _("Lautstärke:"), _("{}-Lautstärke").format(label), 1000, 0, 32000)
         if dlg.ShowModal() == wx.ID_OK:
             vol = dlg.GetValue()
             self.frame.client.set_user_volume(user_id, stream_type, vol)
-            self.frame.set_status(f"{label}-Lautstärke auf {vol} gesetzt")
+            self.frame.set_status(_("{}-Lautstärke auf {} gesetzt").format(label, vol))
         dlg.Destroy()
 
     def _on_user_mute(self, user_id: int, stream_type: int, checked: bool) -> None:
         self.frame.client.set_user_mute(user_id, stream_type, bool(checked))
-        label = "Mediendatei" if stream_type == int(self.frame.client.tt.StreamType.STREAMTYPE_MEDIAFILE) else "Stimme"
-        self.frame.set_status(f"{label} {'stummgeschaltet' if checked else 'entstummt'}")
+        label = _("Mediendatei") if stream_type == int(self.frame.client.tt.StreamType.STREAMTYPE_MEDIAFILE) else _("Stimme")
+        self.frame.set_status(f"{label} {_('stummgeschaltet') if checked else _('entstummt')}")
 
     def _on_user_op(self, user_id: int, make_op: bool) -> None:
         my_ch = self.frame.client.get_my_channel_id()
         if my_ch:
             self.frame.client.do_channel_op(int(my_ch), user_id, make_op)
-            self.frame.set_status("Operator gesetzt" if make_op else "Operator entzogen")
+            self.frame.set_status(_("Operator gesetzt") if make_op else _("Operator entzogen"))
 
     def _on_user_kick(self, user_id: int) -> None:
         my_ch = self.frame.client.get_my_channel_id()
         if not my_ch:
             return
         dlg = wx.MessageDialog(
-            self, "Benutzer wirklich kicken?",
-            "Kicken", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            self, _("Benutzer wirklich kicken?"),
+            _("Kicken"), wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
-        dlg.SetYesNoLabels("Ja", "Nein")
+        dlg.SetYesNoLabels(_("Ja"), _("Nein"))
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
         dlg.Destroy()
         user = self._find_user(user_id)
-        username = (self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or f"Benutzer {user_id}") if user else f"Benutzer {user_id}"
+        username = (self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer {}").format(user_id)) if user else _("Benutzer {}").format(user_id)
         reason_dlg = wx.TextEntryDialog(
             self,
-            f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
-            "Kick mit Begründung",
+            _("Begründung für Kick von '{}' (leer = ohne Begründung):").format(username),
+            _("Kick mit Begründung"),
             "",
         )
-        reason_dlg.SetName("Kick-Begründung")
+        reason_dlg.SetName(_("Kick-Begründung"))
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
             if reason:
-                self.frame.client.send_channel_message(int(my_ch), f"[Admin] {username} wurde gekickt: {reason}")
+                self.frame.client.send_channel_message(int(my_ch), _("[Admin] {} wurde gekickt: {}").format(username, reason))
         reason_dlg.Destroy()
         self.frame.client.do_kick_user(user_id, int(my_ch))
-        self.frame.set_status(f"{username} wurde gekickt")
+        self.frame.set_status(_("{} wurde gekickt").format(username))
         try:
             from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(f"{username} wurde gekickt")
+            post_voiceover_announcement(_("{} wurde gekickt").format(username))
         except Exception:
             pass
 
     def _on_user_kick_ban(self, user_id: int) -> None:
         user = self._find_user(user_id)
         if not user:
-            self.frame.set_status("Benutzer nicht gefunden")
+            self.frame.set_status(_("Benutzer nicht gefunden"))
             return
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
         dlg = wx.MessageDialog(
-            self, "Benutzer wirklich kicken und bannen?",
-            "Kicken + Bannen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            self, _("Benutzer wirklich kicken und bannen?"),
+            _("Kicken + Bannen"), wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
-        dlg.SetYesNoLabels("Ja", "Nein")
+        dlg.SetYesNoLabels(_("Ja"), _("Nein"))
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
         dlg.Destroy()
-        username = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or f"Benutzer {user_id}"
+        username = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer {}").format(user_id)
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
         reason_dlg = wx.TextEntryDialog(
             self,
-            f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
-            "Kick mit Begründung",
+            _("Begründung für Kick+Bann von '{}' (leer = ohne Begründung):").format(username),
+            _("Kick mit Begründung"),
             "",
         )
-        reason_dlg.SetName("Kick-Begründung")
+        reason_dlg.SetName(_("Kick-Begründung"))
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
             if reason and channel_id:
-                self.frame.client.send_channel_message(channel_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
+                self.frame.client.send_channel_message(channel_id, _("[Admin] {} wurde gekickt und gebannt: {}").format(username, reason))
         reason_dlg.Destroy()
         self.frame.client.do_ban_user_ex(user_id, ban_types)
         if channel_id > 0:
             self.frame.client.do_kick_user(user_id, channel_id)
-            self.frame.set_status(f"{username} wurde gekickt und gebannt")
+            self.frame.set_status(_("{} wurde gekickt und gebannt").format(username))
             try:
                 from ui_wx.a11y import post_voiceover_announcement
-                post_voiceover_announcement(f"{username} wurde gekickt und gebannt")
+                post_voiceover_announcement(_("{} wurde gekickt und gebannt").format(username))
             except Exception:
                 pass
         else:
-            self.frame.set_status(f"{username} wurde gebannt")
+            self.frame.set_status(_("{} wurde gebannt").format(username))
 
     def _on_user_subscribe_toggle(self, user_id: int, flag: int, checked: bool) -> None:
         if checked:
             self.frame.client.do_subscribe(user_id, flag)
-            self.frame.set_status("Abonnement aktiviert")
+            self.frame.set_status(_("Abonnement aktiviert"))
         else:
             self.frame.client.do_unsubscribe(user_id, flag)
-            self.frame.set_status("Abonnement deaktiviert")
+            self.frame.set_status(_("Abonnement deaktiviert"))
 
     def _on_user_ban(self, user_id: int) -> None:
         user = self._find_user(user_id)
         if not user:
-            self.frame.set_status("Benutzer nicht gefunden")
+            self.frame.set_status(_("Benutzer nicht gefunden"))
             return
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
         self.frame.client.do_ban_user_ex(user_id, ban_types)
-        self.frame.set_status("Benutzer gebannt")
+        self.frame.set_status(_("Benutzer gebannt"))
 
     def _ask_ban_types(self, user) -> Optional[int]:
         tt = self.frame.client.tt
@@ -901,10 +902,10 @@ class ChannelsTab(wx.Panel):
         types = []
         if in_channel:
             choices.extend([
-                "IP-Adresse (Kanal)",
-                "Benutzername (Kanal)",
-                "IP-Adresse (Server)",
-                "Benutzername (Server)",
+                _("IP-Adresse (Kanal)"),
+                _("Benutzername (Kanal)"),
+                _("IP-Adresse (Server)"),
+                _("Benutzername (Server)"),
             ])
             types.extend([
                 int(tt.BanType.BANTYPE_CHANNEL | tt.BanType.BANTYPE_IPADDR),
@@ -913,9 +914,9 @@ class ChannelsTab(wx.Panel):
                 int(tt.BanType.BANTYPE_USERNAME),
             ])
         else:
-            choices.extend(["IP-Adresse (Server)", "Benutzername (Server)"])
+            choices.extend([_("IP-Adresse (Server)"), _("Benutzername (Server)")])
             types.extend([int(tt.BanType.BANTYPE_IPADDR), int(tt.BanType.BANTYPE_USERNAME)])
-        dlg = wx.SingleChoiceDialog(self, "Ban-Art auswählen", "Bannen", choices)
+        dlg = wx.SingleChoiceDialog(self, _("Ban-Art auswählen"), _("Bannen"), choices)
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
         dlg.SetAcceleratorTable(accel)
         dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
