@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, List
 
 import wx
 
+from i18n import _, current_language
 from ui_wx.a11y import post_voiceover_announcement, setup_list_accessible
 
 if TYPE_CHECKING:
@@ -226,13 +227,13 @@ class ChatTab(wx.Panel):
     def _on_export_history(self, _event) -> None:
         content = self.chat_log.GetValue()
         if not content.strip():
-            self.frame.set_status("Kein Chat-Verlauf zum Exportieren")
+            self.frame.set_status(_("Kein Chat-Verlauf zum Exportieren"))
             return
         default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.txt"
         with wx.FileDialog(
             self,
-            "Chat-Verlauf exportieren",
-            wildcard="Textdateien (*.txt)|*.txt|Alle Dateien|*.*",
+            _("Chat-Verlauf exportieren"),
+            wildcard=_("Textdateien (*.txt)|*.txt|Alle Dateien|*.*"),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
             defaultFile=default_name,
         ) as dlg:
@@ -242,22 +243,22 @@ class ChatTab(wx.Panel):
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
-            self.frame.set_status(f"Chat-Verlauf exportiert: {path}")
+            self.frame.set_status(_("Chat-Verlauf exportiert: {}").format(path))
         except Exception as exc:
-            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
+            self.frame.set_status(_("Export fehlgeschlagen: {}").format(exc))
 
     def _on_export_html(self, _event) -> None:
         """v4.5.0 – Exportiert den Chat-Verlauf als HTML-Datei."""
         content = self.chat_log.GetValue()
         if not content.strip():
-            self.frame.set_status("Kein Chat-Verlauf zum Exportieren")
+            self.frame.set_status(_("Kein Chat-Verlauf zum Exportieren"))
             return
         server_name = getattr(self.frame, "_current_server_key", "TeamTalk")
         default_name = f"chatverlauf_{time.strftime('%Y%m%d_%H%M%S')}.html"
         with wx.FileDialog(
             self,
-            "Chat-Verlauf als HTML exportieren",
-            wildcard="HTML-Dateien (*.html)|*.html|Alle Dateien|*.*",
+            _("Chat-Verlauf als HTML exportieren"),
+            wildcard=_("HTML-Dateien (*.html)|*.html|Alle Dateien|*.*"),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
             defaultFile=default_name,
         ) as dlg:
@@ -282,11 +283,14 @@ class ChatTab(wx.Panel):
                     css_class = "chat"
                 rows.append(f'<div class="{css_class}">{escaped}</div>')
 
+            html_lang = current_language() or "de"
+            title_text = _("Chat-Verlauf – {}").format(html.escape(server_name))
+            exported_text = _("Exportiert: {}").format(time.strftime('%Y-%m-%d %H:%M:%S'))
             html_content = f"""<!DOCTYPE html>
-<html lang="de">
+<html lang="{html_lang}">
 <head>
 <meta charset="UTF-8">
-<title>Chat-Verlauf – {html.escape(server_name)}</title>
+<title>{title_text}</title>
 <style>
 body{{font-family:monospace;max-width:900px;margin:1em auto;background:#fafafa;padding:0 1em}}
 .chat{{color:#222;margin:.15em 0}}.own{{color:#27ae60}}.private{{color:#2980b9}}
@@ -295,22 +299,22 @@ h1{{font-size:1.1em;color:#555}}
 </style>
 </head>
 <body>
-<h1>Chat-Verlauf – {html.escape(server_name)} –
-Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
+<h1>{title_text} –
+{exported_text}</h1>
 {''.join(rows)}
 </body>
 </html>"""
             with open(path, "w", encoding="utf-8") as f:
                 f.write(html_content)
-            self.frame.set_status(f"HTML-Export: {path}")
+            self.frame.set_status(_("HTML-Export: {}").format(path))
         except Exception as exc:
-            self.frame.set_status(f"HTML-Export fehlgeschlagen: {exc}")
+            self.frame.set_status(_("HTML-Export fehlgeschlagen: {}").format(exc))
 
     def _on_clear_history(self, _event) -> None:
         dlg = wx.MessageDialog(
             self,
-            "Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server.",
-            "Verlauf leeren",
+            _("Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server."),
+            _("Verlauf leeren"),
             wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
         result = dlg.ShowModal()
@@ -326,7 +330,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                     self.frame._chat_history.clear(key)
             except Exception:
                 pass
-        self.frame.set_status("Chat-Verlauf geleert")
+        self.frame.set_status(_("Chat-Verlauf geleert"))
 
     def _on_quote(self, _event) -> None:
         """Zitiert den markierten Text (oder die letzte Zeile) im Eingabefeld."""
@@ -337,7 +341,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
             lines = [l for l in full.splitlines() if l.strip()]
             selected = lines[-1] if lines else ""
         if not selected:
-            self.frame.set_status("Kein Text zum Zitieren")
+            self.frame.set_status(_("Kein Text zum Zitieren"))
             return
         quoted = "\n".join(f"> {line}" for line in selected.splitlines())
         current = self.chat_input.GetValue()
@@ -356,11 +360,11 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
             lines = [l for l in full.splitlines() if l.strip()]
             selected = lines[-1] if lines else ""
         if not selected:
-            self.frame.set_status("Kein Text zum Speichern")
+            self.frame.set_status(_("Kein Text zum Speichern"))
             return
         server = getattr(self.frame, "_current_server_key", "")
         self.frame._saved_messages.add(selected, server=server)
-        self.frame.set_status(f"Nachricht gespeichert ({len(selected)} Zeichen)")
+        self.frame.set_status(_("Nachricht gespeichert ({} Zeichen)").format(len(selected)))
 
     def _on_improve_text(self, _event) -> None:
         """Verbessert den aktuellen Eingabetext via KI."""
@@ -380,7 +384,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                 if result:
                     self.chat_input.SetValue(result)
                     self.chat_input.SetInsertionPointEnd()
-                    post_voiceover_announcement("Text verbessert")
+                    post_voiceover_announcement(_("Text verbessert"))
 
             wx.CallAfter(_done)
 
@@ -407,41 +411,41 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
                     oq.enqueue(msg, "private", uid, uname)
                     self.append_chat(f"[Offline] An {uname}: {msg}", kind="own")
                     self.chat_input.Clear()
-                    self.frame.set_status(f"Nachricht in Offline-Warteschlange ({len(oq)} ausstehend)")
+                    self.frame.set_status(_("Nachricht in Offline-Warteschlange ({} ausstehend)").format(len(oq)))
                     return
             elif oq is not None and not is_private:
                 oq.enqueue(msg, "channel", 0, "Kanal")
                 self.append_chat(f"[Offline] Ich: {msg}", kind="own")
                 self.chat_input.Clear()
-                self.frame.set_status(f"Nachricht in Offline-Warteschlange ({len(oq)} ausstehend)")
+                self.frame.set_status(_("Nachricht in Offline-Warteschlange ({} ausstehend)").format(len(oq)))
                 return
-            self.frame.set_status("Nicht verbunden")
+            self.frame.set_status(_("Nicht verbunden"))
             return
 
         if is_private:
             user_idx = self.private_user.GetSelection()
             if user_idx == wx.NOT_FOUND:
-                self.frame.set_status("Privater Chat: Bitte Benutzer wählen")
+                self.frame.set_status(_("Privater Chat: Bitte Benutzer wählen"))
                 return
             target_user_id = self.private_user.GetClientData(user_idx)
             if target_user_id is None:
-                self.frame.set_status("Benutzer-ID nicht verfügbar")
+                self.frame.set_status(_("Benutzer-ID nicht verfügbar"))
                 return
             if client.send_user_message(target_user_id, msg):
                 self.append_chat(f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own")
                 self.frame._analytics.on_message_sent()
             else:
-                self.frame.set_status("Nachricht konnte nicht gesendet werden")
+                self.frame.set_status(_("Nachricht konnte nicht gesendet werden"))
         else:
             channel_id = client.get_my_channel_id()
             if not channel_id:
-                self.frame.set_status("Kanal-Chat: Nicht in einem Kanal")
+                self.frame.set_status(_("Kanal-Chat: Nicht in einem Kanal"))
                 return
             if client.send_channel_message(channel_id, msg):
                 self.append_chat(f"Ich: {msg}", kind="own")
                 self.frame._analytics.on_message_sent()
             else:
-                self.frame.set_status("Nachricht konnte nicht gesendet werden")
+                self.frame.set_status(_("Nachricht konnte nicht gesendet werden"))
 
         self.chat_input.Clear()
 
@@ -451,19 +455,19 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         if is_private:
             user_idx = self.private_user.GetSelection()
             if user_idx != wx.NOT_FOUND:
-                self.chat_target.SetLabel(f"Ziel: Privat an {self.private_user.GetString(user_idx)}")
+                self.chat_target.SetLabel(_("Ziel: Privat an {}").format(self.private_user.GetString(user_idx)))
             else:
-                self.chat_target.SetLabel("Ziel: Privat an (keinen Benutzer)")
+                self.chat_target.SetLabel(_("Ziel: Privat an (keinen Benutzer)"))
         else:
             channel_id = self.frame.client.get_my_channel_id()
             if channel_id:
                 channel = self.frame.client.get_channel(channel_id)
                 if channel:
-                    self.chat_target.SetLabel(f"Ziel: Kanal {self.frame.tt_str(channel.szName)}")
+                    self.chat_target.SetLabel(_("Ziel: Kanal {}").format(self.frame.tt_str(channel.szName)))
                 else:
-                    self.chat_target.SetLabel("Ziel: Aktueller Kanal")
+                    self.chat_target.SetLabel(_("Ziel: Aktueller Kanal"))
             else:
-                self.chat_target.SetLabel("Ziel: (kein)")
+                self.chat_target.SetLabel(_("Ziel: (kein)"))
 
     def _on_focus_search(self, _event=None) -> None:
         """Cmd+F: Suchfeld fokussieren."""
@@ -476,7 +480,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         self.search_results.Clear()
         self._search_positions = []
         if not query:
-            self.search_count.SetLabel("0 Treffer")
+            self.search_count.SetLabel(_("0 Treffer"))
             return
         text = self.chat_log.GetValue()
         lines = text.split("\n")
@@ -493,9 +497,9 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         total = len(hits)
         shown = len(display_hits)
         if total > shown:
-            count_text = f"{total} Treffer (zeige {shown})"
+            count_text = _("{} Treffer (zeige {})").format(total, shown)
         else:
-            count_text = f"{total} Treffer"
+            count_text = _("{} Treffer").format(total)
         self.search_count.SetLabel(count_text)
         if display_hits:
             self.search_results.SetSelection(0)
@@ -512,7 +516,7 @@ Exportiert: {time.strftime('%Y-%m-%d %H:%M:%S')}</h1>
         self.chat_log.SetFocus()
         line_text = self.search_results.GetString(idx)
         total = self.search_results.GetCount()
-        post_voiceover_announcement(f"Treffer {idx + 1} von {total}: {line_text}")
+        post_voiceover_announcement(_("Treffer {} von {}: {}").format(idx + 1, total, line_text))
 
     def select_private_recipient(self, user_id: int) -> None:
         """Wählt den Nutzer im Privat-Chat-Dropdown aus (für Antwort-Hotkey)."""
@@ -564,20 +568,20 @@ class _ChatFileDropTarget(wx.FileDropTarget):
         frame = self._chat.frame
         client = frame.client
         if not client.is_connected():
-            frame.set_status("Nicht verbunden – kein Upload möglich")
+            frame.set_status(_("Nicht verbunden – kein Upload möglich"))
             return False
         ch_id = client.get_my_channel_id()
         if not ch_id:
-            frame.set_status("Kein Kanal beigetreten – kein Upload möglich")
+            frame.set_status(_("Kein Kanal beigetreten – kein Upload möglich"))
             return False
         started = 0
         for path in filenames:
             tid = client.send_file(int(ch_id), path)
             if tid > 0:
                 started += 1
-                frame.set_status(f"Upload gestartet: {path}")
+                frame.set_status(_("Upload gestartet: {}").format(path))
             else:
-                frame.set_status(f"Upload fehlgeschlagen: {path}")
+                frame.set_status(_("Upload fehlgeschlagen: {}").format(path))
         if started > 1:
-            frame.set_status(f"{started} Uploads gestartet")
+            frame.set_status(_("{} Uploads gestartet").format(started))
         return True

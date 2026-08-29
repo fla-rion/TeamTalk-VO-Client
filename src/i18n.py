@@ -6921,6 +6921,76 @@ _TRANSLATIONS_ES.update({
     "☆ Als Favorit markieren": "☆ Marcar como favorito",
 })
 
+# v10.1.0 – ui_wx/tabs/chat.py: dynamische Strings ohne Übersetzung
+_TRANSLATIONS.update({
+    "Benutzer-ID nicht verfügbar": "User ID not available",
+    "Chat-Verlauf exportiert: {}": "Chat history exported: {}",
+    "Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server.":
+        "Really clear the chat history?\n\nThis deletes the displayed history and – if enabled – also the saved history file for this server.",
+    "HTML-Dateien (*.html)|*.html|Alle Dateien|*.*": "HTML files (*.html)|*.html|All files|*.*",
+    "HTML-Export: {}": "HTML export: {}",
+    "Kein Kanal beigetreten – kein Upload möglich": "Not in a channel – upload not possible",
+    "Nachricht gespeichert ({} Zeichen)": "Message saved ({} characters)",
+    "Nachricht in Offline-Warteschlange ({} ausstehend)": "Message queued offline ({} pending)",
+    "Nachricht konnte nicht gesendet werden": "Message could not be sent",
+    "Nicht verbunden – kein Upload möglich": "Not connected – upload not possible",
+    "Textdateien (*.txt)|*.txt|Alle Dateien|*.*": "Text files (*.txt)|*.txt|All files|*.*",
+    "Treffer {} von {}: {}": "Result {} of {}: {}",
+    "Upload fehlgeschlagen: {}": "Upload failed: {}",
+    "Upload gestartet: {}": "Upload started: {}",
+    "Ziel: Aktueller Kanal": "Target: current channel",
+    "Ziel: Kanal {}": "Target: channel {}",
+    "Ziel: Privat an (keinen Benutzer)": "Target: private to (no user)",
+    "Ziel: Privat an {}": "Target: private to {}",
+    "{} Uploads gestartet": "{} uploads started",
+})
+
+_TRANSLATIONS_FR.update({
+    "Benutzer-ID nicht verfügbar": "ID utilisateur non disponible",
+    "Chat-Verlauf exportiert: {}": "Historique de discussion exporté : {}",
+    "Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server.":
+        "Vraiment vider l'historique de discussion ?\n\nCela supprime l'historique affiché et – si activé – également le fichier d'historique enregistré pour ce serveur.",
+    "HTML-Dateien (*.html)|*.html|Alle Dateien|*.*": "Fichiers HTML (*.html)|*.html|Tous les fichiers|*.*",
+    "HTML-Export: {}": "Export HTML : {}",
+    "Kein Kanal beigetreten – kein Upload möglich": "Aucun canal rejoint – envoi impossible",
+    "Nachricht gespeichert ({} Zeichen)": "Message enregistré ({} caractères)",
+    "Nachricht in Offline-Warteschlange ({} ausstehend)": "Message mis en file d'attente hors ligne ({} en attente)",
+    "Nachricht konnte nicht gesendet werden": "Le message n'a pas pu être envoyé",
+    "Nicht verbunden – kein Upload möglich": "Non connecté – envoi impossible",
+    "Textdateien (*.txt)|*.txt|Alle Dateien|*.*": "Fichiers texte (*.txt)|*.txt|Tous les fichiers|*.*",
+    "Treffer {} von {}: {}": "Résultat {} sur {} : {}",
+    "Upload fehlgeschlagen: {}": "Échec de l'envoi : {}",
+    "Upload gestartet: {}": "Envoi démarré : {}",
+    "Ziel: Aktueller Kanal": "Cible : canal actuel",
+    "Ziel: Kanal {}": "Cible : canal {}",
+    "Ziel: Privat an (keinen Benutzer)": "Cible : privé à (aucun utilisateur)",
+    "Ziel: Privat an {}": "Cible : privé à {}",
+    "{} Uploads gestartet": "{} envois démarrés",
+})
+
+_TRANSLATIONS_ES.update({
+    "Benutzer-ID nicht verfügbar": "ID de usuario no disponible",
+    "Chat-Verlauf exportiert: {}": "Historial de chat exportado: {}",
+    "Chat-Verlauf wirklich leeren?\n\nDies löscht den angezeigten Verlauf und – falls aktiviert – auch die gespeicherte Verlaufsdatei für diesen Server.":
+        "¿Vaciar realmente el historial de chat?\n\nEsto elimina el historial mostrado y, si está activado, también el archivo de historial guardado para este servidor.",
+    "HTML-Dateien (*.html)|*.html|Alle Dateien|*.*": "Archivos HTML (*.html)|*.html|Todos los archivos|*.*",
+    "HTML-Export: {}": "Exportación HTML: {}",
+    "Kein Kanal beigetreten – kein Upload möglich": "No se ha unido a ningún canal – no es posible subir",
+    "Nachricht gespeichert ({} Zeichen)": "Mensaje guardado ({} caracteres)",
+    "Nachricht in Offline-Warteschlange ({} ausstehend)": "Mensaje en cola sin conexión ({} pendientes)",
+    "Nachricht konnte nicht gesendet werden": "No se pudo enviar el mensaje",
+    "Nicht verbunden – kein Upload möglich": "No conectado – no es posible subir",
+    "Textdateien (*.txt)|*.txt|Alle Dateien|*.*": "Archivos de texto (*.txt)|*.txt|Todos los archivos|*.*",
+    "Treffer {} von {}: {}": "Resultado {} de {}: {}",
+    "Upload fehlgeschlagen: {}": "Error al subir: {}",
+    "Upload gestartet: {}": "Subida iniciada: {}",
+    "Ziel: Aktueller Kanal": "Destino: canal actual",
+    "Ziel: Kanal {}": "Destino: canal {}",
+    "Ziel: Privat an (keinen Benutzer)": "Destino: privado a (ningún usuario)",
+    "Ziel: Privat an {}": "Destino: privado a {}",
+    "{} Uploads gestartet": "{} subidas iniciadas",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
