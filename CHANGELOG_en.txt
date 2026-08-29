@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-08-29 (v10.1.0)
+New: Automatic spatial audio; large i18n cleanup pass
+
+- **Automatic spatial audio** (macOS): New option in the audio tab.
+  Channel members speaking at the same time are automatically
+  distributed across left/right/normal (cyclically on channel join) so
+  they can be told apart by ear - building on the existing manual stereo
+  assignment (`set_user_stereo`, since v6.10.4). Manually set per-user
+  preferences always take priority. macOS only, since the underlying
+  function only exists there.
+- i18n: 73 missing dictionary entries added in ui_qt/tabs/media.py
+  (Spotify/Deezer/podcast/web radio/yt-dlp strings were already marked
+  translatable but had no translation on file).
+- i18n: dynamic strings (dialogs, status messages, TTS announcements) in
+  channels.py, chat.py, system.py, and connection.py (macOS) previously
+  bypassed any translation mechanism entirely - now fully translated
+  (213 new entries).
+- Bugfix: channels.py called `_()` in several places (channel context
+  menu) without importing it - right-clicking a channel would have
+  raised a NameError.
+- Bugfix: the HTML chat export had the language attribute hardcoded to
+  "de" regardless of the configured app language.
+- Over 190 additional new FR/ES dictionary entries (total now 2036 DE
+  keys, full FR/ES coverage verified).
+
 2026-08-29 (v10.0.0)
 New features: Command palette, media tab expansion, plugin marketplace catalog, accessibility polish
 

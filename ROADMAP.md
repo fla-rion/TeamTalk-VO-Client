@@ -4,11 +4,11 @@ Stand: 2026-08-29. Diese Roadmap sammelt Ideen für kommende Versionen, priorisi
 
 Legende Aufwand: 🟢 klein (Tage) · 🟡 mittel (1–2 Wochen) · 🔴 groß (mehrere Wochen, eigenes Teilprojekt)
 
-**Pausiert, nicht Teil dieser Roadmap:** Zeitlich befristete Bans. Der SDK-seitige Befund (kein Ablauf-Feld im Protokoll) und die Machbarkeitsprüfung für einen eigenen Server stehen in [`SERVER_PLAN.md`](SERVER_PLAN.md). Entscheidung: Feature erst angehen, sobald der eigene Server real umsetzbar ist (Lizenzklärung mit BearWare läuft, [Issue #3414](https://github.com/BearWare/TeamTalk5/issues/3414)) – kein Client-seitiger Workaround als Zwischenlösung.
+**Pausiert, nicht Teil dieser Roadmap:** Zeitlich befristete Bans. Der SDK-seitige Befund (kein Ablauf-Feld im Protokoll) und die Machbarkeitsprüfung für einen eigenen Server stehen in [`SERVER_PLAN.md`](SERVER_PLAN.md). [Issue #3414](https://github.com/BearWare/TeamTalk5/issues/3414) wurde am 2026-08-29 ohne Kommentar/Antwort geschlossen (vermutlich automatisiert) – die Lizenzfrage bleibt ungeklärt. Entscheidung bleibt: Feature erst angehen, sobald der eigene Server real umsetzbar ist – kein Client-seitiger Workaround als Zwischenlösung.
 
 ---
 
-## 1. Command Palette / Aktionssuche
+## 1. ~~Command Palette / Aktionssuche~~ – erledigt in v10.0.0
 
 🟡 · Inspiration: [ApricotPlayer](https://github.com/Urh2006/ApricotPlayer) (Urh2006) – globaler "Action Finder" per `Ctrl+Shift+J`, jede App-Funktion per Tippen erreichbar.
 
@@ -20,10 +20,10 @@ Bei 13 Tabs mit teils tiefen Menüs ein spürbarer A11y-Gewinn: ein systemweiter
 
 🟡–🔴, je nach Umfang · Inspiration: [MultiDeck](https://github.com/schulle4u/multideck) (schulle4u), [radio-browser-app](https://github.com/GruiaChiscop/radio-browser-app) (GruiaChiscop), ApricotPlayer
 
-- 🟡 **Radiosender als Favoriten speichern** – aktuell nur Suche über radio-browser.info, keine gespeicherten Favoriten gefunden. Kleine, klar abgegrenzte Ergänzung.
-- 🔴 **Mehrere gleichzeitige Streams/Decks mischen** – `start_streaming_media_to_channel()` ist aktuell Single-Stream (ein Medienstream gleichzeitig zum Kanal). MultiDeck zeigt das Zielbild: mehrere unabhängige "Decks" (Datei/Stream/Mikrofon-Input) gleichzeitig oder mit Crossfade/Automatik gemischt. Größerer Umbau der Audio-Pipeline, eher ein eigenes Release.
-- 🟡 **Live-Effekte auf den ausgehenden Stream** (Kompressor/Limiter/EQ) – MultiDeck nutzt dafür Spotifys [Pedalboard](https://github.com/spotify/pedalboard)-Bibliothek (MIT-Lizenz, reine Python-API). Ließe sich unabhängig von Punkt "mehrere Decks" bereits auf den bestehenden Single-Stream anwenden.
-- 🟢 **Wiedergabe-Lesezeichen / Kapitelnavigation** bei YouTube-Streams (yt-dlp liefert Kapitel-Metadaten bereits mit). Unabhängig von den bestehenden Kanal-Lesezeichen in `bookmark_manager.py` – dort geht es um Kanäle, nicht um Positionen innerhalb einer Wiedergabe.
+- ✅ **Radiosender als Favoriten speichern** – erledigt in v10.0.0.
+- 🔴 **Mehrere gleichzeitige Streams/Decks mischen** – noch offen, bewusst nicht in v10.0.0/v10.1.0. `start_streaming_media_to_channel()` ist aktuell Single-Stream (ein Medienstream gleichzeitig zum Kanal). MultiDeck zeigt das Zielbild: mehrere unabhängige "Decks" (Datei/Stream/Mikrofon-Input) gleichzeitig oder mit Crossfade/Automatik gemischt. Größerer Umbau der Audio-Pipeline, eigenes Release.
+- ✅ **Live-Effekte auf den ausgehenden Stream** (Kompressor/Limiter, Pedalboard) – erledigt in v10.0.0, aber nur für lokale Dateiwiedergabe (SDK-Grenze: Netzwerk-Streams laufen komplett nativ im SDK, kein Python-Hook für Sample-Daten).
+- ✅ **Wiedergabe-Lesezeichen / Kapitelnavigation** bei YouTube-Streams – erledigt in v10.0.0.
 
 ---
 
@@ -35,7 +35,7 @@ Einzige tatsächliche Lücke, die dabei gefunden und direkt behoben wurde: Der Q
 
 ---
 
-## 4. Räumliches Audio / Stereo-Panning je Sprecher
+## 4. ~~Räumliches Audio / Stereo-Panning je Sprecher~~ – erledigt in v10.1.0
 
 🟡 (korrigiert, war 🟡–🔴) · Eigene Idee, bekannte Technik aus anderen barrierefreien Audio-Anwendungen.
 
@@ -49,7 +49,7 @@ Damit reduziert sich der eigentliche Rest-Aufwand auf: beim Kanalbeitritt automa
 
 ---
 
-## 5. Plugin-Marketplace: echten Katalog aufsetzen
+## 5. ~~Plugin-Marketplace: echten Katalog aufsetzen~~ – erledigt in v10.0.0
 
 🟢 · Bestandsaufnahme im eigenen Code, kein externer Impuls.
 
@@ -57,11 +57,11 @@ Damit reduziert sich der eigentliche Rest-Aufwand auf: beim Kanalbeitritt automa
 
 ---
 
-## 6. Kleinere Accessibility-Politur
+## 6. Kleinere Accessibility-Politur – teilweise erledigt in v10.0.0
 
 🟢 · Inspiration: [m45wxcontrols](https://github.com/schulle4u/m45wxcontrols) (schulle4u)
 
-Stichprobe im Code, ob an Stellen mit `wx.SpinCtrlDouble` oder Standard-`wx.TextEntryDialog` noch Screenreader-Reibung besteht (z. B. VoiceOver liest Spinner-Wertänderungen manchmal unzuverlässig vor). m45wxcontrols' `AccessibleSpinCtrl` (Textfeld + synchronisierter SpinButton, Pfeiltasten ändern Wert direkt) und `CustomTextEntryDialog` (frei wählbare Button-Labels statt nur OK/Abbrechen) sind fertige, MIT-artige Referenzimplementierungen zum Nachbauen oder als Abhängigkeit.
+`AccessibleSpinCtrl` und `CustomTextEntryDialog` (`src/ui_wx/accessible_controls.py`) existieren seit v10.0.0. Bisher angewendet: die 3 `wx.SpinCtrlDouble`-Stellen (Nutzer-Positionierung X/Y/Z). **Noch offen:** ~60 `wx.SpinCtrl`-Stellen (native Ganzzahl-Spinner) wurden bewusst nicht angefasst (kein im Roadmap-Text benannter Schmerzpunkt, Massenaustausch ohne GUI-Testmöglichkeit zu riskant) – bei konkreten VoiceOver-Beschwerden zu einzelnen Spinnern gezielt nachziehen. `CustomTextEntryDialog` ist fertig, aber noch ungenutzt (keine der geprüften `wx.TextEntryDialog`-Stellen brauchte bisher individuelle Button-Labels).
 
 *Bereits vorhanden, keine Aktion nötig:* Die App löst das analoge Problem bei Tab-Navigation schon selbst (eigener Panel-Switcher statt `wx.Notebook`, siehe `app_wx.py`). Macro Engine, Aussprache-Wörterbuch, Equalizer, Live-Transkription (Whisper), Auto-Reply, Mute-Scheduler, geplante Aufnahmen, Kanal-Lesezeichen, HTTP-Steuer-API, Webhooks und Voice Control existieren ebenfalls bereits – vor neuen Vorschlägen immer gegen `src/*.py` gegenchecken.
 
@@ -99,17 +99,20 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 
 ## Priorisierungsempfehlung
 
-| Priorität | Punkt | Aufwand | Warum zuerst/später |
+| Status | Punkt | Aufwand | Anmerkung |
 |---|---|---|---|
-| 1 | Plugin-Marketplace-Katalog (5) | 🟢 | Kleinster Aufwand, macht vorhandene Infrastruktur erstmals nutzbar – erledigt in v10.0.0 |
-| 2 | Radiosender-Favoriten (2) | 🟡 | Kleiner, klar umrissener Nutzerwunsch, keine Abhängigkeiten – erledigt in v10.0.0 |
-| 3 | Command Palette (1) | 🟡 | Größter A11y-Hebel pro Aufwandseinheit – erledigt in v10.0.0 |
-| 4 | Live-Effekte auf Stream (2) | 🟡 | Unabhängig von Multi-Deck schon möglich – erledigt in v10.0.0 (nur lokale Dateien, s. u.) |
-| 5 | wx-Control-Politur (6) | 🟢 | Nice-to-have – teilweise erledigt in v10.0.0 (SpinCtrlDouble-Stellen) |
+| ✅ v10.0.0 | Plugin-Marketplace-Katalog (5) | 🟢 | Kleinster Aufwand, macht vorhandene Infrastruktur erstmals nutzbar |
+| ✅ v10.0.0 | Radiosender-Favoriten (2) | 🟡 | Kleiner, klar umrissener Nutzerwunsch |
+| ✅ v10.0.0 | Command Palette (1) | 🟡 | Größter A11y-Hebel pro Aufwandseinheit |
+| ✅ v10.0.0 | Live-Effekte auf Stream (2) | 🟡 | Nur lokale Dateien (SDK-Grenze bei Netzwerk-Streams) |
+| ✅ v10.0.0 | Wiedergabe-Lesezeichen/Kapitel (2) | 🟢 | yt-dlp-Kapitelmetadaten |
+| ✅ v10.0.0 (teilweise) | wx-Control-Politur (6) | 🟢 | Nur SpinCtrlDouble-Stellen (3), Rest zurückgestellt |
 | — | ~~Präsenz-Watchlist (3)~~ | — | Entfällt, existierte bereits als "Nutzerwatcher" – Qt-Parität in v10.0.0 nachgezogen |
-| 6 | Räumliches Audio (4) | 🟡 (korrigiert von 🔴) | SDK liefert nutzergetrennte Audioblöcke (`TT_AcquireUserAudioBlock`) UND es existiert bereits `set_user_stereo()` für einfaches L/R-Panning pro Nutzer (manuell, seit v6.10.4) – automatische Zuweisung wäre nur noch ein kleiner Aufsatz auf Bestehendem, kein Neubau. Für v11 vormerken. |
-| 7 | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, erst angehen wenn Obiges stabil ist |
-| — | Geräte-Sync (7) | 🔴/eigene Review | Sicherheitskritisches Pairing-Protokoll, bewusst kein Batch-Feature |
+| ✅ v10.1.0 | Räumliches Audio – automatisch (4) | 🟡 | Aufsatz auf bereits vorhandenem `set_user_stereo()`, wx-only |
+| ✅ v10.1.0 | i18n-Aufräumrunde (Nebenfund) | 🟢 | 286 neue Wörterbucheinträge, 2 Bugfixes (NameError, hartkodiertes HTML-lang) |
+| offen | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, eigenes Release |
+| offen | Geräte-Sync (7) | 🔴/eigene Review | Sicherheitskritisches Pairing-Protokoll, bewusst kein Batch-Feature |
+| blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
 
 ---
 

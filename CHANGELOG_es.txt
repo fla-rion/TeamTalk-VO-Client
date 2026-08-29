@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-08-29 (v10.1.0)
+Nuevo: audio espacial automático; gran limpieza de i18n
+
+- **Audio espacial automático** (macOS): nueva opción en la pestaña de
+  audio. Los miembros del canal que hablan al mismo tiempo se distribuyen
+  automáticamente entre izquierda/derecha/normal (de forma cíclica al
+  unirse al canal) para poder distinguirlos de oído — basándose en la
+  asignación estéreo manual ya existente (`set_user_stereo`, desde la
+  v6.10.4). Las preferencias establecidas manualmente por usuario
+  siempre tienen prioridad. Solo macOS, ya que la función subyacente
+  únicamente existe allí.
+- i18n: se añadieron 73 entradas que faltaban en ui_qt/tabs/media.py
+  (las cadenas de Spotify/Deezer/podcast/radio web/yt-dlp ya estaban
+  marcadas como traducibles, pero no tenían traducción registrada).
+- i18n: las cadenas dinámicas (diálogos, mensajes de estado, anuncios
+  TTS) en channels.py, chat.py, system.py y connection.py (macOS) antes
+  no pasaban por ningún mecanismo de traducción — ahora completamente
+  traducidas (213 entradas nuevas).
+- Corrección: channels.py llamaba a `_()` en varios lugares (menú
+  contextual de canales) sin importarlo — hacer clic derecho en un canal
+  habría provocado un NameError.
+- Corrección: la exportación HTML del chat tenía el atributo de idioma
+  fijado en "de", independientemente del idioma configurado de la
+  aplicación.
+- Más de 190 entradas nuevas adicionales en los diccionarios FR/ES
+  (total ahora 2036 claves DE, cobertura FR/ES completa verificada).
+
 2026-08-29 (v10.0.0)
 Nuevas funciones: paleta de comandos, ampliación de la pestaña de medios, catálogo del mercado de complementos, mejoras de accesibilidad
 

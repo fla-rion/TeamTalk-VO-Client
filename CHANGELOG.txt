@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-08-29 (v10.1.0)
+Neu: Automatisches räumliches Audio; große i18n-Aufräumrunde
+
+- **Automatisches räumliches Audio** (macOS): Neue Option im
+  Audio-Tab. Gleichzeitig sprechende Kanalmitglieder werden automatisch
+  auf links/rechts/normal verteilt (zyklisch beim Kanalbeitritt), damit
+  sie sich akustisch unterscheiden lassen – aufbauend auf der bereits
+  vorhandenen manuellen Stereo-Zuweisung (`set_user_stereo`, seit
+  v6.10.4). Manuell gesetzte Präferenzen pro Nutzer haben immer Vorrang.
+  Nur macOS, da die zugrunde liegende Funktion nur dort existiert.
+- i18n: 73 fehlende Wörterbucheinträge in ui_qt/tabs/media.py ergänzt
+  (Spotify/Deezer/Podcast/Webradio/yt-dlp-Strings waren zwar schon
+  übersetzbar markiert, hatten aber keine Übersetzung hinterlegt).
+- i18n: dynamische Strings (Dialoge, Statusmeldungen, TTS-Ansagen) in
+  channels.py, chat.py, system.py und connection.py (macOS) liefen
+  bisher an keinem Übersetzungsmechanismus vorbei – jetzt vollständig
+  übersetzt (213 neue Einträge).
+- Bugfix: channels.py rief an mehreren Stellen (Kanal-Kontextmenü) `_()`
+  auf, ohne es zu importieren – ein Rechtsklick auf einen Kanal hätte
+  einen NameError ausgelöst.
+- Bugfix: Der HTML-Chat-Export hatte das Sprachattribut fest auf "de"
+  gesetzt, unabhängig von der eingestellten App-Sprache.
+- Über 190 weitere neue FR/ES-Wörterbucheinträge (Gesamtbestand jetzt
+  2036 DE-Schlüssel, vollständige FR/ES-Abdeckung verifiziert).
+
 2026-08-29 (v10.0.0)
 Neue Features: Command Palette, Medien-Tab-Ausbau, Plugin-Marketplace-Katalog, A11y-Politur
 
