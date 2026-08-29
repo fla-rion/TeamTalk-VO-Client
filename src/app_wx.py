@@ -27,6 +27,7 @@ from ai_summary import ChatSummaryManager
 from gemini_auth import GeminiAuthManager
 from ui_wx.tray import TrayIcon
 from ui_wx.tt_file_parser import parse_teamtalk_file
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 from ui_wx.tabs.connection import ConnectionTab
 from ui_wx.tabs.channels_chat import ChannelsChatTab
 from ui_wx.tabs.media import MediaTab
@@ -4455,9 +4456,12 @@ class MainFrame(wx.Frame):
         root.Add(choice, 0, wx.ALL | wx.EXPAND, 6)
         grid = wx.FlexGridSizer(3, 2, 8, 12)
         grid.AddGrowableCol(1, 1)
-        x_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
-        y_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
-        z_ctrl = wx.SpinCtrlDouble(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        x_ctrl = AccessibleSpinCtrl(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        y_ctrl = AccessibleSpinCtrl(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        z_ctrl = AccessibleSpinCtrl(dlg, min=-1000.0, max=1000.0, inc=0.1, initial=0.0)
+        x_ctrl.SetName("Position X")
+        y_ctrl.SetName("Position Y")
+        z_ctrl.SetName("Position Z")
         grid.Add(wx.StaticText(dlg, label="X:"), 0, wx.ALIGN_CENTER_VERTICAL)
         grid.Add(x_ctrl, 1, wx.EXPAND)
         grid.Add(wx.StaticText(dlg, label="Y:"), 0, wx.ALIGN_CENTER_VERTICAL)
