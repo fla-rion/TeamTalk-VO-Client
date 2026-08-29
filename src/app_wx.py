@@ -933,6 +933,8 @@ class MainFrame(wx.Frame):
             self.Bind(wx.EVT_MENU, lambda _e: self._open_channel_switcher(), id=int(_id_ch_search))
             _id_media_mute = wx.NewIdRef()
             self.Bind(wx.EVT_MENU, lambda _e: self._toggle_selected_user_media_mute(), id=int(_id_media_mute))
+            _id_cmd_palette = wx.NewIdRef()
+            self.Bind(wx.EVT_MENU, lambda _e: self._open_command_palette(), id=int(_id_cmd_palette))
             accel = wx.AcceleratorTable(
                 [
                     (wx.ACCEL_CMD, ord(","), wx.ID_PREFERENCES),
@@ -945,6 +947,7 @@ class MainFrame(wx.Frame):
                     (wx.ACCEL_CMD | wx.ACCEL_SHIFT, ord("A"), int(_id_mic)),
                     (wx.ACCEL_CMD, ord("K"), int(_id_ch_search)),
                     (wx.ACCEL_CMD | wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("M"), int(_id_media_mute)),
+                    (wx.ACCEL_CMD | wx.ACCEL_SHIFT, ord("J"), int(_id_cmd_palette)),
                 ]
             )
             self.SetAcceleratorTable(accel)
@@ -5653,6 +5656,11 @@ class MainFrame(wx.Frame):
         if not self.client or not self.client.is_connected():
             return
         dlg = ChannelSwitcherDialog(self)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _open_command_palette(self) -> None:
+        dlg = CommandPaletteDialog(self)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -10951,6 +10959,116 @@ def _run_probe_server_once(argv: List[str]) -> int:
     except Exception:
         return 3
     return 0
+
+
+def _collect_wx_menu_actions(frame) -> list:
+    """Sammelt (Label, MenuItem-ID) für alle ausführbaren Menüeinträge (keine Separatoren/Untermenüs)."""
+    results: list = []
+    mb = frame.GetMenuBar()
+    if mb is None:
+        return results
+
+    def walk(menu) -> None:
+        for item in menu.GetMenuItems():
+            if item.IsSeparator():
+                continue
+            sub = item.GetSubMenu()
+            if sub is not None:
+                walk(sub)
+                continue
+            label = item.GetItemLabelText().strip()
+            if not label:
+                continue
+            results.append((label, item.GetId()))
+
+    for i in range(mb.GetMenuCount()):
+        walk(mb.GetMenu(i))
+    return results
+
+
+class CommandPaletteDialog(wx.Dialog):
+    """⌘⇧J – Aktionssuche: Tippen filtert alle Menüaktionen, Enter führt aus."""
+
+    def __init__(self, frame):
+        super().__init__(frame, title=_translate_ui_text("Aktionssuche (⌘⇧J)"),
+                         style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        self._frame = frame
+        self._all_actions = _collect_wx_menu_actions(frame)
+        self._filtered = list(self._all_actions)
+
+        accel = wx.AcceleratorTable([(wx.ACCEL_NORMAL, wx.WXK_ESCAPE, wx.ID_CANCEL)])
+        self.SetAcceleratorTable(accel)
+        self.Bind(wx.EVT_MENU, lambda e: self.EndModal(wx.ID_CANCEL), id=wx.ID_CANCEL)
+
+        root = wx.BoxSizer(wx.VERTICAL)
+        self._search = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self._search.SetName(_translate_ui_text("Aktion suchen"))
+        root.Add(self._search, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._list = wx.ListBox(self, style=wx.LB_SINGLE)
+        self._list.SetName(_translate_ui_text("Gefundene Aktionen"))
+        self._list.SetMinSize((420, 320))
+        root.Add(self._list, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        btn_sizer = wx.StdDialogButtonSizer()
+        ok_btn = wx.Button(self, wx.ID_OK, _translate_ui_text("Ausführen"))
+        ok_btn.SetDefault()
+        btn_sizer.AddButton(ok_btn)
+        cancel_btn = wx.Button(self, wx.ID_CANCEL)
+        btn_sizer.AddButton(cancel_btn)
+        btn_sizer.Realize()
+        root.Add(btn_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        self.SetSizerAndFit(root)
+
+        self._search.Bind(wx.EVT_TEXT, self._on_search)
+        self._search.Bind(wx.EVT_TEXT_ENTER, self._on_activate)
+        self._search.Bind(wx.EVT_KEY_DOWN, self._on_search_key)
+        self._list.Bind(wx.EVT_LISTBOX_DCLICK, self._on_activate)
+        self.Bind(wx.EVT_BUTTON, self._on_activate, id=wx.ID_OK)
+
+        self._populate(self._all_actions)
+        self._search.SetFocus()
+
+    def _populate(self, items) -> None:
+        self._list.Set([label for label, _id in items])
+        if items:
+            self._list.SetSelection(0)
+
+    def _on_search(self, _event) -> None:
+        query = self._search.GetValue().strip().lower()
+        if not query:
+            self._filtered = list(self._all_actions)
+        else:
+            self._filtered = [
+                (label, item_id) for label, item_id in self._all_actions
+                if query in label.lower()
+            ]
+        self._populate(self._filtered)
+
+    def _on_search_key(self, event) -> None:
+        key = event.GetKeyCode()
+        if key in (wx.WXK_DOWN, wx.WXK_UP):
+            count = self._list.GetCount()
+            if count:
+                sel = self._list.GetSelection()
+                if sel == wx.NOT_FOUND:
+                    sel = 0
+                elif key == wx.WXK_DOWN:
+                    sel = min(sel + 1, count - 1)
+                else:
+                    sel = max(sel - 1, 0)
+                self._list.SetSelection(sel)
+            return
+        event.Skip()
+
+    def _on_activate(self, _event) -> None:
+        sel = self._list.GetSelection()
+        if sel == wx.NOT_FOUND or sel >= len(self._filtered):
+            return
+        _label, item_id = self._filtered[sel]
+        self.EndModal(wx.ID_OK)
+        wx.PostEvent(self._frame, wx.CommandEvent(wx.wxEVT_COMMAND_MENU_SELECTED, item_id))
 
 
 class ChannelSwitcherDialog(wx.Dialog):

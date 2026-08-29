@@ -6416,6 +6416,34 @@ _TRANSLATIONS_ES.update({
     'Webradio': 'Radio web',
 })
 
+# v10.0.0 – Command Palette / Aktionssuche (Roadmap Punkt 1).
+_TRANSLATIONS.update({
+    "Aktionssuche": "Action Search",
+    "Aktionssuche (⌘⇧J)": "Action Search (⌘⇧J)",
+    "Aktion suchen": "Search action",
+    "Aktion suchen …": "Search action …",
+    "Gefundene Aktionen": "Found actions",
+    "Ausführen": "Execute",
+})
+
+_TRANSLATIONS_FR.update({
+    "Aktionssuche": "Recherche d'actions",
+    "Aktionssuche (⌘⇧J)": "Recherche d'actions (⌘⇧J)",
+    "Aktion suchen": "Rechercher une action",
+    "Aktion suchen …": "Rechercher une action …",
+    "Gefundene Aktionen": "Actions trouvées",
+    "Ausführen": "Exécuter",
+})
+
+_TRANSLATIONS_ES.update({
+    "Aktionssuche": "Búsqueda de acciones",
+    "Aktionssuche (⌘⇧J)": "Búsqueda de acciones (⌘⇧J)",
+    "Aktion suchen": "Buscar acción",
+    "Aktion suchen …": "Buscar acción …",
+    "Gefundene Aktionen": "Acciones encontradas",
+    "Ausführen": "Ejecutar",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
