@@ -289,6 +289,7 @@ class MainWindow(QMainWindow):
         self._build_ui()
         self._build_menu()
         self._setup_tab_shortcuts()
+        self._setup_command_palette_shortcut()
         self.tray = TrayIcon(self)
         # Show Sprechen tab only when ElevenLabs API key is configured
         _eleven_key = getattr(self.settings_store.settings, "elevenlabs_api_key", "") or ""
@@ -776,6 +777,15 @@ class MainWindow(QMainWindow):
             sc = QShortcut(QKeySequence(f"Alt+{i}"), self)
             tab_idx = i - 1
             sc.activated.connect(lambda idx=tab_idx: self.notebook.setCurrentIndex(idx))
+
+    def _setup_command_palette_shortcut(self) -> None:
+        sc = QShortcut(QKeySequence("Ctrl+Shift+J"), self)
+        sc.activated.connect(self.open_command_palette)
+
+    def open_command_palette(self) -> None:
+        from ui_qt.command_palette import CommandPaletteDialog
+        dlg = CommandPaletteDialog(self)
+        dlg.exec()
 
     # ------------------------------------------------------------------
     # tt_str helper
