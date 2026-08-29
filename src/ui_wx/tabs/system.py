@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import wx
 
+from i18n import _
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -499,7 +500,7 @@ class SystemTab(wx.Panel):
             self.tts_voice.SetSelection(0)
 
     def _on_test(self, _event):
-        self.frame.tts.speak("Das ist ein TTS Test", kind="system")
+        self.frame.tts.speak(_("Das ist ein TTS Test"), kind="system")
 
     def _on_backend_changed(self, event):
         self._apply_settings(event)

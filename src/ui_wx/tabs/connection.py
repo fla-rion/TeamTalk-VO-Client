@@ -5,6 +5,7 @@ from typing import List, Optional, TYPE_CHECKING, Dict
 
 import wx
 
+from i18n import _
 from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file
 from ..models import ServerProfile
 from ..a11y import setup_list_accessible
@@ -230,14 +231,14 @@ class ConnectionTab(wx.Panel):
             tcp_port = int(self.tcp_port.GetValue().strip())
             udp_port = int(self.udp_port.GetValue().strip())
         except ValueError:
-            self.frame.set_status("Port muss eine Zahl sein")
+            self.frame.set_status(_("Port muss eine Zahl sein"))
             return None
         nickname = self.nickname.GetValue().strip()
         username = self.username.GetValue().strip()
         password = self.password.GetValue().strip()
         client_name = self.client_name.GetValue().strip()
         if not host:
-            self.frame.set_status("Server darf nicht leer sein")
+            self.frame.set_status(_("Server darf nicht leer sein"))
             return None
         encrypted = self.encrypted.GetValue()
         display_name = self.display_name.GetValue().strip()
@@ -262,15 +263,15 @@ class ConnectionTab(wx.Panel):
     def _on_tls_fingerprint(self, _event) -> None:
         host = self.host.GetValue().strip()
         if not host:
-            self.frame.set_status("Server darf nicht leer sein")
+            self.frame.set_status(_("Server darf nicht leer sein"))
             return
         try:
             port = int(self.tcp_port.GetValue().strip() or "0")
         except ValueError:
-            self.frame.set_status("Port muss eine Zahl sein")
+            self.frame.set_status(_("Port muss eine Zahl sein"))
             return
         if port <= 0:
-            self.frame.set_status("TCP-Port ungültig")
+            self.frame.set_status(_("TCP-Port ungültig"))
             return
 
         dlg = wx.Dialog(self, title="TLS-Fingerprint", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -311,24 +312,24 @@ class ConnectionTab(wx.Panel):
             wx.YieldIfNeeded()
             current = get_cert_fingerprint(host, port=port, timeout=5.0)
             if not current:
-                self.frame.set_status("TLS-Fingerprint konnte nicht geladen werden")
+                self.frame.set_status(_("TLS-Fingerprint konnte nicht geladen werden"))
                 _render(None)
                 return
-            self.frame.set_status("TLS-Fingerprint geladen")
+            self.frame.set_status(_("TLS-Fingerprint geladen"))
             _render(current)
 
         def _pin(_evt) -> None:
             current = get_cert_fingerprint(host, port=port, timeout=5.0)
             if not current:
-                self.frame.set_status("TLS-Fingerprint konnte nicht geladen werden")
+                self.frame.set_status(_("TLS-Fingerprint konnte nicht geladen werden"))
                 return
             self.frame._cert_pins.pin(host, current)
-            self.frame.set_status(f"TLS-Fingerprint gespeichert: {host}")
+            self.frame.set_status(_("TLS-Fingerprint gespeichert: {}").format(host))
             _render(current)
 
         def _unpin(_evt) -> None:
             self.frame._cert_pins.unpin(host)
-            self.frame.set_status(f"TLS-Pin entfernt: {host}")
+            self.frame.set_status(_("TLS-Pin entfernt: {}").format(host))
             _render(None)
 
         refresh_btn.Bind(wx.EVT_BUTTON, _refresh)
@@ -347,7 +348,7 @@ class ConnectionTab(wx.Panel):
             return
         self._server_status = {}
         self.status_check_btn.Disable()
-        self.frame.set_status("Server-Status wird geprüft…")
+        self.frame.set_status(_("Server-Status wird geprüft…"))
 
         def worker():
             for i, profile in enumerate(profiles):
@@ -390,44 +391,44 @@ class ConnectionTab(wx.Panel):
             return
         self.frame.store.add(profile)
         self.reload_server_list()
-        self.frame.set_status(f"Server gespeichert: {profile.name}")
+        self.frame.set_status(_("Server gespeichert: {}").format(profile.name))
 
     def on_server_edit(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswählen")
+            self.frame.set_status(_("Bitte einen Server auswählen"))
             return
         profile = self.profile_from_form()
         if not profile:
             return
         self.frame.store.update(real_idx, profile)
         self.reload_server_list()
-        self.frame.set_status(f"Server aktualisiert: {profile.name}")
+        self.frame.set_status(_("Server aktualisiert: {}").format(profile.name))
 
     def on_server_remove(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswählen")
+            self.frame.set_status(_("Bitte einen Server auswählen"))
             return
         name = self.frame.store.items()[real_idx].name
         dlg = wx.MessageDialog(
-            self, f"Server '{name}' wirklich entfernen?",
-            "Server entfernen", wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+            self, _("Server '{}' wirklich entfernen?").format(name),
+            _("Server entfernen"), wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
         )
-        dlg.SetYesNoLabels("Ja", "Nein")
+        dlg.SetYesNoLabels(_("Ja"), _("Nein"))
         if dlg.ShowModal() != wx.ID_YES:
             dlg.Destroy()
             return
         dlg.Destroy()
         self.frame.store.remove(real_idx)
         self.reload_server_list()
-        self.frame.set_status(f"Server entfernt: {name}")
+        self.frame.set_status(_("Server entfernt: {}").format(name))
 
     def on_connect(self, _event):
         self.frame.connect_with_form()
 
     def on_reconnect(self, _event):
-        self.frame.set_status("Neu verbinden...")
+        self.frame.set_status(_("Neu verbinden..."))
 
         def worker():
             if self.frame._closing:
@@ -439,12 +440,12 @@ class ConnectionTab(wx.Panel):
                     wx.CallAfter(self.frame.handle_connect_result, result)
             except Exception as exc:
                 if not self.frame._closing:
-                    wx.CallAfter(self.frame.set_status, f"Neu verbinden fehlgeschlagen: {exc}")
+                    wx.CallAfter(self.frame.set_status, _("Neu verbinden fehlgeschlagen: {}").format(exc))
 
         threading.Thread(target=worker, daemon=True).start()
 
     def on_server_check(self, _event):
-        message = (
+        message = _(
             "Der Server-Check baut kurzzeitig Verbindungen zu allen Servern in der Liste auf, "
             "um die aktiven Nutzer abzufragen.\n\n"
             "Wenn du gerade verbunden bist, wird die Verbindung für den Check kurz getrennt "
@@ -454,12 +455,12 @@ class ConnectionTab(wx.Panel):
         with wx.MessageDialog(
             self,
             message,
-            "Server-Check starten",
+            _("Server-Check starten"),
             style=wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         ) as dlg:
-            dlg.SetYesNoLabels("Ja", "Nein")
+            dlg.SetYesNoLabels(_("Ja"), _("Nein"))
             if dlg.ShowModal() != wx.ID_YES:
-                self.frame.set_status("Server-Check abgebrochen")
+                self.frame.set_status(_("Server-Check abgebrochen"))
                 return
         self.frame.scan_saved_servers_presence()
 
@@ -511,7 +512,7 @@ class ConnectionTab(wx.Panel):
         """Zeigt den Server als QR-Code (tt://-URL)."""
         profile = self.profile_from_form()
         if not profile:
-            self.frame.set_status("Bitte Serverformular ausfüllen")
+            self.frame.set_status(_("Bitte Serverformular ausfüllen"))
             return
         channel_path = self._get_channel_path_for_share()
         url = build_teamtalk_url(profile, channel_path=channel_path)
@@ -570,7 +571,7 @@ class ConnectionTab(wx.Panel):
             if wx.TheClipboard.Open():
                 wx.TheClipboard.SetData(wx.TextDataObject(url))
                 wx.TheClipboard.Close()
-                self.frame.set_status("URL kopiert")
+                self.frame.set_status(_("URL kopiert"))
 
         copy_btn.Bind(wx.EVT_BUTTON, _copy)
         dlg.SetSizer(root)
@@ -587,9 +588,9 @@ class ConnectionTab(wx.Panel):
         if wx.TheClipboard.Open():
             wx.TheClipboard.SetData(wx.TextDataObject(url))
             wx.TheClipboard.Close()
-            self.frame.set_status("TT-URL kopiert")
+            self.frame.set_status(_("TT-URL kopiert"))
         else:
-            self.frame.set_status("Zwischenablage konnte nicht geöffnet werden")
+            self.frame.set_status(_("Zwischenablage konnte nicht geöffnet werden"))
 
     def on_save_tt_file(self, _event):
         profile = self.profile_from_form()
@@ -599,8 +600,8 @@ class ConnectionTab(wx.Panel):
         default_name = f"{profile.name or profile.host}.tt"
         with wx.FileDialog(
             self,
-            "TT-Datei speichern",
-            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            _("TT-Datei speichern"),
+            wildcard=_("TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*"),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
             defaultFile=default_name,
         ) as dlg:
@@ -611,9 +612,9 @@ class ConnectionTab(wx.Panel):
             xml_text = build_teamtalk_xml(profile, channel_path=channel_path)
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(xml_text)
-            self.frame.set_status("TT-Datei gespeichert")
+            self.frame.set_status(_("TT-Datei gespeichert"))
         except Exception as exc:
-            self.frame.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
+            self.frame.set_status(_("TT-Datei speichern fehlgeschlagen: {}").format(exc))
 
     def on_auto_reconnect(self, event):
         enabled = event.IsChecked()
@@ -626,10 +627,10 @@ class ConnectionTab(wx.Panel):
         """Gibt den aktuellen Ping als lesbaren String zurück."""
         stats = self.frame.client.get_client_statistics()
         if stats is None:
-            return "Ping: nicht verbunden"
+            return _("Ping: nicht verbunden")
         udp_ms = int(stats.nUdpPingTimeMs)
         tcp_ms = int(stats.nTcpPingTimeMs)
-        return f"UDP {udp_ms} Millisekunden, TCP {tcp_ms} Millisekunden"
+        return _("UDP {} Millisekunden, TCP {} Millisekunden").format(udp_ms, tcp_ms)
 
     def _on_stats_timer(self, _event):
         if self.frame._closing:
@@ -647,16 +648,17 @@ class ConnectionTab(wx.Panel):
         min_ms = min(self._ping_history)
         max_ms = max(self._ping_history)
         self.stats_label.SetLabel(
-            f"UDP Ping: {udp_ms} ms, TCP Ping: {tcp_ms} ms"
-            f"   |   Verlauf (letzte {len(self._ping_history)}): Ø {avg_ms} ms, min {min_ms} ms, max {max_ms} ms"
+            _("UDP Ping: {} ms, TCP Ping: {} ms").format(udp_ms, tcp_ms)
+            + "   |   "
+            + _("Verlauf (letzte {}): Ø {} ms, min {} ms, max {} ms").format(len(self._ping_history), avg_ms, min_ms, max_ms)
         )
 
     def _on_import_tt_file(self, _event) -> None:
         from pathlib import Path as _Path
         with wx.FileDialog(
             self,
-            "TT-Datei importieren",
-            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            _("TT-Datei importieren"),
+            wildcard=_("TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*"),
             style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
         ) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
@@ -665,7 +667,7 @@ class ConnectionTab(wx.Panel):
         try:
             parsed = parse_teamtalk_file(path)
             if parsed is None:
-                self.frame.set_status("TT-Datei konnte nicht gelesen werden")
+                self.frame.set_status(_("TT-Datei konnte nicht gelesen werden"))
                 return
             profile = parsed.profile
             if not profile.name:
@@ -673,21 +675,21 @@ class ConnectionTab(wx.Panel):
             self.frame.store.add(profile)
             self.reload_server_list()
             self.fill_form(profile)
-            self.frame.set_status(f"Server importiert: {profile.name}")
+            self.frame.set_status(_("Server importiert: {}").format(profile.name))
         except Exception as exc:
-            self.frame.set_status(f"Import fehlgeschlagen: {exc}")
+            self.frame.set_status(_("Import fehlgeschlagen: {}").format(exc))
 
     def _on_export_selected_tt(self, _event) -> None:
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswählen")
+            self.frame.set_status(_("Bitte einen Server auswählen"))
             return
         profile = self.frame.store.items()[real_idx]
         default_name = f"{profile.name or profile.host}.tt"
         with wx.FileDialog(
             self,
-            "Server als TT-Datei exportieren",
-            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            _("Server als TT-Datei exportieren"),
+            wildcard=_("TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*"),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
             defaultFile=default_name,
         ) as dlg:
@@ -698,9 +700,9 @@ class ConnectionTab(wx.Panel):
             xml_text = build_teamtalk_xml(profile)
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(xml_text)
-            self.frame.set_status(f"Exportiert: {path}")
+            self.frame.set_status(_("Exportiert: {}").format(path))
         except Exception as exc:
-            self.frame.set_status(f"Export fehlgeschlagen: {exc}")
+            self.frame.set_status(_("Export fehlgeschlagen: {}").format(exc))
 
     def _set_tab_order(self):
         order = [
@@ -812,26 +814,26 @@ class ConnectionTab(wx.Panel):
     def on_server_duplicate(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswählen")
+            self.frame.set_status(_("Bitte einen Server auswählen"))
             return
         import dataclasses
         original = self.frame.store.items()[real_idx]
         copy = dataclasses.replace(original, name=original.name + " (Kopie)")
         self.frame.store.add(copy)
         self.reload_server_list()
-        self.frame.set_status(f"Server dupliziert: {copy.name}")
+        self.frame.set_status(_("Server dupliziert: {}").format(copy.name))
 
     def on_server_generate_tt(self, _event):
         real_idx = self._get_real_index()
         if real_idx is None:
-            self.frame.set_status("Bitte einen Server auswählen")
+            self.frame.set_status(_("Bitte einen Server auswählen"))
             return
         profile = self.frame.store.items()[real_idx]
         default_name = f"{profile.name or profile.host}.tt"
         with wx.FileDialog(
             self,
-            "TT-Datei generieren",
-            wildcard="TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*",
+            _("TT-Datei generieren"),
+            wildcard=_("TeamTalk Datei (*.tt)|*.tt|Alle Dateien|*.*"),
             style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
             defaultFile=default_name,
         ) as dlg:
@@ -842,12 +844,12 @@ class ConnectionTab(wx.Panel):
             xml_text = build_teamtalk_xml(profile)
             with open(path, "w", encoding="utf-8") as fh:
                 fh.write(xml_text)
-            self.frame.set_status("TT-Datei gespeichert")
+            self.frame.set_status(_("TT-Datei gespeichert"))
         except Exception as exc:
-            self.frame.set_status(f"TT-Datei speichern fehlgeschlagen: {exc}")
+            self.frame.set_status(_("TT-Datei speichern fehlgeschlagen: {}").format(exc))
 
     def on_enter_join_code(self, _event):
-        dlg = wx.TextEntryDialog(self, "tt:// URL oder TT-Dateipfad eingeben:", "Beitrittscode eingeben", "")
+        dlg = wx.TextEntryDialog(self, _("tt:// URL oder TT-Dateipfad eingeben:"), _("Beitrittscode eingeben"), "")
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return
@@ -880,28 +882,28 @@ class ConnectionTab(wx.Panel):
                 from ..models import ParsedTeamTalkFile
                 parsed = ParsedTeamTalkFile(profile=profile, channel_path=channel_path)
             except Exception as exc:
-                self.frame.set_status(f"URL konnte nicht geparst werden: {exc}")
+                self.frame.set_status(_("URL konnte nicht geparst werden: {}").format(exc))
                 return
         else:
             from pathlib import Path
             try:
                 parsed = parse_teamtalk_file(Path(raw))
             except Exception as exc:
-                self.frame.set_status(f"Datei konnte nicht geparst werden: {exc}")
+                self.frame.set_status(_("Datei konnte nicht geparst werden: {}").format(exc))
                 return
 
         if parsed is None:
-            self.frame.set_status("Beitrittscode konnte nicht verarbeitet werden")
+            self.frame.set_status(_("Beitrittscode konnte nicht verarbeitet werden"))
             return
 
         self.fill_form(parsed.profile)
         confirm = wx.MessageDialog(
             self,
-            f"Server '{parsed.profile.name}' wurde eingetragen.\nJetzt verbinden?",
-            "Verbinden?",
+            _("Server '{}' wurde eingetragen.\nJetzt verbinden?").format(parsed.profile.name),
+            _("Verbinden?"),
             wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         )
-        confirm.SetYesNoLabels("Ja", "Nein")
+        confirm.SetYesNoLabels(_("Ja"), _("Nein"))
         if confirm.ShowModal() == wx.ID_YES:
             self.on_connect(None)
         confirm.Destroy()
@@ -989,7 +991,7 @@ class _ServerGroupsDialog(wx.Dialog):
         self._srv_list.Set(list(members))
 
     def _on_add_group(self, _event) -> None:
-        with wx.TextEntryDialog(self, "Name der neuen Gruppe:", "Gruppe erstellen") as dlg:
+        with wx.TextEntryDialog(self, _("Name der neuen Gruppe:"), _("Gruppe erstellen")) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             name = dlg.GetValue().strip()
@@ -1010,10 +1012,10 @@ class _ServerGroupsDialog(wx.Dialog):
     def _on_add_server(self, _event) -> None:
         grp = self._current_group()
         if grp is None:
-            wx.MessageBox("Erst eine Gruppe auswählen.", "Hinweis")
+            wx.MessageBox(_("Erst eine Gruppe auswählen."), _("Hinweis"))
             return
         servers = [p.name for p in self.frame.store.items()]
-        with wx.SingleChoiceDialog(self, "Server auswählen:", "Server hinzufügen", servers) as dlg:
+        with wx.SingleChoiceDialog(self, _("Server auswählen:"), _("Server hinzufügen"), servers) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             srv = dlg.GetStringSelection()
