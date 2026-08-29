@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 
-DEFAULT_CATALOG_URL = "https://plugins.teamtalk-vo.example.com/catalog.json"
+DEFAULT_CATALOG_URL = "https://raw.githubusercontent.com/fla-rion/TeamTalk-VO-Client/main/docs/plugin_catalog.json"
 
 
 class MarketplaceEntry:
