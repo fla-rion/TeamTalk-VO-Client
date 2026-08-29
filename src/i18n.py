@@ -6416,6 +6416,17 @@ _TRANSLATIONS_ES.update({
     'Webradio': 'Radio web',
 })
 
+# v10.0.0 – Nutzerwatcher-Parität Qt (app_qt.py).
+_TRANSLATIONS.update({
+    "Beobachteter Nutzer anwesend: {} in {}": "Watched user present: {} in {}",
+})
+_TRANSLATIONS_FR.update({
+    "Beobachteter Nutzer anwesend: {} in {}": "Utilisateur surveillé présent : {} dans {}",
+})
+_TRANSLATIONS_ES.update({
+    "Beobachteter Nutzer anwesend: {} in {}": "Usuario vigilado presente: {} en {}",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

@@ -27,19 +27,25 @@ Bei 13 Tabs mit teils tiefen Menüs ein spürbarer A11y-Gewinn: ein systemweiter
 
 ---
 
-## 3. Präsenz-Watchlist / Favoriten-Kontakte
+## 3. ~~Präsenz-Watchlist / Favoriten-Kontakte~~ – bereits vorhanden ("Nutzerwatcher", v6.5.0)
 
-🟡 · Eigene Idee, kein externes Vorbild geprüft.
+**Korrektur beim Zusammenführen der v10.0.0-Änderungen entdeckt:** Dieser Punkt war ein Doppelvorschlag. Es gibt bereits einen kompletten "Nutzerwatcher" (Menü → Automatisierung → Nutzerwatcher…) seit v6.5.0 – serverweite Beobachtung beliebiger Nutzernamen, TTS-Ansage beim Beitreten, eigener Verwaltungsdialog (`ui_wx/user_watcher_dialog.py`, `ui_qt/dialogs.py::UserWatcherDialog`). Der ursprüngliche Recherche-Grep vor Aufnahme in die Roadmap traf den deutschen Begriff "Nutzerwatcher" nicht – Lehre daraus: künftig auch nach deutschen Fachbegriffen im Code suchen, nicht nur englischen.
 
-Bis zu N Nutzernamen serverweit beobachten (nicht nur im aktuellen Kanal) – TTS-Ansage/Desktop-Notification, sobald eine dieser Personen sich auf einem verbundenen Server an- oder abmeldet, unabhängig vom Kanal. Das bestehende Benachrichtigungs-Regelwerk (`notification_manager.py`) hat zwar einen `user`-Scope, der steuert aber nur *wie* auf Events reagiert wird, die im eigenen Kanal ohnehin schon eintreffen – keine serverweite Beobachtung unabhängig vom eigenen Aufenthaltsort. Technisch: periodischer Abgleich der Serverliste (`do_list_users` o. ä.) oder Auswertung von `USER_UPDATE`-Events unabhängig vom aktuellen Kanal.
+Einzige tatsächliche Lücke, die dabei gefunden und direkt behoben wurde: Der Qt-Dialog existierte, war aber nie an das Join-Event angeschlossen (nur auf macOS/wx hat der Nutzerwatcher tatsächlich etwas angesagt). Mit v10.0.0 behoben (`app_qt.py::_on_user_joined`).
 
 ---
 
 ## 4. Räumliches Audio / Stereo-Panning je Sprecher
 
-🟡–🔴 · Eigene Idee, bekannte Technik aus anderen barrierefreien Audio-Anwendungen.
+🟡 (korrigiert, war 🟡–🔴) · Eigene Idee, bekannte Technik aus anderen barrierefreien Audio-Anwendungen.
 
-Kanalmitglieder beim Abspielen leicht unterschiedlich im Stereofeld positionieren (z. B. nach Beitrittsreihenfolge oder Nutzer-ID), damit sich überlappende Sprecher rein akustisch unterscheiden lassen, ohne auf die Nutzerliste schauen zu müssen. Aufwand hängt maßgeblich davon ab, ob die TeamTalk-SDK-Audio-Callbacks nutzergetrennte Streams liefern (zu prüfen) oder nur einen bereits gemischten Ausgabestream – im zweiten Fall nicht ohne Weiteres umsetzbar.
+Kanalmitglieder beim Abspielen leicht unterschiedlich im Stereofeld positionieren (z. B. nach Beitrittsreihenfolge oder Nutzer-ID), damit sich überlappende Sprecher rein akustisch unterscheiden lassen, ohne auf die Nutzerliste schauen zu müssen.
+
+**Machbarkeitsprüfung beim Zusammenführen der v10.0.0-Änderungen (zwei Funde):**
+1. Das SDK liefert tatsächlich nutzergetrennte, ungemischte Audioblöcke pro Sprecher (`TT_AcquireUserAudioBlock`/`CLIENTEVENT_USER_AUDIOBLOCK`, `struct AudioBlock` in `TeamTalk.h`) – eine komplett selbst gebaute Mixing-Pipeline dafür wäre aber riskant (Echo-/Doppelwiedergabe-Gefahr) und nicht ohne echte Mehrnutzer-Verbindung testbar.
+2. **Viel wichtiger:** Es existiert bereits eine viel einfachere, native SDK-Funktion dafür – `client.set_user_stereo(user_id, stream_type, left, right)` – die die SDK-eigene Ausgabe eines Nutzers auf den linken/rechten Kanal oder normal legt. Das wird bereits manuell genutzt (Menü "Stereo: Nur links/rechts/Normal" pro Nutzer, `app_wx.py`, seit v6.10.4, Einstellung persistiert in `user_stereo_prefs`).
+
+Damit reduziert sich der eigentliche Rest-Aufwand auf: beim Kanalbeitritt automatisch (statt nur manuell auswählbar) eine Stereo-Position pro aktivem Sprecher zuweisen (z. B. abwechselnd links/rechts/normal nach Beitrittsreihenfolge), sofern der Nutzer keine eigene manuelle Präferenz gesetzt hat. Kein Neubau einer Audio-Pipeline nötig – nur ein Aufsatz auf `_apply_user_stereo()` (bereits vorhanden). Für ein baldiges Release vormerken, nicht mehr 🔴.
 
 ---
 
@@ -95,14 +101,14 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 
 | Priorität | Punkt | Aufwand | Warum zuerst/später |
 |---|---|---|---|
-| 1 | Plugin-Marketplace-Katalog (5) | 🟢 | Kleinster Aufwand, macht vorhandene Infrastruktur erstmals nutzbar |
-| 2 | Radiosender-Favoriten (2) | 🟡 | Kleiner, klar umrissener Nutzerwunsch, keine Abhängigkeiten |
-| 3 | Command Palette (1) | 🟡 | Größter A11y-Hebel pro Aufwandseinheit |
-| 4 | Präsenz-Watchlist (3) | 🟡 | Klar umrissen, keine Abhängigkeiten zu anderen Punkten |
-| 5 | Live-Effekte auf Stream (2) | 🟡 | Unabhängig von Multi-Deck schon möglich, klare externe Bibliothek |
-| 6 | wx-Control-Politur (6) | 🟢 | Nice-to-have, kein akuter Schmerzpunkt bekannt |
-| 7 | Räumliches Audio (4) | 🟡/🔴 | Erst nach Prüfung, ob SDK nutzergetrennte Audio-Streams liefert |
-| 8 | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, erst angehen wenn 1–5 stabil sind |
+| 1 | Plugin-Marketplace-Katalog (5) | 🟢 | Kleinster Aufwand, macht vorhandene Infrastruktur erstmals nutzbar – erledigt in v10.0.0 |
+| 2 | Radiosender-Favoriten (2) | 🟡 | Kleiner, klar umrissener Nutzerwunsch, keine Abhängigkeiten – erledigt in v10.0.0 |
+| 3 | Command Palette (1) | 🟡 | Größter A11y-Hebel pro Aufwandseinheit – erledigt in v10.0.0 |
+| 4 | Live-Effekte auf Stream (2) | 🟡 | Unabhängig von Multi-Deck schon möglich – erledigt in v10.0.0 (nur lokale Dateien, s. u.) |
+| 5 | wx-Control-Politur (6) | 🟢 | Nice-to-have – teilweise erledigt in v10.0.0 (SpinCtrlDouble-Stellen) |
+| — | ~~Präsenz-Watchlist (3)~~ | — | Entfällt, existierte bereits als "Nutzerwatcher" – Qt-Parität in v10.0.0 nachgezogen |
+| 6 | Räumliches Audio (4) | 🟡 (korrigiert von 🔴) | SDK liefert nutzergetrennte Audioblöcke (`TT_AcquireUserAudioBlock`) UND es existiert bereits `set_user_stereo()` für einfaches L/R-Panning pro Nutzer (manuell, seit v6.10.4) – automatische Zuweisung wäre nur noch ein kleiner Aufsatz auf Bestehendem, kein Neubau. Für v11 vormerken. |
+| 7 | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, erst angehen wenn Obiges stabil ist |
 | — | Geräte-Sync (7) | 🔴/eigene Review | Sicherheitskritisches Pairing-Protokoll, bewusst kein Batch-Feature |
 
 ---

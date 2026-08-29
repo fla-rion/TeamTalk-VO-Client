@@ -971,6 +971,11 @@ class MainWindow(QMainWindow):
                 if self._notifications.allow_sound("user_join", user=name, server=_srv, channel=_ch):
                     self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
+            # v10.0.0 – Nutzerwatcher (Parität zu app_wx.py): serverweit, unabhängig vom eigenen Kanal
+            _watched = list(getattr(self.settings_store.settings, "watched_users", []) or [])
+            if name in _watched:
+                _watch_text = _("Beobachteter Nutzer anwesend: {} in {}").format(name, self._current_channel_name or ch_id)
+                self.tts.speak(_watch_text, kind="system")
         except Exception:
             pass
 
