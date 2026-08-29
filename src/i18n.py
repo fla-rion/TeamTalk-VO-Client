@@ -6513,6 +6513,25 @@ _TRANSLATIONS_ES.update({
     "Effekte werden angewendet...": "Aplicando efectos...",
 })
 
+# v10.0.0 – Accessible-Controls-Politur: neue Positions-Spinner-Labels.
+_TRANSLATIONS.update({
+    "Position X": "Position X",
+    "Position Y": "Position Y",
+    "Position Z": "Position Z",
+})
+
+_TRANSLATIONS_FR.update({
+    "Position X": "Position X",
+    "Position Y": "Position Y",
+    "Position Z": "Position Z",
+})
+
+_TRANSLATIONS_ES.update({
+    "Position X": "Posición X",
+    "Position Y": "Posición Y",
+    "Position Z": "Posición Z",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
