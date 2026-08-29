@@ -61,6 +61,36 @@ Stichprobe im Code, ob an Stellen mit `wx.SpinCtrlDouble` oder Standard-`wx.Text
 
 ---
 
+## 7. Geräte-Sync im lokalen Netzwerk (Brave-Sync-artig)
+
+🔴 · Eigene Idee, Sicherheitsdesign vor Umsetzung nötig – **nicht Teil des Batch-Vorgehens der anderen Punkte, eigene Review-Runde erforderlich.**
+
+**Wunsch:** Einstellungen zwischen den eigenen Geräten im selben Netzwerk synchronisieren (Serverliste, Hotkeys, Sound-Profile, Benachrichtigungsregeln, TTS-Einstellungen, …) – ohne Cloud-Server, nach dem Vorbild von Browser-Sync (Brave/Chrome).
+
+**Die zentrale Anforderung, um die sich das ganze Design dreht:** Sichtbarkeit im selben Netzwerk darf niemals automatisch zu Vertrauen führen. Ein Laptop eines Besuchs, der einmal im selben WLAN war und zufällig ebenfalls TeamTalk VO Client offen hat, darf unter keinen Umständen ungefragt Einstellungen empfangen oder senden. Genau das ist auch der Grund, warum Brave (und Chrome) Sync nicht "alle Geräte im Netzwerk" verbindet, sondern eine explizite **Kopplungs-Zeremonie** mit einem einmaligen, von Menschen verifizierten Code/QR-Code verlangt, bevor zwei Geräte sich je wieder vertrauen.
+
+### Sicherheitsmodell (nicht verhandelbar)
+
+1. **Entdeckung ≠ Vertrauen.** mDNS/Bonjour (Paket: `zeroconf`, neue Abhängigkeit) darf Geräte im Netzwerk nur *sichtbar* machen – niemals automatisch Daten austauschen. Ein unbekanntes Gerät, das eine Sync-Anfrage schickt, wird ohne gültiges, bereits gekoppeltes Geheimnis kommentarlos abgelehnt (kein "Gerät X möchte sich koppeln"-Dialog, der zu Klickfehlern verleiten könnte).
+2. **Explizite Kopplung, einmalig, zeitlich begrenzt.** Gerät A zeigt einen kurzlebigen Code (6-stellig oder QR, ~2 Minuten gültig). Gerät B muss diesen Code aktiv eingeben/scannen. Der Code selbst dient nur zum Bootstrap eines Schlüsselaustauschs (schützt vor Mitlesen im Moment der Kopplung) – er wird nicht dauerhaft gespeichert.
+3. **Dauerhaftes Geheimnis pro Geräte-Paar**, generiert direkt nach erfolgreicher Kopplung, gespeichert im OS-Schlüsselbund (Wiederverwendung von `keychain.py`, das bereits `keyring` nutzt). Alle künftigen Syncs laufen über dieses Geheimnis, nicht über den ursprünglichen Code.
+4. **Sichtbare, verwaltbare Geräteliste.** Neuer Einstellungen-Abschnitt "Gekoppelte Geräte": Name, Plattform, letzter Sync-Zeitpunkt, Button "Kopplung aufheben" pro Gerät. Der Nutzer muss jederzeit sehen und widerrufen können, was gekoppelt ist – das ist die eigentliche Antwort auf "ich will nicht plötzlich die Einstellungen von meinem Besuch haben".
+5. **Auswahl, was synchronisiert wird**, analog zu Brave (dort wählbar: Lesezeichen, Passwörter, Erweiterungen, …). Hier z. B. an/abwählbar: Serverprofile, Hotkeys, Sound-/Benachrichtigungsprofile, TTS-Einstellungen. **Niemals synchronisiert:** API-Keys/Passwörter (bleiben Keychain-only, pro Gerät), rein hardware-spezifische Einstellungen (gewähltes Audiogerät, Fensterposition).
+6. **Konfliktlösung:** Last-Write-Wins per Zeitstempel je Einstellungsgruppe – für den persönlichen Mehrgeräte-Fall ausreichend, keine komplexe CRDT-Logik nötig.
+
+### Technischer Ansatz
+
+- Neues Modul `src/settings_sync.py`: Pairing-Zeremonie (kurzlebiger Listener + Code-Anzeige/-Eingabe), danach dauerhafter, authentifizierter Sync-Kanal über das gespeicherte Geheimnis.
+- Zertifikats-/Schlüssel-Pinning nach demselben Prinzip wie `tls_verify.py` (Fingerprint einmal beim Pairing festgehalten, danach bei jeder Verbindung verglichen – erkennt auch nachträgliche Fälschungsversuche).
+- Discovery via `zeroconf`, aber ausschließlich zum Auffinden bereits gekoppelter Geräte (Reachability), nicht zum Anbahnen neuer Kopplungen.
+- UI: neuer Abschnitt in `settings.py` (wx + Qt), Ereignisse über `event_bus.py` an die UI melden (z. B. "Sync abgeschlossen").
+
+### Warum eigene Review-Runde statt Batch-Subagent
+
+Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergänzungen. Hier geht es um ein eigenes kleines Sicherheitsprotokoll (Pairing, Schlüsselaustausch, Geräte-Vertrauen) – das verdient eine bewusste, einzelne Design- und Code-Review-Runde statt eine von mehreren parallelen Batch-Implementierungen, gerade weil ein Fehler hier genau das Vertrauensproblem reproduzieren würde, das das Feature eigentlich lösen soll.
+
+---
+
 ## Priorisierungsempfehlung
 
 | Priorität | Punkt | Aufwand | Warum zuerst/später |
@@ -73,6 +103,7 @@ Stichprobe im Code, ob an Stellen mit `wx.SpinCtrlDouble` oder Standard-`wx.Text
 | 6 | wx-Control-Politur (6) | 🟢 | Nice-to-have, kein akuter Schmerzpunkt bekannt |
 | 7 | Räumliches Audio (4) | 🟡/🔴 | Erst nach Prüfung, ob SDK nutzergetrennte Audio-Streams liefert |
 | 8 | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, erst angehen wenn 1–5 stabil sind |
+| — | Geräte-Sync (7) | 🔴/eigene Review | Sicherheitskritisches Pairing-Protokoll, bewusst kein Batch-Feature |
 
 ---
 
