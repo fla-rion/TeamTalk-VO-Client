@@ -5,4 +5,5 @@ anthropic>=0.40.0
 google-genai>=1.0.0
 google-auth-oauthlib>=1.2.0
 mss>=9.0
+pedalboard>=0.9
 pyinstaller>=6.0

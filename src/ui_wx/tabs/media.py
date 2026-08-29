@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional
 import os
 import shutil
 import subprocess
+import tempfile
 import threading
 from pathlib import Path
 import sys
@@ -109,6 +110,8 @@ class MediaTab(wx.Panel):
         self._yt_tempdir: Optional[Path] = None
         self._yt_output_path: Optional[Path] = None
         self._yt_results = []
+        self._yt_chapters = []
+        self._fx_tempdir = None
         self._radio_entries = []
         self._radio_search_results = []
         self._podcast_results = []
@@ -260,6 +263,13 @@ class MediaTab(wx.Panel):
         gain_row.Add(self.stream_gain, 1, wx.EXPAND)
         stream_sizer.Add(gain_row, 0, wx.ALL | wx.EXPAND, 4)
 
+        self.media_fx_enable = wx.CheckBox(self.stream_panel, label="Live-Effekte anwenden (Kompressor/Limiter)")
+        self.media_fx_enable.SetName("Live-Effekte anwenden")
+        self.media_fx_enable.Bind(wx.EVT_CHECKBOX, self.on_media_fx_toggle)
+        stream_sizer.Add(self.media_fx_enable, 0, wx.ALL, 4)
+        self.media_fx_status = wx.StaticText(self.stream_panel, label="")
+        stream_sizer.Add(self.media_fx_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
         self.stream_panel.SetSizer(stream_sizer)
         streaming_sizer.Add(self.stream_panel, 0, wx.ALL | wx.EXPAND, 4)
 
@@ -309,6 +319,17 @@ class MediaTab(wx.Panel):
         self.ytdlp_status.SetName("Streaming-Status")
         ytdlp_sizer.Add(self.ytdlp_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
+        self.ytdlp_chapters_label = wx.StaticText(self.ytdlp_panel, label="Kapitel")
+        ytdlp_sizer.Add(self.ytdlp_chapters_label, 0, wx.LEFT | wx.RIGHT | wx.EXPAND, 4)
+        self.ytdlp_chapters = wx.ListBox(self.ytdlp_panel)
+        self.ytdlp_chapters.SetName("Kapitel")
+        setup_list_accessible(self.ytdlp_chapters)
+        self.ytdlp_chapters.Bind(wx.EVT_LISTBOX, self.on_ytdlp_chapter_select)
+        ytdlp_sizer.Add(self.ytdlp_chapters, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+        self.ytdlp_chapters.SetMinSize((-1, 80))
+        self.ytdlp_chapters_label.Hide()
+        self.ytdlp_chapters.Hide()
+
         ytdlp_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
         self.ytdlp_pause_btn = wx.Button(self.ytdlp_panel, label="&Pause")
         self.ytdlp_pause_btn.SetName("Streaming Pause")
@@ -353,6 +374,28 @@ class MediaTab(wx.Panel):
         self.radio_results.Bind(wx.EVT_LISTBOX, self.on_radio_search_select)
         radio_sizer.Add(self.radio_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
         self.radio_results.SetMinSize((-1, 100))
+
+        radio_fav_add_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.radio_fav_add_btn = wx.Button(self.radio_panel, label="Als &Favorit speichern")
+        self.radio_fav_add_btn.SetName("Sender als Favorit speichern")
+        self.radio_fav_add_btn.Bind(wx.EVT_BUTTON, self.on_radio_fav_add)
+        radio_fav_add_row.Add(self.radio_fav_add_btn, 0)
+        radio_sizer.Add(radio_fav_add_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+        radio_sizer.Add(wx.StaticText(self.radio_panel, label="Favoriten"), 0, wx.ALL | wx.EXPAND, 4)
+        self.radio_favorites_list = wx.ListBox(self.radio_panel)
+        self.radio_favorites_list.SetName("Webradio Favoriten")
+        setup_list_accessible(self.radio_favorites_list)
+        self.radio_favorites_list.Bind(wx.EVT_LISTBOX, self.on_radio_fav_select)
+        radio_sizer.Add(self.radio_favorites_list, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 4)
+        self.radio_favorites_list.SetMinSize((-1, 80))
+
+        radio_fav_ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.radio_fav_remove_btn = wx.Button(self.radio_panel, label="Favorit &entfernen")
+        self.radio_fav_remove_btn.SetName("Favorit entfernen")
+        self.radio_fav_remove_btn.Bind(wx.EVT_BUTTON, self.on_radio_fav_remove)
+        radio_fav_ctrl_row.Add(self.radio_fav_remove_btn, 0)
+        radio_sizer.Add(radio_fav_ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
 
         radio_sizer.Add(wx.StaticText(self.radio_panel, label="Webradio Senderliste"), 0, wx.ALL | wx.EXPAND, 4)
         self.radio_choice = wx.Choice(self.radio_panel)
@@ -693,6 +736,9 @@ class MediaTab(wx.Panel):
 
         self.SetSizer(sizer)
         self._load_radio_list()
+        self._radio_favorites = []
+        self._refresh_radio_favorites()
+        self.media_fx_enable.SetValue(bool(getattr(self.frame.settings_store.settings, "media_fx_enabled", False)))
         self._update_stream_mode()
         self._set_tab_order()
 
@@ -793,6 +839,49 @@ class MediaTab(wx.Panel):
         else:
             self.media_info.SetLabel("Dauer: unbekannt")
 
+    def on_media_fx_toggle(self, _event):
+        enabled = self.media_fx_enable.GetValue()
+        self.frame.settings_store.settings.media_fx_enabled = enabled
+        self.frame.settings_store.save()
+        self.media_fx_status.SetLabel("Effekte werden beim nächsten Abspielen einer lokalen Datei angewendet" if enabled else "")
+
+    def _apply_media_fx(self, path: str) -> str:
+        """Wendet Kompressor/Limiter offline auf eine lokale Datei an (nur Datei-Wiedergabe –
+        echte Live-Streams laufen komplett im SDK, dort gibt es keinen Python-Hook für
+        Sample-Daten). Gibt bei Erfolg den Pfad zur verarbeiteten Temp-Datei zurück,
+        sonst den Original-Pfad."""
+        settings = self.frame.settings_store.settings
+        if not getattr(settings, "media_fx_enabled", False):
+            return path
+        try:
+            from pedalboard import Pedalboard, Compressor, Limiter
+            from pedalboard.io import AudioFile
+        except ImportError:
+            wx.CallAfter(self.frame.set_status, "Live-Effekte: Paket 'pedalboard' nicht installiert")
+            return path
+        effects = []
+        if getattr(settings, "media_fx_compressor", True):
+            effects.append(Compressor(threshold_db=-20, ratio=4))
+        if getattr(settings, "media_fx_limiter", True):
+            threshold = float(getattr(settings, "media_fx_limiter_threshold_db", -1.0) or -1.0)
+            effects.append(Limiter(threshold_db=threshold))
+        if not effects:
+            return path
+        try:
+            board = Pedalboard(effects)
+            out_dir = tempfile.mkdtemp(prefix="ttvo_fx_")
+            out_path = os.path.join(out_dir, "processed.wav")
+            with AudioFile(path) as f:
+                with AudioFile(out_path, "w", f.samplerate, f.num_channels) as o:
+                    while f.tell() < f.frames:
+                        chunk = f.read(f.samplerate)
+                        o.write(board(chunk, f.samplerate, reset=False))
+            self._fx_tempdir = out_dir
+            return out_path
+        except Exception as exc:
+            wx.CallAfter(self.frame.set_status, f"Live-Effekte fehlgeschlagen: {exc}")
+            return path
+
     def on_play(self, _event):
         path = self.media_path.GetValue().strip()
         if not path:
@@ -801,13 +890,27 @@ class MediaTab(wx.Panel):
         if self._streaming:
             self.frame.client.update_streaming_media(paused=False, offset_ms=None, preamp_gain=self._get_stream_gain())
             self.frame.set_status("Wiedergabe fortgesetzt")
+            return
+        if not getattr(self.frame.settings_store.settings, "media_fx_enabled", False):
+            self._start_file_stream(path)
+            return
+        self.play_btn.Disable()
+        self.frame.set_status("Effekte werden angewendet...")
+
+        def worker():
+            processed = self._apply_media_fx(path)
+            wx.CallAfter(self._start_file_stream, processed)
+            wx.CallAfter(self.play_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _start_file_stream(self, path: str) -> None:
+        ok = self.frame.client.start_streaming_media_to_channel(path, preamp_gain=self._get_stream_gain())
+        if ok:
+            self._streaming = True
+            self.frame.set_status("Streaming gestartet")
         else:
-            ok = self.frame.client.start_streaming_media_to_channel(path, preamp_gain=self._get_stream_gain())
-            if ok:
-                self._streaming = True
-                self.frame.set_status("Streaming gestartet")
-            else:
-                self.frame.set_status("Streaming konnte nicht gestartet werden")
+            self.frame.set_status("Streaming konnte nicht gestartet werden")
 
     def on_pause(self, _event):
         if self._streaming:
@@ -822,6 +925,16 @@ class MediaTab(wx.Panel):
             self.frame.set_status("Streaming gestoppt")
         self._pl_streaming = False
         self._cleanup_ytdlp_tempdir()
+        self._set_ytdlp_chapters([])
+        self._cleanup_fx_tempdir()
+
+    def _cleanup_fx_tempdir(self):
+        if not self._fx_tempdir:
+            return
+        try:
+            shutil.rmtree(self._fx_tempdir, ignore_errors=True)
+        finally:
+            self._fx_tempdir = None
 
     def on_seek(self, _event):
         if self._streaming:
@@ -886,12 +999,14 @@ class MediaTab(wx.Panel):
             file_order[i].MoveAfterInTabOrder(file_order[i - 1])
         ytdlp_order = [
             self.ytdlp_search, self.ytdlp_search_btn, self.ytdlp_results,
-            self.ytdlp_url, self.ytdlp_stream_btn, self.ytdlp_pause_btn, self.ytdlp_stop_btn, self.ytdlp_stream_gain,
+            self.ytdlp_url, self.ytdlp_stream_btn, self.ytdlp_chapters,
+            self.ytdlp_pause_btn, self.ytdlp_stop_btn, self.ytdlp_stream_gain,
         ]
         for i in range(1, len(ytdlp_order)):
             ytdlp_order[i].MoveAfterInTabOrder(ytdlp_order[i - 1])
         radio_order = [
-            self.radio_search, self.radio_search_btn, self.radio_results, self.radio_choice,
+            self.radio_search, self.radio_search_btn, self.radio_results, self.radio_fav_add_btn,
+            self.radio_favorites_list, self.radio_fav_remove_btn, self.radio_choice,
             self.radio_url, self.radio_play_btn, self.radio_pause_btn, self.radio_stop_btn, self.radio_stream_gain,
         ]
         for i in range(1, len(radio_order)):
@@ -1300,7 +1415,20 @@ class MediaTab(wx.Panel):
                 if not stream_url:
                     wx.CallAfter(self._ytdlp_failed, "Keine Stream-URL gefunden", source_name)
                     return
-                wx.CallAfter(self._ytdlp_ready, stream_url, source_name)
+                chapters = []
+                try:
+                    meta_cmd = [ytdlp, "--dump-json", "--no-playlist", "--skip-download", url]
+                    meta_proc = subprocess.run(meta_cmd, capture_output=True, text=True, timeout=30)
+                    if meta_proc.returncode == 0 and meta_proc.stdout.strip():
+                        meta = json.loads(meta_proc.stdout.splitlines()[0])
+                        for ch in meta.get("chapters") or []:
+                            title = ch.get("title") or "Kapitel"
+                            start = ch.get("start_time")
+                            if start is not None:
+                                chapters.append({"title": title, "start": float(start)})
+                except Exception:
+                    chapters = []
+                wx.CallAfter(self._ytdlp_ready, stream_url, source_name, chapters)
             except Exception as exc:
                 wx.CallAfter(self._ytdlp_failed, str(exc), source_name)
 
@@ -1311,7 +1439,7 @@ class MediaTab(wx.Panel):
         self.ytdlp_status.SetLabel("Status: Fehler")
         self.frame.set_status(f"{source_name}-Streaming fehlgeschlagen: {message}")
 
-    def _ytdlp_ready(self, stream_url: str, source_name: str = "Stream"):
+    def _ytdlp_ready(self, stream_url: str, source_name: str = "Stream", chapters: Optional[list] = None):
         self.ytdlp_stream_btn.Enable()
         self.ytdlp_status.SetLabel("Status: Stream bereit")
         ok = self.frame.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._get_stream_gain())
@@ -1320,8 +1448,35 @@ class MediaTab(wx.Panel):
             self.media_path.SetValue(stream_url)
             self.media_info.SetLabel("Dauer: Live-Stream")
             self.frame.set_status(f"{source_name}-Streaming gestartet")
+            self._set_ytdlp_chapters(chapters or [])
         else:
             self.frame.set_status(f"{source_name}-Streaming konnte nicht gestartet werden")
+
+    def _set_ytdlp_chapters(self, chapters: list) -> None:
+        self._yt_chapters = chapters
+        if chapters:
+            def _fmt(sec: float) -> str:
+                sec = int(sec)
+                return f"{sec // 60}:{sec % 60:02d}"
+            self.ytdlp_chapters.Set([f"{c['title']} — {_fmt(c['start'])}" for c in chapters])
+            self.ytdlp_chapters_label.Show()
+            self.ytdlp_chapters.Show()
+        else:
+            self.ytdlp_chapters.Set([])
+            self.ytdlp_chapters_label.Hide()
+            self.ytdlp_chapters.Hide()
+        self.ytdlp_panel.Layout()
+
+    def on_ytdlp_chapter_select(self, _event):
+        idx = self.ytdlp_chapters.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._yt_chapters):
+            return
+        start = self._yt_chapters[idx].get("start", 0.0)
+        ok = self.frame.client.update_streaming_media(paused=False, offset_ms=int(start * 1000))
+        if ok:
+            self.frame.set_status(f"Kapitel: {self._yt_chapters[idx].get('title', '')}")
+        else:
+            self.frame.set_status("Kapitelsprung fehlgeschlagen")
 
     def _cleanup_ytdlp_tempdir(self):
         if not self._yt_tempdir:
@@ -1403,6 +1558,55 @@ class MediaTab(wx.Panel):
         url = self._radio_search_results[idx].get("url") or ""
         if url:
             self.radio_url.SetValue(url)
+
+    def _refresh_radio_favorites(self):
+        favs = list(getattr(self.frame.settings_store.settings, "radio_favorites", []) or [])
+        self._radio_favorites = favs
+        self.radio_favorites_list.Set([f.get("name") or f.get("url") or "?" for f in favs])
+
+    def on_radio_fav_add(self, _event):
+        name = ""
+        url = ""
+        idx = self.radio_results.GetSelection()
+        if idx != wx.NOT_FOUND and idx < len(self._radio_search_results):
+            entry = self._radio_search_results[idx]
+            name = entry.get("name") or ""
+            url = entry.get("url") or ""
+        if not url:
+            url = self.radio_url.GetValue().strip()
+            name = name or self.radio_choice.GetStringSelection() or url
+        if not url:
+            self.frame.set_status("Kein Sender zum Speichern ausgewählt")
+            return
+        name = name or "Sender"
+        favs = list(getattr(self.frame.settings_store.settings, "radio_favorites", []) or [])
+        if any(f.get("url") == url for f in favs):
+            self.frame.set_status("Sender ist bereits als Favorit gespeichert")
+            return
+        favs.append({"name": name, "url": url})
+        self.frame.settings_store.settings.radio_favorites = favs
+        self.frame.settings_store.save()
+        self._refresh_radio_favorites()
+        self.frame.set_status(f"Als Favorit gespeichert: {name}")
+
+    def on_radio_fav_select(self, _event):
+        idx = self.radio_favorites_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._radio_favorites):
+            return
+        url = self._radio_favorites[idx].get("url") or ""
+        if url:
+            self.radio_url.SetValue(url)
+
+    def on_radio_fav_remove(self, _event):
+        idx = self.radio_favorites_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._radio_favorites):
+            self.frame.set_status("Kein Favorit ausgewählt")
+            return
+        removed = self._radio_favorites.pop(idx)
+        self.frame.settings_store.settings.radio_favorites = list(self._radio_favorites)
+        self.frame.settings_store.save()
+        self._refresh_radio_favorites()
+        self.frame.set_status(f"Favorit entfernt: {removed.get('name') or removed.get('url') or ''}")
 
     def on_radio_stream(self, _event):
         url = self.radio_url.GetValue().strip()

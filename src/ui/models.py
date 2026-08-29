@@ -337,6 +337,13 @@ class AppSettings:
     show_advanced_tabs: bool = False
     # v8.2.0 openevv (Eloquence)
     tts_openevv_voice: int = 1
+    # Medien-Tab: Webradio-Favoriten
+    radio_favorites: List[Dict[str, str]] = field(default_factory=list)
+    # Medien-Tab: Live-Effekte auf den ausgehenden Stream (Pedalboard)
+    media_fx_enabled: bool = False
+    media_fx_compressor: bool = True
+    media_fx_limiter: bool = True
+    media_fx_limiter_threshold_db: float = -1.0
 
 
 class SettingsStore:
@@ -578,6 +585,12 @@ class SettingsStore:
             self.settings.eq_mic_gain_pct = int(data.get("eq_mic_gain_pct", 50) or 50)
             self.settings.eq_out_volume_pct = int(data.get("eq_out_volume_pct", 100) or 100)
             self.settings.app_audio_volume_pct = int(data.get("app_audio_volume_pct", 100) or 100)
+            raw_rf = data.get("radio_favorites", [])
+            self.settings.radio_favorites = [f for f in raw_rf if isinstance(f, dict)] if isinstance(raw_rf, list) else []
+            self.settings.media_fx_enabled = bool(data.get("media_fx_enabled", False))
+            self.settings.media_fx_compressor = bool(data.get("media_fx_compressor", True))
+            self.settings.media_fx_limiter = bool(data.get("media_fx_limiter", True))
+            self.settings.media_fx_limiter_threshold_db = float(data.get("media_fx_limiter_threshold_db", -1.0) or -1.0)
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -768,5 +781,10 @@ class SettingsStore:
             "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),
             "auto_join_root_channel": bool(self.settings.auto_join_root_channel),
             "user_stereo_prefs": dict(self.settings.user_stereo_prefs or {}),
+            "radio_favorites": list(self.settings.radio_favorites or []),
+            "media_fx_enabled": bool(self.settings.media_fx_enabled),
+            "media_fx_compressor": bool(self.settings.media_fx_compressor),
+            "media_fx_limiter": bool(self.settings.media_fx_limiter),
+            "media_fx_limiter_threshold_db": float(self.settings.media_fx_limiter_threshold_db or -1.0),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
