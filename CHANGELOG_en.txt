@@ -1,6 +1,39 @@
 Changelog
 =========
 
+2026-08-29 (v10.0.0)
+New features: Command palette, media tab expansion, plugin marketplace catalog, accessibility polish
+
+- **Command palette / action search**: A new hotkey (Cmd+Shift+J on macOS,
+  Ctrl+Shift+J on Windows/Linux) opens a searchable list of all app
+  actions (menu items, tab functions) - Enter runs the selected action.
+  Reduces the need to memorize tab order and keyboard shortcuts,
+  implemented on both platforms (Qt and wx).
+- **Media tab**: Radio stations can now be saved as favorites
+  (persisted), yt-dlp streams show chapter navigation with jump support
+  when chapter metadata is available, and live effects (compressor/
+  limiter via the Pedalboard library) can be applied to local file
+  playback. Live effects are only possible for local files for SDK
+  reasons, not for web radio/YouTube/podcast streams.
+- **Plugin marketplace**: The in-app plugin browser used to point at a
+  placeholder URL with no content. There is now a real, repository-hosted
+  catalog (docs/plugin_catalog.json) plus a new demo plugin (a greeting
+  announcement on connect).
+- **Accessibility**: New `AccessibleSpinCtrl` and `CustomTextEntryDialog`
+  controls (macOS/wx) modeled on m45wxcontrols - read more reliably by
+  VoiceOver than `wx.SpinCtrlDouble`. Already applied to user positioning
+  (X/Y/Z) in the admin area.
+- Bugfix: the "user watcher" (server-wide monitoring of specific
+  usernames with an announcement on join, since v6.5.0) only worked on
+  macOS - the management dialog also existed on Windows/Linux but was
+  never wired to the join event. Now active on both platforms.
+- Over 550 new/corrected FR/ES dictionary entries as part of this change
+  (full translation coverage verified).
+- ROADMAP.md and SERVER_PLAN.md document the further roadmap (including
+  local-network device sync, spatial audio, and a custom
+  TeamTalk-compatible server - the latter pending a licensing response
+  from BearWare.dk).
+
 2026-08-27 (v9.2.0)
 New: Full multilingual support (DE/EN/FR/ES) for UI, manual, and changelog
 

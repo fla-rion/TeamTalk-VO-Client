@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(9, 2, 0, 0),
-    prodvers=(9, 2, 0, 0),
+    filevers=(10, 0, 0, 0),
+    prodvers=(10, 0, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x4,
@@ -17,11 +17,11 @@ VSVersionInfo(
           [
             StringStruct('CompanyName', 'Flarion'),
             StringStruct('FileDescription', 'TeamTalk VoiceOver Client'),
-            StringStruct('FileVersion', '9.2.0'),
+            StringStruct('FileVersion', '10.0.0'),
             StringStruct('InternalName', 'TeamTalk VO Client'),
             StringStruct('OriginalFilename', 'TeamTalk VO Client.exe'),
             StringStruct('ProductName', 'TeamTalk VoiceOver Client'),
-            StringStruct('ProductVersion', '9.2.0')
+            StringStruct('ProductVersion', '10.0.0')
           ]
         )
       ]

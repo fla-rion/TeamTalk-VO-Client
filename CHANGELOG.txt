@@ -1,6 +1,41 @@
 Changelog
 =========
 
+2026-08-29 (v10.0.0)
+Neue Features: Command Palette, Medien-Tab-Ausbau, Plugin-Marketplace-Katalog, A11y-Politur
+
+- **Command Palette / Aktionssuche**: Neuer Hotkey (Cmd+Shift+J auf macOS,
+  Ctrl+Shift+J auf Windows/Linux) öffnet eine durchsuchbare Liste aller
+  App-Aktionen (Menüpunkte, Tab-Funktionen) – Enter führt die ausgewählte
+  Aktion aus. Reduziert Auswendiglernen von Tab-Reihenfolgen und
+  Tastenkürzeln, auf beiden Plattformen (Qt und wx) implementiert.
+- **Medien-Tab**: Radiosender lassen sich jetzt als Favoriten speichern
+  (persistiert), yt-dlp-Streams zeigen bei vorhandenen Kapitel-Metadaten
+  eine Kapitelnavigation mit Sprungfunktion, und bei lokaler
+  Dateiwiedergabe lassen sich Live-Effekte (Kompressor/Limiter über die
+  Pedalboard-Bibliothek) anwenden. Live-Effekte sind aus SDK-Gründen nur
+  für lokale Dateien möglich, nicht für Webradio/YouTube/Podcast-Streams.
+- **Plugin-Marketplace**: Der In-App-Plugin-Browser zeigte bisher auf eine
+  Platzhalter-URL ohne Inhalt. Es gibt jetzt einen echten, im Repository
+  gehosteten Katalog (docs/plugin_catalog.json) samt einem neuen
+  Demo-Plugin (Begrüßungsansage beim Verbinden).
+- **Barrierefreiheit**: Neue `AccessibleSpinCtrl`- und
+  `CustomTextEntryDialog`-Controls (macOS/wx) nach dem Vorbild von
+  m45wxcontrols – zuverlässiger von VoiceOver vorgelesen als
+  `wx.SpinCtrlDouble`. Bereits angewendet auf die Nutzer-Positionierung
+  (X/Y/Z) im Admin-Bereich.
+- Bugfix: Der "Nutzerwatcher" (serverweite Beobachtung bestimmter
+  Nutzernamen mit Ansage bei Beitritt, seit v6.5.0) funktionierte bisher
+  nur auf macOS – der Verwaltungsdialog existierte auch unter
+  Windows/Linux, war aber nie an das Beitritts-Event angeschlossen. Jetzt
+  auf beiden Plattformen aktiv.
+- Über 550 neue/korrigierte FR/ES-Wörterbucheinträge im Rahmen dieser
+  Änderungen (vollständige Übersetzungsabdeckung verifiziert).
+- ROADMAP.md und SERVER_PLAN.md dokumentieren den weiteren Fahrplan
+  (u. a. Geräte-Sync im lokalen Netzwerk, räumliches Audio, eigener
+  TeamTalk-kompatibler Server – letzterer abhängig von einer noch
+  ausstehenden Lizenzrückmeldung von BearWare.dk).
+
 2026-08-27 (v9.2.0)
 Neu: Vollständige Mehrsprachigkeit (DE/EN/FR/ES) für UI, Handbuch und Changelog
 

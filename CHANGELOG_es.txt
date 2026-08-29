@@ -1,6 +1,43 @@
 Changelog
 =========
 
+2026-08-29 (v10.0.0)
+Nuevas funciones: paleta de comandos, ampliación de la pestaña de medios, catálogo del mercado de complementos, mejoras de accesibilidad
+
+- **Paleta de comandos / búsqueda de acciones**: un nuevo atajo
+  (Cmd+Mayús+J en macOS, Ctrl+Mayús+J en Windows/Linux) abre una lista
+  buscable de todas las acciones de la aplicación (elementos de menú,
+  funciones de las pestañas) — Intro ejecuta la acción seleccionada.
+  Reduce la necesidad de memorizar el orden de las pestañas y los atajos
+  de teclado, implementado en ambas plataformas (Qt y wx).
+- **Pestaña de medios**: las emisoras de radio ahora se pueden guardar
+  como favoritas (persistente), las transmisiones de yt-dlp muestran
+  navegación por capítulos con salto cuando hay metadatos de capítulos
+  disponibles, y se pueden aplicar efectos en vivo (compresor/limitador
+  mediante la biblioteca Pedalboard) a la reproducción de archivos
+  locales. Los efectos en vivo solo son posibles para archivos locales
+  por motivos del SDK, no para transmisiones de radio web/YouTube/podcast.
+- **Mercado de complementos**: el navegador de complementos integrado
+  antes apuntaba a una URL de marcador de posición sin contenido. Ahora
+  existe un catálogo real alojado en el repositorio
+  (docs/plugin_catalog.json), junto con un nuevo complemento de
+  demostración (un anuncio de bienvenida al conectar).
+- **Accesibilidad**: nuevos controles `AccessibleSpinCtrl` y
+  `CustomTextEntryDialog` (macOS/wx) inspirados en m45wxcontrols — leídos
+  de forma más fiable por VoiceOver que `wx.SpinCtrlDouble`. Ya aplicados
+  al posicionamiento de usuarios (X/Y/Z) en el área de administración.
+- Corrección: el "vigilante de usuarios" (vigilancia en todo el servidor
+  de nombres de usuario específicos con aviso al unirse, desde la v6.5.0)
+  solo funcionaba en macOS — el diálogo de gestión también existía en
+  Windows/Linux, pero nunca estuvo conectado al evento de ingreso. Ahora
+  activo en ambas plataformas.
+- Más de 550 entradas nuevas/corregidas en los diccionarios FR/ES como
+  parte de este cambio (cobertura de traducción completa verificada).
+- ROADMAP.md y SERVER_PLAN.md documentan la hoja de ruta futura
+  (sincronización de dispositivos en la red local, audio espacial y un
+  servidor propio compatible con TeamTalk — este último pendiente de una
+  respuesta de licencia de BearWare.dk).
+
 2026-08-27 (v9.2.0)
 Nuevo: soporte multilingüe completo (DE/EN/FR/ES) para la UI, el manual y el changelog
 

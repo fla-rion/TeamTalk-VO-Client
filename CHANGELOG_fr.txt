@@ -1,6 +1,45 @@
 Changelog
 =========
 
+2026-08-29 (v10.0.0)
+Nouvelles fonctionnalités : palette de commandes, extension de l'onglet médias, catalogue de la place de marché des extensions, améliorations d'accessibilité
+
+- **Palette de commandes / recherche d'actions** : un nouveau raccourci
+  (Cmd+Maj+J sous macOS, Ctrl+Maj+J sous Windows/Linux) ouvre une liste
+  consultable de toutes les actions de l'application (éléments de menu,
+  fonctions des onglets) — Entrée exécute l'action sélectionnée. Réduit
+  le besoin de mémoriser l'ordre des onglets et les raccourcis clavier,
+  implémenté sur les deux plateformes (Qt et wx).
+- **Onglet médias** : les stations de radio peuvent désormais être
+  enregistrées comme favorites (persistant), les flux yt-dlp affichent
+  une navigation par chapitres avec saut lorsque des métadonnées de
+  chapitres sont disponibles, et des effets en direct (compresseur/
+  limiteur via la bibliothèque Pedalboard) peuvent être appliqués à la
+  lecture de fichiers locaux. Les effets en direct ne sont possibles que
+  pour les fichiers locaux pour des raisons liées au SDK, pas pour les
+  flux radio web/YouTube/podcast.
+- **Place de marché des extensions** : le navigateur d'extensions intégré
+  pointait auparavant vers une URL de remplacement sans contenu. Il existe
+  désormais un vrai catalogue hébergé dans le dépôt
+  (docs/plugin_catalog.json) ainsi qu'une nouvelle extension de
+  démonstration (une annonce de bienvenue à la connexion).
+- **Accessibilité** : nouveaux contrôles `AccessibleSpinCtrl` et
+  `CustomTextEntryDialog` (macOS/wx) inspirés de m45wxcontrols — lus plus
+  fiablement par VoiceOver que `wx.SpinCtrlDouble`. Déjà appliqués au
+  positionnement des utilisateurs (X/Y/Z) dans la zone d'administration.
+- Correctif : le « surveillant d'utilisateurs » (surveillance à l'échelle
+  du serveur de noms d'utilisateur spécifiques avec annonce à l'arrivée,
+  depuis la v6.5.0) ne fonctionnait que sous macOS — la boîte de dialogue
+  de gestion existait aussi sous Windows/Linux, mais n'était jamais reliée
+  à l'événement d'arrivée. Désormais actif sur les deux plateformes.
+- Plus de 550 nouvelles entrées/corrections dans les dictionnaires FR/ES
+  dans le cadre de ce changement (couverture de traduction complète
+  vérifiée).
+- ROADMAP.md et SERVER_PLAN.md documentent la suite de la feuille de route
+  (synchronisation d'appareils sur le réseau local, audio spatial, et un
+  serveur compatible TeamTalk maison — ce dernier en attente d'une
+  réponse de BearWare.dk concernant la licence).
+
 2026-08-27 (v9.2.0)
 Nouveau : prise en charge multilingue complète (DE/EN/FR/ES) pour l'UI, le manuel et le changelog
 
