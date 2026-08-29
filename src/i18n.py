@@ -6532,6 +6532,34 @@ _TRANSLATIONS_ES.update({
     "Position Z": "Posición Z",
 })
 
+# v10.1.0 – Automatisches räumliches Audio (Roadmap Punkt 4, audio.py).
+_TRANSLATIONS.update({
+    "Räumliches Audio": "Spatial Audio",
+    "Automatisches räumliches Audio": "Automatic spatial audio",
+    "Verteilt gleichzeitig sprechende Kanalmitglieder automatisch auf links/rechts/normal, damit sie sich akustisch unterscheiden lassen. Manuell gesetzte Stereo-Präferenzen (Kontextmenü pro Nutzer) haben immer Vorrang.":
+        "Automatically distributes channel members who are speaking at the same time across left/right/normal so they can be told apart by ear. Manually set stereo preferences (per-user context menu) always take priority.",
+    "Automatisches räumliches Audio aktiviert": "Automatic spatial audio enabled",
+    "Automatisches räumliches Audio deaktiviert": "Automatic spatial audio disabled",
+})
+
+_TRANSLATIONS_FR.update({
+    "Räumliches Audio": "Audio spatial",
+    "Automatisches räumliches Audio": "Audio spatial automatique",
+    "Verteilt gleichzeitig sprechende Kanalmitglieder automatisch auf links/rechts/normal, damit sie sich akustisch unterscheiden lassen. Manuell gesetzte Stereo-Präferenzen (Kontextmenü pro Nutzer) haben immer Vorrang.":
+        "Répartit automatiquement les membres du canal qui parlent en même temps entre gauche/droite/normal afin qu'on puisse les distinguer à l'oreille. Les préférences stéréo définies manuellement (menu contextuel par utilisateur) sont toujours prioritaires.",
+    "Automatisches räumliches Audio aktiviert": "Audio spatial automatique activé",
+    "Automatisches räumliches Audio deaktiviert": "Audio spatial automatique désactivé",
+})
+
+_TRANSLATIONS_ES.update({
+    "Räumliches Audio": "Audio espacial",
+    "Automatisches räumliches Audio": "Audio espacial automático",
+    "Verteilt gleichzeitig sprechende Kanalmitglieder automatisch auf links/rechts/normal, damit sie sich akustisch unterscheiden lassen. Manuell gesetzte Stereo-Präferenzen (Kontextmenü pro Nutzer) haben immer Vorrang.":
+        "Distribuye automáticamente entre izquierda/derecha/normal a los miembros del canal que hablan al mismo tiempo, para poder distinguirlos de oído. Las preferencias estéreo establecidas manualmente (menú contextual por usuario) siempre tienen prioridad.",
+    "Automatisches räumliches Audio aktiviert": "Audio espacial automático activado",
+    "Automatisches räumliches Audio deaktiviert": "Audio espacial automático desactivado",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
