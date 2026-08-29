@@ -6416,6 +6416,64 @@ _TRANSLATIONS_ES.update({
     'Webradio': 'Radio web',
 })
 
+# v10.0.0 – Medien-Tab: Webradio-Favoriten, Live-Effekte, Kapitelnavigation.
+_TRANSLATIONS.update({
+    "Als &Favorit speichern": "Save as &favorite",
+    "Als Favorit gespeichert: {}": "Saved as favorite: {}",
+    "Favorit &entfernen": "&Remove favorite",
+    "Favorit entfernt: {}": "Favorite removed: {}",
+    "Favoriten": "Favorites",
+    "Kapitel": "Chapters",
+    "Kapitel: {}": "Chapter: {}",
+    "Kapitelsprung fehlgeschlagen": "Chapter jump failed",
+    "Kein Favorit ausgewählt": "No favorite selected",
+    "Kein Sender zum Speichern ausgewählt": "No station selected to save",
+    "Sender ist bereits als Favorit gespeichert": "Station is already saved as favorite",
+    "Webradio Favoriten": "Web radio favorites",
+    "Live-Effekte anwenden (Kompressor/Limiter)": "Apply live effects (compressor/limiter)",
+    "Live-Effekte fehlgeschlagen: {}": "Live effects failed: {}",
+    "Live-Effekte: Paket 'pedalboard' nicht installiert": "Live effects: package 'pedalboard' not installed",
+    "Effekte werden angewendet...": "Applying effects...",
+})
+
+_TRANSLATIONS_FR.update({
+    "Als &Favorit speichern": "Enregistrer comme &favori",
+    "Als Favorit gespeichert: {}": "Enregistré comme favori : {}",
+    "Favorit &entfernen": "&Supprimer le favori",
+    "Favorit entfernt: {}": "Favori supprimé : {}",
+    "Favoriten": "Favoris",
+    "Kapitel": "Chapitres",
+    "Kapitel: {}": "Chapitre : {}",
+    "Kapitelsprung fehlgeschlagen": "Échec du saut de chapitre",
+    "Kein Favorit ausgewählt": "Aucun favori sélectionné",
+    "Kein Sender zum Speichern ausgewählt": "Aucune station sélectionnée à enregistrer",
+    "Sender ist bereits als Favorit gespeichert": "La station est déjà enregistrée comme favori",
+    "Webradio Favoriten": "Favoris radio web",
+    "Live-Effekte anwenden (Kompressor/Limiter)": "Appliquer des effets en direct (compresseur/limiteur)",
+    "Live-Effekte fehlgeschlagen: {}": "Échec des effets en direct : {}",
+    "Live-Effekte: Paket 'pedalboard' nicht installiert": "Effets en direct : le paquet « pedalboard » n'est pas installé",
+    "Effekte werden angewendet...": "Application des effets...",
+})
+
+_TRANSLATIONS_ES.update({
+    "Als &Favorit speichern": "Guardar como &favorito",
+    "Als Favorit gespeichert: {}": "Guardado como favorito: {}",
+    "Favorit &entfernen": "&Eliminar favorito",
+    "Favorit entfernt: {}": "Favorito eliminado: {}",
+    "Favoriten": "Favoritos",
+    "Kapitel": "Capítulos",
+    "Kapitel: {}": "Capítulo: {}",
+    "Kapitelsprung fehlgeschlagen": "Error al saltar de capítulo",
+    "Kein Favorit ausgewählt": "Ningún favorito seleccionado",
+    "Kein Sender zum Speichern ausgewählt": "Ninguna emisora seleccionada para guardar",
+    "Sender ist bereits als Favorit gespeichert": "La emisora ya está guardada como favorita",
+    "Webradio Favoriten": "Favoritos de radio web",
+    "Live-Effekte anwenden (Kompressor/Limiter)": "Aplicar efectos en vivo (compresor/limitador)",
+    "Live-Effekte fehlgeschlagen: {}": "Error en los efectos en vivo: {}",
+    "Live-Effekte: Paket 'pedalboard' nicht installiert": "Efectos en vivo: el paquete 'pedalboard' no está instalado",
+    "Effekte werden angewendet...": "Aplicando efectos...",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import tempfile
 import subprocess
 import sys
 import threading
@@ -90,6 +91,9 @@ class MediaTab(QWidget):
         self._streaming = False
         self._yt_results: list = []
         self._radio_search_results: list = []
+        self._radio_favorites: list = []
+        self._yt_chapters: list = []
+        self._fx_tempdir: Optional[str] = None
         self._podcast_results: list = []
         self._podcast_episodes: list = []
         self._playlist_tracks: List[str] = []
@@ -124,8 +128,10 @@ class MediaTab(QWidget):
 
         self._source_stack = QStackedWidget()
         self._source_stack.addWidget(self._build_file_tab())      # 0
+        self.media_fx_enable.setChecked(bool(getattr(self.window.settings_store.settings, "media_fx_enabled", False)))
         self._source_stack.addWidget(self._build_ytdlp_tab())     # 1
         self._source_stack.addWidget(self._build_radio_tab())     # 2
+        self._refresh_radio_favorites()
         self._source_stack.addWidget(self._build_podcast_tab())   # 3
         self._source_stack.addWidget(self._build_playlist_tab())  # 4
         self._source_stack.addWidget(self._build_spotify_tab())   # 5
@@ -209,6 +215,9 @@ class MediaTab(QWidget):
         self.stream_gain.setRange(10, 400)
         self.stream_gain.setValue(50)
         url_form.addRow(_("Lautstärke (10–400, Std: 50)"), self.stream_gain)
+        self.media_fx_enable = QCheckBox(_("Live-Effekte anwenden (Kompressor/Limiter)"))
+        self.media_fx_enable.stateChanged.connect(self.on_media_fx_toggle)
+        url_form.addRow("", self.media_fx_enable)
         layout.addWidget(url_group)
 
         btn_row = QHBoxLayout()
@@ -267,6 +276,15 @@ class MediaTab(QWidget):
         self.yt_status = QLabel(_("Status: bereit"))
         layout.addWidget(self.yt_status)
 
+        self.yt_chapters_label = QLabel(_("Kapitel"))
+        self.yt_chapters = QListWidget()
+        self.yt_chapters.setAccessibleName(_("Kapitel"))
+        self.yt_chapters.currentRowChanged.connect(self._on_yt_chapter_select)
+        layout.addWidget(self.yt_chapters_label)
+        layout.addWidget(self.yt_chapters)
+        self.yt_chapters_label.hide()
+        self.yt_chapters.hide()
+
         ctrl_row = QHBoxLayout()
         self.yt_stream_btn = QPushButton(_("St&reamen"))
         self.yt_stream_btn.clicked.connect(self.on_yt_stream)
@@ -307,7 +325,24 @@ class MediaTab(QWidget):
         self.radio_search_results.setAccessibleName(_("Webradio Suchergebnisse"))
         self.radio_search_results.currentRowChanged.connect(self._on_radio_search_select)
         search_inner.addWidget(self.radio_search_results, 1)
+        fav_btn_row = QHBoxLayout()
+        self.radio_fav_add_btn = QPushButton(_("Als &Favorit speichern"))
+        self.radio_fav_add_btn.clicked.connect(self.on_radio_fav_add)
+        fav_btn_row.addWidget(self.radio_fav_add_btn)
+        fav_btn_row.addStretch()
+        search_inner.addLayout(fav_btn_row)
         layout.addWidget(search_group)
+
+        fav_group = QGroupBox(_("Favoriten"))
+        fav_inner = QVBoxLayout(fav_group)
+        self.radio_favorites_list = QListWidget()
+        self.radio_favorites_list.setAccessibleName(_("Webradio Favoriten"))
+        self.radio_favorites_list.currentRowChanged.connect(self._on_radio_fav_select)
+        fav_inner.addWidget(self.radio_favorites_list, 1)
+        self.radio_fav_remove_btn = QPushButton(_("Favorit &entfernen"))
+        self.radio_fav_remove_btn.clicked.connect(self.on_radio_fav_remove)
+        fav_inner.addWidget(self.radio_fav_remove_btn)
+        layout.addWidget(fav_group)
 
         preset_group = QGroupBox(_("Senderliste"))
         preset_inner = QVBoxLayout(preset_group)
@@ -580,10 +615,67 @@ class MediaTab(QWidget):
     def _gain_float(self, spinbox: QSpinBox) -> float:
         return max(0.1, spinbox.value() / 100.0)
 
+    def on_media_fx_toggle(self, _state: int) -> None:
+        enabled = self.media_fx_enable.isChecked()
+        self.window.settings_store.settings.media_fx_enabled = enabled
+        self.window.settings_store.save()
+
+    def _apply_media_fx(self, path: str) -> str:
+        """Wendet Kompressor/Limiter offline auf eine lokale Datei an (nur Datei-
+        Wiedergabe – echte Live-Streams laufen komplett im SDK ohne Python-Hook
+        für Sample-Daten). Gibt bei Erfolg den Pfad zur Temp-Datei zurück, sonst
+        den Original-Pfad."""
+        settings = self.window.settings_store.settings
+        if not getattr(settings, "media_fx_enabled", False) or not os.path.isfile(path):
+            return path
+        try:
+            from pedalboard import Pedalboard, Compressor, Limiter
+            from pedalboard.io import AudioFile
+        except ImportError:
+            self.window.set_status(_("Live-Effekte: Paket 'pedalboard' nicht installiert"))
+            return path
+        effects = []
+        if getattr(settings, "media_fx_compressor", True):
+            effects.append(Compressor(threshold_db=-20, ratio=4))
+        if getattr(settings, "media_fx_limiter", True):
+            threshold = float(getattr(settings, "media_fx_limiter_threshold_db", -1.0) or -1.0)
+            effects.append(Limiter(threshold_db=threshold))
+        if not effects:
+            return path
+        try:
+            board = Pedalboard(effects)
+            out_dir = tempfile.mkdtemp(prefix="ttvo_fx_")
+            out_path = os.path.join(out_dir, "processed.wav")
+            with AudioFile(path) as f:
+                with AudioFile(out_path, "w", f.samplerate, f.num_channels) as o:
+                    while f.tell() < f.frames:
+                        chunk = f.read(f.samplerate)
+                        o.write(board(chunk, f.samplerate, reset=False))
+            self._fx_tempdir = out_dir
+            return out_path
+        except Exception as exc:
+            self.window.set_status(_("Live-Effekte fehlgeschlagen: {}").format(exc))
+            return path
+
     def on_start_stream(self) -> None:
         url = self.stream_url.text().strip()
         if not url:
             return
+        if not getattr(self.window.settings_store.settings, "media_fx_enabled", False) or not os.path.isfile(url):
+            self._start_file_stream(url)
+            return
+        self.stream_start_btn.setEnabled(False)
+        self.window.set_status(_("Effekte werden angewendet..."))
+
+        def worker():
+            from ui_qt.call_after import call_after
+            processed = self._apply_media_fx(url)
+            call_after(self._start_file_stream, processed)
+            call_after(self.stream_start_btn.setEnabled, True)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _start_file_stream(self, url: str) -> None:
         ok = self.window.client.start_streaming_media_to_channel(url, preamp_gain=self._gain_float(self.stream_gain))
         if ok:
             self._streaming = True
@@ -604,6 +696,10 @@ class MediaTab(QWidget):
                 pass
             self._streaming = False
             self._pl_streaming = False
+            self._set_yt_chapters([])
+            if self._fx_tempdir:
+                shutil.rmtree(self._fx_tempdir, ignore_errors=True)
+                self._fx_tempdir = None
             self.window.set_status(_("Streaming gestoppt"))
 
     # ------------------------------------------------------------------
@@ -727,22 +823,58 @@ class MediaTab(QWidget):
                 if not stream_url:
                     call_after(self._yt_stream_failed, "Keine Stream-URL gefunden")
                     return
-                call_after(self._yt_stream_ready, stream_url)
+                chapters = []
+                try:
+                    meta_cmd = [ytdlp, "--dump-json", "--no-playlist", "--skip-download", url]
+                    meta_proc = subprocess.run(meta_cmd, capture_output=True, text=True, timeout=30)
+                    if meta_proc.returncode == 0 and meta_proc.stdout.strip():
+                        meta = json.loads(meta_proc.stdout.splitlines()[0])
+                        for ch in meta.get("chapters") or []:
+                            title = ch.get("title") or "Kapitel"
+                            start = ch.get("start_time")
+                            if start is not None:
+                                chapters.append({"title": title, "start": float(start)})
+                except Exception:
+                    chapters = []
+                call_after(self._yt_stream_ready, stream_url, chapters)
             except Exception as exc:
                 from ui_qt.call_after import call_after as _ca
                 _ca(self._yt_stream_failed, str(exc))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _yt_stream_ready(self, stream_url: str) -> None:
+    def _yt_stream_ready(self, stream_url: str, chapters: Optional[list] = None) -> None:
         self.yt_stream_btn.setEnabled(True)
         ok = self.window.client.start_streaming_media_to_channel(stream_url, preamp_gain=self._gain_float(self.yt_gain))
         if ok:
             self._streaming = True
             self.yt_status.setText(_("Status: Stream läuft"))
             self.window.set_status(_("yt-dlp Streaming gestartet"))
+            self._set_yt_chapters(chapters or [])
         else:
             self.yt_status.setText(_("Status: Streaming fehlgeschlagen"))
+
+    def _set_yt_chapters(self, chapters: list) -> None:
+        self._yt_chapters = chapters
+        self.yt_chapters.clear()
+        if chapters:
+            for c in chapters:
+                sec = int(c["start"])
+                self.yt_chapters.addItem(f"{c['title']} — {sec // 60}:{sec % 60:02d}")
+            self.yt_chapters_label.show()
+            self.yt_chapters.show()
+        else:
+            self.yt_chapters_label.hide()
+            self.yt_chapters.hide()
+
+    def _on_yt_chapter_select(self, row: int) -> None:
+        if 0 <= row < len(self._yt_chapters):
+            start = self._yt_chapters[row].get("start", 0.0)
+            ok = self.window.client.update_streaming_media(paused=False, offset_ms=int(start * 1000))
+            if ok:
+                self.window.set_status(_("Kapitel: {}").format(self._yt_chapters[row].get("title", "")))
+            else:
+                self.window.set_status(_("Kapitelsprung fehlgeschlagen"))
 
     def _yt_stream_failed(self, message: str) -> None:
         self.yt_stream_btn.setEnabled(True)
@@ -808,6 +940,54 @@ class MediaTab(QWidget):
             url = self._radio_search_results[row].get("url") or ""
             if url:
                 self.radio_url.setText(url)
+
+    def _refresh_radio_favorites(self) -> None:
+        favs = list(getattr(self.window.settings_store.settings, "radio_favorites", []) or [])
+        self._radio_favorites = favs
+        self.radio_favorites_list.clear()
+        for f in favs:
+            self.radio_favorites_list.addItem(f.get("name") or f.get("url") or "?")
+
+    def on_radio_fav_add(self) -> None:
+        name = ""
+        url = ""
+        row = self.radio_search_results.currentRow()
+        if 0 <= row < len(self._radio_search_results):
+            entry = self._radio_search_results[row]
+            name = entry.get("name") or ""
+            url = entry.get("url") or ""
+        if not url:
+            url = self.radio_url.text().strip()
+        if not url:
+            self.window.set_status(_("Kein Sender zum Speichern ausgewählt"))
+            return
+        name = name or "Sender"
+        favs = list(getattr(self.window.settings_store.settings, "radio_favorites", []) or [])
+        if any(f.get("url") == url for f in favs):
+            self.window.set_status(_("Sender ist bereits als Favorit gespeichert"))
+            return
+        favs.append({"name": name, "url": url})
+        self.window.settings_store.settings.radio_favorites = favs
+        self.window.settings_store.save()
+        self._refresh_radio_favorites()
+        self.window.set_status(_("Als Favorit gespeichert: {}").format(name))
+
+    def _on_radio_fav_select(self, row: int) -> None:
+        if 0 <= row < len(self._radio_favorites):
+            url = self._radio_favorites[row].get("url") or ""
+            if url:
+                self.radio_url.setText(url)
+
+    def on_radio_fav_remove(self) -> None:
+        row = self.radio_favorites_list.currentRow()
+        if not (0 <= row < len(self._radio_favorites)):
+            self.window.set_status(_("Kein Favorit ausgewählt"))
+            return
+        removed = self._radio_favorites.pop(row)
+        self.window.settings_store.settings.radio_favorites = list(self._radio_favorites)
+        self.window.settings_store.save()
+        self._refresh_radio_favorites()
+        self.window.set_status(_("Favorit entfernt: {}").format(removed.get("name") or removed.get("url") or ""))
 
     def on_radio_stream(self) -> None:
         url = self.radio_url.text().strip()
