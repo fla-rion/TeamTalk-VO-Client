@@ -8747,7 +8747,7 @@ class MainFrame(wx.Frame):
         import urllib.error
         def _worker():
             try:
-                url = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
+                url = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
                 req = urllib.request.Request(
                     url, headers={"Authorization": f"token {_upd_tok()}"}
                 )
@@ -8771,7 +8771,7 @@ class MainFrame(wx.Frame):
                         asset_name = assets[0].get("name", asset_name)
                     encoded_name = _uparse.quote(asset_name)
                     download_url = (
-                        f"https://git.garogaming.xyz/flarion/TeamTalk-VO-Client"
+                        f"https://git.leons.cc/flarion/TeamTalk-VO-Client"
                         f"/releases/download/v{tag}/{encoded_name}"
                     )
                     wx.CallAfter(

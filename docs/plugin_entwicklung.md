@@ -541,7 +541,7 @@ Alternativ Logs in eine Datei schreiben (siehe Beispiel 1).
 ---
 
 *Dieses Dokument wird mit jeder Version erweitert.*
-*Fragen und Fehlerberichte: https://git.garogaming.xyz/flarion/TeamTalk-VO-Client*
+*Fragen und Fehlerberichte: https://git.leons.cc/flarion/TeamTalk-VO-Client*
 
 ---
 
@@ -1096,4 +1096,4 @@ Alternatively write logs to a file (see Example 1).
 ---
 
 *This document is updated with each release.*
-*Questions and bug reports: https://git.garogaming.xyz/flarion/TeamTalk-VO-Client*
+*Questions and bug reports: https://git.leons.cc/flarion/TeamTalk-VO-Client*

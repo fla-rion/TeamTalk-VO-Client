@@ -16,7 +16,7 @@ APP_NAME = "TeamTalk VoiceOver Client"
 APP_VERSION = "6.2.0"
 APP_CODENAME = "Libero"
 APP_AUTHOR = "Florian Lichteblau (Flarion)"
-APP_URL = "https://git.garogaming.xyz/flarion/TeamTalk-VO-Client"
+APP_URL = "https://git.leons.cc/flarion/TeamTalk-VO-Client"
 APP_LICENSE = "MIT"
 
 # Minimum macOS-Version für alle v6 Features

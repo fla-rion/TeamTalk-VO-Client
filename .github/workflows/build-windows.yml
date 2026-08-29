@@ -95,7 +95,7 @@ jobs:
           $tag = $env:GITHUB_REF_NAME
           $zipPath = "dist\$env:ZIP_NAME"
           $token = $env:GITEA_TOKEN
-          $base = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+          $base = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
           $headers = @{ "Authorization" = "token $token"; "Content-Type" = "application/json" }
 
           # Gitea-Release für diesen Tag holen

@@ -4508,7 +4508,7 @@ class MainWindow(QMainWindow):
                 import urllib.request
                 import json as _json
                 TOKEN = _upd_tok()
-                url = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
+                url = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
                 req = urllib.request.Request(url, headers={"Authorization": f"token {TOKEN}"})
                 with urllib.request.urlopen(req, timeout=10) as r:
                     data = _json.loads(r.read())

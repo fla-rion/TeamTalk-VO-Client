@@ -108,7 +108,7 @@ jobs:
         run: |
           set -e
           tag="${GITHUB_REF_NAME}"
-          base="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+          base="https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
           token="${GITEA_TOKEN}"
 
           _parse_id() { python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true; }

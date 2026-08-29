@@ -25,7 +25,7 @@ if [ ! -f "$TOKEN_FILE" ]; then
 fi
 TOKEN=$(cat "$TOKEN_FILE" | tr -d '[:space:]')
 
-BASE_URL="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+BASE_URL="https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
 DMG_NAME="TeamTalk VO Client ${VERSION}.dmg"
 DMG_PATH="dist/${DMG_NAME}"
 
@@ -83,4 +83,4 @@ git push origin main
 
 echo ""
 echo "Fertig! Release v${VERSION} ist live:"
-echo "https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v${VERSION}"
+echo "https://git.leons.cc/flarion/TeamTalk-VO-Client/releases/tag/v${VERSION}"

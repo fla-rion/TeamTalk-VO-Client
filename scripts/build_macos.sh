@@ -21,7 +21,7 @@ cd "$SCRIPT_DIR"
 # Gitea-Zugangsdaten: aus $GITEA_TOKEN oder aus der origin-Remote-URL
 # (https://user:TOKEN@host/...) extrahiert – niemals im Skript hinterlegen.
 GITEA_TOKEN="${GITEA_TOKEN:-$(git remote get-url origin 2>/dev/null | sed -E 's#https://[^:]+:([^@]+)@.*#\1#')}"
-GITEA_BASE="https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+GITEA_BASE="https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 UPLOAD=true
 for arg in "$@"; do
@@ -143,6 +143,6 @@ echo ""
 echo "============================================================"
 echo " Fertig! dist/${DMG_NAME}"
 if $UPLOAD; then
-  echo " Release: https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v${VERSION}"
+  echo " Release: https://git.leons.cc/flarion/TeamTalk-VO-Client/releases/tag/v${VERSION}"
 fi
 echo "============================================================"

@@ -111,7 +111,7 @@ Linux: ebenfalls Qt-UI, nicht aktiv getestet.
 ## Git / Remote
 
 ```
-origin  https://git.garogaming.xyz/flarion/TeamTalk-VO-Client.git   (primär, Gitea)
+origin  https://git.leons.cc/flarion/TeamTalk-VO-Client.git         (primär, Gitea)
 github  https://github.com/fla-rion/TeamTalk-VO-Client.git           (Spiegel, GitHub)
 branch  main
 ```

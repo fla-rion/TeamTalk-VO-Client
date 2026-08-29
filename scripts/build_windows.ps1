@@ -6,7 +6,7 @@ param([switch]$NoUpload)
 
 $ErrorActionPreference = "Stop"
 
-$GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+$GITEA_API   = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 # Projektverzeichnis = eine Ebene ueber dem scripts/-Ordner
 # Resolve-Path loest ".." auf und liefert den absoluten Pfad
@@ -157,6 +157,6 @@ Write-Host ""
 Write-Host "============================================================"
 Write-Host " Fertig!  $zipName"
 if (-not $NoUpload) {
-    Write-Host " https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v$VERSION"
+    Write-Host " https://git.leons.cc/flarion/TeamTalk-VO-Client/releases/tag/v$VERSION"
 }
 Write-Host "============================================================"

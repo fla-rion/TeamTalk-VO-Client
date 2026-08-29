@@ -42,7 +42,7 @@ def _find_gitea_token() -> str:
 
 
 GITEA_TOKEN = _find_gitea_token()
-GITEA_API   = "https://git.garogaming.xyz/api/v1/repos/flarion/TeamTalk-VO-Client"
+GITEA_API   = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
 
 
 def run(*args):
@@ -155,5 +155,5 @@ print()
 print("=" * 60)
 print(f" Fertig!  dist\\{zip_name}")
 if not args.no_upload:
-    print(f" https://git.garogaming.xyz/flarion/TeamTalk-VO-Client/releases/tag/v{VERSION}")
+    print(f" https://git.leons.cc/flarion/TeamTalk-VO-Client/releases/tag/v{VERSION}")
 print("=" * 60)
