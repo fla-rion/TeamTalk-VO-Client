@@ -1,0 +1,14 @@
+{
+  "version": "1",
+  "plugins": [
+    {
+      "name": "welcome_greeting",
+      "display_name": "Willkommens-Plugin",
+      "version": "1.0.0",
+      "description": "Sagt beim Verbinden eine kurze Begrüßung mit Servername an.",
+      "author": "TeamTalk VO Client Team",
+      "download_url": "https://raw.githubusercontent.com/fla-rion/TeamTalk-VO-Client/main/examples/plugins/welcome_greeting.ttplugin",
+      "sha256": "b0c61184674b597fd250273c2657c06cf0a7b8f2029e2d7e577b841db7d8166d"
+    }
+  ]
+}
