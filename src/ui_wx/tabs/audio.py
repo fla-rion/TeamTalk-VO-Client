@@ -299,6 +299,21 @@ class AudioTab(wx.Panel):
         prefs_sizer.Add(prefs_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         sizer.Add(prefs_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.EXPAND, 8)
 
+        # --- Räumliches Audio (v10.1.0) ---
+        spatial_box = wx.StaticBox(self, label="Räumliches Audio")
+        spatial_sizer = wx.StaticBoxSizer(spatial_box, wx.VERTICAL)
+        self.auto_spatial_audio = wx.CheckBox(self, label="&Automatisches räumliches Audio")
+        self.auto_spatial_audio.SetName("Automatisches räumliches Audio")
+        self.auto_spatial_audio.SetHelpText(
+            "Verteilt gleichzeitig sprechende Kanalmitglieder automatisch auf links/rechts/normal, "
+            "damit sie sich akustisch unterscheiden lassen. Manuell gesetzte Stereo-Präferenzen "
+            "(Kontextmenü pro Nutzer) haben immer Vorrang."
+        )
+        self.auto_spatial_audio.SetValue(bool(self.frame.settings_store.settings.auto_spatial_audio))
+        self.auto_spatial_audio.Bind(wx.EVT_CHECKBOX, self._on_auto_spatial_audio)
+        spatial_sizer.Add(self.auto_spatial_audio, 0, wx.ALL, 8)
+        sizer.Add(spatial_sizer, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.BOTTOM | wx.EXPAND, 8)
+
         self.update_ptt_hotkey_label()
 
         # --- Lokale Wiedergabe ---
@@ -834,6 +849,15 @@ class AudioTab(wx.Panel):
     # ------------------------------------------------------------------
     # Preferences UI handlers
     # ------------------------------------------------------------------
+
+    def _on_auto_spatial_audio(self, _event) -> None:
+        enabled = bool(self.auto_spatial_audio.GetValue())
+        self.frame.settings_store.settings.auto_spatial_audio = enabled
+        self.frame.settings_store.save()
+        self.frame.set_status(
+            "Automatisches räumliches Audio aktiviert" if enabled
+            else "Automatisches räumliches Audio deaktiviert"
+        )
 
     def _on_pref_auto_apply(self, _event) -> None:
         self.frame.settings_store.settings.auto_apply_audio = bool(self.auto_apply_prefs.GetValue())

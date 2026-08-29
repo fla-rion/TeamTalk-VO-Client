@@ -4118,6 +4118,32 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
+    _AUTO_STEREO_CYCLE = ("normal", "left", "right")
+
+    def _auto_assign_stereo(self, user_id: int, channel_id: int) -> None:
+        """v10.1.0 – Weist einem neu beigetretenen Nutzer zyklisch eine
+        Stereo-Position zu (normal/links/rechts), sofern räumliches Audio
+        aktiviert ist und keine manuelle Präferenz existiert. Nur relevant
+        für den eigenen Kanal (nur dort ist der Nutzer überhaupt hörbar).
+        Rein zur Laufzeit – wird NICHT in user_stereo_prefs persistiert,
+        sonst vermischen sich automatische und manuelle Zuweisung dauerhaft.
+        """
+        try:
+            if not self.settings_store.settings.auto_spatial_audio:
+                return
+            my_ch = int(self.client.get_my_channel_id() or 0)
+            if not my_ch or channel_id != my_ch:
+                return
+            members = self.client.get_channel_users(my_ch) or []
+            ids = sorted(int(getattr(u, "nUserID", 0) or 0) for u in members)
+            if user_id not in ids:
+                return
+            idx = ids.index(user_id)
+            mode = self._AUTO_STEREO_CYCLE[idx % len(self._AUTO_STEREO_CYCLE)]
+            self._apply_user_stereo(user_id, mode)
+        except Exception:
+            pass
+
     def on_menu_user_stereo_normal(self, _event):
         if not self._require_connected("Stereo-Kanal"):
             return
@@ -10314,6 +10340,11 @@ class MainFrame(wx.Frame):
                 _stereo_mode = (self.settings_store.settings.user_stereo_prefs or {}).get(name)
                 if _stereo_mode:
                     wx.CallAfter(self._apply_user_stereo, user_id, _stereo_mode)
+                elif self.settings_store.settings.auto_spatial_audio:
+                    # v10.1.0 – automatische Stereo-Zuweisung, nur falls keine
+                    # manuelle Präferenz existiert und der Beitritt im eigenen
+                    # Kanal stattfindet (nur dort ist der Nutzer hörbar).
+                    wx.CallAfter(self._auto_assign_stereo, user_id, channel_id)
             # v2.7.0 – Webhook
             self._webhook.emit("user_join", {"user": name, "channel": channel_name})
             # v6.5.0 – Nutzerwatcher

@@ -326,6 +326,8 @@ class AppSettings:
     notify_background_broadcast_mode: str = "notification"
     auto_join_root_channel: bool = False
     user_stereo_prefs: Dict[str, str] = field(default_factory=dict)  # username → "normal"|"left"|"right"
+    # v10.1.0 – automatisches räumliches Audio (Roadmap Punkt 4)
+    auto_spatial_audio: bool = False
     # v7.1.0 features
     notification_rules: List[Dict] = field(default_factory=list)
     # auto-greeting
@@ -573,6 +575,7 @@ class SettingsStore:
                 data.get("notify_background_broadcast_mode", "notification" if _old_bc else "off") or "notification"
             )
             self.settings.auto_join_root_channel = bool(data.get("auto_join_root_channel", False))
+            self.settings.auto_spatial_audio = bool(data.get("auto_spatial_audio", False))
             raw_usp = data.get("user_stereo_prefs", {})
             self.settings.user_stereo_prefs = {str(k): str(v) for k, v in raw_usp.items()} if isinstance(raw_usp, dict) else {}
             # v3.5.0
@@ -780,6 +783,7 @@ class SettingsStore:
             "notify_background_channel_mode": str(self.settings.notify_background_channel_mode or "off"),
             "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),
             "auto_join_root_channel": bool(self.settings.auto_join_root_channel),
+            "auto_spatial_audio": bool(self.settings.auto_spatial_audio),
             "user_stereo_prefs": dict(self.settings.user_stereo_prefs or {}),
             "radio_favorites": list(self.settings.radio_favorites or []),
             "media_fx_enabled": bool(self.settings.media_fx_enabled),
