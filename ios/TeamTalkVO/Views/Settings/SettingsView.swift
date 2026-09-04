@@ -4,10 +4,32 @@ struct SettingsView: View {
     @EnvironmentObject var prefs: AppPreferencesStore
     @EnvironmentObject var connection: TTConnectionController
     @ObservedObject private var cloudSync = CloudSyncService.shared
+    @ObservedObject private var googleSync = GoogleDriveSyncService.shared
+    @ObservedObject private var companion = CompanionClientService.shared
 
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: Sync-Übersicht
+                Section("Synchronisierung") {
+                    NavigationLink(destination: SyncOverviewView()) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "arrow.triangle.2.circlepath.icloud")
+                                .font(.title2)
+                                .foregroundStyle(.blue)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Sync-Einstellungen")
+                                    .fontWeight(.medium)
+                                Text(syncSummary)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Sync-Einstellungen öffnen: \(syncSummary)")
+                }
+
                 Section("iCloud-Synchronisierung") {
                     Toggle("Über iCloud synchronisieren", isOn: $cloudSync.syncEnabled)
                         .accessibilityLabel("iCloud-Synchronisierung ein- oder ausschalten")
@@ -96,6 +118,66 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Google Drive (Plattformübergreifend)") {
+                    if googleSync.isSignedIn {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(googleSync.userEmail).fontWeight(.medium)
+                                Text(googleSync.syncStatus.label).font(.caption).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button("Abmelden", role: .destructive) { googleSync.signOut() }
+                                .font(.caption)
+                                .accessibilityLabel("Von Google abmelden")
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Google-Konto: \(googleSync.userEmail), \(googleSync.syncStatus.label)")
+
+                        Toggle("Google Drive Sync", isOn: $googleSync.syncEnabled)
+                            .accessibilityLabel("Google Drive Synchronisierung ein- oder ausschalten")
+                        if googleSync.syncEnabled {
+                            Button("Jetzt mit Google hochladen") {
+                                Task {
+                                    await googleSync.upload(servers: [], preferences: AppPreferences())
+                                }
+                            }
+                            .accessibilityLabel("Daten jetzt zu Google Drive hochladen")
+                        }
+                    } else {
+                        Button(action: { Task { await googleSync.signIn() } }) {
+                            HStack {
+                                Image(systemName: "g.circle.fill").foregroundStyle(.blue).accessibilityHidden(true)
+                                Text("Mit Google anmelden")
+                            }
+                        }
+                        .accessibilityLabel("Mit Google-Konto anmelden für plattformübergreifende Synchronisierung")
+                        .accessibilityHint("Synchronisiert Serverliste über iOS, Android und Windows")
+                    }
+                    Text("Hinweis: Für Google Drive Sync muss eine Google Cloud Client-ID in Info.plist hinterlegt werden.")
+                        .font(.caption2).foregroundStyle(.tertiary)
+                        .accessibilityLabel("Hinweis zur Google-Cloud-Konfiguration")
+                }
+
+                Section("Mac-Client (lokales Netzwerk)") {
+                    NavigationLink(destination: CompanionView()) {
+                        HStack(spacing: 12) {
+                            Image(systemName: companion.isConnected ? "desktopcomputer" : "desktopcomputer.slash")
+                                .foregroundStyle(companion.isConnected ? .green : .secondary)
+                                .accessibilityHidden(true)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Mac-Client verbinden")
+                                Text(companion.isConnected
+                                    ? "Verbunden mit \(companion.serverHost)"
+                                    : "Nicht verbunden – gleiches WLAN")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .accessibilityLabel("Mac-Client-Verbindung: \(companion.isConnected ? "verbunden" : "nicht verbunden")")
+                    .accessibilityHint("Verbindet die iOS-App mit dem macOS-Hauptclient über das lokale Netzwerk")
+                }
+
                 Section("Info") {
                     LabeledContent("Version",
                         value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–")
@@ -107,6 +189,14 @@ struct SettingsView: View {
             }
             .navigationTitle("Einstellungen")
         }
+    }
+
+    private var syncSummary: String {
+        var active: [String] = []
+        if cloudSync.syncEnabled { active.append("iCloud") }
+        if googleSync.syncEnabled { active.append("Google Drive") }
+        if companion.isConnected { active.append("Mac-Client") }
+        return active.isEmpty ? "Kein Sync aktiv" : active.joined(separator: " · ")
     }
 
     private var syncStatusIcon: String {
