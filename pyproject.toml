@@ -13,7 +13,6 @@ description = "VoiceOver/TalkBack-zugänglicher TeamTalk-Client"
 sources = ["src/teamtalk_vo", "src"]
 requires = [
     "requests>=2.32",
-    "zeroconf>=0.132.2",
 ]
 
 [tool.briefcase.app.teamtalk-vo.android]
