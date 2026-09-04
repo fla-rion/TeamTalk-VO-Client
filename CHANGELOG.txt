@@ -1,7 +1,7 @@
 Changelog
 =========
 
-2026-09-04 (v10.3.0-dev)
+2026-09-04 (v10.3.0)
 Neu: Android-Port via BeeWare/Briefcase + TalkBack-Accessibility
 
 - **Android-App** (BeeWare/Briefcase + Toga): Neuer Platform-Port für Android.

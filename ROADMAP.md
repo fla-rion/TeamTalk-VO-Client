@@ -97,7 +97,7 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 
 ---
 
-## 8. ~~Android-Port (BeeWare/Briefcase + TalkBack)~~ – erledigt in v10.3.0-dev
+## 8. ~~Android-Port (BeeWare/Briefcase + TalkBack)~~ – erledigt in v10.3.0
 
 ✅ · Implementiert via BeeWare/Briefcase + Toga. TalkBack-Accessibility über Rubicon-Java (`src/ui_android/a11y.py`): Content Descriptions, Live Regions, `announceForAccessibility()`. TeamTalk-Java-SDK via Wrapper (`src/teamtalk_client_android.py`). CI-Workflow für APK-Build.
 
