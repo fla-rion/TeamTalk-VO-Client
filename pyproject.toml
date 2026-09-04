@@ -10,7 +10,7 @@ author_email = "wjvbf4xc6q@privaterelay.appleid.com"
 [tool.briefcase.app.teamtalk-vo]
 formal_name = "TeamTalk VO Client"
 description = "VoiceOver/TalkBack-zugänglicher TeamTalk-Client"
-sources = ["src"]
+sources = ["src/teamtalk_vo", "src"]
 requires = [
     "toga>=0.4.0",
     "rubicon-java>=0.4.0",
