@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version-Tag (z.B. v10.3.0)'
+        required: false
+        default: 'manual'
 
 jobs:
   build:
