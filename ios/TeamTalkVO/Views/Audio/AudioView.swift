@@ -1,8 +1,10 @@
 import SwiftUI
+import AVFoundation
 
 struct AudioView: View {
     @EnvironmentObject var connection: TTConnectionController
     @EnvironmentObject var prefs: AppPreferencesStore
+    @ObservedObject private var audioSession = AudioSessionManager.shared
 
     var body: some View {
         NavigationStack {
@@ -12,6 +14,30 @@ struct AudioView: View {
                 Form {
                     Section {
                         PTTButton()
+                    }
+                    Section("Audioausgang") {
+                        // Lautsprecher-Umschaltung — AEC bleibt in beiden Modi aktiv
+                        Button(action: { audioSession.toggleSpeaker() }) {
+                            HStack {
+                                Image(systemName: audioSession.currentRoute.systemImageName)
+                                    .foregroundStyle(audioSession.currentRoute == .speaker ? .green : .primary)
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Ausgang: \(audioSession.currentRoute.displayName)")
+                                    Text("Echo-Unterdrückung aktiv")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                        .accessibilityLabel("Audio-Ausgang: \(audioSession.currentRoute.displayName)")
+                        .accessibilityHint("Tippe zum Umschalten zwischen Hörer und Lautsprecher. Echo-Unterdrückung bleibt aktiv.")
                     }
                     Section("Lautstärke") {
                         VStack(alignment: .leading) {
