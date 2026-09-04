@@ -54,11 +54,13 @@ class TTConnectionController: ObservableObject {
 
     func disconnect() {
         eventLoopTask?.cancel()
+        logEvent("Verbindung getrennt")
         state = .disconnected
         channels = []
         users = []
         currentChannelId = 0
         serverProperties = nil
+        sessionStartDate = nil
     }
 
     // MARK: - Channel Operations
@@ -145,10 +147,81 @@ class TTConnectionController: ObservableObject {
         // TT_DoMoveUser
     }
 
+    // MARK: - Files
+    @Published var remoteFiles: [RemoteFile] = []
+
+    func refreshFileList() async {
+        // TT_DoGetServerFiles
+        remoteFiles = [
+            RemoteFile(id: 1, name: "Beispiel.txt", size: 1024, owner: "admin", channelId: currentChannelId),
+            RemoteFile(id: 2, name: "Musik.mp3", size: 4_200_000, owner: "testnutzer", channelId: currentChannelId),
+        ]
+    }
+
+    func deleteFile(fileId: Int) async {
+        // TT_DoDeleteFile
+        remoteFiles.removeAll { $0.id == fileId }
+    }
+
+    func downloadFile(_ file: RemoteFile, to localURL: URL, progress: @escaping (Double) -> Void) async throws {
+        // TT_DoGetFile – stub: simulates progress
+        for i in 1...10 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            progress(Double(i) / 10.0)
+        }
+    }
+
+    // MARK: - Admin
+    @Published var userAccounts: [UserAccount] = []
+    @Published var banList: [BannedUser] = []
+
+    func loadUserAccounts() async {
+        // TT_DoListUserAccounts
+        userAccounts = [
+            UserAccount(username: "admin", userType: .admin),
+            UserAccount(username: "testnutzer", userType: .default_),
+        ]
+    }
+
+    func createUserAccount(_ account: UserAccount, password: String) async {
+        // TT_DoNewUserAccount
+        userAccounts.append(account)
+    }
+
+    func deleteUserAccount(username: String) async {
+        // TT_DoDeleteUserAccount
+        userAccounts.removeAll { $0.username == username }
+    }
+
+    func loadBanList() async {
+        // TT_DoListBans
+        banList = []
+    }
+
+    func unbanUser(ipAddress: String) async {
+        // TT_DoUnBanUser
+        banList.removeAll { $0.ipAddress == ipAddress }
+    }
+
+    // MARK: - Session Stats
+    var sessionStartDate: Date? = nil
+    @Published var messagesSent: Int = 0
+    @Published var messagesReceived: Int = 0
+    @Published var reconnectCount: Int = 0
+    @Published var systemLog: [String] = []
+
+    func logEvent(_ message: String) {
+        let ts = ISO8601DateFormatter().string(from: Date())
+        systemLog.append("[\(ts)] \(message)")
+        if systemLog.count > 500 { systemLog.removeFirst() }
+    }
+
     // MARK: - Simulation (Entwicklung ohne SDK)
     private func simulateConnection(server: SavedServerRecord) async {
         try? await Task.sleep(nanoseconds: 800_000_000)
         state = .loggedIn
+        sessionStartDate = Date()
+        logEvent("Verbunden mit \(server.host):\(server.tcpPort)")
         serverProperties = ServerProperties(name: server.name, motd: "Willkommen", version: "5.12")
         channels = [
             ChannelEntry(id: 1, name: "Root", parentId: 0, topic: "", userCount: 3, hasPassword: false, isJoined: true),

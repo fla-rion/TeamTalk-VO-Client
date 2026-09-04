@@ -10,12 +10,18 @@ struct AppPreferences: Codable {
     var microphoneGain: Int = 100
     var elevenLabsApiKey: String = ""
     var elevenLabsVoiceId: String = ""
+    var elevenLabsModel: String = "eleven_multilingual_v2"
+    var elevenLabsStability: Double = 0.5
+    var elevenLabsSimilarity: Double = 0.75
+    var elevenLabsStreamingMode: Bool = false
     var announcementsEnabled: Bool = true
     var announcementMode: AnnouncementMode = .full
     var soundTheme: SoundTheme = .default_
     var autoReconnect: Bool = true
     var rejoinLastChannel: Bool = true
     var mediaStreamingURL: String = ""
+    var favoriteChannelIds: [Int] = []
+    var serverGroups: [String: [String]] = [:]  // group name → [server UUID strings]
 }
 
 enum AnnouncementMode: String, Codable, CaseIterable {

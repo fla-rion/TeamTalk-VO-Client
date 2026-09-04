@@ -35,11 +35,29 @@ struct MainTabView: View {
                 }
                 .accessibilityLabel("Medien-Tab")
 
+            FilesView()
+                .tabItem {
+                    Label("Dateien", systemImage: "folder")
+                }
+                .accessibilityLabel("Dateien-Tab")
+
             SpeakView()
                 .tabItem {
                     Label("Sprechen", systemImage: "waveform")
                 }
                 .accessibilityLabel("Sprechen-Tab")
+
+            AdminView()
+                .tabItem {
+                    Label("Admin", systemImage: "shield")
+                }
+                .accessibilityLabel("Administration-Tab")
+
+            SystemView()
+                .tabItem {
+                    Label("System", systemImage: "terminal")
+                }
+                .accessibilityLabel("System-Tab")
 
             SettingsView()
                 .tabItem {
