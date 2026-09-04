@@ -3,10 +3,45 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var prefs: AppPreferencesStore
     @EnvironmentObject var connection: TTConnectionController
+    @ObservedObject private var cloudSync = CloudSyncService.shared
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("iCloud-Synchronisierung") {
+                    Toggle("Über iCloud synchronisieren", isOn: $cloudSync.syncEnabled)
+                        .accessibilityLabel("iCloud-Synchronisierung ein- oder ausschalten")
+                        .accessibilityHint("Synchronisiert Serverliste und Einstellungen automatisch auf alle Geräte mit deiner Apple-ID")
+
+                    if cloudSync.syncEnabled {
+                        HStack {
+                            if case .syncing = cloudSync.syncStatus {
+                                ProgressView().scaleEffect(0.8)
+                            } else {
+                                Image(systemName: syncStatusIcon)
+                                    .foregroundStyle(syncStatusColor)
+                                    .accessibilityHidden(true)
+                            }
+                            Text(cloudSync.syncStatus.label)
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                            Spacer()
+                            Button("Jetzt synchronisieren") {
+                                cloudSync.uploadAll()
+                            }
+                            .font(.caption)
+                            .accessibilityLabel("Daten jetzt mit iCloud synchronisieren")
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Sync-Status: \(cloudSync.syncStatus.label)")
+
+                        Text("ElevenLabs API-Schlüssel wird aus Sicherheitsgründen nicht synchronisiert.")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .accessibilityLabel("Hinweis: ElevenLabs API-Schlüssel wird nicht synchronisiert")
+                    }
+                }
+
                 Section("Profil") {
                     LabeledContent("Nickname") {
                         TextField("Mein Name", text: $prefs.preferences.nickname)
@@ -71,6 +106,24 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Einstellungen")
+        }
+    }
+
+    private var syncStatusIcon: String {
+        switch cloudSync.syncStatus {
+        case .idle:       return "icloud"
+        case .syncing:    return "icloud"
+        case .success:    return "icloud.and.arrow.up"
+        case .error:      return "icloud.slash"
+        }
+    }
+
+    private var syncStatusColor: Color {
+        switch cloudSync.syncStatus {
+        case .idle:    return .secondary
+        case .syncing: return .blue
+        case .success: return .green
+        case .error:   return .red
         }
     }
 }
