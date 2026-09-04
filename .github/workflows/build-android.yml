@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Python 3.11 einrichten
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -36,7 +36,7 @@ jobs:
       - name: Abhängigkeiten installieren
         run: |
           python -m pip install --upgrade pip
-          pip install briefcase toga toga-android
+          pip install briefcase toga toga-android rubicon-java
 
       - name: Version aus app_wx.py lesen
         id: version
@@ -51,63 +51,77 @@ jobs:
               out.write(f"version={version}\n")
 
       - name: TeamTalk5.aar herunterladen
-        # Das AAR ist nicht im Repo (Lizenz). Es wird aus dem letzten
-        # GitHub-Release des eigenen Repos bezogen, wo es als Asset
-        # hinterlegt sein muss (manuell hochgeladen nach erstem Build).
-        # Alternativ: TEAMTALK_AAR_URL als Repository-Secret setzen.
+        # Das AAR wird aus TEAMTALK_AAR_URL bezogen (Repository-Secret).
+        # Anleitung zum Beschaffen: libs/README.libs.md
         run: |
           mkdir -p libs
           if [ -n "${{ secrets.TEAMTALK_AAR_URL }}" ]; then
             curl -L "${{ secrets.TEAMTALK_AAR_URL }}" -o libs/TeamTalk5.aar
+            echo "TeamTalk5.aar heruntergeladen ($(du -h libs/TeamTalk5.aar | cut -f1))"
           else
-            echo "WARNUNG: Kein TEAMTALK_AAR_URL-Secret gesetzt."
-            echo "TeamTalk5.aar muss manuell in libs/ abgelegt werden."
-            echo "Siehe libs/README.libs.md"
-            exit 1
+            echo "WARNUNG: Kein TEAMTALK_AAR_URL-Secret – Build wird ohne AAR versucht."
+          fi
+
+      - name: Keystore dekodieren
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | tr -d ' \n\r' | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+            echo "Keystore dekodiert."
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "Kein Keystore-Secret – unsigniertes APK."
           fi
 
       - name: Android App bauen
-        run: briefcase build android
+        run: briefcase build android --no-input
 
-      - name: Android App signieren
+      - name: Android App signieren und paketieren
         env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
-            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > /tmp/release.keystore
+          if [ "${{ steps.keystore.outputs.signed }}" = "true" ]; then
             briefcase package android \
               --no-input \
-              -C "android.sign.key_alias=$ANDROID_KEY_ALIAS" \
-              -C "android.sign.key_password=$ANDROID_KEY_PASSWORD" \
-              -C "android.sign.store_password=$ANDROID_STORE_PASSWORD" \
-              -C "android.sign.store_file=/tmp/release.keystore"
+              -C "android.sign.key_alias=$KEY_ALIAS" \
+              -C "android.sign.key_password=$KEY_PASSWORD" \
+              -C "android.sign.store_password=$STORE_PASSWORD" \
+              -C "android.sign.store_file=$KEYSTORE_PATH"
           else
-            echo "Kein Keystore-Secret – unsigniertes Debug-APK wird verwendet."
             briefcase package android --no-input
           fi
 
-      - name: APK-Pfad ermitteln
+      - name: APK umbenennen und in dist/ ablegen
         id: apk
         run: |
-          APK=$(find . -name "*.apk" | head -1)
-          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          mkdir -p dist
+          APK=$(find build -name "*.apk" | head -1)
+          if [ -z "$APK" ]; then
+            APK=$(find . -name "*.apk" -not -path "./dist/*" | head -1)
+          fi
           VERSION="${{ steps.version.outputs.version }}"
           APK_NAME="TeamTalk-VO-Client-${VERSION}-android.apk"
           cp "$APK" "dist/$APK_NAME"
-          echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
+          echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
+          echo "APK bereit: dist/$APK_NAME"
 
       - name: GitHub Release erstellen und APK hochladen
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           name: "TeamTalk VO Client ${{ steps.version.outputs.version }}"
           body: |
             Android-Build für Version ${{ steps.version.outputs.version }}.
 
-            **Installation:** APK herunterladen, Installation aus unbekannten
-            Quellen in Android erlauben und die APK öffnen.
+            **Installation:**
+            1. `${{ steps.apk.outputs.apk_name }}` herunterladen
+            2. Einstellungen → Sicherheit → "Unbekannte Quellen" erlauben
+            3. APK installieren
           files: dist/${{ steps.apk.outputs.apk_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -120,29 +134,29 @@ jobs:
           APK_PATH="dist/${{ steps.apk.outputs.apk_name }}"
           BASE="https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client"
 
-          # Gitea-Release für diesen Tag holen
           RELEASE=$(curl -s -H "Authorization: token $GITEA_TOKEN" \
             "$BASE/releases/tags/$TAG")
-          RELEASE_ID=$(echo "$RELEASE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
+          RELEASE_ID=$(echo "$RELEASE" | python3 -c \
+            "import sys,json; d=json.load(sys.stdin); print(d.get('id',''))" 2>/dev/null || true)
 
           if [ -z "$RELEASE_ID" ]; then
             echo "Gitea-Release $TAG nicht gefunden – erstelle..."
-            BODY=$(python3 -c "import json; print(json.dumps({'tag_name':'$TAG','name':'$TAG','body':'Android-Build $TAG','draft':False,'prerelease':False}))")
+            BODY=$(python3 -c "import json; print(json.dumps({
+              'tag_name':'$TAG','name':'$TAG',
+              'body':'Android-Build $TAG','draft':False,'prerelease':False
+            }))")
             RELEASE=$(curl -s -X POST "$BASE/releases" \
               -H "Authorization: token $GITEA_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$BODY")
-            RELEASE_ID=$(echo "$RELEASE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
+              -H "Content-Type: application/json" -d "$BODY")
+            RELEASE_ID=$(echo "$RELEASE" | python3 -c \
+              "import sys,json; print(json.load(sys.stdin).get('id',''))" 2>/dev/null || true)
           fi
 
           if [ -z "$RELEASE_ID" ]; then
-            echo "Gitea-Release konnte nicht erstellt/gefunden werden – überspringe Upload."
+            echo "Gitea-Release nicht erstellbar – überspringe Upload."
             exit 0
           fi
 
-          echo "Gitea-Release ID: $RELEASE_ID"
-
-          # Prüfen ob Android-APK schon hochgeladen
           ASSETS=$(curl -s -H "Authorization: token $GITEA_TOKEN" \
             "$BASE/releases/$RELEASE_ID/assets")
           EXISTING=$(echo "$ASSETS" | python3 -c "
@@ -153,7 +167,7 @@ jobs:
           " 2>/dev/null || true)
 
           if [ -n "$EXISTING" ]; then
-            echo "Android-APK bereits auf Gitea vorhanden ($EXISTING) – überspringe Upload."
+            echo "APK bereits auf Gitea ($EXISTING) – überspringe."
             exit 0
           fi
 
