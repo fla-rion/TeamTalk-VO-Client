@@ -1,7 +1,7 @@
 [tool.briefcase]
 project_name = "TeamTalk VO Client"
 bundle = "cc.leons.teamtalk-vo"
-version = "10.3.0"
+version = "1.0.0"
 url = "https://git.leons.cc/flarion/TeamTalk-VO-Client"
 license = "MIT"
 author = "Florian Lichteblau"
