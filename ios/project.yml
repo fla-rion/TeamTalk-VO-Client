@@ -1,0 +1,48 @@
+name: TeamTalkVO
+options:
+  bundleIdPrefix: cc.leons
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  TeamTalkVO:
+    type: application
+    platform: iOS
+    sources:
+      - path: TeamTalkVO
+        excludes:
+          - "**/*.md"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cc.leons.teamtalk-vo
+        INFOPLIST_FILE: TeamTalkVO/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(PROJECT_DIR)/../Vendor/TeamTalk"
+        OTHER_LDFLAGS:
+          - "-framework TeamTalk5"
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/Frameworks"
+    dependencies:
+      - framework: ../Vendor/TeamTalk/TeamTalk5.xcframework
+        embed: true
+        codeSign: true
+        weak: true
+    preBuildScripts:
+      - name: "SwiftLint (optional)"
+        script: |
+          if which swiftlint > /dev/null; then
+            swiftlint lint --quiet
+          fi
+        basedOnDependencyAnalysis: false
