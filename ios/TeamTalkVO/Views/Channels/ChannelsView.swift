@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ChannelsView: View {
     @EnvironmentObject var connection: TTConnectionController
@@ -6,6 +6,9 @@ struct ChannelsView: View {
     @State private var searchText = ""
     @State private var showOnlyFavorites = false
     @State private var selectedUser: UserEntry? = nil
+    @State private var showNewChannel = false
+    @State private var showQuestionMode = false
+    @State private var showUserInfo: UserEntry? = nil
 
     var filteredChannels: [ChannelEntry] {
         var list = connection.channels
@@ -89,9 +92,30 @@ struct ChannelsView: View {
                         }
                         .accessibilityLabel(showOnlyFavorites ? "Alle Kanäle anzeigen" : "Nur Favoriten anzeigen")
                     }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(action: { showNewChannel = true }) {
+                            Label("Neuer Kanal", systemImage: "folder.badge.plus")
+                        }
+                        .accessibilityLabel("Neuen Kanal erstellen")
+                    }
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button(action: { showQuestionMode = true }) {
+                            Label("Fragezeichen-Modus", systemImage: "hand.raised")
+                        }
+                        .accessibilityLabel("Fragezeichen-Modus öffnen")
+                    }
                 }
                 .sheet(item: $selectedUser) { user in
                     PrivateMessageSheet(user: user)
+                }
+                .sheet(isPresented: $showNewChannel) {
+                    ChannelEditorView()
+                }
+                .sheet(isPresented: $showQuestionMode) {
+                    QuestionModeView()
+                }
+                .sheet(item: $showUserInfo) { user in
+                    UserInfoView(user: user)
                 }
             }
         }
@@ -248,3 +272,4 @@ struct UserRowView: View {
         .accessibilityHint("Kontextmenü für Privatnachricht, Kick oder Ban")
     }
 }
+

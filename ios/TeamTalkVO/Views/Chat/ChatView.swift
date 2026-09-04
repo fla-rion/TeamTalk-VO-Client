@@ -1,10 +1,11 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ChatView: View {
     @EnvironmentObject var connection: TTConnectionController
     @EnvironmentObject var chatHistory: ChatHistoryStore
     @State private var messageText = ""
     @State private var showPrivate = false
+    @State private var showBroadcast = false
 
     var body: some View {
         NavigationStack {
@@ -52,9 +53,18 @@ struct ChatView: View {
                         }
                         .accessibilityLabel("Private Nachrichten")
                     }
+                    ToolbarItem(placement: .secondaryAction) {
+                        Button(action: { showBroadcast = true }) {
+                            Label("Broadcast", systemImage: "megaphone")
+                        }
+                        .accessibilityLabel("Servernachricht an alle senden")
+                    }
                 }
                 .sheet(isPresented: $showPrivate) {
                     PrivateMessagesView()
+                }
+                .sheet(isPresented: $showBroadcast) {
+                    BroadcastView()
                 }
             }
         }
@@ -181,3 +191,4 @@ struct PrivateConversationView: View {
 private extension UserEntry {
     var isOwn: Bool { false }
 }
+

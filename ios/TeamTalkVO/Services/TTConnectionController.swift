@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 
 // MARK: - Connection State
@@ -35,6 +35,7 @@ class TTConnectionController: ObservableObject {
     @Published var users: [UserEntry] = []
     @Published var currentChannelId: Int = 0
     @Published var isTalking: Bool = false
+    @Published var handRaised: Bool = false
     @Published var serverProperties: ServerProperties? = nil
 
     let eventPublisher = PassthroughSubject<TTEvent, Never>()
@@ -216,6 +217,38 @@ class TTConnectionController: ObservableObject {
         if systemLog.count > 500 { systemLog.removeFirst() }
     }
 
+
+    // MARK: - Broadcast
+    func sendBroadcastMessage(_ text: String) async {
+        // TT_DoSendMessage type=broadcast
+        logEvent("Broadcast: \(text)")
+    }
+
+    // MARK: - Channel Management
+    func createChannel(name: String, topic: String, password: String, maxUsers: Int) async {
+        // TT_DoMakeChannel
+        let newId = (channels.map(\.id).max() ?? 0) + 1
+        let newChannel = ChannelEntry(
+            id: newId, name: name, parentId: currentChannelId,
+            topic: topic, userCount: 0, hasPassword: !password.isEmpty, isJoined: false
+        )
+        channels.append(newChannel)
+        eventPublisher.send(.channelListUpdated(channels))
+        logEvent("Kanal erstellt: \(name)")
+    }
+
+    // MARK: - Question Mode (Fragezeichen-Modus)
+    func raiseHand() async {
+        // TT_DoChangeStatus with flag STATUSMODE_QUESTION
+        handRaised = true
+        logEvent("Hand gehoben")
+    }
+
+    func lowerHand() async {
+        // TT_DoChangeStatus without STATUSMODE_QUESTION
+        handRaised = false
+        logEvent("Hand gesenkt")
+    }
     // MARK: - Simulation (Entwicklung ohne SDK)
     private func simulateConnection(server: SavedServerRecord) async {
         try? await Task.sleep(nanoseconds: 800_000_000)
@@ -237,3 +270,4 @@ class TTConnectionController: ObservableObject {
         eventPublisher.send(.userListUpdated(users))
     }
 }
+
