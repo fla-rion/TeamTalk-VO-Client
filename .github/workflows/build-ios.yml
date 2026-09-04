@@ -45,21 +45,6 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "iOS App Version: ${VERSION}"
 
-      - name: TeamTalk5 iOS xcframework vorbereiten
-        run: |
-          mkdir -p ios/Vendor/TeamTalk
-          if [ -n "${{ secrets.TEAMTALK_IOS_URL }}" ]; then
-            curl -L "${{ secrets.TEAMTALK_IOS_URL }}" -o /tmp/tt5ios.zip
-            unzip -q /tmp/tt5ios.zip -d /tmp/tt5ios/
-            find /tmp/tt5ios -name "TeamTalk5.xcframework" -exec cp -r {} ios/Vendor/TeamTalk/ \;
-            echo "TeamTalk5.xcframework eingebunden."
-          else
-            echo "WARNUNG: Kein TEAMTALK_IOS_URL – Stub-Framework fuer Simulator-Build."
-            mkdir -p ios/Vendor/TeamTalk/TeamTalk5.xcframework
-            printf '{"CFBundlePackageType":"XFWK","XCFrameworkFormatVersion":"1.0","AvailableLibraries":[]}' \
-              > ios/Vendor/TeamTalk/TeamTalk5.xcframework/Info.plist
-          fi
-
       - name: Xcode-Projekt generieren
         working-directory: ios
         run: xcodegen generate --spec project.yml
