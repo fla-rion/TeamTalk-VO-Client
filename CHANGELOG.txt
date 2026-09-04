@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-09-04 (v10.3.0-dev)
+Neu: Android-Port via BeeWare/Briefcase + TalkBack-Accessibility
+
+- **Android-App** (BeeWare/Briefcase + Toga): Neuer Platform-Port für Android.
+  Alle Tabs als Toga-OptionContainer: Verbindung, Kanäle, Chat, Audio,
+  Medien, Einstellungen, System-Log.
+- **TalkBack-Accessibility** (`src/ui_android/a11y.py`): Content Descriptions
+  auf allen Widgets, Live Regions (POLITE/ASSERTIVE) für Chat und Kanalliste,
+  sofortige Ansagen via `announceForAccessibility()`, `AccessibleDetailedList`
+  mit automatischen Zeilen-Beschreibungen. Implementiert via Rubicon-Java –
+  kein nativer Kotlin-Code nötig.
+- **TeamTalk-Java-SDK-Wrapper** (`src/teamtalk_client_android.py`): Drop-in-
+  kompatibler Ersatz für `teamtalk_client/client.py` auf Android, nutzt das
+  offizielle TeamTalk5-Android-AAR via Rubicon-Java.
+- **CI-Workflow** (`.github/workflows/build-android.yml`): APK-Build via
+  Briefcase auf Ubuntu (Java 17, Android SDK 34), optionales APK-Signieren,
+  Upload zu GitHub Release und Gitea (analog Windows-Workflow).
+- Neue Abhängigkeiten: `toga>=0.4.0`, `toga-android`, `rubicon-java>=0.4.0`.
+- `libs/README.libs.md`: Anleitung zum Beschaffen von `TeamTalk5.aar`.
+
 2026-09-04 (v10.2.0)
 Neu: Multi-Deck Mischer; Geräte-Sync im lokalen Netzwerk
 

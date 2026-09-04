@@ -1,0 +1,35 @@
+[tool.briefcase]
+project_name = "TeamTalk VO Client"
+bundle = "cc.leons.teamtalk-vo"
+version = "10.2.0"
+url = "https://git.leons.cc/flarion/TeamTalk-VO-Client"
+license = "MIT"
+author = "Florian Lichteblau"
+author_email = "wjvbf4xc6q@privaterelay.appleid.com"
+
+[tool.briefcase.app.teamtalk-vo]
+formal_name = "TeamTalk VO Client"
+description = "VoiceOver/TalkBack-zugänglicher TeamTalk-Client"
+sources = ["src"]
+requires = [
+    "toga>=0.4.0",
+    "rubicon-java>=0.4.0",
+    "requests>=2.32",
+    "zeroconf>=0.132.2",
+]
+
+[tool.briefcase.app.teamtalk-vo.android]
+requires = [
+    "toga-android>=0.4.0",
+    "rubicon-java>=0.4.0",
+    "requests>=2.32",
+    "zeroconf>=0.132.2",
+]
+# TeamTalk Android SDK AAR einbinden (muss manuell in libs/ abgelegt werden)
+support_libs = ["libs/TeamTalk5.aar"]
+
+[tool.briefcase.app.teamtalk-vo.android.permission]
+"android.permission.INTERNET" = "Verbindung zum TeamTalk-Server"
+"android.permission.RECORD_AUDIO" = "Spracheingabe"
+"android.permission.MODIFY_AUDIO_SETTINGS" = "Audiogeräte"
+"android.permission.VIBRATE" = "Benachrichtigungen"
