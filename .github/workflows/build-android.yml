@@ -74,10 +74,17 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
-            printf '%s' "$KEYSTORE_BASE64" | tr -d ' \n\r' | base64 --decode > "$RUNNER_TEMP/release.keystore"
+            python3 -c "
+import base64, os
+ks = os.environ['KEYSTORE_BASE64'].strip().replace(' ','').replace('\n','').replace('\r','')
+data = base64.b64decode(ks)
+out = os.path.join(os.environ['RUNNER_TEMP'], 'release.keystore')
+with open(out, 'wb') as f:
+    f.write(data)
+print(f'Keystore dekodiert: {len(data)} Bytes')
+"
             echo "KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
             echo "signed=true" >> "$GITHUB_OUTPUT"
-            echo "Keystore dekodiert."
           else
             echo "signed=false" >> "$GITHUB_OUTPUT"
             echo "Kein Keystore-Secret – unsigniertes APK."
