@@ -177,7 +177,7 @@ final class GoogleDriveSyncService: NSObject, ObservableObject, ASWebAuthenticat
             metaReq.httpMethod = "POST"
             metaReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
             metaReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            let meta = ["name": driveFileName, "parents": ["appDataFolder"]]
+            let meta: [String: Any] = ["name": driveFileName, "parents": ["appDataFolder"]]
             metaReq.httpBody = try? JSONSerialization.data(withJSONObject: meta)
             let (metaData, _) = try await URLSession.shared.data(for: metaReq)
             guard let json = try? JSONSerialization.jsonObject(with: metaData) as? [String: Any],

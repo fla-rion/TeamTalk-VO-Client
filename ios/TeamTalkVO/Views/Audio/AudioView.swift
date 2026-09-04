@@ -39,7 +39,6 @@ struct AudioView: View {
                         .accessibilityLabel("Audio-Ausgang: \(audioSession.currentRoute.displayName)")
                         .accessibilityHint("Tippe zum Umschalten zwischen Hörer und Lautsprecher. Echo-Unterdrückung bleibt aktiv.")
                     }
-<<<<<<< HEAD
                     Section("Räumliches Audio") {
                         Toggle("Räumliches Audio (HRTF)", isOn: Binding(
                             get: { spatial.isEnabled },

@@ -19,7 +19,7 @@ struct SyncOverviewView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("iCloud").fontWeight(.semibold)
                         Text("iOS ↔ macOS (Apple-Geräte)").font(.caption).foregroundStyle(.secondary)
-                        Text(iCloud.syncStatus.label).font(.caption2).foregroundStyle(iCloud.syncEnabled ? .green : .tertiary)
+                        Text(iCloud.syncStatus.label).font(.caption2).foregroundStyle(iCloud.syncEnabled ? .green : .secondary)
                     }
                     Spacer()
                     Toggle("", isOn: $iCloud.syncEnabled)
@@ -48,7 +48,7 @@ struct SyncOverviewView: View {
                         if google.isSignedIn {
                             Text(google.syncStatus.label).font(.caption2).foregroundStyle(.green)
                         } else {
-                            Text("Nicht angemeldet").font(.caption2).foregroundStyle(.tertiary)
+                            Text("Nicht angemeldet").font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                     Spacer()
@@ -93,7 +93,7 @@ struct SyncOverviewView: View {
                         Text("Gleiches WLAN · Port 19880").font(.caption).foregroundStyle(.secondary)
                         Text(companion.isConnected ? "Verbunden mit \(companion.serverHost)" : "Nicht verbunden")
                             .font(.caption2)
-                            .foregroundStyle(companion.isConnected ? .green : .tertiary)
+                            .foregroundStyle(companion.isConnected ? .green : .secondary)
                     }
                     Spacer()
                     if companion.isConnected {
@@ -127,7 +127,7 @@ struct SyncOverviewView: View {
             Image(systemName: icon).foregroundStyle(.secondary).frame(width: 24).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                if let note { Text(note).font(.caption2).foregroundStyle(.tertiary) }
+                if let note { Text(note).font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer()
             Image(systemName: synced ? "checkmark.circle.fill" : "minus.circle")
