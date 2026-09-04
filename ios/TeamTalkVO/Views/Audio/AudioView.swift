@@ -5,6 +5,7 @@ struct AudioView: View {
     @EnvironmentObject var connection: TTConnectionController
     @EnvironmentObject var prefs: AppPreferencesStore
     @ObservedObject private var audioSession = AudioSessionManager.shared
+    @ObservedObject private var spatial = SpatialAudioService.shared
 
     var body: some View {
         NavigationStack {
@@ -16,7 +17,6 @@ struct AudioView: View {
                         PTTButton()
                     }
                     Section("Audioausgang") {
-                        // Lautsprecher-Umschaltung — AEC bleibt in beiden Modi aktiv
                         Button(action: { audioSession.toggleSpeaker() }) {
                             HStack {
                                 Image(systemName: audioSession.currentRoute.systemImageName)
@@ -38,6 +38,35 @@ struct AudioView: View {
                         .foregroundStyle(.primary)
                         .accessibilityLabel("Audio-Ausgang: \(audioSession.currentRoute.displayName)")
                         .accessibilityHint("Tippe zum Umschalten zwischen Hörer und Lautsprecher. Echo-Unterdrückung bleibt aktiv.")
+                    }
+                    Section("Räumliches Audio") {
+                        Toggle("Räumliches Audio (HRTF)", isOn: Binding(
+                            get: { spatial.isEnabled },
+                            set: { enabled in
+                                let userIds = connection.users
+                                    .filter { $0.channelId == connection.currentChannelId }
+                                    .map(\.id)
+                                if enabled { spatial.enable(userIds: userIds) }
+                                else       { spatial.disable() }
+                            }
+                        ))
+                        .accessibilityLabel("Räumliches Audio ein- oder ausschalten")
+                        .accessibilityHint("Positioniert Nutzer im Kreis um dich herum mit HRTF-Raumklang")
+                        if spatial.isEnabled {
+                            Button(action: {
+                                let userIds = connection.users
+                                    .filter { $0.channelId == connection.currentChannelId }
+                                    .map(\.id)
+                                spatial.repositionUsers(userIds: userIds)
+                            }) {
+                                Label("Positionen aktualisieren", systemImage: "arrow.triangle.2.circlepath")
+                            }
+                            .accessibilityLabel("Nutzerpositionen im Raum aktualisieren")
+                            Text("\(spatial.userCount) Nutzer positioniert")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("\(spatial.userCount) Nutzer räumlich positioniert")
+                        }
                     }
                     Section("Lautstärke") {
                         VStack(alignment: .leading) {

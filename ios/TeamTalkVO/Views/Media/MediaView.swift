@@ -59,6 +59,23 @@ struct MediaView: View {
                             .disabled(customURL.isEmpty)
                             .accessibilityLabel("Eigene URL streamen")
                     }
+                    Section("Deck-Mischer") {
+                        NavigationLink(destination: DeckMixerView().environmentObject(connection)) {
+                            HStack {
+                                Image(systemName: "dial.medium")
+                                    .foregroundStyle(.blue)
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Deck-Mischer öffnen")
+                                    Text("2 Decks, 2-Sekunden-Crossfade")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .accessibilityLabel("Deck-Mischer öffnen")
+                        .accessibilityHint("Zwei Audio-Decks mit Crossfade-Funktion")
+                    }
                 }
                 .navigationTitle("Medien")
             }
