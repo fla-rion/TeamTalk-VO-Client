@@ -53,6 +53,12 @@ struct MainTabView: View {
                 }
                 .accessibilityLabel("Administration-Tab")
 
+            VideoView()
+                .tabItem {
+                    Label("Video", systemImage: "video")
+                }
+                .accessibilityLabel("Video-Tab")
+
             SystemView()
                 .tabItem {
                     Label("System", systemImage: "terminal")

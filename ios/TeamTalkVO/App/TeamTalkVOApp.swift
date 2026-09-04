@@ -11,6 +11,10 @@ struct TeamTalkVOApp: App {
     var body: some Scene {
         WindowGroup {
             MainTabView()
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    ConnectionStatusBar()
+                        .environmentObject(connection)
+                }
                 .environmentObject(serverStore)
                 .environmentObject(prefs)
                 .environmentObject(connection)
