@@ -76,7 +76,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.1.0"
+APP_VERSION = "10.2.0"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -673,6 +673,10 @@ class MainFrame(wx.Frame):
         # v2.7.0 – Webhook + HTTP-API
         self._webhook = WebhookManager(self)
         self._http_api = HttpApiServer(self)
+        # v10.2.0 – Geräte-Sync
+        self._sync_manager = None
+        if getattr(self.settings_store.settings, "device_sync_enabled", False):
+            self._ensure_sync_manager()
         self._ping_last_ms: int = 0
         # v2.8.0 – PTT-Zeitlimit
         self._ptt_timeout_call: Optional[wx.CallLater] = None
@@ -1812,6 +1816,22 @@ class MainFrame(wx.Frame):
     def _clear_unread_badge(self) -> None:
         self._unread_count = 0
         set_dock_badge(0)
+
+    def _ensure_sync_manager(self) -> None:
+        """Startet den Geräte-Sync-Manager falls noch nicht aktiv."""
+        if self._sync_manager is not None:
+            return
+        try:
+            from settings_sync import SettingsSyncManager
+            server_store = getattr(self, "server_store", None)
+            bus = getattr(self, "bus", None)
+            self._sync_manager = SettingsSyncManager(
+                self.settings_store, server_store, bus
+            )
+            self._sync_manager.start()
+        except Exception as exc:
+            print(f"[Sync] Start fehlgeschlagen: {exc}")
+            self._sync_manager = None
 
     def _companion_status(self) -> dict:
         active = self.server_manager.get_active() if hasattr(self, "server_manager") else None

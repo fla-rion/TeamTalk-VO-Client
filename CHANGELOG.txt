@@ -1,6 +1,32 @@
 Changelog
 =========
 
+2026-09-04 (v10.2.0)
+Neu: Multi-Deck Mischer; Geräte-Sync im lokalen Netzwerk
+
+- **Multi-Deck Mischer**: Neuer Abschnitt im Medien-Tab. Bis zu 4 unabhängige
+  Decks mit je eigener Quellanzeige, Gain-Regler (25–400 %) und
+  Play/Pause/Stopp-Steuerung. Da das TeamTalk-SDK nur einen Medienstream
+  gleichzeitig zum Kanal sendet, wird beim Aktivieren eines anderen Decks das
+  laufende Deck über 2 Sekunden weich ausgeblendet (Crossfade), bevor das neue
+  startet. Unterstützt lokale Dateien; URLs können direkt eingetragen werden.
+  Neues Modul `src/deck_manager.py` (DeckManager-Klasse, thread-sicher).
+
+- **Geräte-Sync**: Einstellungen lassen sich jetzt sicher zwischen eigenen
+  Geräten im selben lokalen Netzwerk synchronisieren – ohne Cloud-Server.
+  - Kopplung über 6-stelligen Code (2 Min. gültig, HMAC-SHA256-basiert).
+  - Dauerhaftes Geheimnis pro Geräte-Paar im OS-Schlüsselbund (Keychain).
+  - Geräte-Entdeckung per mDNS/Bonjour (`zeroconf`). Entdeckung ≠ Vertrauen:
+    Unbekannte Geräte werden kommentarlos abgelehnt.
+  - Alle Sync-Nachrichten HMAC-SHA256-authentifiziert.
+  - Wählbar was synchronisiert wird: Serverprofile, Tastenkürzel,
+    TTS-Einstellungen, Sound-Profile, Benachrichtigungsregeln.
+    Niemals synchronisiert: API-Schlüssel, Passwörter, hardware-spezifische
+    Einstellungen.
+  - Neuer Einstellungen-Abschnitt "Geräte-Sync" (wx + Qt).
+  - Neues Modul `src/settings_sync.py`.
+  - Neue Abhängigkeit: `zeroconf>=0.132.2`.
+
 2026-08-29 (v10.1.0)
 Neu: Automatisches räumliches Audio; große i18n-Aufräumrunde
 

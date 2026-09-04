@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QLabel, QLineEdit, QCheckBox, QComboBox, QSpinBox,
     QPushButton, QTabWidget, QFileDialog, QScrollArea, QTextEdit, QTimeEdit,
 )
-from PySide6.QtCore import QTime
+from PySide6.QtCore import QTime, Qt, QTimer
 
 from ui_qt.tabs.audio import AudioTab
 from ui_qt.tabs.video import VideoTab
@@ -83,6 +83,7 @@ class SettingsTab(QWidget):
         self.inner.addTab(self._build_ki_tab(), _("KI & Integration"))
         self.inner.addTab(self._build_user_volumes_tab(), _("Nutzer-Lautstärken"))
         self.inner.addTab(self._build_braille_tab(), _("Braille"))
+        self.inner.addTab(self._build_device_sync_tab(), _("Geräte-Sync"))
 
     # ------------------------------------------------------------------
     # Allgemein
@@ -1139,6 +1140,315 @@ class SettingsTab(QWidget):
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    # ------------------------------------------------------------------
+    # Geräte-Sync
+    # ------------------------------------------------------------------
+
+    def _build_device_sync_tab(self) -> QWidget:
+        from PySide6.QtWidgets import QListWidget, QListWidgetItem, QMessageBox, QDialog, QDialogButtonBox
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        inner = QWidget()
+        layout = QVBoxLayout(inner)
+        s = self.window.settings_store.settings
+
+        # ── Aktivieren ──────────────────────────────────────────────────────
+        enable_group = QGroupBox(_("Geräte-Sync"))
+        enable_layout = QVBoxLayout(enable_group)
+
+        self._sync_enabled_qt = QCheckBox(_("Geräte-Sync aktivieren"))
+        self._sync_enabled_qt.setAccessibleName("Geräte-Sync aktivieren")
+        self._sync_enabled_qt.setChecked(bool(getattr(s, "device_sync_enabled", False)))
+        self._sync_enabled_qt.stateChanged.connect(self._on_qt_sync_enabled_changed)
+        enable_layout.addWidget(self._sync_enabled_qt)
+
+        pair_row = QHBoxLayout()
+        self._qt_pair_show_btn = QPushButton(_("Neues Gerät koppeln…"))
+        self._qt_pair_show_btn.setAccessibleName("Neues Gerät koppeln")
+        self._qt_pair_show_btn.clicked.connect(self._on_qt_pair_show_code)
+        pair_row.addWidget(self._qt_pair_show_btn)
+        self._qt_pair_enter_btn = QPushButton(_("Mit Code koppeln…"))
+        self._qt_pair_enter_btn.setAccessibleName("Mit Code koppeln")
+        self._qt_pair_enter_btn.clicked.connect(self._on_qt_pair_enter_code)
+        pair_row.addWidget(self._qt_pair_enter_btn)
+        pair_row.addStretch()
+        enable_layout.addLayout(pair_row)
+        layout.addWidget(enable_group)
+
+        # ── Gekoppelte Geräte ───────────────────────────────────────────────
+        dev_group = QGroupBox(_("Gekoppelte Geräte"))
+        dev_layout = QVBoxLayout(dev_group)
+
+        self._qt_paired_list = QListWidget()
+        self._qt_paired_list.setAccessibleName("Gekoppelte Geräte")
+        self._qt_paired_list.setMinimumHeight(120)
+        self._qt_paired_device_ids: list = []
+        dev_layout.addWidget(self._qt_paired_list, 1)
+
+        dev_btn_row = QHBoxLayout()
+        self._qt_unpair_btn = QPushButton(_("Kopplung aufheben"))
+        self._qt_unpair_btn.setAccessibleName("Kopplung aufheben")
+        self._qt_unpair_btn.clicked.connect(self._on_qt_unpair)
+        dev_btn_row.addWidget(self._qt_unpair_btn)
+        self._qt_sync_now_btn = QPushButton(_("Jetzt synchronisieren"))
+        self._qt_sync_now_btn.setAccessibleName("Jetzt synchronisieren")
+        self._qt_sync_now_btn.clicked.connect(self._on_qt_sync_now)
+        dev_btn_row.addWidget(self._qt_sync_now_btn)
+        dev_btn_row.addStretch()
+        dev_layout.addLayout(dev_btn_row)
+        layout.addWidget(dev_group)
+
+        # ── Was synchronisieren ─────────────────────────────────────────────
+        what_group = QGroupBox(_("Was synchronisieren"))
+        what_layout = QVBoxLayout(what_group)
+
+        self._qt_sync_server_profiles = QCheckBox(_("Serverprofile"))
+        self._qt_sync_server_profiles.setChecked(True)
+        what_layout.addWidget(self._qt_sync_server_profiles)
+
+        self._qt_sync_hotkeys = QCheckBox(_("Tastenkürzel"))
+        self._qt_sync_hotkeys.setChecked(True)
+        what_layout.addWidget(self._qt_sync_hotkeys)
+
+        self._qt_sync_tts = QCheckBox(_("TTS-Einstellungen"))
+        self._qt_sync_tts.setChecked(True)
+        what_layout.addWidget(self._qt_sync_tts)
+
+        self._qt_sync_sound = QCheckBox(_("Sound-Ereignisse und -Profile"))
+        self._qt_sync_sound.setChecked(True)
+        what_layout.addWidget(self._qt_sync_sound)
+
+        self._qt_sync_notifications = QCheckBox(_("Benachrichtigungsregeln und Stichwörter"))
+        self._qt_sync_notifications.setChecked(True)
+        what_layout.addWidget(self._qt_sync_notifications)
+
+        note = QLabel(_(
+            "Hinweis: API-Schlüssel, Passwörter und hardware-spezifische "
+            "Einstellungen werden niemals synchronisiert."
+        ))
+        note.setWordWrap(True)
+        what_layout.addWidget(note)
+        layout.addWidget(what_group)
+
+        layout.addStretch()
+        scroll.setWidget(inner)
+        self._qt_refresh_paired_list()
+        return scroll
+
+    def _qt_refresh_paired_list(self) -> None:
+        try:
+            mgr = getattr(self.window, "_sync_manager", None)
+            self._qt_paired_device_ids = []
+            self._qt_paired_list.clear()
+            if mgr is None:
+                self._qt_paired_list.addItem("(Sync nicht aktiv)")
+                return
+            devices = mgr.paired_devices()
+            if not devices:
+                self._qt_paired_list.addItem("(Keine gekoppelten Geräte)")
+                return
+            import datetime
+            for d in devices:
+                self._qt_paired_device_ids.append(d.device_id)
+                ts = ""
+                if d.last_sync:
+                    dt = datetime.datetime.fromtimestamp(d.last_sync)
+                    ts = f", Sync: {dt.strftime('%d.%m.%Y %H:%M')}"
+                self._qt_paired_list.addItem(f"{d.name}, {d.platform}{ts}")
+        except Exception:
+            pass
+
+    def _on_qt_sync_enabled_changed(self, state: int) -> None:
+        enabled = bool(state)
+        self._save_bool("device_sync_enabled", enabled)
+        if enabled:
+            try:
+                self.window._ensure_sync_manager()
+            except Exception as exc:
+                self.window.set_status(f"Geräte-Sync: {exc}")
+        else:
+            try:
+                mgr = getattr(self.window, "_sync_manager", None)
+                if mgr:
+                    mgr.stop()
+                    self.window._sync_manager = None
+            except Exception:
+                pass
+        self._qt_refresh_paired_list()
+
+    def _on_qt_pair_show_code(self) -> None:
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox, QProgressBar
+        from PySide6.QtCore import QTimer
+        mgr = getattr(self.window, "_sync_manager", None)
+        if mgr is None:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Geräte-Sync", "Bitte zuerst den Geräte-Sync aktivieren.")
+            return
+
+        server = mgr.start_pairing()
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Neues Gerät koppeln")
+        dlg_layout = QVBoxLayout(dlg)
+        dlg_layout.addWidget(QLabel("Geben Sie diesen Code auf dem anderen Gerät ein.\nDer Code ist 2 Minuten gültig."))
+
+        code_lbl = QLabel(server.code)
+        code_lbl.setAccessibleName("Kopplungs-Code")
+        from PySide6.QtGui import QFont
+        f = QFont()
+        f.setPointSize(24)
+        f.setBold(True)
+        code_lbl.setFont(f)
+        code_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dlg_layout.addWidget(code_lbl)
+
+        port_lbl = QLabel(f"Port: {server.port}")
+        port_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dlg_layout.addWidget(port_lbl)
+
+        countdown_lbl = QLabel("Gültig noch: 120 Sekunden")
+        countdown_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dlg_layout.addWidget(countdown_lbl)
+
+        status_lbl = QLabel("Warte auf Verbindung…")
+        status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dlg_layout.addWidget(status_lbl)
+
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        btns.rejected.connect(dlg.reject)
+        dlg_layout.addWidget(btns)
+
+        import time as _time
+        start_time = _time.time()
+
+        timer = QTimer(dlg)
+        def _tick():
+            remaining = max(0, 120 - int(_time.time() - start_time))
+            countdown_lbl.setText(f"Gültig noch: {remaining} Sekunden")
+            if remaining == 0:
+                timer.stop()
+                server.stop()
+                status_lbl.setText("Code abgelaufen.")
+            if server._done.is_set():
+                timer.stop()
+                status_lbl.setText("Kopplung erfolgreich!")
+                self.window.set_status("Gerät erfolgreich gekoppelt")
+                self._qt_refresh_paired_list()
+                QTimer.singleShot(1500, dlg.accept)
+
+        timer.timeout.connect(_tick)
+        timer.start(1000)
+
+        def _cleanup():
+            timer.stop()
+            server.stop()
+
+        dlg.finished.connect(lambda: _cleanup())
+        dlg.exec()
+        self._qt_refresh_paired_list()
+
+    def _on_qt_pair_enter_code(self) -> None:
+        from PySide6.QtWidgets import QDialog, QVBoxLayout, QFormLayout, QLineEdit, QDialogButtonBox, QLabel, QMessageBox
+        mgr = getattr(self.window, "_sync_manager", None)
+        if mgr is None:
+            QMessageBox.information(self, "Geräte-Sync", "Bitte zuerst den Geräte-Sync aktivieren.")
+            return
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Mit Code koppeln")
+        dlg_layout = QVBoxLayout(dlg)
+        dlg_layout.addWidget(QLabel("Geben Sie IP-Adresse, Port und 6-stelligen Code des anderen Geräts ein."))
+        form = QFormLayout()
+        host_edit = QLineEdit()
+        host_edit.setAccessibleName("IP-Adresse")
+        host_edit.setPlaceholderText("z. B. 192.168.1.42")
+        form.addRow("IP-Adresse:", host_edit)
+        port_edit = QLineEdit()
+        port_edit.setAccessibleName("Port")
+        port_edit.setPlaceholderText("Port vom anderen Gerät")
+        form.addRow("Port:", port_edit)
+        code_edit = QLineEdit()
+        code_edit.setAccessibleName("Kopplungs-Code")
+        code_edit.setPlaceholderText("6-stelliger Code")
+        form.addRow("Code:", code_edit)
+        dlg_layout.addLayout(form)
+        status_lbl = QLabel("")
+        dlg_layout.addWidget(status_lbl)
+        btns = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btns.rejected.connect(dlg.reject)
+        dlg_layout.addWidget(btns)
+
+        def _try_connect():
+            host = host_edit.text().strip()
+            code = code_edit.text().strip()
+            try:
+                port = int(port_edit.text().strip())
+            except ValueError:
+                status_lbl.setText("Ungültiger Port.")
+                return
+            if not host or not code:
+                status_lbl.setText("Bitte alle Felder ausfüllen.")
+                return
+            btns.button(QDialogButtonBox.StandardButton.Ok).setEnabled(False)
+            status_lbl.setText("Verbinde…")
+
+            def _success(dev, _sec=None):
+                from PySide6.QtCore import QMetaObject, Qt
+                self.window.set_status(f"Gerät '{dev.name}' erfolgreich gekoppelt")
+                self._qt_refresh_paired_list()
+                QTimer.singleShot(0, dlg.accept)
+
+            def _error(msg: str):
+                btns.button(QDialogButtonBox.StandardButton.Ok).setEnabled(True)
+                status_lbl.setText(f"Fehler: {msg}")
+
+            mgr.pair_with(host, port, code, _success, _error)
+
+        btns.accepted.connect(_try_connect)
+        dlg.exec()
+        self._qt_refresh_paired_list()
+
+    def _on_qt_unpair(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        row = self._qt_paired_list.currentRow()
+        if row < 0 or row >= len(self._qt_paired_device_ids):
+            return
+        mgr = getattr(self.window, "_sync_manager", None)
+        if mgr is None:
+            return
+        device_id = self._qt_paired_device_ids[row]
+        answer = QMessageBox.question(
+            self, "Kopplung aufheben",
+            "Kopplung mit diesem Gerät wirklich aufheben?"
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            mgr.unpair(device_id)
+            self.window.set_status("Kopplung aufgehoben")
+        self._qt_refresh_paired_list()
+
+    def _on_qt_sync_now(self) -> None:
+        mgr = getattr(self.window, "_sync_manager", None)
+        if mgr is None:
+            self.window.set_status("Geräte-Sync nicht aktiv")
+            return
+        mgr.set_sync_what({
+            "server_profiles": self._qt_sync_server_profiles.isChecked(),
+            "hotkeys": self._qt_sync_hotkeys.isChecked(),
+            "tts": self._qt_sync_tts.isChecked(),
+            "sound": self._qt_sync_sound.isChecked(),
+            "notifications": self._qt_sync_notifications.isChecked(),
+        })
+        self.window.set_status("Synchronisierung läuft…")
+
+        def _done(ok: int, total: int) -> None:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(0, lambda: (
+                self.window.set_status(f"Sync abgeschlossen: {ok}/{total} Geräte erfolgreich"),
+                self._qt_refresh_paired_list(),
+            ))
+
+        mgr.sync_all(on_done=_done)
 
     # ------------------------------------------------------------------
     # Helpers

@@ -346,6 +346,8 @@ class AppSettings:
     media_fx_compressor: bool = True
     media_fx_limiter: bool = True
     media_fx_limiter_threshold_db: float = -1.0
+    # v10.2.0 – Geräte-Sync
+    device_sync_enabled: bool = False
 
 
 class SettingsStore:
@@ -594,6 +596,8 @@ class SettingsStore:
             self.settings.media_fx_compressor = bool(data.get("media_fx_compressor", True))
             self.settings.media_fx_limiter = bool(data.get("media_fx_limiter", True))
             self.settings.media_fx_limiter_threshold_db = float(data.get("media_fx_limiter_threshold_db", -1.0) or -1.0)
+            # v10.2.0
+            self.settings.device_sync_enabled = bool(data.get("device_sync_enabled", False))
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -790,5 +794,7 @@ class SettingsStore:
             "media_fx_compressor": bool(self.settings.media_fx_compressor),
             "media_fx_limiter": bool(self.settings.media_fx_limiter),
             "media_fx_limiter_threshold_db": float(self.settings.media_fx_limiter_threshold_db or -1.0),
+            # v10.2.0
+            "device_sync_enabled": bool(self.settings.device_sync_enabled),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

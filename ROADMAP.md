@@ -21,7 +21,7 @@ Bei 13 Tabs mit teils tiefen Menüs ein spürbarer A11y-Gewinn: ein systemweiter
 🟡–🔴, je nach Umfang · Inspiration: [MultiDeck](https://github.com/schulle4u/multideck) (schulle4u), [radio-browser-app](https://github.com/GruiaChiscop/radio-browser-app) (GruiaChiscop), ApricotPlayer
 
 - ✅ **Radiosender als Favoriten speichern** – erledigt in v10.0.0.
-- 🔴 **Mehrere gleichzeitige Streams/Decks mischen** – noch offen, bewusst nicht in v10.0.0/v10.1.0. `start_streaming_media_to_channel()` ist aktuell Single-Stream (ein Medienstream gleichzeitig zum Kanal). MultiDeck zeigt das Zielbild: mehrere unabhängige "Decks" (Datei/Stream/Mikrofon-Input) gleichzeitig oder mit Crossfade/Automatik gemischt. Größerer Umbau der Audio-Pipeline, eigenes Release.
+- ✅ **Mehrere Decks mit Crossfade-Überblenden** – erledigt in v10.2.0. Da `start_streaming_media_to_channel()` Single-Stream-API ist, wird beim Deck-Wechsel das laufende Deck über 2 s weich ausgeblendet (Crossfade), dann startet das neue. Kein echter Echtzeit-Mischer (SDK-Grenze), aber vollwertige 4-Deck-Oberfläche mit je eigenem Gain, Play/Pause/Stopp. Modul `src/deck_manager.py`.
 - ✅ **Live-Effekte auf den ausgehenden Stream** (Kompressor/Limiter, Pedalboard) – erledigt in v10.0.0, aber nur für lokale Dateiwiedergabe (SDK-Grenze: Netzwerk-Streams laufen komplett nativ im SDK, kein Python-Hook für Sample-Daten).
 - ✅ **Wiedergabe-Lesezeichen / Kapitelnavigation** bei YouTube-Streams – erledigt in v10.0.0.
 
@@ -67,9 +67,9 @@ Damit reduziert sich der eigentliche Rest-Aufwand auf: beim Kanalbeitritt automa
 
 ---
 
-## 7. Geräte-Sync im lokalen Netzwerk (Brave-Sync-artig)
+## 7. ~~Geräte-Sync im lokalen Netzwerk~~ – erledigt in v10.2.0
 
-🔴 · Eigene Idee, Sicherheitsdesign vor Umsetzung nötig – **nicht Teil des Batch-Vorgehens der anderen Punkte, eigene Review-Runde erforderlich.**
+✅ · Implementiert in `src/settings_sync.py` (PairingServer, PairingClient, SyncDiscovery, SyncChannel, SyncListener, SettingsSyncManager). Sicherheitsmodell vollständig umgesetzt: HMAC-SHA256-Authentifizierung, mDNS-Entdeckung (zeroconf), Keychain-Secrets pro Geräte-Paar, explizite Kopplung mit 6-stelligem Code, Last-Write-Wins-Konfliktauflösung. UI-Abschnitt "Geräte-Sync" in wx + Qt.
 
 **Wunsch:** Einstellungen zwischen den eigenen Geräten im selben Netzwerk synchronisieren (Serverliste, Hotkeys, Sound-Profile, Benachrichtigungsregeln, TTS-Einstellungen, …) – ohne Cloud-Server, nach dem Vorbild von Browser-Sync (Brave/Chrome).
 
@@ -110,8 +110,8 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 | — | ~~Präsenz-Watchlist (3)~~ | — | Entfällt, existierte bereits als "Nutzerwatcher" – Qt-Parität in v10.0.0 nachgezogen |
 | ✅ v10.1.0 | Räumliches Audio – automatisch (4) | 🟡 | Aufsatz auf bereits vorhandenem `set_user_stereo()`, wx-only |
 | ✅ v10.1.0 | i18n-Aufräumrunde (Nebenfund) | 🟢 | 286 neue Wörterbucheinträge, 2 Bugfixes (NameError, hartkodiertes HTML-lang) |
-| offen | Multi-Deck-Mischer (2) | 🔴 | Großer Umbau, eigenes Release |
-| offen | Geräte-Sync (7) | 🔴/eigene Review | Sicherheitskritisches Pairing-Protokoll, bewusst kein Batch-Feature |
+| ✅ v10.2.0 | Multi-Deck-Mischer (2) | 🔴→🟡 | Crossfade-Überblenden statt echtem Mix (SDK-Grenze) |
+| ✅ v10.2.0 | Geräte-Sync (7) | 🔴 | HMAC-Auth, mDNS, Keychain-Secrets, wx + Qt |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
 
 ---

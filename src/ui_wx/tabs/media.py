@@ -734,6 +734,90 @@ class MediaTab(wx.Panel):
 
         sizer.Add(streaming_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # --- Multi-Deck Mischer ---
+        self._deck_manager = None
+        self._deck_sources: list = ["", "", "", ""]  # Pfad/URL je Deck
+
+        deck_box = wx.StaticBox(self, label="Multi-Deck Mischer")
+        deck_sizer = wx.StaticBoxSizer(deck_box, wx.VERTICAL)
+
+        deck_info = wx.StaticText(
+            self,
+            label=(
+                "Bis zu 4 Decks gleichzeitig. Beim Wechsel wird das laufende Deck weich ausgeblendet "
+                "(Crossfade). Unterstützt Dateien und URLs."
+            ),
+        )
+        deck_info.Wrap(500)
+        deck_sizer.Add(deck_info, 0, wx.ALL, 4)
+
+        self._deck_source_labels: list = []
+        self._deck_status_labels: list = []
+        self._deck_gain_spins: list = []
+        self._deck_play_btns: list = []
+        self._deck_pause_btns: list = []
+        self._deck_stop_btns: list = []
+
+        for i in range(4):
+            row_box = wx.StaticBox(self, label=f"Deck {i + 1}")
+            row_sizer = wx.StaticBoxSizer(row_box, wx.VERTICAL)
+
+            src_row = wx.BoxSizer(wx.HORIZONTAL)
+            src_lbl = wx.StaticText(self, label="(kein Titel)")
+            src_lbl.SetName(f"Deck {i + 1} Quelle")
+            self._deck_source_labels.append(src_lbl)
+            choose_btn = wx.Button(self, label="&Auswählen...")
+            choose_btn.SetName(f"Deck {i + 1} Quelle auswählen")
+            choose_btn.Bind(wx.EVT_BUTTON, lambda evt, idx=i: self._on_deck_choose(evt, idx))
+            src_row.Add(src_lbl, 1, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            src_row.Add(choose_btn, 0)
+            row_sizer.Add(src_row, 0, wx.ALL | wx.EXPAND, 4)
+
+            ctrl_row = wx.BoxSizer(wx.HORIZONTAL)
+
+            gain_row = wx.BoxSizer(wx.HORIZONTAL)
+            gain_row.Add(wx.StaticText(self, label="Lautstärke (25–400)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+            gain_spin = wx.SpinCtrl(self, value="50", min=25, max=400)
+            gain_spin.SetName(f"Deck {i + 1} Lautstärke")
+            gain_spin.Bind(wx.EVT_SPINCTRL, lambda evt, idx=i: self._on_deck_gain(evt, idx))
+            self._deck_gain_spins.append(gain_spin)
+            gain_row.Add(gain_spin, 0)
+            ctrl_row.Add(gain_row, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 16)
+
+            play_btn = wx.Button(self, label="&Play")
+            play_btn.SetName(f"Deck {i + 1} abspielen")
+            play_btn.Bind(wx.EVT_BUTTON, lambda evt, idx=i: self._on_deck_play(evt, idx))
+            self._deck_play_btns.append(play_btn)
+
+            pause_btn = wx.Button(self, label="Pa&use")
+            pause_btn.SetName(f"Deck {i + 1} pausieren")
+            pause_btn.Bind(wx.EVT_BUTTON, lambda evt, idx=i: self._on_deck_pause(evt, idx))
+            self._deck_pause_btns.append(pause_btn)
+
+            stop_btn = wx.Button(self, label="St&opp")
+            stop_btn.SetName(f"Deck {i + 1} stoppen")
+            stop_btn.Bind(wx.EVT_BUTTON, lambda evt, idx=i: self._on_deck_stop(evt, idx))
+            self._deck_stop_btns.append(stop_btn)
+
+            for btn in (play_btn, pause_btn, stop_btn):
+                ctrl_row.Add(btn, 0, wx.RIGHT, 4)
+
+            row_sizer.Add(ctrl_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+            status_lbl = wx.StaticText(self, label="Status: gestoppt")
+            status_lbl.SetName(f"Deck {i + 1} Status")
+            self._deck_status_labels.append(status_lbl)
+            row_sizer.Add(status_lbl, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 4)
+
+            deck_sizer.Add(row_sizer, 0, wx.ALL | wx.EXPAND, 4)
+
+        deck_all_stop_btn = wx.Button(self, label="Alle Decks &stoppen")
+        deck_all_stop_btn.SetName("Alle Decks stoppen")
+        deck_all_stop_btn.Bind(wx.EVT_BUTTON, self._on_deck_stop_all)
+        deck_sizer.Add(deck_all_stop_btn, 0, wx.ALL, 4)
+
+        sizer.Add(deck_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         self.SetSizer(sizer)
         self._load_radio_list()
         self._radio_favorites = []
@@ -755,6 +839,9 @@ class MediaTab(wx.Panel):
         if self._deezer:
             self._deezer.cleanup()
             self._deezer = None
+        if hasattr(self, "_deck_manager") and self._deck_manager:
+            self._deck_manager.stop_all()
+            self._deck_manager = None
 
     # --- Recording ---
 
@@ -1967,6 +2054,88 @@ class MediaTab(wx.Panel):
         self.dz_stop_btn.Disable()
         self.dz_status.SetLabel("Status: gestoppt")
         self.frame.set_status("Deezer gestoppt")
+
+    # ------------------------------------------------------------------
+    # Multi-Deck Mischer
+    # ------------------------------------------------------------------
+
+    def _get_deck_manager(self):
+        """Erstellt den DeckManager lazy beim ersten Aufruf."""
+        if not hasattr(self, "_deck_manager") or self._deck_manager is None:
+            from deck_manager import DeckManager
+            self._deck_manager = DeckManager(self.frame.client)
+
+            def on_status(deck_index: int, status_text: str):
+                wx.CallAfter(self._deck_update_status, deck_index, status_text)
+
+            self._deck_manager.on_status_change = on_status
+        return self._deck_manager
+
+    def _deck_update_status(self, deck_index: int, status_text: str):
+        if deck_index < len(self._deck_status_labels):
+            self._deck_status_labels[deck_index].SetLabel(f"Status: {status_text}")
+
+    def _on_deck_choose(self, _event, deck_index: int):
+        with wx.FileDialog(
+            self, f"Quelle für Deck {deck_index + 1} auswählen",
+            wildcard="Audio/Video|*.wav;*.mp3;*.ogg;*.opus;*.flac;*.m4a;*.mp4;*.mkv|Alle|*.*",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            path = dlg.GetPath()
+        self._deck_sources[deck_index] = path
+        import os
+        label = os.path.splitext(os.path.basename(path))[0] or path
+        self._deck_source_labels[deck_index].SetLabel(label)
+        self.frame.set_status(f"Deck {deck_index + 1}: {label}")
+
+    def _on_deck_play(self, _event, deck_index: int):
+        source = self._deck_sources[deck_index]
+        if not source:
+            self.frame.set_status(f"Deck {deck_index + 1}: Bitte zuerst eine Quelle auswählen")
+            return
+        gain_val = self._deck_gain_spins[deck_index].GetValue()
+        gain = max(0.01, float(gain_val) / 100.0)
+        dm = self._get_deck_manager()
+        deck = dm.get_deck(deck_index)
+        if deck.status == "paused":
+            ok = dm.resume(deck_index)
+            if not ok:
+                self.frame.set_status(f"Deck {deck_index + 1}: Fortsetzen fehlgeschlagen")
+        else:
+            ok = dm.play(deck_index, source, gain)
+            if not ok:
+                self.frame.set_status(f"Deck {deck_index + 1}: Start fehlgeschlagen")
+            else:
+                self.frame.set_status(f"Deck {deck_index + 1}: wird gestartet…")
+
+    def _on_deck_pause(self, _event, deck_index: int):
+        dm = self._get_deck_manager()
+        ok = dm.pause(deck_index)
+        if not ok:
+            self.frame.set_status(f"Deck {deck_index + 1}: nicht aktiv")
+
+    def _on_deck_stop(self, _event, deck_index: int):
+        if not hasattr(self, "_deck_manager") or self._deck_manager is None:
+            return
+        self._deck_manager.stop(deck_index)
+        self.frame.set_status(f"Deck {deck_index + 1}: gestoppt")
+
+    def _on_deck_gain(self, _event, deck_index: int):
+        if not hasattr(self, "_deck_manager") or self._deck_manager is None:
+            return
+        gain_val = self._deck_gain_spins[deck_index].GetValue()
+        gain = max(0.01, float(gain_val) / 100.0)
+        self._deck_manager.set_gain(deck_index, gain)
+
+    def _on_deck_stop_all(self, _event):
+        if not hasattr(self, "_deck_manager") or self._deck_manager is None:
+            self.frame.set_status("Kein Deck aktiv")
+            return
+        self._deck_manager.stop_all()
+        self._deck_manager = None
+        self.frame.set_status("Alle Decks gestoppt")
 
     @staticmethod
     def _parse_m3u(filepath: str) -> List[str]:

@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.1.0"
+APP_VERSION = "10.2.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -276,6 +276,10 @@ class MainWindow(QMainWindow):
         self._auto_reply = AutoReplyManager(self)
         self._webhook = WebhookManager(self)
         self._http_api = HttpApiServer(self)
+        # v10.2.0 – Geräte-Sync
+        self._sync_manager = None
+        if getattr(_ts, "device_sync_enabled", False):
+            self._ensure_sync_manager()
         self.braille = BrailleOutputManager(self.tts)
         _braille_verbosity = getattr(_ts, "braille_verbosity", "normal")
         self.braille.verbosity = _braille_verbosity if _braille_verbosity in ("compact", "normal", "verbose") else "normal"
@@ -800,6 +804,26 @@ class MainWindow(QMainWindow):
             return str(s)
         except Exception:
             return ""
+
+    # ------------------------------------------------------------------
+    # Geräte-Sync
+    # ------------------------------------------------------------------
+
+    def _ensure_sync_manager(self) -> None:
+        """Startet den Geräte-Sync-Manager falls noch nicht aktiv."""
+        if self._sync_manager is not None:
+            return
+        try:
+            from settings_sync import SettingsSyncManager
+            server_store = getattr(self, "server_store", None)
+            bus = getattr(self, "bus", None)
+            self._sync_manager = SettingsSyncManager(
+                self.settings_store, server_store, bus
+            )
+            self._sync_manager.start()
+        except Exception as exc:
+            print(f"[Sync] Start fehlgeschlagen: {exc}")
+            self._sync_manager = None
 
     # ------------------------------------------------------------------
     # Status bar

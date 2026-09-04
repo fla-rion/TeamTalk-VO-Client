@@ -80,6 +80,7 @@ class SettingsTab(wx.Panel):
             "TTS",
             "Chat & Automation",
             "KI & Integration",
+            "Geräte-Sync",
         ])
         self.section_choice.SetName("Einstellungsbereich")
         self.section_choice.SetSelection(0)
@@ -119,6 +120,7 @@ class SettingsTab(wx.Panel):
         self.tts_extended_tab = self._build_tts_extended_tab()
         self.ki_integration_tab = self._build_combined_ki_integration_tab()
         self.chat_automation_tab = self._build_combined_chat_automation_tab()
+        self.device_sync_tab = self._build_device_sync_tab()
 
         self._sections = {
             "Allgemein": [self.general_combined_tab],
@@ -130,6 +132,7 @@ class SettingsTab(wx.Panel):
             "TTS": [self.system_tab, self.tts_extended_tab],
             "Chat & Automation": [self.chat_automation_tab],
             "KI & Integration": [self.ki_integration_tab],
+            "Geräte-Sync": [self.device_sync_tab],
         }
         self._section_keys = list(self._sections.keys())
 
@@ -1220,6 +1223,215 @@ class SettingsTab(wx.Panel):
         self._refresh_bm_list()
         return panel
 
+    def _build_device_sync_tab(self) -> wx.ScrolledWindow:
+        """Geräte-Sync – Kopplung und Synchronisation mit anderen Geräten."""
+        panel = wx.ScrolledWindow(self)
+        panel.SetScrollRate(0, 20)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # ---- Allgemein ----
+        gen_box = wx.StaticBox(panel, label="Geräte-Sync")
+        gen_sizer = wx.StaticBoxSizer(gen_box, wx.VERTICAL)
+
+        self._sync_enabled = wx.CheckBox(panel, label="&Geräte-Sync aktivieren")
+        self._sync_enabled.SetName("Geräte-Sync aktivieren")
+        self._sync_enabled.SetValue(bool(getattr(self.frame.settings_store.settings, "device_sync_enabled", False)))
+        self._sync_enabled.Bind(wx.EVT_CHECKBOX, self._on_sync_enabled_changed)
+        gen_sizer.Add(self._sync_enabled, 0, wx.ALL, 8)
+
+        pair_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._pair_show_btn = wx.Button(panel, label="Neues Gerät &koppeln...")
+        self._pair_show_btn.SetName("Neues Gerät koppeln")
+        self._pair_show_btn.Bind(wx.EVT_BUTTON, self._on_pair_show_code)
+        pair_btn_row.Add(self._pair_show_btn, 0, wx.RIGHT, 8)
+        self._pair_enter_btn = wx.Button(panel, label="Mit &Code koppeln...")
+        self._pair_enter_btn.SetName("Mit Code koppeln")
+        self._pair_enter_btn.Bind(wx.EVT_BUTTON, self._on_pair_enter_code)
+        pair_btn_row.Add(self._pair_enter_btn, 0)
+        gen_sizer.Add(pair_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(gen_sizer, 0, wx.ALL | wx.EXPAND, 8)
+
+        # ---- Gekoppelte Geräte ----
+        dev_box = wx.StaticBox(panel, label="Gekoppelte Geräte")
+        dev_sizer = wx.StaticBoxSizer(dev_box, wx.VERTICAL)
+
+        self._paired_list = wx.ListBox(panel, style=wx.LB_SINGLE)
+        self._paired_list.SetName("Gekoppelte Geräte")
+        dev_sizer.Add(self._paired_list, 0, wx.ALL | wx.EXPAND, 8)
+        self._paired_device_ids: List[str] = []
+
+        dev_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._unpair_btn = wx.Button(panel, label="Kopplung &aufheben")
+        self._unpair_btn.SetName("Kopplung aufheben")
+        self._unpair_btn.Bind(wx.EVT_BUTTON, self._on_unpair)
+        dev_btn_row.Add(self._unpair_btn, 0, wx.RIGHT, 8)
+        self._sync_now_btn = wx.Button(panel, label="&Jetzt synchronisieren")
+        self._sync_now_btn.SetName("Jetzt synchronisieren")
+        self._sync_now_btn.Bind(wx.EVT_BUTTON, self._on_sync_now)
+        dev_btn_row.Add(self._sync_now_btn, 0)
+        dev_sizer.Add(dev_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(dev_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        # ---- Was synchronisieren ----
+        what_box = wx.StaticBox(panel, label="Was synchronisieren")
+        what_sizer = wx.StaticBoxSizer(what_box, wx.VERTICAL)
+
+        self._sync_server_profiles = wx.CheckBox(panel, label="&Serverprofile")
+        self._sync_server_profiles.SetName("Serverprofile synchronisieren")
+        self._sync_server_profiles.SetValue(True)
+        what_sizer.Add(self._sync_server_profiles, 0, wx.ALL, 4)
+
+        self._sync_hotkeys = wx.CheckBox(panel, label="&Tastenkürzel")
+        self._sync_hotkeys.SetName("Tastenkürzel synchronisieren")
+        self._sync_hotkeys.SetValue(True)
+        what_sizer.Add(self._sync_hotkeys, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._sync_tts = wx.CheckBox(panel, label="&TTS-Einstellungen")
+        self._sync_tts.SetName("TTS-Einstellungen synchronisieren")
+        self._sync_tts.SetValue(True)
+        what_sizer.Add(self._sync_tts, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._sync_sound = wx.CheckBox(panel, label="Sound-&Ereignisse und -Profile")
+        self._sync_sound.SetName("Sound-Ereignisse und -Profile synchronisieren")
+        self._sync_sound.SetValue(True)
+        what_sizer.Add(self._sync_sound, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._sync_notifications = wx.CheckBox(panel, label="&Benachrichtigungsregeln und Stichwörter")
+        self._sync_notifications.SetName("Benachrichtigungsregeln synchronisieren")
+        self._sync_notifications.SetValue(True)
+        what_sizer.Add(self._sync_notifications, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        note = wx.StaticText(panel, label=(
+            "Hinweis: API-Schlüssel, Passwörter und\n"
+            "hardware-spezifische Einstellungen werden niemals synchronisiert."
+        ))
+        note.SetName("Sync-Hinweis")
+        what_sizer.Add(note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(what_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
+        panel.SetSizer(sizer)
+        panel.Show(False)
+        wx.CallAfter(self._refresh_paired_list)
+        return panel
+
+    def _refresh_paired_list(self) -> None:
+        try:
+            mgr = getattr(self.frame, "_sync_manager", None)
+            if mgr is None:
+                self._paired_list.Set(["(Sync nicht aktiv)"])
+                self._paired_device_ids = []
+                return
+            devices = mgr.paired_devices()
+            self._paired_device_ids = [d.device_id for d in devices]
+            if not devices:
+                self._paired_list.Set(["(Keine gekoppelten Geräte)"])
+            else:
+                import datetime
+                labels = []
+                for d in devices:
+                    ts = ""
+                    if d.last_sync:
+                        dt = datetime.datetime.fromtimestamp(d.last_sync)
+                        ts = f", Sync: {dt.strftime('%d.%m.%Y %H:%M')}"
+                    labels.append(f"{d.name}, {d.platform}{ts}")
+                self._paired_list.Set(labels)
+        except Exception:
+            pass
+
+    def _on_sync_enabled_changed(self, _event) -> None:
+        enabled = self._sync_enabled.GetValue()
+        s = self.frame.settings_store.settings
+        s.device_sync_enabled = enabled
+        self.frame.settings_store.save()
+        if enabled:
+            try:
+                self.frame._ensure_sync_manager()
+            except Exception as exc:
+                self.frame.set_status(f"Geräte-Sync: {exc}")
+        else:
+            try:
+                mgr = getattr(self.frame, "_sync_manager", None)
+                if mgr:
+                    mgr.stop()
+                    self.frame._sync_manager = None
+            except Exception:
+                pass
+        wx.CallAfter(self._refresh_paired_list)
+
+    def _on_pair_show_code(self, _event) -> None:
+        """Zeigt den 6-stelligen Kopplungs-Code an."""
+        mgr = getattr(self.frame, "_sync_manager", None)
+        if mgr is None:
+            wx.MessageBox(
+                "Bitte zuerst den Geräte-Sync aktivieren.",
+                "Geräte-Sync", wx.OK | wx.ICON_INFORMATION, self
+            )
+            return
+        dlg = _PairingCodeDialog(self, self.frame, mgr)
+        dlg.ShowModal()
+        dlg.Destroy()
+        wx.CallAfter(self._refresh_paired_list)
+
+    def _on_pair_enter_code(self, _event) -> None:
+        """Gibt den Code eines anderen Geräts ein."""
+        mgr = getattr(self.frame, "_sync_manager", None)
+        if mgr is None:
+            wx.MessageBox(
+                "Bitte zuerst den Geräte-Sync aktivieren.",
+                "Geräte-Sync", wx.OK | wx.ICON_INFORMATION, self
+            )
+            return
+        dlg = _EnterCodeDialog(self, self.frame, mgr)
+        dlg.ShowModal()
+        dlg.Destroy()
+        wx.CallAfter(self._refresh_paired_list)
+
+    def _on_unpair(self, _event) -> None:
+        idx = self._paired_list.GetSelection()
+        if idx == wx.NOT_FOUND or idx >= len(self._paired_device_ids):
+            return
+        mgr = getattr(self.frame, "_sync_manager", None)
+        if mgr is None:
+            return
+        device_id = self._paired_device_ids[idx]
+        confirm = wx.MessageDialog(
+            self,
+            "Kopplung mit diesem Gerät wirklich aufheben?\nDas Gerät kann danach nicht mehr synchronisieren.",
+            "Kopplung aufheben",
+            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION,
+        )
+        if confirm.ShowModal() == wx.ID_YES:
+            mgr.unpair(device_id)
+            self.frame.set_status("Kopplung aufgehoben")
+        confirm.Destroy()
+        wx.CallAfter(self._refresh_paired_list)
+
+    def _on_sync_now(self, _event) -> None:
+        mgr = getattr(self.frame, "_sync_manager", None)
+        if mgr is None:
+            self.frame.set_status("Geräte-Sync nicht aktiv")
+            return
+        mgr.set_sync_what({
+            "server_profiles": self._sync_server_profiles.GetValue(),
+            "hotkeys": self._sync_hotkeys.GetValue(),
+            "tts": self._sync_tts.GetValue(),
+            "sound": self._sync_sound.GetValue(),
+            "notifications": self._sync_notifications.GetValue(),
+        })
+        self.frame.set_status("Synchronisierung läuft…")
+
+        def _done(ok: int, total: int) -> None:
+            wx.CallAfter(
+                self.frame.set_status,
+                f"Sync abgeschlossen: {ok}/{total} Geräte erfolgreich"
+            )
+            wx.CallAfter(self._refresh_paired_list)
+
+        mgr.sync_all(on_done=_done)
+
     def _build_sound_events_tab(self) -> wx.Panel:
         panel = wx.Panel(self)
         outer = wx.BoxSizer(wx.VERTICAL)
@@ -2224,6 +2436,199 @@ class SettingsTab(wx.Panel):
             for p in panels:
                 p.Show(id(p) in active)
         self.Layout()
+
+
+class _PairingCodeDialog(wx.Dialog):
+    """Zeigt den 6-stelligen Kopplungs-Code an (Gerät A initiiert Kopplung)."""
+
+    def __init__(self, parent: wx.Window, frame, mgr) -> None:
+        super().__init__(
+            parent,
+            title="Neues Gerät koppeln",
+            style=wx.DEFAULT_DIALOG_STYLE,
+        )
+        self.frame = frame
+        self._mgr = mgr
+        self._server = None
+        self._timer = None
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Geben Sie diesen Code auf dem anderen Gerät ein.\n"
+            "Der Code ist 2 Minuten gültig."
+        ))
+        sizer.Add(info, 0, wx.ALL, 12)
+
+        self._code_label = wx.StaticText(panel, label="Starte…")
+        self._code_label.SetName("Kopplungs-Code")
+        font = self._code_label.GetFont()
+        font.SetPointSize(24)
+        font.SetWeight(wx.FONTWEIGHT_BOLD)
+        self._code_label.SetFont(font)
+        sizer.Add(self._code_label, 0, wx.ALL | wx.ALIGN_CENTER, 12)
+
+        self._countdown_label = wx.StaticText(panel, label="")
+        self._countdown_label.SetName("Countdown")
+        sizer.Add(self._countdown_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.ALIGN_CENTER, 8)
+
+        self._status_label = wx.StaticText(panel, label="Warte auf Verbindung…")
+        self._status_label.SetName("Status")
+        sizer.Add(self._status_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.ALIGN_CENTER, 8)
+
+        close_btn = wx.Button(panel, wx.ID_CANCEL, label="&Abbrechen")
+        sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        panel.SetSizer(sizer)
+        self.Fit()
+        self.CentreOnParent()
+        self._start()
+
+    def _start(self) -> None:
+        try:
+            self._server = self._mgr.start_pairing()
+            code = self._server.code
+            self._code_label.SetLabel(code)
+            self._status_label.SetLabel(
+                f"Warte auf Verbindung… (Port: {self._server.port})"
+            )
+            self._start_time = __import__("time").time()
+            self._timer = wx.Timer(self)
+            self.Bind(wx.EVT_TIMER, self._on_timer, self._timer)
+            self._timer.Start(1000)
+            # Polling-Thread für erfolgreiche Kopplung
+            import threading
+            threading.Thread(target=self._wait_paired, daemon=True).start()
+        except Exception as exc:
+            self._code_label.SetLabel("Fehler")
+            self._status_label.SetLabel(str(exc))
+
+    def _wait_paired(self) -> None:
+        import time
+        if self._server is None:
+            return
+        self._server._done.wait(timeout=130)
+        if self._server._done.is_set():
+            wx.CallAfter(self._status_label.SetLabel, "Kopplung erfolgreich!")
+            wx.CallAfter(self.frame.set_status, "Gerät erfolgreich gekoppelt")
+            wx.CallAfter(self._close_success)
+
+    def _close_success(self) -> None:
+        if self._timer:
+            self._timer.Stop()
+        self.EndModal(wx.ID_OK)
+
+    def _on_timer(self, _event) -> None:
+        import time
+        elapsed = time.time() - self._start_time
+        remaining = max(0, 120 - int(elapsed))
+        self._countdown_label.SetLabel(f"Gültig noch: {remaining} Sekunden")
+        if remaining == 0:
+            self._timer.Stop()
+            self._status_label.SetLabel("Code abgelaufen – bitte Dialog schließen und neu starten.")
+            if self._server:
+                self._server.stop()
+
+    def Destroy(self):
+        if self._timer:
+            self._timer.Stop()
+        if self._server:
+            self._server.stop()
+        super().Destroy()
+
+
+class _EnterCodeDialog(wx.Dialog):
+    """Gibt den Code eines anderen Geräts ein (Gerät B tritt der Kopplung bei)."""
+
+    def __init__(self, parent: wx.Window, frame, mgr) -> None:
+        super().__init__(
+            parent,
+            title="Mit Code koppeln",
+            style=wx.DEFAULT_DIALOG_STYLE,
+        )
+        self.frame = frame
+        self._mgr = mgr
+
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+
+        info = wx.StaticText(panel, label=(
+            "Geben Sie die IP-Adresse und den 6-stelligen Code\n"
+            "des anderen Geräts ein."
+        ))
+        sizer.Add(info, 0, wx.ALL, 12)
+
+        form = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
+        form.AddGrowableCol(1)
+
+        form.Add(wx.StaticText(panel, label="IP-Adresse"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._host_ctrl = wx.TextCtrl(panel)
+        self._host_ctrl.SetName("IP-Adresse des Geräts")
+        self._host_ctrl.SetHelpText("z. B. 192.168.1.42")
+        form.Add(self._host_ctrl, 1, wx.EXPAND)
+
+        form.Add(wx.StaticText(panel, label="Port"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._port_ctrl = wx.TextCtrl(panel, value="0")
+        self._port_ctrl.SetName("Port des Geräts")
+        self._port_ctrl.SetHelpText("Der angezeigte Port vom anderen Gerät")
+        form.Add(self._port_ctrl, 1, wx.EXPAND)
+
+        form.Add(wx.StaticText(panel, label="6-stelliger Code"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._code_ctrl = wx.TextCtrl(panel)
+        self._code_ctrl.SetName("Kopplungs-Code")
+        form.Add(self._code_ctrl, 1, wx.EXPAND)
+
+        sizer.Add(form, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
+
+        self._status_label = wx.StaticText(panel, label="")
+        self._status_label.SetName("Status")
+        sizer.Add(self._status_label, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._connect_btn = wx.Button(panel, label="&Koppeln")
+        self._connect_btn.SetName("Koppeln")
+        self._connect_btn.Bind(wx.EVT_BUTTON, self._on_connect)
+        cancel_btn = wx.Button(panel, wx.ID_CANCEL, label="&Abbrechen")
+        btn_row.Add(self._connect_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(cancel_btn, 0)
+        sizer.Add(btn_row, 0, wx.ALL | wx.ALIGN_RIGHT, 8)
+
+        panel.SetSizer(sizer)
+        self.Fit()
+        self.CentreOnParent()
+
+    def _on_connect(self, _event) -> None:
+        host = self._host_ctrl.GetValue().strip()
+        port_str = self._port_ctrl.GetValue().strip()
+        code = self._code_ctrl.GetValue().strip()
+        if not host or not code:
+            self._status_label.SetLabel("Bitte alle Felder ausfüllen.")
+            return
+        try:
+            port = int(port_str)
+        except ValueError:
+            self._status_label.SetLabel("Ungültiger Port.")
+            return
+
+        self._connect_btn.Disable()
+        self._status_label.SetLabel("Verbinde…")
+
+        def _success(dev, _secret=None) -> None:
+            if callable(getattr(dev, "device_id", None)):
+                pass
+            wx.CallAfter(self._status_label.SetLabel, f"Erfolgreich gekoppelt mit: {dev.name}")
+            wx.CallAfter(self.frame.set_status, f"Gerät '{dev.name}' erfolgreich gekoppelt")
+            wx.CallAfter(self._finish_ok)
+
+        def _error(msg: str) -> None:
+            wx.CallAfter(self._connect_btn.Enable)
+            wx.CallAfter(self._status_label.SetLabel, f"Fehler: {msg}")
+
+        self._mgr.pair_with(host, port, code, _success, _error)
+
+    def _finish_ok(self) -> None:
+        self.EndModal(wx.ID_OK)
 
 
 class _ChannelPasswordsDialog(wx.Dialog):
