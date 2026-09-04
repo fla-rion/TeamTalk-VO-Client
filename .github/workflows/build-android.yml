@@ -105,6 +105,7 @@ jobs:
       - name: GitHub Release erstellen und APK hochladen
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: "TeamTalk VO Client ${{ steps.version.outputs.version }}"
           body: |
             Android-Build für Version ${{ steps.version.outputs.version }}.
