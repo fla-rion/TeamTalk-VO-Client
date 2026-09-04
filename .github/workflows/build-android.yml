@@ -85,36 +85,22 @@ jobs:
       - name: Android App bauen
         run: briefcase build android --no-input
 
-      - name: Android App signieren und paketieren
-        env:
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          if [ "${{ steps.keystore.outputs.signed }}" = "true" ]; then
-            briefcase package android \
-              --no-input \
-              -C "android.sign.key_alias=$KEY_ALIAS" \
-              -C "android.sign.key_password=$KEY_PASSWORD" \
-              -C "android.sign.store_password=$STORE_PASSWORD" \
-              -C "android.sign.store_file=$KEYSTORE_PATH"
-          else
-            briefcase package android --no-input
-          fi
-
       - name: APK umbenennen und in dist/ ablegen
         id: apk
         run: |
           mkdir -p dist
-          APK=$(find build -name "*.apk" | head -1)
+          APK=$(find build -name "app-debug.apk" | head -1)
           if [ -z "$APK" ]; then
-            APK=$(find . -name "*.apk" -not -path "./dist/*" | head -1)
+            APK=$(find build -name "*.apk" | head -1)
+          fi
+          if [ -z "$APK" ]; then
+            echo "FEHLER: Kein APK gefunden!" && find build -type f | head -20 && exit 1
           fi
           VERSION="${{ steps.version.outputs.version }}"
           APK_NAME="TeamTalk-VO-Client-${VERSION}-android.apk"
           cp "$APK" "dist/$APK_NAME"
           echo "apk_name=$APK_NAME" >> "$GITHUB_OUTPUT"
-          echo "APK bereit: dist/$APK_NAME"
+          echo "APK bereit: dist/$APK_NAME ($(du -h dist/$APK_NAME | cut -f1))"
 
       - name: GitHub Release erstellen und APK hochladen
         uses: softprops/action-gh-release@v2
