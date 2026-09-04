@@ -22,8 +22,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Xcode-Version wählen
-        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - name: Xcode-Version prüfen
+        run: xcodebuild -version
 
       - name: xcodegen installieren
         run: brew install xcodegen
@@ -31,17 +31,21 @@ jobs:
       - name: Version aus app_wx.py lesen
         id: version
         run: |
-          VERSION=$(python3 -c "
+          VERSION=$(python3 << 'PYEOF'
           import re
-          with open('src/app_wx.py', encoding='utf-8') as f:
-              content = f.read()
-          m = re.search(r'APP_VERSION\s*=\s*[\"\']([\w.]+)[\"\']', content)
-          print(m.group(1) if m else '1.0.0')
-          " 2>/dev/null || echo "1.0.0")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "iOS App Version: $VERSION"
+          try:
+              with open('src/app_wx.py', encoding='utf-8') as f:
+                  content = f.read()
+              m = re.search(r"APP_VERSION\s*=\s*[\"']([\w.]+)[\"']", content)
+              print(m.group(1) if m else '1.0.0')
+          except Exception:
+              print('1.0.0')
+          PYEOF
+          )
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "iOS App Version: ${VERSION}"
 
-      - name: TeamTalk5 iOS xcframework herunterladen
+      - name: TeamTalk5 iOS xcframework vorbereiten
         run: |
           mkdir -p ios/Vendor/TeamTalk
           if [ -n "${{ secrets.TEAMTALK_IOS_URL }}" ]; then
@@ -50,7 +54,7 @@ jobs:
             find /tmp/tt5ios -name "TeamTalk5.xcframework" -exec cp -r {} ios/Vendor/TeamTalk/ \;
             echo "TeamTalk5.xcframework eingebunden."
           else
-            echo "WARNUNG: Kein TEAMTALK_IOS_URL-Secret – Build ohne echtes SDK (Simulator only)."
+            echo "WARNUNG: Kein TEAMTALK_IOS_URL – Stub-Framework fuer Simulator-Build."
             mkdir -p ios/Vendor/TeamTalk/TeamTalk5.xcframework
             printf '{"CFBundlePackageType":"XFWK","XCFrameworkFormatVersion":"1.0","AvailableLibraries":[]}' \
               > ios/Vendor/TeamTalk/TeamTalk5.xcframework/Info.plist
@@ -60,39 +64,44 @@ jobs:
         working-directory: ios
         run: xcodegen generate --spec project.yml
 
+      - name: Simulator-UDID ermitteln
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available | grep -E 'iPhone (17|16e|Air)' | grep -v unavailable | head -1 | grep -oE '[A-F0-9-]{36}' || true)
+          if [ -n "$UDID" ]; then
+            echo "dest=platform=iOS Simulator,id=${UDID}" >> "$GITHUB_OUTPUT"
+            echo "Simulator UDID: ${UDID}"
+          else
+            echo "dest=generic/platform=iOS Simulator" >> "$GITHUB_OUTPUT"
+            echo "Kein spezifischer Simulator gefunden, nutze generic."
+          fi
+
       - name: iOS App bauen (Simulator)
         id: build
         working-directory: ios
         run: |
-          set -o pipefail
           mkdir -p build
-          # Verfügbare Simulatoren anzeigen (Debugging)
-          DEST=$(xcrun simctl list devices available --json 2>/dev/null | \
-            python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-for runtime, devs in d.get('devices', {}).items():
-    for dev in devs:
-        if dev.get('isAvailable') and 'iPhone' in dev.get('name','') and ('iPhone 17' in dev.get('name','') or 'iPhone 16' in dev.get('name','') or 'iPhone Air' in dev.get('name','')):
-            print(dev['udid']); exit()
-" 2>/dev/null || true)
-          if [ -n "$DEST" ]; then
-            DESTINATION="platform=iOS Simulator,id=$DEST"
-          else
-            DESTINATION="generic/platform=iOS Simulator"
-          fi
-          echo "Ziel-Simulator: $DESTINATION"
+          set -o pipefail
           xcodebuild \
             -project TeamTalkVO.xcodeproj \
             -scheme TeamTalkVO \
             -sdk iphonesimulator \
-            -destination "$DESTINATION" \
+            -destination '${{ steps.sim.outputs.dest }}' \
             -configuration Release \
             -derivedDataPath build/DerivedData \
             MARKETING_VERSION="${{ steps.version.outputs.version }}" \
             CODE_SIGNING_ALLOWED=NO \
-            build 2>&1 | tee build/xcodebuild.log | tail -50
+            ONLY_ACTIVE_ARCH=NO \
+            build 2>&1 | tee build/xcodebuild.log | tail -80
           echo "build_log=ios/build/xcodebuild.log" >> "$GITHUB_OUTPUT"
+
+      - name: Build-Log hochladen (bei Fehler)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: ios/build/xcodebuild.log
+          if-no-files-found: ignore
 
       - name: Simulator-App als ZIP paketieren
         id: artifact
@@ -100,7 +109,7 @@ for runtime, devs in d.get('devices', {}).items():
           mkdir -p dist
           APP=$(find ios/build/DerivedData -name "TeamTalkVO.app" -type d | head -1)
           if [ -z "$APP" ]; then
-            APP=$(find ~/Library/Developer/Xcode/DerivedData -name "TeamTalkVO.app" -type d 2>/dev/null | head -1)
+            APP=$(find ~/Library/Developer/Xcode/DerivedData -name "TeamTalkVO.app" -type d 2>/dev/null | head -1 || true)
           fi
           VERSION="${{ steps.version.outputs.version }}"
           ARTIFACT="TeamTalk-VO-${VERSION}-ios-simulator.zip"
@@ -108,7 +117,7 @@ for runtime, devs in d.get('devices', {}).items():
             (cd "$(dirname "$APP")" && zip -r "$GITHUB_WORKSPACE/dist/$ARTIFACT" "$(basename "$APP")")
             echo "artifact=$ARTIFACT" >> "$GITHUB_OUTPUT"
             echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "Paketiert: dist/$ARTIFACT ($(du -h "dist/$ARTIFACT" | cut -f1))"
+            echo "Paketiert: dist/$ARTIFACT"
           else
             echo "WARNUNG: App-Bundle nicht gefunden."
             find ios/build -type d -name "*.app" 2>/dev/null || true
@@ -120,14 +129,13 @@ for runtime, devs in d.get('devices', {}).items():
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: "TeamTalk VO ${{ steps.version.outputs.version }} (iOS)"
+          name: "TeamTalk VO ${{ steps.version.outputs.version }} (iOS Simulator)"
           body: |
-            iOS Simulator-Build für Version ${{ steps.version.outputs.version }}.
+            iOS Simulator-Build fuer Version ${{ steps.version.outputs.version }}.
 
             **Hinweise:**
-            - Dies ist ein Simulator-Build (kein echtes Gerät)
-            - Für Gerätebetrieb: TeamTalk5.xcframework + Code-Signing erforderlich
-            - Echtes SDK einbinden: `TEAMTALK_IOS_URL`-Secret setzen
+            - Simulator-Build (kein echtes Geraet)
+            - Fuer Geraetebetrieb: TeamTalk5.xcframework + Code-Signing erforderlich
 
             **Installation (Simulator):**
             1. Xcode + iOS Simulator installieren
