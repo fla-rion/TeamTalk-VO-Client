@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import threading
 from typing import TYPE_CHECKING, List
 
 import wx
@@ -1312,6 +1313,48 @@ class SettingsTab(wx.Panel):
 
         sizer.Add(what_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # ---- Cloud-Sync ----
+        cloud_box = wx.StaticBox(panel, label="Cloud-Synchronisierung")
+        cloud_sizer = wx.StaticBoxSizer(cloud_box, wx.VERTICAL)
+
+        icloud_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._icloud_enabled = wx.CheckBox(panel, label="&iCloud-Sync (macOS↔iOS)")
+        self._icloud_enabled.SetName("iCloud-Sync aktivieren")
+        self._icloud_enabled.SetValue(bool(getattr(self.frame.settings_store.settings, "icloud_sync_enabled", False)))
+        self._icloud_enabled.Bind(wx.EVT_CHECKBOX, self._on_icloud_toggle)
+        icloud_row.Add(self._icloud_enabled, 1, wx.ALIGN_CENTER_VERTICAL)
+        self._icloud_sync_btn = wx.Button(panel, label="Jetzt &iCloud-Sync")
+        self._icloud_sync_btn.SetName("Jetzt iCloud synchronisieren")
+        self._icloud_sync_btn.Bind(wx.EVT_BUTTON, self._on_icloud_sync_now)
+        icloud_row.Add(self._icloud_sync_btn, 0, wx.LEFT, 8)
+        cloud_sizer.Add(icloud_row, 0, wx.ALL, 8)
+
+        gdrive_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._gdrive_enabled = wx.CheckBox(panel, label="&Google Drive (alle Plattformen)")
+        self._gdrive_enabled.SetName("Google Drive Sync aktivieren")
+        self._gdrive_enabled.SetValue(bool(getattr(self.frame.settings_store.settings, "google_sync_enabled", False)))
+        self._gdrive_enabled.Bind(wx.EVT_CHECKBOX, self._on_gdrive_toggle)
+        gdrive_row.Add(self._gdrive_enabled, 1, wx.ALIGN_CENTER_VERTICAL)
+        self._gdrive_login_btn = wx.Button(panel, label="Google &Anmelden")
+        self._gdrive_login_btn.SetName("Google anmelden")
+        self._gdrive_login_btn.Bind(wx.EVT_BUTTON, self._on_gdrive_login)
+        gdrive_row.Add(self._gdrive_login_btn, 0, wx.LEFT, 8)
+        cloud_sizer.Add(gdrive_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._gdrive_status = wx.StaticText(panel, label="Google: Nicht angemeldet")
+        self._gdrive_status.SetName("Google Drive Status")
+        cloud_sizer.Add(self._gdrive_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        cloud_note = wx.StaticText(panel, label=(
+            "iCloud: Synchronisiert mit iOS-App und anderen Apple-Geräten.\n"
+            "Google Drive: Plattformübergreifend (iOS, Android, Windows, macOS).\n"
+            "API-Schlüssel und Passwörter werden niemals synchronisiert."
+        ))
+        cloud_note.SetName("Cloud-Sync-Hinweis")
+        cloud_sizer.Add(cloud_note, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        sizer.Add(cloud_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         panel.SetSizer(sizer)
         panel.Show(False)
         wx.CallAfter(self._refresh_paired_list)
@@ -1340,6 +1383,53 @@ class SettingsTab(wx.Panel):
                 self._paired_list.Set(labels)
         except Exception:
             pass
+
+    def _on_icloud_toggle(self, event) -> None:
+        enabled = self._icloud_enabled.GetValue()
+        self.frame.settings_store.settings.icloud_sync_enabled = enabled
+        self.frame.settings_store.save()
+        if enabled:
+            mgr = getattr(self.frame, "_icloud_sync", None)
+            if mgr and mgr.is_available:
+                wx.MessageBox("iCloud-Sync aktiviert. Serverprofile werden synchronisiert.", "iCloud-Sync", wx.OK | wx.ICON_INFORMATION)
+            else:
+                wx.MessageBox("iCloud nicht verfügbar. Bitte stelle sicher, dass iCloud auf diesem Mac aktiv ist.", "iCloud-Sync", wx.OK | wx.ICON_WARNING)
+
+    def _on_icloud_sync_now(self, event) -> None:
+        mgr = getattr(self.frame, "_icloud_sync", None)
+        if not mgr or not mgr.is_available:
+            wx.MessageBox("iCloud nicht verfügbar.", "iCloud-Sync", wx.OK | wx.ICON_WARNING)
+            return
+        profiles = getattr(self.frame, "_get_server_profiles_for_sync", lambda: [])()
+        ok = mgr.upload_servers(profiles)
+        wx.MessageBox(
+            "iCloud-Sync abgeschlossen." if ok else "iCloud-Sync fehlgeschlagen.",
+            "iCloud-Sync",
+            wx.OK | wx.ICON_INFORMATION if ok else wx.OK | wx.ICON_WARNING,
+        )
+
+    def _on_gdrive_toggle(self, event) -> None:
+        enabled = self._gdrive_enabled.GetValue()
+        self.frame.settings_store.settings.google_sync_enabled = enabled
+        self.frame.settings_store.save()
+
+    def _on_gdrive_login(self, event) -> None:
+        mgr = getattr(self.frame, "_google_sync", None)
+        if mgr is None:
+            wx.MessageBox("Google Drive Sync ist nicht konfiguriert. Bitte Google Client-ID in den Einstellungen eintragen.", "Google Drive", wx.OK | wx.ICON_INFORMATION)
+            return
+        if mgr.is_signed_in:
+            if wx.MessageBox(f"Von Google abmelden ({mgr.user_email})?", "Google Drive", wx.YES_NO) == wx.YES:
+                mgr.sign_out()
+                self._gdrive_status.SetLabel("Google: Nicht angemeldet")
+        else:
+            threading.Thread(target=self._gdrive_sign_in_thread, args=(mgr,), daemon=True).start()
+
+    def _gdrive_sign_in_thread(self, mgr) -> None:
+        ok = mgr.sign_in()
+        wx.CallAfter(lambda: self._gdrive_status.SetLabel(
+            f"Google: {mgr.user_email}" if ok else "Google: Anmeldung fehlgeschlagen"
+        ))
 
     def _on_sync_enabled_changed(self, _event) -> None:
         enabled = self._sync_enabled.GetValue()

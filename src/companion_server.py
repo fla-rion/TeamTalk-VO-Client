@@ -13,6 +13,8 @@ Endpunkte:
     GET  /events        – SSE-Stream der letzten Bus-Events (Companion-Subset)
     POST /push_token    – Push-Token registrieren (iOS/Android)
                           Body: {"token": "...", "platform": "ios"|"android"}
+    GET  /profiles      – Exportierbare Serverprofile (für iOS/Android Companion-App)
+    GET  /export_settings – Exportierbare Einstellungen (ohne API-Keys/Passwörter)
 
 Authentifizierung: identisch mit HttpApiServer (X-Companion-Token Header).
 """
@@ -40,6 +42,8 @@ class CompanionServer:
         send_message_fn: Callable[[str, int], bool],
         token: Optional[str] = None,
         port: int = _DEFAULT_PORT,
+        get_profiles_fn: Callable[[], List[Dict]] | None = None,
+        get_export_settings_fn: Callable[[], Dict] | None = None,
     ) -> None:
         self._get_status = get_status_fn
         self._get_channels = get_channels_fn
@@ -47,6 +51,8 @@ class CompanionServer:
         self._send_message = send_message_fn
         self._token = token
         self._port = port
+        self._get_profiles = get_profiles_fn or (lambda: [])
+        self._get_export_settings = get_export_settings_fn or (lambda: {})
         self._server: Optional[HTTPServer] = None
         self._thread: Optional[threading.Thread] = None
         self._running = False
@@ -101,6 +107,10 @@ class CompanionServer:
                     self._send_json(server._get_channels())
                 elif path == "/users":
                     self._send_json(server._get_users())
+                elif path == "/profiles":
+                    self._send_json(server._get_profiles())
+                elif path == "/export_settings":
+                    self._send_json(server._get_export_settings())
                 elif path == "/events":
                     self._serve_sse()
                 else:

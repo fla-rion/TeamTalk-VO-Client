@@ -1231,10 +1231,85 @@ class SettingsTab(QWidget):
         what_layout.addWidget(note)
         layout.addWidget(what_group)
 
+        # ---- Cloud-Sync ----
+        cloud_group = QGroupBox("Cloud-Synchronisierung")
+        cloud_layout = QVBoxLayout(cloud_group)
+
+        self._icloud_enabled_qt = QCheckBox("iCloud-Sync (macOS↔iOS)")
+        self._icloud_enabled_qt.setAccessibleName("iCloud-Sync aktivieren")
+        self._icloud_enabled_qt.setChecked(bool(getattr(s, "icloud_sync_enabled", False)))
+        self._icloud_enabled_qt.stateChanged.connect(lambda v: self._save_bool("icloud_sync_enabled", bool(v)))
+        cloud_layout.addWidget(self._icloud_enabled_qt)
+
+        self._gdrive_enabled_qt = QCheckBox("Google Drive (alle Plattformen)")
+        self._gdrive_enabled_qt.setAccessibleName("Google Drive Sync aktivieren")
+        self._gdrive_enabled_qt.setChecked(bool(getattr(s, "google_sync_enabled", False)))
+        self._gdrive_enabled_qt.stateChanged.connect(lambda v: self._save_bool("google_sync_enabled", bool(v)))
+        cloud_layout.addWidget(self._gdrive_enabled_qt)
+
+        gdrive_btn_row = QHBoxLayout()
+        self._gdrive_login_btn_qt = QPushButton("Google Anmelden")
+        self._gdrive_login_btn_qt.setAccessibleName("Google anmelden")
+        self._gdrive_login_btn_qt.clicked.connect(self._on_qt_gdrive_login)
+        gdrive_btn_row.addWidget(self._gdrive_login_btn_qt)
+        self._icloud_sync_btn_qt = QPushButton("Jetzt iCloud-Sync")
+        self._icloud_sync_btn_qt.setAccessibleName("Jetzt iCloud synchronisieren")
+        self._icloud_sync_btn_qt.clicked.connect(self._on_qt_icloud_sync_now)
+        gdrive_btn_row.addWidget(self._icloud_sync_btn_qt)
+        gdrive_btn_row.addStretch()
+        cloud_layout.addLayout(gdrive_btn_row)
+
+        self._gdrive_status_qt = QLabel("Google: Nicht angemeldet")
+        self._gdrive_status_qt.setAccessibleName("Google Drive Status")
+        cloud_layout.addWidget(self._gdrive_status_qt)
+
+        cloud_note = QLabel(
+            "iCloud: Synchronisiert mit iOS-App und anderen Apple-Geräten.\n"
+            "Google Drive: Plattformübergreifend (iOS, Android, Windows, macOS).\n"
+            "API-Schlüssel und Passwörter werden niemals synchronisiert."
+        )
+        cloud_note.setWordWrap(True)
+        cloud_layout.addWidget(cloud_note)
+        layout.addWidget(cloud_group)
+
         layout.addStretch()
         scroll.setWidget(inner)
         self._qt_refresh_paired_list()
         return scroll
+
+    def _on_qt_gdrive_login(self) -> None:
+        import threading
+        mgr = getattr(self.window, "_google_sync", None)
+        if mgr is None:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(self, "Google Drive", "Google Drive Sync ist nicht konfiguriert. Bitte Google Client-ID eintragen.")
+            return
+        if mgr.is_signed_in:
+            from PySide6.QtWidgets import QMessageBox
+            if QMessageBox.question(self, "Google Drive", f"Von Google abmelden ({mgr.user_email})?") == QMessageBox.Yes:
+                mgr.sign_out()
+                self._gdrive_status_qt.setText("Google: Nicht angemeldet")
+        else:
+            threading.Thread(target=self._qt_gdrive_sign_in_thread, args=(mgr,), daemon=True).start()
+
+    def _qt_gdrive_sign_in_thread(self, mgr) -> None:
+        ok = mgr.sign_in()
+        from PySide6.QtCore import QMetaObject, Qt
+        label = f"Google: {mgr.user_email}" if ok else "Google: Anmeldung fehlgeschlagen"
+        QMetaObject.invokeMethod(self._gdrive_status_qt, "setText", Qt.QueuedConnection, label)
+
+    def _on_qt_icloud_sync_now(self) -> None:
+        from PySide6.QtWidgets import QMessageBox
+        mgr = getattr(self.window, "_icloud_sync", None)
+        if not mgr or not mgr.is_available:
+            QMessageBox.warning(self, "iCloud-Sync", "iCloud nicht verfügbar.")
+            return
+        profiles = getattr(self.window, "_get_server_profiles_for_sync", lambda: [])()
+        ok = mgr.upload_servers(profiles)
+        if ok:
+            QMessageBox.information(self, "iCloud-Sync", "iCloud-Sync abgeschlossen.")
+        else:
+            QMessageBox.warning(self, "iCloud-Sync", "iCloud-Sync fehlgeschlagen.")
 
     def _qt_refresh_paired_list(self) -> None:
         try:
