@@ -34,6 +34,12 @@ jobs:
 
       - name: Android SDK einrichten
         uses: android-actions/setup-android@v3
+        with:
+          # Default-Paketliste der Action enthält das veraltete "tools"-Paket,
+          # das Google aus dem SDK-Repository entfernt hat (sdkmanager bricht
+          # dann mit "Failed to find package 'tools'" ab). Die tatsächlich
+          # benötigten Pakete installiert der nächste Schritt gezielt.
+          packages: "platform-tools"
 
       - name: Android Build-Tools und Plattform installieren
         run: |

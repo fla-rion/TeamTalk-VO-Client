@@ -76,7 +76,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.3.3"
+APP_VERSION = "10.3.4"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -1997,11 +1997,14 @@ class MainFrame(wx.Frame):
         sound_menu.AppendSubMenu(self._sound_input_menu, "Eingabegeräte")
         sound_menu.AppendSubMenu(self._sound_output_menu, "Ausgabegeräte")
         sound_menu.AppendSeparator()
+        self._sound_va_item = sound_menu.AppendCheckItem(wx.ID_ANY, _("Sprachaktivierung"))
+        sound_menu.AppendSeparator()
         sound_settings = sound_menu.Append(wx.ID_ANY, _("Audio-Einstellungen..."))
         sound_apply = sound_menu.Append(wx.ID_ANY, _("Audio anwenden"))
         sound_refresh = sound_menu.Append(wx.ID_ANY, _("Geräte aktualisieren"))
         sound_menu.AppendSeparator()
         sound_effects = sound_menu.Append(wx.ID_ANY, _("Effekte anwenden"))
+        self._sound_menu = sound_menu
         file_menu.AppendSubMenu(sound_menu, "Sound-Konfiguration")
         record_convo = file_menu.Append(wx.ID_ANY, _("Konversationen aufzeichnen..."))
         prefs_item = file_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tF4")
@@ -2273,6 +2276,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_open_tt_file, open_tt)
         self.Bind(wx.EVT_MENU, self.on_menu_new_client, new_client)
+        self.Bind(wx.EVT_MENU, self.on_menu_audio_va, self._sound_va_item)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_settings, sound_settings)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_apply, sound_apply)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, sound_refresh)
@@ -4833,6 +4837,11 @@ class MainFrame(wx.Frame):
             self._populate_sound_device_menu(menu, kind="input")
         elif menu is self._sound_output_menu:
             self._populate_sound_device_menu(menu, kind="output")
+        elif menu is self._sound_menu:
+            try:
+                self._sound_va_item.Check(bool(self.audio_tab.voice_activation.GetValue()))
+            except Exception:
+                pass
         event.Skip()
 
     def _populate_sound_device_menu(self, menu: wx.Menu, kind: str) -> None:
