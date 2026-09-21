@@ -41,6 +41,20 @@ class SettingsTab(toga.Box):
         scroll = toga.ScrollContainer(horizontal=False, style=Pack(flex=1))
         content = toga.Box(style=Pack(direction=COLUMN, padding=8))
 
+        # --- Abschnitt: Info ---
+        content.add(toga.Label("Info", style=Pack(padding_bottom=4, font_weight="bold")))
+        app_version = getattr(self.app, "version", None) or "1.0.1"
+        core_version = getattr(self.app, "core_version", "unbekannt")
+        version_label = toga.Label(
+            f"App-Version: {app_version}\nBasiert auf TeamTalk VO Client Kernversion {core_version}",
+            style=Pack(padding_bottom=12, font_size=11),
+        )
+        set_description(
+            version_label,
+            f"App-Version {app_version}, basiert auf Kernversion {core_version}"
+        )
+        content.add(version_label)
+
         # --- Abschnitt: Sprache ---
         content.add(toga.Label("App-Sprache", style=Pack(padding_bottom=4, font_weight="bold")))
         lang_row = toga.Box(style=Pack(direction=ROW, padding_bottom=12))

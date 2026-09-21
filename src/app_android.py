@@ -17,9 +17,17 @@ from event_bus import EventBus
 from ui.models import SettingsStore
 from teamtalk_client_android import TeamTalkClientAndroid
 
+# Android hat ein eigenes Versionsschema (siehe pyproject.toml), getrennt von
+# der Kernversion (macOS/Windows/Linux, app_wx.py: APP_VERSION). Beim Release
+# einer neuen Kernversion hier von Hand nachziehen, damit die Anzeige in den
+# Android-Einstellungen stimmt.
+CORE_VERSION = "10.3.4"
+
 
 class TeamTalkAndroid(toga.App):
     def startup(self) -> None:
+        self.core_version = CORE_VERSION
+
         # Einstellungen laden (Android-Pfad: app_data)
         settings_path = self.paths.data / "settings.json"
         self.settings_store = SettingsStore(Path(settings_path))
