@@ -114,7 +114,7 @@ class ConnectionTab(wx.Panel):
         form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         form.AddGrowableCol(1)
 
-        self.display_name = self._add_field(form, "Profilname", "")
+        self.display_name = self._add_field(form, "Name", "")
         self.host = self._add_field(form, "Server", "127.0.0.1")
         self.tcp_port = self._add_field(form, "TCP Port", "10333")
         self.udp_port = self._add_field(form, "UDP Port", "10333")

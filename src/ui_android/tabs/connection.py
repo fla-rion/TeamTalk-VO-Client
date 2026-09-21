@@ -96,7 +96,7 @@ class ConnectionTab(toga.Box):
         # --- Verbindungsformular ---
         form_box = toga.Box(style=Pack(direction=COLUMN, padding_bottom=8))
 
-        self.field_name = self._add_field(form_box, "Profilname", "")
+        self.field_name = self._add_field(form_box, "Name", "")
         self.field_host = self._add_field(form_box, "Server", "127.0.0.1")
         self.field_tcp = self._add_field(form_box, "TCP Port", "10333")
         self.field_udp = self._add_field(form_box, "UDP Port", "10333")

@@ -76,7 +76,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.3.4"
+APP_VERSION = "10.3.5"
 
 def _upd_tok() -> str:
     import base64 as _b
@@ -5803,7 +5803,7 @@ class MainFrame(wx.Frame):
             "  Speichern:       Aktuelle Eingaben im Profil speichern.\n"
             "\n"
             "Bereich 'Verbindungsdaten'\n"
-            "  Profilname:      Anzeigename des Profils (nur lokal).\n"
+            "  Name:            Anzeigename des Profils (nur lokal).\n"
             "  Server-Host:     Hostname oder IP-Adresse des TeamTalk-Servers.\n"
             "  TCP-Port:        TCP-Port (Standard: 10333).\n"
             "  UDP-Port:        UDP-Port (Standard: 10333).\n"
