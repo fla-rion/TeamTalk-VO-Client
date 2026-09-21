@@ -78,6 +78,19 @@ jobs:
         run: |
           pyinstaller -y "TeamTalk VO Client.spec"
 
+      - name: App-Bundle neu signieren (ad-hoc)
+        run: |
+          # Das .spec-Skript schreibt nach dem PyInstaller-BUNDLE-Schritt noch
+          # .lproj-Stubs ins Resources-Verzeichnis. Das bricht die von
+          # PyInstaller gesetzte ad-hoc-Signatur (Gatekeeper meldet dann
+          # "App ist beschädigt"). Deshalb hier das komplette Bundle neu
+          # signieren, nachdem alle Dateien final an Ort und Stelle sind.
+          app="dist/TeamTalk VO Client.app"
+          xattr -cr "$app"
+          codesign --force --deep --sign - "$app"
+          codesign -dv --verbose=4 "$app"
+          spctl -a -vv "$app" || true
+
       - name: DMG erstellen
         run: |
           version="${{ steps.version.outputs.version }}"
