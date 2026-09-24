@@ -118,15 +118,18 @@ class SystemTab(QWidget):
         form = QFormLayout()
         self.tts_language = QComboBox()
         self.tts_language.setAccessibleName(_("TTS Sprache"))
-        form.addRow(QLabel(_("Sprache")), self.tts_language)
+        self._lbl_tts_language = QLabel(_("Sprache"))
+        form.addRow(self._lbl_tts_language, self.tts_language)
 
         self.tts_voice_filter = QLineEdit()
         self.tts_voice_filter.setAccessibleName(_("TTS Stimme Filter"))
-        form.addRow(QLabel(_("Stimmenfilter")), self.tts_voice_filter)
+        self._lbl_tts_voice_filter = QLabel(_("Stimmenfilter"))
+        form.addRow(self._lbl_tts_voice_filter, self.tts_voice_filter)
 
         self.tts_voice = QListWidget()
         self.tts_voice.setAccessibleName(_("TTS Stimme"))
-        form.addRow(QLabel(_("Stimme")), self.tts_voice)
+        self._lbl_tts_voice = QLabel(_("Stimme"))
+        form.addRow(self._lbl_tts_voice, self.tts_voice)
 
         self.tts_rate = QSpinBox()
         self.tts_rate.setRange(80, 400)
@@ -142,13 +145,15 @@ class SystemTab(QWidget):
 
         self.tts_path = QLineEdit()
         self.tts_path.setAccessibleName(_("espeak-ng Pfad"))
-        form.addRow(QLabel(_("espeak-ng Pfad")), self.tts_path)
+        self._lbl_tts_path = QLabel(_("espeak-ng Pfad"))
+        form.addRow(self._lbl_tts_path, self.tts_path)
 
         self.tts_evv_voice = QSpinBox()
         self.tts_evv_voice.setRange(1, 8)
         self.tts_evv_voice.setValue(1)
         self.tts_evv_voice.setAccessibleName(_("Eloquence Stimme"))
-        form.addRow(QLabel(_("Eloquence Stimme (1–8)")), self.tts_evv_voice)
+        self._lbl_evv_voice = QLabel(_("Eloquence Stimme (1–8)"))
+        form.addRow(self._lbl_evv_voice, self.tts_evv_voice)
 
         tts_layout.addLayout(form)
 
@@ -202,6 +207,7 @@ class SystemTab(QWidget):
 
         self._bind_events()
         self._sync_from_manager()
+        self._update_backend_visibility()
         self._refresh_stats()
 
     def _bind_events(self) -> None:
@@ -232,7 +238,23 @@ class SystemTab(QWidget):
         self.tts_chat_voice.textChanged.connect(self._apply_settings)
         self.tts_system_voice.textChanged.connect(self._apply_settings)
         self.tts_backend.currentIndexChanged.connect(self._apply_settings)
+        self.tts_backend.currentIndexChanged.connect(self._update_backend_visibility)
         self.tts_evv_voice.valueChanged.connect(self._apply_settings)
+
+    def _update_backend_visibility(self, *_args) -> None:
+        """Blendet espeak-spezifische bzw. Eloquence-spezifische Felder passend zur gewählten Engine ein/aus."""
+        is_openevv = self.tts_backend.currentIndex() == 1
+        is_espeak = not is_openevv
+        for ctrl in (
+            self._lbl_tts_language, self.tts_language,
+            self._lbl_tts_voice_filter, self.tts_voice_filter,
+            self._lbl_tts_voice, self.tts_voice,
+            self._lbl_tts_path, self.tts_path,
+            self.tts_refresh,
+        ):
+            ctrl.setVisible(is_espeak)
+        self._lbl_evv_voice.setVisible(is_openevv)
+        self.tts_evv_voice.setVisible(is_openevv)
 
     def _sync_from_manager(self) -> None:
         s = self.window.tts.settings

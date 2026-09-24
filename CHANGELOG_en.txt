@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-24 (v10.3.7)
+Bugfixes: Windows build startup, Eloquence TTS fallback, cleaner TTS settings
+
+- **Windows build**: disabled UPX compression for the Windows build
+  (`TeamTalk VO Client_win.spec`). UPX is known to compress vcruntime140.dll
+  and similar system DLLs in a way that fails to load on some Windows
+  installations - the app then fails to start with no error message at
+  all. This is the most likely explanation for reports that the app
+  wouldn't start for some Windows users.
+- **Windows build**: `SRAL.dll` is now bundled via `binaries=` instead of
+  `datas=`, so PyInstaller automatically bundles its runtime dependencies
+  (e.g. the MSVC runtime DLLs produced by the CI build) instead of
+  silently dropping them when missing on the target system.
+- **TTS: Eloquence fallback**: when the OpenEVV/Eloquence engine crashes
+  or fails (e.g. known memory-layout issues of the engine on some
+  macOS/Windows systems), the app now automatically falls back to
+  espeak-ng for that announcement instead of staying completely silent.
+  The failure is logged once in the system log.
+- **Cleaned up TTS settings** (macOS/wx and Windows/Linux/Qt): selecting
+  the Eloquence engine now hides the espeak-ng-specific fields (language,
+  voice filter, voice list, espeak-ng path, "Refresh voices") - only the
+  Eloquence voice picker (1-8) remains visible. Conversely, the Eloquence
+  picker is hidden when espeak-ng (or, on macOS, VoiceOver/say/AVS) is
+  active.
+
 2026-08-29 (v10.1.0)
 New: Automatic spatial audio; large i18n cleanup pass
 

@@ -138,9 +138,10 @@ class SystemTab(wx.Panel):
             self.tts_macos_rate = None
             self.tts_macos_volume = None
 
-        # OpenEVV (Eloquence) settings (all platforms)
+        # OpenEVV (Eloquence) settings (all platforms) – nur sichtbar wenn Eloquence gewählt ist
         evv_voice_row = wx.BoxSizer(wx.HORIZONTAL)
-        evv_voice_row.Add(wx.StaticText(self, label="Eloquence Stimme (1–8):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._lbl_evv_voice = wx.StaticText(self, label="Eloquence Stimme (1–8):")
+        evv_voice_row.Add(self._lbl_evv_voice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.tts_evv_voice = wx.SpinCtrl(self, min=1, max=8, initial=1)
         self.tts_evv_voice.SetName("Eloquence Stimme")
         evv_voice_row.Add(self.tts_evv_voice, 0)
@@ -197,33 +198,39 @@ class SystemTab(wx.Panel):
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
         grid.AddGrowableCol(1)
 
-        grid.Add(wx.StaticText(self, label="Sprache"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_language = wx.StaticText(self, label="Sprache")
+        grid.Add(self._lbl_tts_language, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_language = wx.Choice(self)
         self.tts_language.SetName("TTS Sprache")
         grid.Add(self.tts_language, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Stimmenfilter"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_voice_filter = wx.StaticText(self, label="Stimmenfilter")
+        grid.Add(self._lbl_tts_voice_filter, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_voice_filter = wx.TextCtrl(self)
         self.tts_voice_filter.SetName("TTS Stimme Filter")
         grid.Add(self.tts_voice_filter, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Stimme"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_voice = wx.StaticText(self, label="Stimme")
+        grid.Add(self._lbl_tts_voice, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_voice = wx.ListBox(self)
         self.tts_voice.SetName("TTS Stimme")
         setup_list_accessible(self.tts_voice)
         grid.Add(self.tts_voice, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Sprechtempo (80–400)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_rate = wx.StaticText(self, label="Sprechtempo (80–400)")
+        grid.Add(self._lbl_tts_rate, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_rate = wx.SpinCtrl(self, value="175", min=80, max=400)
         self.tts_rate.SetName("TTS Sprechtempo")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="Lautstärke (0–200)"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_volume = wx.StaticText(self, label="Lautstärke (0–200)")
+        grid.Add(self._lbl_tts_volume, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_volume = wx.SpinCtrl(self, value="100", min=0, max=200)
         self.tts_volume.SetName("TTS Lautstärke")
         grid.Add(self.tts_volume, 1, wx.EXPAND)
 
-        grid.Add(wx.StaticText(self, label="espeak-ng Pfad"), 0, wx.ALIGN_CENTER_VERTICAL)
+        self._lbl_tts_path = wx.StaticText(self, label="espeak-ng Pfad")
+        grid.Add(self._lbl_tts_path, 0, wx.ALIGN_CENTER_VERTICAL)
         self.tts_path = wx.TextCtrl(self)
         self.tts_path.SetName("espeak-ng Pfad")
         grid.Add(self.tts_path, 1, wx.EXPAND)
@@ -246,6 +253,7 @@ class SystemTab(wx.Panel):
 
         self._bind_events()
         self._sync_from_manager()
+        self._update_backend_visibility()
         self._refresh_stats()
 
     def _bind_events(self):
@@ -502,8 +510,33 @@ class SystemTab(wx.Panel):
     def _on_test(self, _event):
         self.frame.tts.speak(_("Das ist ein TTS Test"), kind="system")
 
+    def _current_backend(self) -> str:
+        import sys as _sys5
+        sel = self.tts_backend.GetSelection()
+        if _sys5.platform == "darwin":
+            return {1: "voiceover", 2: "macos_say", 3: "macos_avs", 4: "openevv"}.get(sel, "espeak")
+        return {1: "openevv"}.get(sel, "espeak")
+
+    def _update_backend_visibility(self) -> None:
+        """Blendet espeak-spezifische bzw. Eloquence-spezifische Felder passend zur gewählten Engine ein/aus."""
+        backend = self._current_backend()
+        is_espeak = backend == "espeak"
+        is_openevv = backend == "openevv"
+        for ctrl in (
+            self._lbl_tts_language, self.tts_language,
+            self._lbl_tts_voice_filter, self.tts_voice_filter,
+            self._lbl_tts_voice, self.tts_voice,
+            self._lbl_tts_path, self.tts_path,
+            self.tts_refresh,
+        ):
+            ctrl.Show(is_espeak)
+        self._lbl_evv_voice.Show(is_openevv)
+        self.tts_evv_voice.Show(is_openevv)
+        self.Layout()
+
     def _on_backend_changed(self, event):
         self._apply_settings(event)
+        self._update_backend_visibility()
 
     def _populate_macos_voices(self) -> None:
         import subprocess as _sp, sys as _sys

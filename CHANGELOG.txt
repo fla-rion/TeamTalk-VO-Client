@@ -1,6 +1,34 @@
 Changelog
 =========
 
+2026-09-24 (v10.3.7)
+Bugfixes: Windows-Build-Start, Eloquence-TTS-Fallback, aufgeräumte TTS-Einstellungen
+
+- **Windows-Build**: UPX-Kompression für den Windows-Build deaktiviert
+  (`TeamTalk VO Client_win.spec`). UPX ist dafür bekannt, vcruntime140.dll
+  und ähnliche System-DLLs so zu komprimieren, dass sie auf manchen
+  Windows-Installationen nicht mehr geladen werden können – die Anwendung
+  startet dann ohne jede Fehlermeldung gar nicht erst. Das erklärt
+  vermutlich die Berichte, dass die Anwendung bei manchen Windows-Nutzern
+  nicht startet.
+- **Windows-Build**: `SRAL.dll` wird jetzt über `binaries=` statt
+  `datas=` eingebunden, damit PyInstaller ihre Laufzeitabhängigkeiten
+  (z. B. die vom CI-Build mitgebrachten MSVC-Runtime-DLLs) automatisch
+  mitbündelt, statt sie bei fehlender Runtime auf dem Zielsystem
+  stillschweigend wegfallen zu lassen.
+- **TTS: Eloquence-Fallback**: Wenn die OpenEVV/Eloquence-Engine abstürzt
+  oder fehlschlägt (z. B. bekannte Speicher-Layout-Probleme des Engines
+  auf manchen macOS/Windows-Systemen), spricht die App die Meldung jetzt
+  automatisch über espeak-ng statt komplett stumm zu bleiben. Der Fehler
+  wird einmalig im System-Log vermerkt.
+- **TTS-Einstellungen aufgeräumt** (macOS/wx und Windows/Linux/Qt): Bei
+  Auswahl der Eloquence-Engine werden die espeak-ng-spezifischen Felder
+  (Sprache, Stimmenfilter, Stimmenliste, espeak-ng-Pfad, "Stimmen
+  aktualisieren") jetzt ausgeblendet – zu sehen ist nur noch die
+  Eloquence-Stimmenauswahl (1–8). Umgekehrt wird die Eloquence-Auswahl
+  ausgeblendet, wenn espeak-ng (oder auf macOS VoiceOver/say/AVS) aktiv
+  ist.
+
 2026-09-04 (v10.3.0)
 Neu: Android-Port via BeeWare/Briefcase + TalkBack-Accessibility
 

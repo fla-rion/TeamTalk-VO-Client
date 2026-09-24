@@ -1,6 +1,34 @@
 Changelog
 =========
 
+2026-09-24 (v10.3.7)
+Corrections : démarrage du build Windows, repli TTS Eloquence, réglages TTS simplifiés
+
+- **Build Windows** : compression UPX désactivée pour le build Windows
+  (`TeamTalk VO Client_win.spec`). UPX est connu pour compresser
+  vcruntime140.dll et d'autres DLL système d'une manière qui empêche leur
+  chargement sur certaines installations Windows - l'application ne
+  démarre alors plus du tout, sans aucun message d'erreur. C'est
+  l'explication la plus probable aux signalements selon lesquels
+  l'application ne démarrait pas chez certains utilisateurs Windows.
+- **Build Windows** : `SRAL.dll` est désormais intégrée via `binaries=`
+  au lieu de `datas=`, afin que PyInstaller embarque automatiquement ses
+  dépendances d'exécution (par ex. les DLL du runtime MSVC produites par
+  le build CI) au lieu de les laisser silencieusement de côté si absentes
+  sur le système cible.
+- **TTS : repli Eloquence** : lorsque le moteur OpenEVV/Eloquence plante
+  ou échoue (par ex. problèmes connus de disposition mémoire du moteur
+  sur certains systèmes macOS/Windows), l'application bascule désormais
+  automatiquement sur espeak-ng pour cette annonce au lieu de rester
+  totalement silencieuse. L'échec est consigné une seule fois dans le
+  journal système.
+- **Réglages TTS simplifiés** (macOS/wx et Windows/Linux/Qt) : la
+  sélection du moteur Eloquence masque désormais les champs spécifiques
+  à espeak-ng (langue, filtre de voix, liste des voix, chemin
+  espeak-ng, « Actualiser les voix ») - seul le sélecteur de voix
+  Eloquence (1-8) reste visible. Inversement, ce sélecteur est masqué
+  quand espeak-ng (ou, sur macOS, VoiceOver/say/AVS) est actif.
+
 2026-08-29 (v10.1.0)
 Nouveau : audio spatial automatique ; grand nettoyage i18n
 
