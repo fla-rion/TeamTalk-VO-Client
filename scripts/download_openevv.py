@@ -33,7 +33,9 @@ SOURCE_REPO = "https://github.com/Mudb0y/openevv.git"
 # lives on a personal fork/branch, so we keep our own durable snapshot of it
 # (a single squashed commit, no third-party history to depend on) in this
 # repo's own remotes instead of relying on the fork staying available.
-MACOS_FIX_REPO   = "https://git.leons.cc/flarion/TeamTalk-VO-Client.git"
+# The GitHub mirror, not the Gitea original: Gitea requires a login even for
+# anonymous clones on this instance, which a CI runner does not have.
+MACOS_FIX_REPO   = "https://github.com/fla-rion/TeamTalk-VO-Client.git"
 MACOS_FIX_BRANCH = "vendor/openevv-macos-arm64-fix"
 
 ROOT  = Path(__file__).resolve().parent.parent
