@@ -1,7 +1,9 @@
 """Download or build openevv (Eloquence TTS engine) for the current platform.
 
 Windows x86_64 and Linux x86_64: download pre-built release from GitHub.
-Linux arm64 and macOS: build from source using 'make RULES=bytecode'.
+Linux arm64: build from source using 'make RULES=bytecode'.
+macOS: build from our own arena-relative-fix branch (see MACOS_FIX_REPO) with
+EVV_ARENA_RELATIVE=1 - vanilla upstream aborts/crashes there (see comment).
 """
 from __future__ import annotations
 
@@ -20,6 +22,19 @@ RELEASE_URL = "https://github.com/Mudb0y/openevv/releases/download/v0.3"
 WIN_ZIP     = f"{RELEASE_URL}/openevv-v0.3-windows-x86_64.zip"
 LINUX_TGZ   = f"{RELEASE_URL}/openevv-v0.3-linux-x86_64.tar.gz"
 SOURCE_REPO = "https://github.com/Mudb0y/openevv.git"
+
+# macOS: upstream's main branch aborts/crashes on arm64 (and presumably
+# x86_64 too) because the engine's 32-bit "value is sometimes a pointer"
+# model needs an address below 2 GiB, and macOS reserves the low 4 GiB of
+# every process's address space (__PAGEZERO) so no such address ever exists.
+# herwigfelix/openevv#apple-arm64-relative-arena fixes this by making
+# references count from the arena's own base instead of an absolute address
+# (build with EVV_ARENA_RELATIVE=1). That PR is not merged upstream yet and
+# lives on a personal fork/branch, so we keep our own durable snapshot of it
+# (a single squashed commit, no third-party history to depend on) in this
+# repo's own remotes instead of relying on the fork staying available.
+MACOS_FIX_REPO   = "https://git.leons.cc/flarion/TeamTalk-VO-Client.git"
+MACOS_FIX_BRANCH = "vendor/openevv-macos-arm64-fix"
 
 ROOT  = Path(__file__).resolve().parent.parent
 DEST  = ROOT / "third_party" / "openevv"
@@ -47,15 +62,22 @@ def _install_from_linux_tgz(tmp: Path) -> None:
         subdirs[0].rmdir()
 
 
-def _build_from_source() -> None:
-    print("Baue openevv aus dem Quellcode (make RULES=bytecode) …")
+def _build_from_source(*, macos_arena_fix: bool = False) -> None:
+    if macos_arena_fix:
+        print(f"Baue openevv (macOS-Arena-Fix) aus {MACOS_FIX_BRANCH} …")
+        repo, branch, make_args = MACOS_FIX_REPO, MACOS_FIX_BRANCH, ["LOW=-DEVV_ARENA=1 -DEVV_ARENA_RELATIVE=1"]
+    else:
+        print("Baue openevv aus dem Quellcode (make RULES=bytecode) …")
+        repo, branch, make_args = SOURCE_REPO, None, []
+
     with tempfile.TemporaryDirectory() as tmp:
+        clone_cmd = ["git", "clone", "--depth=1"]
+        if branch:
+            clone_cmd += ["--branch", branch]
+        clone_cmd += [repo, tmp]
+        subprocess.run(clone_cmd, check=True)
         subprocess.run(
-            ["git", "clone", "--depth=1", SOURCE_REPO, tmp],
-            check=True,
-        )
-        subprocess.run(
-            ["make", "RULES=bytecode"],
+            ["make", "RULES=bytecode", *make_args],
             cwd=tmp,
             check=True,
         )
@@ -98,8 +120,13 @@ def main() -> None:
             evv.chmod(0o755)
         print(f"openevv (Linux x86_64) bereit: {DEST}")
 
+    elif system == "Darwin":
+        # macOS: needs the arena-relative fix (see MACOS_FIX_REPO above),
+        # or every voice instance aborts/crashes on first use.
+        _build_from_source(macos_arena_fix=True)
+
     else:
-        # macOS or Linux arm64: build from source
+        # Linux arm64: build from vanilla upstream source
         _build_from_source()
 
 

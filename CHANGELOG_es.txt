@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-09-24 (v10.3.8)
+Corrección: Eloquence (OpenEVV) reparado en macOS
+
+- **Eloquence ya no se bloquea en macOS**: el motor OpenEVV fallaba en
+  cada intento de síntesis de voz en macOS. Causa: macOS reserva los
+  primeros 4 GiB del espacio de direcciones de cada proceso
+  (`__PAGEZERO`), pero el modelo de punteros del motor sigue siendo de
+  32 bits internamente y necesita una dirección de memoria por debajo de
+  2 GiB, algo que nunca existe en macOS, ni por elección libre ni
+  forzando la dirección (probado con `MAP_FIXED` en más de 100
+  direcciones, fallando siempre con `ENOMEM`). Una corrección aún no
+  fusionada de `herwigfelix/openevv` (rama `apple-arm64-relative-arena`,
+  opción de compilación `EVV_ARENA_RELATIVE=1`) resuelve esto contando
+  las referencias en relación con la arena en lugar de como una
+  dirección absoluta. Como esa corrección solo existe en un fork
+  personal de un tercero, ahora conservamos una copia duradera en
+  nuestro propio repositorio (rama `vendor/openevv-macos-arm64-fix`),
+  usada por `scripts/download_openevv.py` para los builds de macOS.
+- **Corrección: volumen de TTS de Eloquence**: al arreglar el bloqueo
+  salió a la luz un segundo error independiente - la aplicación pasaba
+  el volumen en una escala de 0-100 a OpenEVV, pero su modo de
+  "unidades del mundo real" (`-r`, siempre usado) espera una escala de
+  0-65535 (véase `eciToRealVolume` en `src/eci_convert.c` de OpenEVV) -
+  por lo que Eloquence hablaba en silencio en lugar de audiblemente. La
+  conversión en `tts.py` ahora es correcta (nuestro ajuste de volumen
+  0-200 escalado a 0-65535).
+
 2026-09-24 (v10.3.7)
 Correcciones: inicio del build de Windows, respaldo TTS de Eloquence, ajustes de TTS más claros
 

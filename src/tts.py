@@ -481,7 +481,11 @@ class TTSManager:
                 else:
                     voice_num = max(1, min(8, int(self.settings.openevv_voice)))
                     rate = ctx_rate if ctx_rate else self.settings.rate
-                    vol = max(0, min(100, self.settings.volume // 2))
+                    # -r ("real world units") takes volume on a 0-65535 scale
+                    # (see eciToRealVolume in openevv's src/eci_convert.c), not
+                    # 0-100 - our own volume setting is 0-200 (100 = normal),
+                    # so it maps linearly onto the full 0-65535 range.
+                    vol = max(0, min(65535, int(self.settings.volume / 200 * 65535)))
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
                     try:

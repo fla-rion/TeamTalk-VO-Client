@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2026-09-24 (v10.3.8)
+Bugfix: fixed Eloquence (OpenEVV) on macOS
+
+- **Eloquence no longer crashes on macOS**: the OpenEVV engine aborted on
+  every single speech attempt on macOS. Cause: macOS reserves the low
+  4 GiB of every process's address space (`__PAGEZERO`), but the engine's
+  pointer model is still 32-bit internally and needs a memory address
+  below 2 GiB - which never exists on macOS, neither via a free-choice
+  nor a forced address (tested with `MAP_FIXED` at over 100 addresses,
+  every one failing with `ENOMEM`). An unmerged fix from
+  `herwigfelix/openevv` (branch `apple-arm64-relative-arena`, build flag
+  `EVV_ARENA_RELATIVE=1`) resolves this by counting references relative
+  to the arena instead of as an absolute address. Since that fix only
+  lives on someone else's personal fork, we now keep a durable snapshot
+  of it in our own repository (branch
+  `vendor/openevv-macos-arm64-fix`), used by
+  `scripts/download_openevv.py` for macOS builds.
+- **Bugfix: Eloquence TTS volume**: fixing the crash uncovered a second,
+  independent bug - the app was passing volume on a 0-100 scale to
+  OpenEVV, but its "real world units" mode (`-r`, always used) expects a
+  0-65535 scale (see `eciToRealVolume` in OpenEVV's `src/eci_convert.c`) -
+  so Eloquence spoke silently instead of audibly. The conversion in
+  `tts.py` is now correct (our 0-200 volume setting scaled to 0-65535).
+
 2026-09-24 (v10.3.7)
 Bugfixes: Windows build startup, Eloquence TTS fallback, cleaner TTS settings
 
