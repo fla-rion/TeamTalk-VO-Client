@@ -1,6 +1,48 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.0)
+Nueva función: anuncio del tiempo
+
+- **Anuncio del tiempo por TTS** (punto 9 de la hoja de ruta): consulta
+  meteorológica para una ubicación configurada mediante la API gratuita
+  Open-Meteo (no requiere clave de API). Tres formas de activarlo: de
+  forma manual mediante el elemento de menú "Anunciar el tiempo ahora"
+  (menú Automatización, en wx y en Qt), automáticamente al conectarse a
+  un servidor (ajuste "Anunciar al conectar"), o a horarios fijos (uno o
+  varios horarios HH:MM, comprobados por un planificador en segundo
+  plano según el mismo patrón que el silencio programado). Nuevos
+  ajustes en "Automatización": ubicación, activado/desactivado,
+  horarios de anuncio, anuncio al conectar - disponibles de forma
+  idéntica en la interfaz wx y Qt. Nuevo módulo `src/weather_manager.py`
+  (independiente de la plataforma, sin importaciones de wx/Qt).
+
+2026-09-25 (v10.3.9)
+Corrección: comprobación de actualizaciones reparada
+
+- **"Buscar actualizaciones" había dejado de funcionar**: la comprobación
+  rápida de actualizaciones (tanto desde el menú como la comprobación
+  automática al inicio) consultaba hasta ahora directamente la API de
+  Gitea (`git.leons.cc`) con un token incrustado. Desde la migración de
+  Gitea, esa instancia también exige inicio de sesión para los metadatos
+  de versión, lo que hacía fallar la comprobación. La comprobación ahora
+  pasa por la API pública de releases de GitHub (`update_manager.py`, ya
+  usada por el diálogo completo del gestor de actualizaciones) - ya no
+  se necesita token, dado que los archivos de release de GitHub son
+  públicos.
+- La comparación de versiones en el lado Qt (Windows/Linux) comparaba
+  hasta ahora los números de versión como texto (`"10.3.10" < "10.3.9"`
+  alfabéticamente) - ahora de forma numérica, igual que en macOS.
+- **Aviso de actualización ahora también en Windows/Linux al inicio**:
+  antes solo la versión de macOS (wx) comprobaba automáticamente las
+  actualizaciones al iniciar el programa, mientras que la versión Qt
+  (Windows/Linux) solo lo hacía al invocar el menú manualmente. Ambas
+  plataformas ahora comprueban automáticamente 4 segundos después del
+  inicio y ofrecen abrir el gestor de actualizaciones si hay una nueva
+  versión disponible. Se puede desactivar mediante el nuevo ajuste
+  "Comprobar actualizaciones al iniciar" (en los ajustes, en "Apariencia
+  y comportamiento", también en la interfaz Qt).
+
 2026-09-24 (v10.3.8)
 Corrección: Eloquence (OpenEVV) reparado en macOS
 

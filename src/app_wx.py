@@ -47,6 +47,7 @@ from session_history import SessionHistoryStore
 from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
+from weather_manager import WeatherScheduler
 from macro_manager import MacroManager
 from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
@@ -76,7 +77,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.3.9"
+APP_VERSION = "10.4.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -600,6 +601,7 @@ class MainFrame(wx.Frame):
         self.bus.on("channel_joined",         lambda **kw: self._macros.fire_event("channel_join", **kw))
         self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._on_channel_joined_greeting, **kw))
         self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._maybe_summarize_on_connect, **kw))
+        self.bus.on("channel_joined",         lambda **kw: wx.CallAfter(self._maybe_announce_weather_on_connect, **kw))
         self.bus.on("connection_state_changed",
                     lambda connected=False, **kw: self._macros.fire_event(
                         "connected" if connected else "disconnected", **kw))
@@ -657,6 +659,13 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille, Makros
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
+        # v10.4.0 – Wetter-Ansage
+        self._weather_scheduler = WeatherScheduler(
+            settings_provider=lambda: self.settings_store.settings,
+            call_after=wx.CallAfter,
+            speak=lambda text: self.tts.speak(text, kind="system"),
+        )
+        self._weather_announced_this_session = False
         # v7.1.0 – Benachrichtigungs-Regeln
         _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
         self._notifications = NotificationManager(_notif_rules)
@@ -893,6 +902,9 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille starten
         if getattr(self.settings_store.settings, "mute_schedule", None):
             self._mute_scheduler.start()
+        # v10.4.0 – Wetter-Ansage starten
+        if getattr(self.settings_store.settings, "weather_announce_enabled", False):
+            self._weather_scheduler.start()
         # v2.7.0 – HTTP-API starten
         if getattr(self.settings_store.settings, "http_api_enabled", False):
             port = int(getattr(self.settings_store.settings, "http_api_port", 8765) or 8765)
@@ -2239,6 +2251,8 @@ class MainFrame(wx.Frame):
         auto_offline_queue = auto_menu.Append(wx.ID_ANY, _("Offline-Warteschlange..."))
         auto_server_audio = auto_menu.Append(wx.ID_ANY, _("Per-Server-Soundprofile..."))
         auto_menu.AppendSeparator()
+        auto_weather_now = auto_menu.Append(wx.ID_ANY, _("Wetter jetzt ansagen"))
+        auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, _("Plugin-Manager..."))
         auto_menu.AppendSeparator()
         self._menu_advanced_tabs = auto_menu.AppendCheckItem(wx.ID_ANY, _("Erweiterte Tabs anzeigen"))
@@ -2427,6 +2441,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_tts_transcript, auto_tts_transcript)
         self.Bind(wx.EVT_MENU, self.on_menu_offline_queue, auto_offline_queue)
         self.Bind(wx.EVT_MENU, self.on_menu_server_audio_profiles, auto_server_audio)
+        self.Bind(wx.EVT_MENU, self.on_menu_weather_now, auto_weather_now)
         self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
         self.Bind(wx.EVT_MENU, self._on_menu_toggle_advanced_tabs, self._menu_advanced_tabs)
 
@@ -5397,6 +5412,19 @@ class MainFrame(wx.Frame):
         if dlg.ShowModal() == wx.ID_OK and getattr(self, "_current_server_key", ""):
             self._apply_server_audio_profile()
         dlg.Destroy()
+
+    def on_menu_weather_now(self, _event) -> None:
+        """v10.4.0 – Fragt das aktuelle Wetter für den eingestellten Ort ab und sagt es an."""
+        city = (getattr(self.settings_store.settings, "weather_city", "") or "").strip()
+        if not city:
+            wx.MessageBox(
+                _("Kein Ort für die Wetteransage eingestellt. Bitte in den Einstellungen "
+                  "unter 'Darstellung & Verhalten' einen Ort eintragen."),
+                _("Wetter-Ansage"), wx.OK | wx.ICON_INFORMATION, self,
+            )
+            return
+        self.set_status(f"Wetter für {city} wird abgefragt…")
+        threading.Thread(target=self._weather_scheduler.announce_now, daemon=True).start()
 
     def _on_menu_toggle_translation(self, _event) -> None:
         """Aktiviert/deaktiviert die Echtzeit-Chat-Übersetzung."""
@@ -8603,6 +8631,7 @@ class MainFrame(wx.Frame):
             self._reconnect_attempts = 0
             self._offline_buffering = False
             self._current_server_key = self._get_server_key()
+            self._weather_announced_this_session = False
             self._message_buffers.clear()
             self._auto_init_sound_devices()
             self.client.start_event_loop(self.handle_tt_message)
@@ -9871,6 +9900,17 @@ class MainFrame(wx.Frame):
         import threading as _t
         _t.Thread(target=lambda: self.client.send_channel_message(int(channel_id), text), daemon=True).start()
 
+    def _maybe_announce_weather_on_connect(self, channel_id=None, **_kw) -> None:
+        """v10.4.0 – Wetteransage beim ersten Kanalbeitritt einer Verbindung."""
+        if not getattr(self.settings_store.settings, "weather_announce_on_connect", False):
+            return
+        if getattr(self, "_weather_announced_this_session", False):
+            return
+        if not (getattr(self.settings_store.settings, "weather_city", "") or "").strip():
+            return
+        self._weather_announced_this_session = True
+        threading.Thread(target=self._weather_scheduler.announce_now, daemon=True).start()
+
     def _maybe_summarize_on_connect(self, channel_id=None, **_kw) -> None:
         """v7.5.x – Automatische Verbindungs-Zusammenfassung beim Kanalbetreten."""
         if not getattr(self.settings_store.settings, "auto_summary_on_connect", False):
@@ -10745,6 +10785,11 @@ class MainFrame(wx.Frame):
         # v2.3.0 – Zeitgesteuerte Stille beenden
         try:
             self._mute_scheduler.stop()
+        except Exception:
+            pass
+        # v10.4.0 – Wetter-Ansage beenden
+        try:
+            self._weather_scheduler.stop()
         except Exception:
             pass
         # v2.6.0 – Verbindungsqualitäts-Timer beenden

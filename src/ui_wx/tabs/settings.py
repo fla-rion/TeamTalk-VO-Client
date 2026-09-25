@@ -1191,6 +1191,36 @@ class SettingsTab(wx.Panel):
         ms_sizer.Add(self._mute_schedule_text, 1, wx.ALL | wx.EXPAND, 8)
         sizer.Add(ms_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # ---- Wetter-Ansage (v10.4.0) ----
+        wt_box = wx.StaticBox(panel, label="Wetter-Ansage")
+        wt_sizer = wx.StaticBoxSizer(wt_box, wx.VERTICAL)
+        self._weather_enabled = wx.CheckBox(panel, label="&Wetter-Ansage aktivieren")
+        self._weather_enabled.SetName("Wetter-Ansage aktivieren")
+        self._weather_enabled.SetValue(bool(getattr(s, "weather_announce_enabled", False)))
+        wt_sizer.Add(self._weather_enabled, 0, wx.ALL, 8)
+
+        wt_city_row = wx.BoxSizer(wx.HORIZONTAL)
+        wt_city_row.Add(wx.StaticText(panel, label="Ort:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._weather_city = wx.TextCtrl(panel, value=str(getattr(s, "weather_city", "") or ""))
+        self._weather_city.SetName("Wetter-Ansage Ort")
+        wt_city_row.Add(self._weather_city, 1)
+        wt_sizer.Add(wt_city_row, 0, wx.ALL | wx.EXPAND, 8)
+
+        self._weather_on_connect = wx.CheckBox(panel, label="Beim &Verbinden ansagen")
+        self._weather_on_connect.SetName("Wetter beim Verbinden ansagen")
+        self._weather_on_connect.SetValue(bool(getattr(s, "weather_announce_on_connect", False)))
+        wt_sizer.Add(self._weather_on_connect, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        wt_sizer.Add(wx.StaticText(panel, label=(
+            "Feste Ansagezeiten, eine Uhrzeit je Zeile (Format HH:MM):"
+        )), 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        times = getattr(s, "weather_announce_times", []) or []
+        self._weather_times_text = wx.TextCtrl(panel, value="\n".join(times),
+                                                style=wx.TE_MULTILINE, size=(-1, 60))
+        self._weather_times_text.SetName("Wetter-Ansage Zeiten")
+        wt_sizer.Add(self._weather_times_text, 1, wx.ALL | wx.EXPAND, 8)
+        sizer.Add(wt_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # ---- Makros ----
         mac_box = wx.StaticBox(panel, label="Makros")
         mac_sizer = wx.StaticBoxSizer(mac_box, wx.VERTICAL)
@@ -2164,6 +2194,21 @@ class SettingsTab(wx.Panel):
             self.frame._mute_scheduler.start()
         elif not schedule:
             self.frame._mute_scheduler.stop()
+
+        # Wetter-Ansage
+        s.weather_announce_enabled = self._weather_enabled.GetValue()
+        s.weather_city = self._weather_city.GetValue().strip()
+        s.weather_announce_on_connect = self._weather_on_connect.GetValue()
+        weather_times = []
+        for line in self._weather_times_text.GetValue().splitlines():
+            line = line.strip()
+            if line:
+                weather_times.append(line)
+        s.weather_announce_times = weather_times
+        if s.weather_announce_enabled and not self.frame._weather_scheduler._running:
+            self.frame._weather_scheduler.start()
+        elif not s.weather_announce_enabled:
+            self.frame._weather_scheduler.stop()
 
         # Makros
         macros = []

@@ -1,6 +1,49 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.0)
+Nouvelle fonctionnalité : annonce météo
+
+- **Annonce météo par synthèse vocale** (point 9 de la feuille de route) :
+  interrogation météo pour un lieu configuré via l'API gratuite
+  Open-Meteo (pas de clé API nécessaire). Trois façons de la déclencher :
+  manuellement via l'élément de menu « Annoncer la météo maintenant »
+  (menu Automatisation, wx comme Qt), automatiquement lors de la
+  connexion à un serveur (paramètre « Annoncer lors de la connexion »),
+  ou à des horaires fixes (un ou plusieurs horaires HH:MM, vérifiés par
+  un planificateur en arrière-plan suivant le même principe que la
+  coupure du son programmée). Nouveaux paramètres sous
+  « Automatisation » : lieu, activé/désactivé, horaires d'annonce,
+  annonce lors de la connexion - disponibles à l'identique dans les
+  interfaces wx et Qt. Nouveau module `src/weather_manager.py`
+  (indépendant de la plateforme, sans import wx/Qt).
+
+2026-09-25 (v10.3.9)
+Correction : vérification des mises à jour réparée
+
+- **« Rechercher des mises à jour » ne fonctionnait plus** : la
+  vérification rapide des mises à jour (menu ainsi que la vérification
+  automatique au démarrage) interrogeait jusqu'ici directement l'API
+  Gitea (`git.leons.cc`) avec un jeton intégré. Depuis la migration de
+  Gitea, cette instance exige désormais une connexion même pour les
+  métadonnées de version, ce qui faisait échouer la vérification. La
+  vérification passe désormais par l'API publique des releases GitHub
+  (`update_manager.py`, déjà utilisée par la boîte de dialogue complète
+  du gestionnaire de mises à jour) - plus besoin de jeton, les fichiers
+  de release GitHub étant publics.
+- La comparaison de versions côté Qt (Windows/Linux) comparait jusqu'ici
+  les numéros de version comme du texte (`"10.3.10" < "10.3.9"` par
+  ordre alphabétique) - désormais numériquement, comme sur macOS.
+- **Notification de mise à jour désormais aussi sous Windows/Linux au
+  démarrage** : auparavant, seule la version macOS (wx) vérifiait
+  automatiquement les mises à jour au démarrage du programme, la version
+  Qt (Windows/Linux) ne le faisait que sur appel manuel du menu. Les deux
+  plateformes vérifient désormais automatiquement 4 secondes après le
+  démarrage et proposent d'ouvrir le gestionnaire de mises à jour en cas
+  de nouvelle version. Désactivable via le nouveau paramètre
+  « Vérifier les mises à jour au démarrage » (dans les paramètres sous
+  « Apparence et comportement », également dans l'interface Qt).
+
 2026-09-24 (v10.3.8)
 Correction : Eloquence (OpenEVV) réparé sur macOS
 

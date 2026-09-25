@@ -103,6 +103,16 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 
 ---
 
+## 9. ~~Wetter-Ansage~~ – erledigt in v10.4.0
+
+✅ 🟢 · Inspiration: [schulle4u/weatherbox](https://github.com/schulle4u/weatherbox) ("Scheduled weather announcement system").
+
+Wetteransage per TTS – beim Verbinden, zu festen Zeiten oder per Menüpunkt "Wetter jetzt ansagen" (Menü Automation, wx + Qt). Implementiert über `src/weather_manager.py` (plattformunabhängig, kein wx-/Qt-Import; Open-Meteo-API ohne Key, inkl. Geocoding für Ortsnamen), `WeatherScheduler` nach dem Scheduling-Muster von `mute_scheduler.py`, Ausgabe über bestehendes `tts.py`. Einstellungen in `settings.py` (wx + Qt, identisch verfügbar): Ort, aktiv/inaktiv, Ansage beim Verbinden, feste Ansagezeiten.
+
+**Recherchiert 2026-09-25 (Nebenfund, kein Kandidat für 10.4.0, aber vorgemerkt):** GruiaChiscop (bereits zitierter Community-Entwickler) hat auch [math65/ttaccessible](https://github.com/math65/ttaccessible) geforkt – ein nativer, VoiceOver-first-macOS-TeamTalk-Client mit VoiceOver-/Systemsound-Echo-Unterdrückung via Core-Audio-Taps (`AudioHardwareCreateProcessTap`, macOS 14.2+) + WebRTC AEC3. Löst ein reales Problem (andere Kanalteilnehmer hören ein VoiceOver-Echo, wenn man unstumm navigiert – die SDK-eigene AEC hat kein Referenzsignal dafür), ist aber echtes Core-Audio/DSP-Neuland und mehrwöchiger Aufwand (🔴) – als eigenes Teilprojekt für eine spätere Version vormerken, nicht für 10.4.0. GruiaChiscop hat außerdem einen eigenen Fork von TeamTalk-VO-Client selbst (Stand 2026-06-16) – bei Gelegenheit auf divergente Änderungen prüfen.
+
+---
+
 ## Priorisierungsempfehlung
 
 | Status | Punkt | Aufwand | Anmerkung |
@@ -118,7 +128,9 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 | ✅ v10.1.0 | i18n-Aufräumrunde (Nebenfund) | 🟢 | 286 neue Wörterbucheinträge, 2 Bugfixes (NameError, hartkodiertes HTML-lang) |
 | ✅ v10.2.0 | Multi-Deck-Mischer (2) | 🔴→🟡 | Crossfade-Überblenden statt echtem Mix (SDK-Grenze) |
 | ✅ v10.2.0 | Geräte-Sync (7) | 🔴 | HMAC-Auth, mDNS, Keychain-Secrets, wx + Qt |
+| ✅ v10.4.0 | Wetter-Ansage (9) | 🟢 | Open-Meteo, plattformunabhängiger Scheduler, wx + Qt |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
+| vorgemerkt | VoiceOver-Echo-Unterdrückung (macOS) | 🔴 | Core-Audio-Taps + WebRTC AEC3, siehe Nebenfund unter Punkt 9 – eigenes Teilprojekt für spätere Version |
 
 ---
 

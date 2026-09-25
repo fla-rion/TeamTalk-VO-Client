@@ -7178,6 +7178,41 @@ _TRANSLATIONS_ES.update({
     "tt:// URL oder TT-Dateipfad eingeben:": "Introduzca una URL tt:// o ruta de archivo TT:",
 })
 
+# v10.4.0 – Wetter-Ansage (Roadmap Punkt 9)
+_TRANSLATIONS.update({
+    "Wetter-Ansage": "Weather announcement",
+    "Wetter-Ansage aktivieren": "Enable weather announcement",
+    "Wetter jetzt ansagen": "Announce weather now",
+    "Beim Verbinden ansagen": "Announce on connect",
+    "Ansagezeiten": "Announcement times",
+    "Kein Ort für die Wetteransage eingestellt. Bitte in den Einstellungen "
+    "unter 'Darstellung & Verhalten' einen Ort eintragen.":
+        "No location set for the weather announcement. Please enter a location "
+        "in Settings under 'Appearance & Behavior'.",
+})
+_TRANSLATIONS_FR.update({
+    "Wetter-Ansage": "Annonce météo",
+    "Wetter-Ansage aktivieren": "Activer l'annonce météo",
+    "Wetter jetzt ansagen": "Annoncer la météo maintenant",
+    "Beim Verbinden ansagen": "Annoncer lors de la connexion",
+    "Ansagezeiten": "Horaires d'annonce",
+    "Kein Ort für die Wetteransage eingestellt. Bitte in den Einstellungen "
+    "unter 'Darstellung & Verhalten' einen Ort eintragen.":
+        "Aucun lieu défini pour l'annonce météo. Veuillez saisir un lieu dans "
+        "les paramètres sous « Apparence et comportement ».",
+})
+_TRANSLATIONS_ES.update({
+    "Wetter-Ansage": "Anuncio del tiempo",
+    "Wetter-Ansage aktivieren": "Activar anuncio del tiempo",
+    "Wetter jetzt ansagen": "Anunciar el tiempo ahora",
+    "Beim Verbinden ansagen": "Anunciar al conectar",
+    "Ansagezeiten": "Horarios de anuncio",
+    "Kein Ort für die Wetteransage eingestellt. Bitte in den Einstellungen "
+    "unter 'Darstellung & Verhalten' einen Ort eintragen.":
+        "No se ha configurado ninguna ubicación para el anuncio del tiempo. "
+        "Introduzca una ubicación en los ajustes, en 'Apariencia y comportamiento'.",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
