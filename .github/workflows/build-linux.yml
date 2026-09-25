@@ -150,9 +150,15 @@ jobs:
           fi
 
           echo "Lade $TAR_NAME auf Gitea hoch (Release $release_id)..."
+          # Ein grosser Upload, den Gitea wegen seines Body-Size-Limits
+          # mitten im Transfer abbricht, laesst curl selbst mit einem
+          # Fehler-Exitcode enden (nicht nur mit einem 4xx/5xx); unter
+          # `set -e` wuerde das den ganzen (bewusst best-effort) Sync-Schritt
+          # und damit den Job scheitern lassen. "000" faellt unten sauber
+          # in den Warnungs-Zweig statt das Skript abzubrechen.
           http_code=$(curl -s -o /tmp/gitea_upload_resp.json -w "%{http_code}" -X POST "$base/releases/$release_id/assets" \
             -H "Authorization: token $token" \
-            -F "attachment=@dist/$TAR_NAME")
+            -F "attachment=@dist/$TAR_NAME" || echo "000")
           if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
             echo "Gitea-Upload erfolgreich (HTTP $http_code)."
           else

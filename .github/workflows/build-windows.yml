@@ -136,3 +136,10 @@ jobs:
             Write-Host "::warning::Gitea-Upload von $env:ZIP_NAME fehlgeschlagen (HTTP $httpCode) - vermutlich Server-seitiges Body-Size-Limit auf git.leons.cc (~100 MB). Datei ist nur auf GitHub verfuegbar."
             if (Test-Path gitea_upload_resp.json) { Get-Content gitea_upload_resp.json }
           }
+
+          # Best-effort-Spiegelung: ein von Gitea abgelehnter/abgebrochener Upload
+          # (Body-Size-Limit) hinterlaesst bei curl einen nicht-null LASTEXITCODE,
+          # den pwsh sonst als Fehlschlag dieses Schritts (und damit des ganzen
+          # Jobs) werten wuerde, obwohl das GitHub-Release oben bereits fertig ist
+          # und oben schon als Warnung sichtbar gemacht wurde.
+          exit 0

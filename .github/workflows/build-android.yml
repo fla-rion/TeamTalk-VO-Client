@@ -170,9 +170,15 @@ jobs:
           fi
 
           echo "Lade ${{ steps.apk.outputs.apk_name }} auf Gitea hoch..."
+          # Ein von Gitea wegen seines Body-Size-Limits mitten im Transfer
+          # abgebrochener Upload laesst curl selbst mit Fehler-Exitcode enden
+          # (nicht nur mit 4xx/5xx); GitHub Actions fuehrt bash-Schritte
+          # standardmaessig mit -e aus, das wuerde also diesen (bewusst
+          # best-effort) Sync-Schritt und damit den Job scheitern lassen.
+          # "000" faellt unten sauber in den Warnungs-Zweig statt abzubrechen.
           HTTP_CODE=$(curl -s -o /tmp/gitea_upload_resp.json -w "%{http_code}" -X POST "$BASE/releases/$RELEASE_ID/assets" \
             -H "Authorization: token $GITEA_TOKEN" \
-            -F "attachment=@$APK_PATH")
+            -F "attachment=@$APK_PATH" || echo "000")
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "Gitea-Upload erfolgreich (HTTP $HTTP_CODE)."
           else
