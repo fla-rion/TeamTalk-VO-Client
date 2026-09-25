@@ -1,6 +1,43 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.0)
+New feature: weather announcement
+
+- **Weather announcement via TTS** (roadmap item 9): weather lookup for a
+  configured location via the free Open-Meteo API (no API key needed).
+  Three ways to trigger it: manually via the "Announce weather now" menu
+  item (Automation menu, wx and Qt alike), automatically on connecting to
+  a server (the "Announce on connect" setting), or at fixed times (one or
+  more HH:MM times, checked by a background scheduler following the same
+  pattern as the scheduled mute feature). New settings under
+  "Automation": location, enabled/disabled, announcement times, announce
+  on connect - identically available in the wx and Qt UI. New module
+  `src/weather_manager.py` (platform-independent, no wx/Qt imports).
+
+2026-09-25 (v10.3.9)
+Bugfix: update check fixed
+
+- **"Check for updates" stopped working**: the quick update check (menu
+  item as well as the automatic startup check) used to query the Gitea
+  API (`git.leons.cc`) directly with an embedded token. Since the Gitea
+  migration, that instance also requires a login for release metadata,
+  which made the check fail. The check now goes through the public
+  GitHub releases API (`update_manager.py`, already used by the full
+  update manager dialog) - no token needed anymore, since GitHub release
+  assets are public.
+- The version comparison on the Qt side (Windows/Linux) used to compare
+  version numbers as text (`"10.3.10" < "10.3.9"` alphabetically) - now
+  numerically, matching macOS.
+- **Update notice now also shown on Windows/Linux at startup**: previously
+  only the macOS version (wx) checked for updates automatically on
+  program start, while the Qt version (Windows/Linux) only checked on
+  manual menu invocation. Both platforms now check automatically 4
+  seconds after startup and offer to open the update manager when a new
+  version is available. Can be disabled via the new "Check for updates on
+  startup" setting (in Settings under "Appearance & Behavior", also in
+  the Qt UI).
+
 2026-09-24 (v10.3.8)
 Bugfix: fixed Eloquence (OpenEVV) on macOS
 

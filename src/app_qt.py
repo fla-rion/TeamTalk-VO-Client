@@ -50,6 +50,7 @@ from chat_history import ChatHistoryManager
 from pronunciation import PronunciationManager
 from bookmark_manager import BookmarkManager
 from mute_scheduler import MuteScheduler
+from weather_manager import WeatherScheduler
 from macro_manager import MacroManager
 from notification_manager import NotificationManager
 from auto_reply import AutoReplyManager
@@ -71,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.3.9"
+APP_VERSION = "10.4.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -263,6 +264,13 @@ class MainWindow(QMainWindow):
         self._bookmarks = BookmarkManager(self.settings_store)
         self._mute_scheduler = MuteScheduler(self)
         self._macros = MacroManager(self)
+        # v10.4.0 – Wetter-Ansage
+        self._weather_scheduler = WeatherScheduler(
+            settings_provider=lambda: self.settings_store.settings,
+            call_after=call_after,
+            speak=lambda text: self.tts.speak(text, kind="system"),
+        )
+        self._weather_announced_this_session = False
         # v7.1.0 – Benachrichtigungs-Regeln
         _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
         self._notifications = NotificationManager(_notif_rules)
@@ -346,6 +354,10 @@ class MainWindow(QMainWindow):
         # Update-Checker beim Start (Parität zu macOS/app_wx.py)
         if bool(getattr(_ts, "update_check_on_start", True)):
             QTimer.singleShot(4000, self._check_for_update)
+
+        # v10.4.0 – Wetter-Ansage starten
+        if bool(getattr(_ts, "weather_announce_enabled", False)):
+            self._weather_scheduler.start()
 
         # Show
         if not bool(getattr(_ts, "start_minimized", False)):
@@ -729,6 +741,8 @@ class MainWindow(QMainWindow):
         self._add_action(auto_m, _("&Plugin-Manager..."), self.on_menu_plugin_manager)
         self._add_action(auto_m, _("Per-Server-&Soundprofile..."), self.on_menu_server_audio_profiles)
         auto_m.addSeparator()
+        self._add_action(auto_m, _("&Wetter jetzt ansagen"), self.on_menu_weather_now)
+        auto_m.addSeparator()
         self._advanced_tabs_action = self._add_checkable(
             auto_m, _("Erweiterte Tabs anzeigen"),
             self._on_toggle_advanced_tabs,
@@ -919,6 +933,7 @@ class MainWindow(QMainWindow):
             profile = getattr(self, "_last_profile", None)
             if profile:
                 self._current_server_key = f"{profile.host}:{getattr(profile, 'tcp_port', 10333)}"
+            self._weather_announced_this_session = False
             server_name = (getattr(profile, "name", "") or getattr(profile, "host", "Server")) if profile else "Server"
             nick = getattr(profile, "nickname", "") if profile else ""
             self._update_conn_bar(f"Verbunden: {server_name}  |  Nickname: {nick}", connected=True)
@@ -1115,6 +1130,11 @@ class MainWindow(QMainWindow):
                     except Exception:
                         pass
                 threading.Thread(target=_summarize, daemon=True).start()
+        if (getattr(self.settings_store.settings, "weather_announce_on_connect", False)
+                and not getattr(self, "_weather_announced_this_session", False)
+                and (getattr(self.settings_store.settings, "weather_city", "") or "").strip()):
+            self._weather_announced_this_session = True
+            threading.Thread(target=self._weather_scheduler.announce_now, daemon=True).start()
         self._refresh_channels()
 
     def _on_myself_left(self, msg) -> None:
@@ -4114,6 +4134,20 @@ class MainWindow(QMainWindow):
         dlg.exec()
         self._refocus_channel_list()
 
+    def on_menu_weather_now(self) -> None:
+        """v10.4.0 – Fragt das aktuelle Wetter für den eingestellten Ort ab und sagt es an."""
+        city = (getattr(self.settings_store.settings, "weather_city", "") or "").strip()
+        if not city:
+            QMessageBox.information(
+                self, _("Wetter-Ansage"),
+                _("Kein Ort für die Wetteransage eingestellt. Bitte in den Einstellungen "
+                  "unter 'Darstellung & Verhalten' einen Ort eintragen."),
+            )
+            return
+        self.set_status(f"Wetter für {city} wird abgefragt…")
+        import threading
+        threading.Thread(target=self._weather_scheduler.announce_now, daemon=True).start()
+
     def on_menu_online_users(self) -> None:
         from ui_qt.dialogs import OnlineUsersDialog
         dlg = OnlineUsersDialog(self, self.client, self.tt_str)
@@ -4666,6 +4700,10 @@ class MainWindow(QMainWindow):
             pass
         try:
             self._mute_scheduler.stop()
+        except Exception:
+            pass
+        try:
+            self._weather_scheduler.stop()
         except Exception:
             pass
         QApplication.quit()

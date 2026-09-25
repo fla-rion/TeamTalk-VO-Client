@@ -348,6 +348,11 @@ class AppSettings:
     media_fx_limiter_threshold_db: float = -1.0
     # v10.2.0 – Geräte-Sync
     device_sync_enabled: bool = False
+    # v10.4.0 – Wetter-Ansage (Roadmap Punkt 9)
+    weather_announce_enabled: bool = False
+    weather_city: str = ""
+    weather_announce_times: List[str] = field(default_factory=list)  # ["HH:MM", ...]
+    weather_announce_on_connect: bool = False
 
 
 class SettingsStore:
@@ -598,6 +603,12 @@ class SettingsStore:
             self.settings.media_fx_limiter_threshold_db = float(data.get("media_fx_limiter_threshold_db", -1.0) or -1.0)
             # v10.2.0
             self.settings.device_sync_enabled = bool(data.get("device_sync_enabled", False))
+            # v10.4.0 – Wetter-Ansage
+            self.settings.weather_announce_enabled = bool(data.get("weather_announce_enabled", False))
+            self.settings.weather_city = str(data.get("weather_city", "") or "")
+            raw_wt = data.get("weather_announce_times", [])
+            self.settings.weather_announce_times = [t for t in raw_wt if isinstance(t, str)] if isinstance(raw_wt, list) else []
+            self.settings.weather_announce_on_connect = bool(data.get("weather_announce_on_connect", False))
 
     def save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -796,5 +807,10 @@ class SettingsStore:
             "media_fx_limiter_threshold_db": float(self.settings.media_fx_limiter_threshold_db or -1.0),
             # v10.2.0
             "device_sync_enabled": bool(self.settings.device_sync_enabled),
+            # v10.4.0 – Wetter-Ansage
+            "weather_announce_enabled": bool(self.settings.weather_announce_enabled),
+            "weather_city": str(self.settings.weather_city or ""),
+            "weather_announce_times": list(self.settings.weather_announce_times or []),
+            "weather_announce_on_connect": bool(self.settings.weather_announce_on_connect),
         }
         self.path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

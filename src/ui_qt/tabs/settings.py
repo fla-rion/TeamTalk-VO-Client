@@ -587,6 +587,33 @@ class SettingsTab(QWidget):
             lambda t: self._save_str("mute_to_time", t.toString("HH:mm"))
         )
         auto_form.addRow(_("bis"), self.mute_to_time)
+
+        # --- Wetter-Ansage (v10.4.0) ---
+        self.weather_enabled = QCheckBox(_("Wetter-Ansage aktivieren"))
+        self.weather_enabled.setChecked(bool(getattr(s, "weather_announce_enabled", False)))
+        self.weather_enabled.stateChanged.connect(self._on_weather_enabled_changed)
+        auto_form.addRow("", self.weather_enabled)
+
+        self.weather_city = QLineEdit(str(getattr(s, "weather_city", "") or ""))
+        self.weather_city.setAccessibleName("Wetter-Ansage Ort")
+        self.weather_city.setPlaceholderText("z. B. Berlin")
+        self.weather_city.editingFinished.connect(
+            lambda: self._save_str("weather_city", self.weather_city.text().strip())
+        )
+        auto_form.addRow(_("Ort"), self.weather_city)
+
+        self.weather_on_connect = QCheckBox(_("Beim Verbinden ansagen"))
+        self.weather_on_connect.setChecked(bool(getattr(s, "weather_announce_on_connect", False)))
+        self.weather_on_connect.stateChanged.connect(lambda v: self._save_bool("weather_announce_on_connect", v))
+        auto_form.addRow("", self.weather_on_connect)
+
+        weather_times = getattr(s, "weather_announce_times", []) or []
+        self.weather_times = QTextEdit("\n".join(weather_times))
+        self.weather_times.setAccessibleName("Wetter-Ansage Zeiten")
+        self.weather_times.setPlaceholderText("Feste Ansagezeiten, eine je Zeile (Format HH:MM)")
+        self.weather_times.setMaximumHeight(60)
+        self.weather_times.textChanged.connect(self._on_weather_times_changed)
+        auto_form.addRow(_("Ansagezeiten"), self.weather_times)
         layout.addWidget(auto_group)
 
         # --- Chat-Filter ---
@@ -1533,6 +1560,24 @@ class SettingsTab(QWidget):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+
+    def _on_weather_enabled_changed(self, value) -> None:
+        self._save_bool("weather_announce_enabled", value)
+        scheduler = getattr(self.window, "_weather_scheduler", None)
+        if scheduler is None:
+            return
+        if self.window.settings_store.settings.weather_announce_enabled:
+            scheduler.start()
+        else:
+            scheduler.stop()
+
+    def _on_weather_times_changed(self) -> None:
+        times = [t.strip() for t in self.weather_times.toPlainText().splitlines() if t.strip()]
+        try:
+            self.window.settings_store.settings.weather_announce_times = times
+            self.window.settings_store.save()
+        except Exception:
+            pass
 
     def _save_bool(self, key: str, value) -> None:
         try:

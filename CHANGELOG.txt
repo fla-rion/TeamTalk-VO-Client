@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.0)
+Neues Feature: Wetter-Ansage
+
+- **Wetter-Ansage per TTS** (Roadmap Punkt 9): Wetterabfrage für einen
+  eingestellten Ort über die freie Open-Meteo-API (kein API-Key nötig).
+  Drei Wege zur Ansage: manuell per Menüpunkt "Wetter jetzt ansagen"
+  (Menü Automation, wx wie Qt), automatisch beim Verbinden mit einem
+  Server (Einstellung "Beim Verbinden ansagen"), oder zu fest eingestellten
+  Uhrzeiten (eine oder mehrere HH:MM-Zeiten, per Hintergrund-Scheduler
+  nach dem Muster der zeitgesteuerten Stille geprüft). Neue
+  Einstellungen unter "Automatisierung": Ort, aktiv/inaktiv,
+  Ansagezeiten, Ansage beim Verbinden – in wx- und Qt-Oberfläche
+  identisch verfügbar. Neues Modul `src/weather_manager.py`
+  (plattformunabhängig, keine wx-/Qt-Importe).
+
 2026-09-25 (v10.3.9)
 Bugfix: Update-Prüfung repariert
 

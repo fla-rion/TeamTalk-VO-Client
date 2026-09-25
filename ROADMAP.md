@@ -103,11 +103,11 @@ Bei den anderen 6 Roadmap-Punkten ging es um klar abgegrenzte UI-/Feature-Ergän
 
 ---
 
-## 9. Wetter-Ansage – für v10.4.0 vorgesehen
+## 9. ~~Wetter-Ansage~~ – erledigt in v10.4.0
 
-🟢 · Inspiration: [schulle4u/weatherbox](https://github.com/schulle4u/weatherbox) ("Scheduled weather announcement system").
+✅ 🟢 · Inspiration: [schulle4u/weatherbox](https://github.com/schulle4u/weatherbox) ("Scheduled weather announcement system").
 
-Wetteransage per TTS – beim Verbinden, zu festen Zeiten oder per Hotkey/Menüpunkt "Wetter jetzt ansagen". Kein bestehendes Wetter-Feature im Code (gegengecheckt). Technischer Ansatz: neues Modul `src/weather_manager.py` (freie API ohne Key, z. B. Open-Meteo, inkl. Geocoding für Ortsnamen), Scheduling-Muster von `mute_scheduler.py` wiederverwenden, Ausgabe über bestehendes `tts.py`. UI-Abschnitt in `settings.py` (wx + Qt): Ort, aktiv/inaktiv, feste Ansagezeiten.
+Wetteransage per TTS – beim Verbinden, zu festen Zeiten oder per Menüpunkt "Wetter jetzt ansagen" (Menü Automation, wx + Qt). Implementiert über `src/weather_manager.py` (plattformunabhängig, kein wx-/Qt-Import; Open-Meteo-API ohne Key, inkl. Geocoding für Ortsnamen), `WeatherScheduler` nach dem Scheduling-Muster von `mute_scheduler.py`, Ausgabe über bestehendes `tts.py`. Einstellungen in `settings.py` (wx + Qt, identisch verfügbar): Ort, aktiv/inaktiv, Ansage beim Verbinden, feste Ansagezeiten.
 
 **Recherchiert 2026-09-25 (Nebenfund, kein Kandidat für 10.4.0, aber vorgemerkt):** GruiaChiscop (bereits zitierter Community-Entwickler) hat auch [math65/ttaccessible](https://github.com/math65/ttaccessible) geforkt – ein nativer, VoiceOver-first-macOS-TeamTalk-Client mit VoiceOver-/Systemsound-Echo-Unterdrückung via Core-Audio-Taps (`AudioHardwareCreateProcessTap`, macOS 14.2+) + WebRTC AEC3. Löst ein reales Problem (andere Kanalteilnehmer hören ein VoiceOver-Echo, wenn man unstumm navigiert – die SDK-eigene AEC hat kein Referenzsignal dafür), ist aber echtes Core-Audio/DSP-Neuland und mehrwöchiger Aufwand (🔴) – als eigenes Teilprojekt für eine spätere Version vormerken, nicht für 10.4.0. GruiaChiscop hat außerdem einen eigenen Fork von TeamTalk-VO-Client selbst (Stand 2026-06-16) – bei Gelegenheit auf divergente Änderungen prüfen.
 
@@ -185,7 +185,7 @@ Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Informatio
 | ✅ v10.1.0 | i18n-Aufräumrunde (Nebenfund) | 🟢 | 286 neue Wörterbucheinträge, 2 Bugfixes (NameError, hartkodiertes HTML-lang) |
 | ✅ v10.2.0 | Multi-Deck-Mischer (2) | 🔴→🟡 | Crossfade-Überblenden statt echtem Mix (SDK-Grenze) |
 | ✅ v10.2.0 | Geräte-Sync (7) | 🔴 | HMAC-Auth, mDNS, Keychain-Secrets, wx + Qt |
-| geplant v10.4.0 | Wetter-Ansage (9) | 🟢 | In Arbeit – Open-Meteo, Scheduler-Muster von `mute_scheduler.py` |
+| ✅ v10.4.0 | Wetter-Ansage (9) | 🟢 | Open-Meteo, plattformunabhängiger Scheduler, wx + Qt |
 | geplant v10.5.0 | TTS-Ducking (10) | 🟢 | Aufsatz auf vorhandene Lautstärkeregelung |
 | geplant v10.6.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
 | geplant v10.7.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
