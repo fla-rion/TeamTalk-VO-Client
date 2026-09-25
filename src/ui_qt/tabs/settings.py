@@ -140,6 +140,11 @@ class SettingsTab(QWidget):
         self.braille_compact.stateChanged.connect(lambda v: self._save_bool("braille_compact", v))
         disp_form.addRow("", self.braille_compact)
 
+        self.update_check_on_start = QCheckBox(_("Beim Start auf Updates prüfen"))
+        self.update_check_on_start.setChecked(bool(getattr(s, "update_check_on_start", True)))
+        self.update_check_on_start.stateChanged.connect(lambda v: self._save_bool("update_check_on_start", v))
+        disp_form.addRow("", self.update_check_on_start)
+
         self.show_advanced_tabs = QCheckBox(_("Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)"))
         self.show_advanced_tabs.setAccessibleName("Erweiterte Tabs anzeigen")
         self.show_advanced_tabs.setChecked(bool(getattr(s, "show_advanced_tabs", False)))

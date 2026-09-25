@@ -71,7 +71,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.3.8"
+APP_VERSION = "10.3.9"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -133,13 +133,6 @@ def _get_startup_profiler() -> StartupProfiler:
     if _startup_profiler is None:
         _startup_profiler = StartupProfiler()
     return _startup_profiler
-
-
-def _upd_tok() -> str:
-    import base64 as _b
-    return bytes(x ^ 0x37 for x in _b.b64decode(
-        b"UlYDU1VWVVFUBFRVVlFRAAAGUQQAU1NTAlUFUQQEVgNWAwMOUVFTDw=="
-    )).decode()
 
 
 class MainWindow(QMainWindow):
@@ -349,6 +342,10 @@ class MainWindow(QMainWindow):
         self.notebook.setAccessibleDescription(
             "Hauptnavigation. Tab/Shift+Tab wechselt zwischen Registerkarten."
         )
+
+        # Update-Checker beim Start (Parität zu macOS/app_wx.py)
+        if bool(getattr(_ts, "update_check_on_start", True)):
+            QTimer.singleShot(4000, self._check_for_update)
 
         # Show
         if not bool(getattr(_ts, "start_minimized", False)):
@@ -4538,33 +4535,67 @@ class MainWindow(QMainWindow):
         dlg = UpdateManagerDialog(self, APP_VERSION)
         dlg.exec()
 
-    def on_menu_check_updates(self) -> None:
-        self.set_status("Update-Prüfung gestartet...")
+    def _check_for_update(self, manual: bool = False) -> None:
+        """Prüft im Hintergrund ob eine neuere Version verfügbar ist.
+
+        manual=True: zeigt auch Rückmeldung wenn kein Update gefunden.
+
+        v10.3.9 – läuft über die öffentliche GitHub-Releases-API statt über
+        Gitea (Gitea verlangt inzwischen einen Login auch für anonyme
+        Zugriffe, der Update-Check schlug deshalb fehl); wird jetzt (wie auf
+        macOS) auch automatisch beim Start ausgeführt.
+        """
+        if manual:
+            self.set_status("Update-Prüfung gestartet...")
         import threading
+        import update_manager as um
 
         def worker():
             try:
-                import urllib.request
-                import json as _json
-                TOKEN = _upd_tok()
-                url = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
-                req = urllib.request.Request(url, headers={"Authorization": f"token {TOKEN}"})
-                with urllib.request.urlopen(req, timeout=10) as r:
-                    data = _json.loads(r.read())
-                latest = data.get("tag_name", "").lstrip("v")
-                if latest and latest > APP_VERSION:
+                releases = um.fetch_releases(limit=1)
+                latest = releases[0].tag.lstrip("v") if releases else ""
+                try:
+                    _remote_ver = tuple(int(x) for x in latest.split(".") if x.isdigit())
+                    _local_ver = tuple(int(x) for x in APP_VERSION.split(".") if x.isdigit())
+                except Exception:
+                    _remote_ver = _local_ver = ()
+                if latest and _remote_ver > _local_ver:
+                    call_after(lambda: self._on_update_available(latest))
+                elif manual:
                     call_after(lambda: QMessageBox.information(
-                        self, "Update verfügbar",
-                        f"Version {latest} ist verfügbar.\nAktuelle Version: {APP_VERSION}"
+                        self, "Kein Update verfügbar",
+                        f"Du verwendest bereits die aktuelle Version ({APP_VERSION})."
                     ))
                 else:
                     call_after(lambda: self.set_status(
                         f"Kein Update verfügbar (aktuell: {APP_VERSION})"
                     ))
             except Exception as exc:
-                call_after(lambda: self.set_status(f"Update-Prüfung fehlgeschlagen: {exc}"))
+                if manual:
+                    call_after(lambda: QMessageBox.warning(
+                        self, "Update-Prüfung",
+                        "Update-Prüfung fehlgeschlagen. Bitte Internetverbindung prüfen."
+                    ))
+                else:
+                    call_after(lambda: self.set_status(f"Update-Prüfung fehlgeschlagen: {exc}"))
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _on_update_available(self, tag: str) -> None:
+        self.set_status(f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})")
+        box = QMessageBox(self)
+        box.setWindowTitle("Update verfügbar")
+        box.setText(
+            f"Version {tag} ist verfügbar (aktuell: {APP_VERSION}).\n\n"
+            "Update-Manager jetzt öffnen?"
+        )
+        box.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        box.setDefaultButton(QMessageBox.StandardButton.Yes)
+        if box.exec() == QMessageBox.StandardButton.Yes:
+            self.on_menu_update_manager()
+
+    def on_menu_check_updates(self) -> None:
+        self._check_for_update(manual=True)
 
     # ------------------------------------------------------------------
     # Transcription

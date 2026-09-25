@@ -1,6 +1,29 @@
 Changelog
 =========
 
+2026-09-25 (v10.3.9)
+Bugfix: Update-Prüfung repariert
+
+- **"Nach Updates suchen" funktionierte nicht mehr**: Die schnelle
+  Update-Prüfung (Menü sowie automatischer Start-Check) fragte bisher
+  direkt die Gitea-API (`git.leons.cc`) mit einem eingebetteten Token ab.
+  Seit dem Gitea-Umzug verlangt die Instanz auch für Release-Metadaten
+  einen Login, wodurch die Prüfung fehlschlug. Die Prüfung läuft jetzt
+  über die öffentliche GitHub-Releases-API (`update_manager.py`, wie schon
+  im vollständigen Update-Manager-Dialog verwendet) – kein Token mehr
+  nötig, da GitHub-Release-Assets öffentlich sind.
+- Der Versionsvergleich in der Qt-Variante (Windows/Linux) verglich
+  Versionsnummern bisher als Text (`"10.3.10" < "10.3.9"` alphabetisch) –
+  jetzt numerisch wie auf macOS.
+- **Update-Hinweis jetzt auch unter Windows/Linux beim Start**: Bisher
+  prüfte nur die macOS-Version (wx) automatisch beim Programmstart auf
+  Updates, die Qt-Version (Windows/Linux) nur auf manuellen Menüaufruf.
+  Beide Plattformen prüfen jetzt 4 Sekunden nach dem Start automatisch und
+  bieten bei einer neuen Version an, den Update-Manager zu öffnen.
+  Abschaltbar über die neue Einstellung "Beim Start auf Updates prüfen"
+  (in den Einstellungen unter "Darstellung & Verhalten", auch in der
+  Qt-Oberfläche).
+
 2026-09-24 (v10.3.8)
 Bugfix: Eloquence (OpenEVV) auf macOS repariert
 

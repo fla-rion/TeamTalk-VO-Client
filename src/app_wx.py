@@ -76,13 +76,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.3.8"
-
-def _upd_tok() -> str:
-    import base64 as _b
-    return bytes(x ^ 0x37 for x in _b.b64decode(
-        b"UlYDU1VWVVFUBFRVVlFRAAAGUQQAU1NTAlUFUQQEVgNWAwMOUVFTDw=="
-    )).decode()
+APP_VERSION = "10.3.9"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -8809,44 +8803,35 @@ class MainFrame(wx.Frame):
         """Prüft im Hintergrund ob eine neuere Version verfügbar ist.
 
         manual=True: zeigt auch Rückmeldung wenn kein Update gefunden.
+
+        v10.3.9 – läuft über die öffentliche GitHub-Releases-API statt über
+        Gitea (Gitea verlangt inzwischen einen Login auch für anonyme
+        Zugriffe, der Update-Check schlug deshalb fehl).
         """
-        import urllib.request
-        import urllib.error
+        import update_manager as um
+
         def _worker():
             try:
-                url = "https://git.leons.cc/api/v1/repos/flarion/TeamTalk-VO-Client/releases/latest"
-                req = urllib.request.Request(
-                    url, headers={"Authorization": f"token {_upd_tok()}"}
-                )
-                with urllib.request.urlopen(req, timeout=5) as resp:  # noqa: S310
-                    data = json.loads(resp.read().decode("utf-8"))
-                tag = str(data.get("tag_name", "") or "").lstrip("v")
+                releases = um.fetch_releases(limit=1)
+                if not releases:
+                    raise ValueError("keine Releases gefunden")
+                release = releases[0]
+                tag = release.tag.lstrip("v")
                 try:
                     _remote_ver = tuple(int(x) for x in tag.split(".") if x.isdigit())
                     _local_ver = tuple(int(x) for x in APP_VERSION.split(".") if x.isdigit())
                 except Exception:
                     _remote_ver = _local_ver = ()
                 if tag and _remote_ver > _local_ver:
-                    assets = data.get("assets", [])
-                    # v6.1.3 – releases/download/{tag}/{filename} mit Authorization-Header
-                    # (browser_download_url zeigt auf /attachments/{uuid} → Login-Redirect;
-                    #  /releases/assets/{id} gibt JSON-Metadaten zurück, nicht die Datei;
-                    #  /releases/download/{tag}/{name} liefert mit Auth-Header korrekt 200)
-                    import urllib.parse as _uparse
-                    asset_name = f"TeamTalk VO Client {tag}.dmg"
-                    if assets:
-                        asset_name = assets[0].get("name", asset_name)
-                    encoded_name = _uparse.quote(asset_name)
-                    download_url = (
-                        f"https://git.leons.cc/flarion/TeamTalk-VO-Client"
-                        f"/releases/download/v{tag}/{encoded_name}"
-                    )
+                    asset = release.platform_asset
+                    if asset is None:
+                        raise ValueError("kein passendes Release-Asset gefunden")
                     wx.CallAfter(
                         self.set_status,
                         f"Update verfügbar: v{tag} (aktuell: v{APP_VERSION})",
                     )
                     wx.CallAfter(self.tts.speak, f"Update verfügbar, Version {tag}", kind="system")
-                    wx.CallAfter(self._show_update_dialog, tag, download_url, asset_name)
+                    wx.CallAfter(self._show_update_dialog, tag, asset.download_url, asset.name)
                 elif manual:
                     wx.CallAfter(
                         wx.MessageBox,
@@ -8867,7 +8852,7 @@ class MainFrame(wx.Frame):
         threading.Thread(target=_worker, daemon=True).start()
 
     def _show_update_dialog(self, tag: str, download_url: str, asset_name: str = "") -> None:
-        """v6.1.3 – Lädt das Update direkt herunter (browser_download_url + Token)."""
+        """v10.3.9 – Lädt das Update direkt vom öffentlichen GitHub-Release herunter."""
         dlg = wx.MessageDialog(
             self,
             f"Version {tag} ist verfügbar (aktuell: {APP_VERSION}).\n\nJetzt herunterladen?",
@@ -8902,10 +8887,10 @@ class MainFrame(wx.Frame):
             import urllib.request
             try:
                 # Chunk-Streaming: kein vollständiger RAM-Load, Fortschrittsanzeige
-                # Authorization-Header (Token als Bearer/Header, nicht Query-Param)
+                # GitHub-Release-Assets sind öffentlich, kein Auth-Header nötig
                 req = urllib.request.Request(
                     download_url,
-                    headers={"Authorization": f"token {_upd_tok()}"},
+                    headers={"User-Agent": "TeamTalk-VO-Client-UpdateManager"},
                 )
                 with urllib.request.urlopen(req, timeout=300) as resp:  # noqa: S310
                     total = int(resp.headers.get("Content-Length") or 0)
