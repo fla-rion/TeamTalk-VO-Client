@@ -127,7 +127,12 @@ jobs:
 
           # ZIP hochladen (multipart via curl, da Invoke-RestMethod kein -F unterstützt)
           Write-Host "Lade $env:ZIP_NAME auf Gitea hoch (Release $releaseId)..."
-          $result = & curl -s -X POST "$base/releases/$releaseId/assets" `
+          $httpCode = & curl -s -o gitea_upload_resp.json -w "%{http_code}" -X POST "$base/releases/$releaseId/assets" `
             -H "Authorization: token $token" `
             -F "attachment=@$zipPath"
-          Write-Host "Gitea Upload Antwort: $result"
+          if ($httpCode -match '^2\d\d$') {
+            Write-Host "Gitea-Upload erfolgreich (HTTP $httpCode)."
+          } else {
+            Write-Host "::warning::Gitea-Upload von $env:ZIP_NAME fehlgeschlagen (HTTP $httpCode) - vermutlich Server-seitiges Body-Size-Limit auf git.leons.cc (~100 MB). Datei ist nur auf GitHub verfuegbar."
+            if (Test-Path gitea_upload_resp.json) { Get-Content gitea_upload_resp.json }
+          }

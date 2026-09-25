@@ -151,6 +151,12 @@ jobs:
           fi
 
           echo "Lade $DMG_NAME auf Gitea hoch (Release $release_id)..."
-          curl -s -X POST "$base/releases/$release_id/assets" \
+          http_code=$(curl -s -o /tmp/gitea_upload_resp.json -w "%{http_code}" -X POST "$base/releases/$release_id/assets" \
             -H "Authorization: token $token" \
-            -F "attachment=@dist/$DMG_NAME"
+            -F "attachment=@dist/$DMG_NAME")
+          if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
+            echo "Gitea-Upload erfolgreich (HTTP $http_code)."
+          else
+            echo "::warning::Gitea-Upload von $DMG_NAME fehlgeschlagen (HTTP $http_code) – vermutlich Server-seitiges Body-Size-Limit auf git.leons.cc (~100 MB). Datei ist nur auf GitHub verfügbar."
+            cat /tmp/gitea_upload_resp.json 2>/dev/null || true
+          fi

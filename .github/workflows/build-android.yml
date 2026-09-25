@@ -170,6 +170,12 @@ jobs:
           fi
 
           echo "Lade ${{ steps.apk.outputs.apk_name }} auf Gitea hoch..."
-          curl -s -X POST "$BASE/releases/$RELEASE_ID/assets" \
+          HTTP_CODE=$(curl -s -o /tmp/gitea_upload_resp.json -w "%{http_code}" -X POST "$BASE/releases/$RELEASE_ID/assets" \
             -H "Authorization: token $GITEA_TOKEN" \
-            -F "attachment=@$APK_PATH"
+            -F "attachment=@$APK_PATH")
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "Gitea-Upload erfolgreich (HTTP $HTTP_CODE)."
+          else
+            echo "::warning::Gitea-Upload von ${{ steps.apk.outputs.apk_name }} fehlgeschlagen (HTTP $HTTP_CODE) – vermutlich Server-seitiges Body-Size-Limit auf git.leons.cc (~100 MB). Datei ist nur auf GitHub verfügbar."
+            cat /tmp/gitea_upload_resp.json 2>/dev/null || true
+          fi

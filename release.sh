@@ -65,11 +65,16 @@ fi
 
 # --- DMG hochladen ---
 echo "==> Lade DMG hoch..."
-ASSET=$(curl -s -X POST "$BASE_URL/releases/${RELEASE_ID}/assets" \
+HTTP_CODE=$(curl -s -o /tmp/gitea_upload_resp.json -w "%{http_code}" -X POST "$BASE_URL/releases/${RELEASE_ID}/assets" \
   -H "Authorization: token $TOKEN" \
   -F "attachment=@${DMG_PATH};type=application/octet-stream")
-ASSET_NAME=$(echo "$ASSET" | python3 -c "import sys,json; r=json.load(sys.stdin); print(r.get('name', r.get('message','?')))")
-echo "    Asset: $ASSET_NAME"
+if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+  ASSET_NAME=$(python3 -c "import json; print(json.load(open('/tmp/gitea_upload_resp.json')).get('name','?'))" 2>/dev/null || echo "?")
+  echo "    Asset: $ASSET_NAME (HTTP $HTTP_CODE)"
+else
+  echo "    FEHLER: Gitea-Upload fehlgeschlagen (HTTP $HTTP_CODE) – vermutlich Body-Size-Limit auf git.leons.cc (~100 MB)." >&2
+  cat /tmp/gitea_upload_resp.json >&2 2>/dev/null || true
+fi
 
 # --- git commit + push ---
 echo "==> Committe und pushe Quellcode..."
