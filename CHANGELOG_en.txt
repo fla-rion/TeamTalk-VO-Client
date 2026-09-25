@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.2)
+Bugfix: update check (diagnostics + SSL hardening)
+
+- **"Check for updates" failed with "Update check failed"** without the
+  actual reason showing up anywhere - the exception was silently
+  swallowed (no log entry, no status line). It's now always written to
+  the system log, so a recurring failure can actually be diagnosed next
+  time.
+- The update check (update_manager.py) now explicitly uses certifi's own
+  CA bundle instead of relying on the system trust store paths - the
+  classic "works in Terminal but not in the built app" failure source
+  for frozen Python apps. certifi is already a dependency via requests.
+
 2026-09-25 (v10.4.1)
 Bugfix: Eloquence (volume, languages) and voice activation
 

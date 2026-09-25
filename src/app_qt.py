@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.4.1"
+APP_VERSION = "10.4.2"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -4612,13 +4612,16 @@ class MainWindow(QMainWindow):
                         f"Kein Update verfügbar (aktuell: {APP_VERSION})"
                     ))
             except Exception as exc:
+                # Immer loggen, auch bei manueller Prüfung - der Dialogtext
+                # selbst nennt den Grund bewusst nicht (für Endnutzer zu
+                # technisch), aber ohne Log-Eintrag lässt sich ein
+                # wiederkehrender Fehler nie diagnostizieren.
+                call_after(lambda: self.set_status(f"Update-Prüfung fehlgeschlagen: {exc!r}"))
                 if manual:
                     call_after(lambda: QMessageBox.warning(
                         self, "Update-Prüfung",
                         "Update-Prüfung fehlgeschlagen. Bitte Internetverbindung prüfen."
                     ))
-                else:
-                    call_after(lambda: self.set_status(f"Update-Prüfung fehlgeschlagen: {exc}"))
 
         threading.Thread(target=worker, daemon=True).start()
 

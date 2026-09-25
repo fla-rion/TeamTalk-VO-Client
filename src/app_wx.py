@@ -77,7 +77,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.1"
+APP_VERSION = "10.4.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -8876,7 +8876,11 @@ class MainFrame(wx.Frame):
                         wx.OK | wx.ICON_INFORMATION,
                         self,
                     )
-            except Exception:
+            except Exception as exc:
+                # Immer loggen - der Dialogtext nennt den Grund bewusst nicht
+                # (für Endnutzer zu technisch), aber ohne Log-Eintrag lässt
+                # sich ein wiederkehrender Fehler nie diagnostizieren.
+                wx.CallAfter(self.set_status, f"Update-Prüfung fehlgeschlagen: {exc!r}")
                 if manual:
                     wx.CallAfter(
                         wx.MessageBox,
@@ -8921,6 +8925,7 @@ class MainFrame(wx.Frame):
 
         def _download():
             import urllib.request
+            import update_manager as um
             try:
                 # Chunk-Streaming: kein vollständiger RAM-Load, Fortschrittsanzeige
                 # GitHub-Release-Assets sind öffentlich, kein Auth-Header nötig
@@ -8928,7 +8933,7 @@ class MainFrame(wx.Frame):
                     download_url,
                     headers={"User-Agent": "TeamTalk-VO-Client-UpdateManager"},
                 )
-                with urllib.request.urlopen(req, timeout=300) as resp:  # noqa: S310
+                with urllib.request.urlopen(req, timeout=300, context=um._SSL_CONTEXT) as resp:  # noqa: S310
                     total = int(resp.headers.get("Content-Length") or 0)
                     chunk = 65536  # 64 KB
                     received = 0

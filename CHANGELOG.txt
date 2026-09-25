@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.2)
+Bugfix: Update-Prüfung (Diagnose + SSL-Härtung)
+
+- **"Nach Updates suchen" schlug mit "Update-Prüfung fehlgeschlagen" fehl**,
+  ohne dass der eigentliche Grund irgendwo sichtbar wurde – der
+  Fehler wurde bisher stillschweigend verschluckt (weder Log noch
+  Statuszeile). Jetzt wird die genaue Fehlermeldung immer ins
+  System-Log geschrieben, damit ein wiederkehrender Fehler sich beim
+  nächsten Mal tatsächlich diagnostizieren lässt.
+- Die Update-Abfrage (`update_manager.py`) nutzt jetzt explizit das
+  CA-Zertifikatsbündel von `certifi` statt sich auf die
+  System-Vertrauensspeicher-Pfade zu verlassen – die typische
+  Fehlerquelle für "funktioniert im Terminal, aber nicht in der
+  gebauten App" bei eingefrorenen Python-Apps. certifi ist über
+  `requests` ohnehin bereits eine Abhängigkeit.
+
 2026-09-25 (v10.4.1)
 Bugfix: Eloquence (Lautstärke, Sprachen) und Sprachaktivierung
 

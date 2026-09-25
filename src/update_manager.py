@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import ssl
 import sys
 import urllib.request
 from dataclasses import dataclass, field
@@ -17,6 +18,30 @@ from typing import Callable, List, Optional
 
 _GITHUB_API = "https://api.github.com/repos/fla-rion/TeamTalk-VO-Client/releases"
 _HEADERS = {"User-Agent": "TeamTalk-VO-Client-UpdateManager"}
+
+
+def _ssl_context() -> Optional[ssl.SSLContext]:
+    """Baut den SSL-Kontext aus certifis eigenem CA-Bundle statt den
+    System-Vertrauensspeicher zu verwenden.
+
+    In der per PyInstaller gebauten App liest urllib sonst die
+    Standard-OpenSSL-Pfade des Systems - das funktioniert normalerweise,
+    ist aber genau die Konstellation, in der ein eingefrorenes Python am
+    ehesten mit CERTIFICATE_VERIFY_FAILED scheitert, obwohl derselbe
+    Code als reines Skript einwandfrei läuft. certifi liegt als
+    requests-Abhängigkeit ohnehin im Bundle (PyInstaller hat dafür einen
+    eigenen Hook, der certifi.where() im gefrorenen Zustand korrekt
+    auflöst), daher explizit dessen aktuelles CA-Bundle verwenden statt
+    stillschweigend auf den System-Vertrauensspeicher zu hoffen.
+    """
+    try:
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except Exception:
+        return None
+
+
+_SSL_CONTEXT = _ssl_context()
 
 
 @dataclass
@@ -43,7 +68,7 @@ def fetch_releases(limit: int = 50) -> List[Release]:
     """Holt alle Releases von der GitHub-API (kein Token nötig)."""
     url = f"{_GITHUB_API}?per_page={limit}"
     req = urllib.request.Request(url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=15) as resp:
+    with urllib.request.urlopen(req, timeout=15, context=_SSL_CONTEXT) as resp:
         data = json.loads(resp.read().decode("utf-8"))
     result: List[Release] = []
     for r in data:
@@ -90,7 +115,7 @@ def download_asset(
     os.makedirs(dest_dir, exist_ok=True)
     dest_path = os.path.join(dest_dir, asset.name)
     req = urllib.request.Request(asset.download_url, headers=_HEADERS)
-    with urllib.request.urlopen(req, timeout=120) as resp:
+    with urllib.request.urlopen(req, timeout=120, context=_SSL_CONTEXT) as resp:
         total = int(resp.headers.get("Content-Length") or asset.size or 0)
         downloaded = 0
         with open(dest_path, "wb") as f:

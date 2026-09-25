@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.2)
+Correction : vérification des mises à jour (diagnostic + renforcement SSL)
+
+- **« Rechercher des mises à jour » échouait avec « Échec de la
+  vérification des mises à jour »** sans que la raison réelle
+  n'apparaisse nulle part - l'exception était silencieusement avalée
+  (ni journal, ni barre d'état). Elle est désormais toujours écrite
+  dans le journal système, afin qu'une panne récurrente puisse
+  réellement être diagnostiquée la prochaine fois.
+- La vérification des mises à jour (update_manager.py) utilise
+  désormais explicitement le magasin de certificats CA propre à
+  certifi au lieu de se fier aux chemins du magasin de confiance du
+  système - la cause classique du « ça marche dans le terminal mais
+  pas dans l'application compilée » pour les applications Python
+  figées. certifi est de toute façon déjà une dépendance via requests.
+
 2026-09-25 (v10.4.1)
 Correction : Eloquence (volume, langues) et activation vocale
 

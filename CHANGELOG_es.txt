@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.2)
+Corrección: comprobación de actualizaciones (diagnóstico + refuerzo SSL)
+
+- **"Buscar actualizaciones" fallaba con "Error al comprobar
+  actualizaciones"** sin que apareciera en ningún sitio el motivo real:
+  la excepción se tragaba silenciosamente (sin registro ni barra de
+  estado). Ahora siempre se escribe en el registro del sistema, para
+  que un fallo recurrente pueda diagnosticarse de verdad la próxima
+  vez.
+- La comprobación de actualizaciones (update_manager.py) ahora usa
+  explícitamente el paquete de certificados CA propio de certifi en
+  lugar de confiar en las rutas del almacén de confianza del sistema:
+  la causa clásica de "funciona en la terminal pero no en la app
+  compilada" en aplicaciones Python empaquetadas. certifi ya es de
+  todos modos una dependencia a través de requests.
+
 2026-09-25 (v10.4.1)
 Corrección: Eloquence (volumen, idiomas) y activación por voz
 
