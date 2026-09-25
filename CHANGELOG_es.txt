@@ -1,6 +1,38 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.1)
+Corrección: Eloquence (volumen, idiomas) y activación por voz
+
+- **Eloquence sonaba claramente demasiado bajo**: el control de "volumen"
+  (0-200, 100 = normal) se aplicaba linealmente sobre la escala propia
+  de Eloquence de 0-65535, así que 100 solo producía la mitad del
+  máximo del motor. Ahora 100 corresponde a 65535 (el volumen
+  normal/máximo propio de Eloquence), y los valores por encima de 100
+  se limitan a ese máximo porque el motor no tiene margen para
+  amplificar más.
+- **Eloquence solo hablaba en inglés**: el motor incluido se compilaba
+  únicamente con el módulo de idioma inglés. Ahora se compila con los
+  ocho idiomas que pasan la comparación byte a byte contra la
+  referencia propia de IBM en el fork vendor (inglés EE. UU./Reino
+  Unido, alemán, español de España/México, francés de Francia/Canadá,
+  italiano). Nuevo selector "Idioma/acento de Eloquence" en
+  Configuración → Sistema, junto a la selección de voz (wx y Qt). El
+  polaco y el japonés quedan fuera: el polaco está documentado en el
+  proyecto original como un experimento inacabado (datos del italiano
+  reetiquetados como polaco), y el japonés todavía no habla ahí.
+- **La activación por voz exigía elegir antes un dispositivo
+  manualmente**: si nunca se pulsaba explícitamente "Aplicar audio", el
+  menú/la barra de herramientas bloqueaba la activación por voz con
+  "Ningún dispositivo de entrada configurado", aunque ya había un
+  dispositivo predeterminado preseleccionado automáticamente en uso. La
+  comprobación ahora también acepta esa preselección automática, no
+  solo los ajustes de audio guardados explícitamente.
+- Además: el flujo de trabajo aparte y obsoleto "Build openevv (macOS)"
+  (activación manual) todavía clonaba la rama Mudb0y/openevv main sin
+  corregir, que falla en arm64 - ahora usa el mismo camino que la
+  compilación normal de la app (scripts/download_openevv.py).
+
 2026-09-25 (v10.4.0)
 Nueva función: anuncio del tiempo
 

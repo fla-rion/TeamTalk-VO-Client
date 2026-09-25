@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.4.0"
+APP_VERSION = "10.4.1"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -243,6 +243,7 @@ class MainWindow(QMainWindow):
         self.tts.settings.volume = _ts.tts_volume
         self.tts.settings.espeak_path = _ts.tts_espeak_path
         self.tts.settings.openevv_voice = int(getattr(_ts, "tts_openevv_voice", 1) or 1)
+        self.tts.settings.openevv_language = int(getattr(_ts, "tts_openevv_language", 0x10000) or 0x10000)
         self.tts.settings.speak_user_join = _ts.tts_speak_user_join
         self.tts.settings.speak_user_leave = _ts.tts_speak_user_leave
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
@@ -3612,8 +3613,14 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _check_input_device_configured(self) -> bool:
-        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde, sonst False mit SR-Meldung."""
+        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde (auch das
+        automatisch vorausgewählte Standardgerät zählt), sonst False mit SR-Meldung."""
         prefs = getattr(self.settings_store.settings, "audio_prefs", None) or {}
+        if not prefs.get("input_device_id"):
+            try:
+                prefs = self.audio_tab.get_audio_prefs()
+            except Exception:
+                prefs = {}
         if not prefs.get("input_device_id"):
             msg = _("Kein Eingabegerät konfiguriert. Bitte Gerät auswählen und Audio anwenden.")
             try:

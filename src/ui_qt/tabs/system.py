@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from i18n import _
+from tts import EVV_LANGUAGES
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -155,6 +156,13 @@ class SystemTab(QWidget):
         self._lbl_evv_voice = QLabel(_("Eloquence Stimme (1–8)"))
         form.addRow(self._lbl_evv_voice, self.tts_evv_voice)
 
+        self._evv_lang_ids = [lang_id for lang_id, _tag, _label in EVV_LANGUAGES]
+        self.tts_evv_lang = QComboBox()
+        self.tts_evv_lang.addItems([label for _id, _tag, label in EVV_LANGUAGES])
+        self.tts_evv_lang.setAccessibleName(_("Eloquence Sprache/Akzent"))
+        self._lbl_evv_lang = QLabel(_("Eloquence Sprache/Akzent"))
+        form.addRow(self._lbl_evv_lang, self.tts_evv_lang)
+
         tts_layout.addLayout(form)
 
         btn_row = QHBoxLayout()
@@ -240,6 +248,7 @@ class SystemTab(QWidget):
         self.tts_backend.currentIndexChanged.connect(self._apply_settings)
         self.tts_backend.currentIndexChanged.connect(self._update_backend_visibility)
         self.tts_evv_voice.valueChanged.connect(self._apply_settings)
+        self.tts_evv_lang.currentIndexChanged.connect(self._apply_settings)
 
     def _update_backend_visibility(self, *_args) -> None:
         """Blendet espeak-spezifische bzw. Eloquence-spezifische Felder passend zur gewählten Engine ein/aus."""
@@ -255,6 +264,8 @@ class SystemTab(QWidget):
             ctrl.setVisible(is_espeak)
         self._lbl_evv_voice.setVisible(is_openevv)
         self.tts_evv_voice.setVisible(is_openevv)
+        self._lbl_evv_lang.setVisible(is_openevv)
+        self.tts_evv_lang.setVisible(is_openevv)
 
     def _sync_from_manager(self) -> None:
         s = self.window.tts.settings
@@ -286,6 +297,13 @@ class SystemTab(QWidget):
         self.tts_backend.setCurrentIndex(1 if s.backend == "openevv" else 0)
         self.tts_backend.blockSignals(False)
         self.tts_evv_voice.setValue(max(1, min(8, int(s.openevv_voice))))
+        try:
+            lang_idx = self._evv_lang_ids.index(int(s.openevv_language))
+        except ValueError:
+            lang_idx = 0
+        self.tts_evv_lang.blockSignals(True)
+        self.tts_evv_lang.setCurrentIndex(lang_idx)
+        self.tts_evv_lang.blockSignals(False)
         self.tts_chat_rate.setValue(s.chat_rate or 0)
         self.tts_system_rate.setValue(s.system_rate or 0)
         self.tts_channel_rate.setValue(s.channel_rate or 0)
@@ -314,6 +332,9 @@ class SystemTab(QWidget):
         s.espeak_path = self.tts_path.text().strip()
         s.backend = "openevv" if self.tts_backend.currentIndex() == 1 else "espeak"
         s.openevv_voice = self.tts_evv_voice.value()
+        lang_sel = self.tts_evv_lang.currentIndex()
+        if 0 <= lang_sel < len(self._evv_lang_ids):
+            s.openevv_language = self._evv_lang_ids[lang_sel]
         app = self.window.settings_store.settings
         app.tts_enabled = s.enabled
         app.tts_speak_chat = s.speak_chat
@@ -328,6 +349,7 @@ class SystemTab(QWidget):
         app.tts_espeak_path = s.espeak_path
         app.tts_backend = s.backend
         app.tts_openevv_voice = s.openevv_voice
+        app.tts_openevv_language = s.openevv_language
         app.tts_speak_user_join = s.speak_user_join
         app.tts_speak_user_leave = s.speak_user_leave
         app.tts_speak_file_transfer = s.speak_file_transfer

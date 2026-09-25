@@ -1,6 +1,38 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.1)
+Correction : Eloquence (volume, langues) et activation vocale
+
+- **Eloquence était nettement trop silencieuse** : le curseur « volume »
+  (0-200, 100 = normal) était mappé linéairement sur l'échelle 0-65535
+  propre à Eloquence, si bien que 100 ne produisait que la moitié du
+  maximum du moteur. Désormais 100 correspond à 65535 (le volume
+  normal/maximal propre à Eloquence), et les valeurs au-dessus de 100
+  sont plafonnées à ce maximum, le moteur ne pouvant pas amplifier
+  davantage.
+- **Eloquence ne parlait qu'en anglais** : le moteur intégré n'était
+  compilé qu'avec le module de langue anglais. Il est désormais compilé
+  avec les huit langues validées bit à bit face à la référence IBM dans
+  le fork vendor (anglais US/britannique, allemand, espagnol
+  castillan/mexicain, français de France/Canada, italien). Nouveau
+  sélecteur « Langue/accent Eloquence » dans Paramètres → Système, juste
+  à côté du choix de la voix (wx et Qt). Le polonais et le japonais sont
+  exclus : le polonais est documenté en amont comme une expérience
+  inachevée (données de l'italien réétiquetées en polonais), et le
+  japonais n'y parle pas encore.
+- **L'activation vocale exigeait de choisir un périphérique au
+  préalable** : sans avoir cliqué explicitement sur « Appliquer l'audio »,
+  le menu/la barre d'outils bloquait l'activation vocale avec « Aucun
+  périphérique d'entrée configuré », alors qu'un périphérique par défaut
+  présélectionné automatiquement était déjà actif. La vérification
+  accepte désormais aussi cette présélection automatique, et pas
+  seulement les réglages audio explicitement enregistrés.
+- Par ailleurs : le workflow séparé et obsolète « Build openevv (macOS) »
+  (déclenchement manuel) clonait encore la branche Mudb0y/openevv main
+  non corrigée, qui plante sur arm64 - il utilise désormais le même
+  chemin que la build normale de l'application (scripts/download_openevv.py).
+
 2026-09-25 (v10.4.0)
 Nouvelle fonctionnalité : annonce météo
 

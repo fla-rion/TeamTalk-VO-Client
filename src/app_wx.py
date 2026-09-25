@@ -77,7 +77,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.0"
+APP_VERSION = "10.4.1"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -640,6 +640,7 @@ class MainFrame(wx.Frame):
         self.tts.settings.macos_rate = float(getattr(_ts, "tts_macos_rate", 0.5) or 0.5)
         self.tts.settings.macos_volume = float(getattr(_ts, "tts_macos_volume", 1.0) or 1.0)
         self.tts.settings.openevv_voice = int(getattr(_ts, "tts_openevv_voice", 1) or 1)
+        self.tts.settings.openevv_language = int(getattr(_ts, "tts_openevv_language", 0x10000) or 0x10000)
         # v2.2.0 per-context TTS rates
         self.tts.settings.chat_rate = int(getattr(_ts, "tts_chat_rate", 0) or 0)
         self.tts.settings.system_rate = int(getattr(_ts, "tts_system_rate", 0) or 0)
@@ -1016,8 +1017,14 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def _check_input_device_configured(self) -> bool:
-        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde, sonst False mit Ansage."""
+        """Gibt True zurück wenn ein Eingabegerät konfiguriert wurde (auch das
+        automatisch vorausgewählte Standardgerät zählt), sonst False mit Ansage."""
         prefs = getattr(self.settings_store.settings, "audio_prefs", None) or {}
+        if not prefs.get("input_device_id"):
+            try:
+                prefs = self.audio_tab.get_audio_prefs()
+            except Exception:
+                prefs = {}
         if not prefs.get("input_device_id"):
             msg = _("Kein Eingabegerät konfiguriert. Bitte Gerät auswählen und Audio anwenden.")
             try:

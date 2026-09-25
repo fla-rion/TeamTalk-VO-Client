@@ -1,6 +1,36 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.1)
+Bugfix: Eloquence (Lautstärke, Sprachen) und Sprachaktivierung
+
+- **Eloquence war deutlich zu leise**: Der Regler "Lautstärke" (0-200,
+  100 = normal) wurde bisher linear auf 0-65535 abgebildet, sodass 100
+  nur die Hälfte von Eloquences eigenem Maximum ergab. Jetzt landet 100
+  bei 65535 (Eloquences eigener Normalwert), Werte über 100 werden auf
+  das Maximum begrenzt, da die Engine keinen Verstärkungsspielraum
+  darüber hat.
+- **Eloquence sprach nur Englisch**: Die mitgebaute Engine wurde bisher
+  nur mit dem englischen Sprachmodul kompiliert. Sie wird jetzt mit
+  allen acht Sprachen gebaut, die im Vendor-Fork byte-genau gegen IBMs
+  eigene Referenz getestet sind (Englisch USA/GB, Deutsch, Spanisch
+  Spanien/Mexiko, Französisch Frankreich/Kanada, Italienisch). Neue
+  Auswahl "Eloquence Sprache/Akzent" unter Einstellungen → System, direkt
+  neben der Stimmenauswahl (wx wie Qt). Polnisch und Japanisch bleiben
+  außen vor: Polnisch ist laut Vendor-Doku ein unfertiges Experiment
+  (Italiens Daten unter polnischem Namen), Japanisch spricht dort noch
+  gar nicht.
+- **Sprachaktivierung verlangte erst manuelle Geräteauswahl**: Wurde nie
+  händisch auf "Audio anwenden" geklickt, blockierte Menü und Symbolleiste
+  die Sprachaktivierung mit "Kein Eingabegerät konfiguriert" – obwohl
+  bereits ein automatisch vorausgewähltes Standardgerät aktiv war. Die
+  Prüfung berücksichtigt jetzt auch diese Vorauswahl statt nur die
+  explizit gespeicherten Audio-Einstellungen.
+- Nebenbei: die separate, veraltete "Build openevv (macOS)"-Workflow-Datei
+  (`workflow_dispatch`) klonte noch den ungefixten Mudb0y/openevv-main-
+  Branch, der auf arm64 abstürzt – nutzt jetzt denselben Weg wie der
+  reguläre App-Build (`scripts/download_openevv.py`).
+
 2026-09-25 (v10.4.0)
 Neues Feature: Wetter-Ansage
 

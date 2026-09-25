@@ -339,6 +339,8 @@ class AppSettings:
     show_advanced_tabs: bool = False
     # v8.2.0 openevv (Eloquence)
     tts_openevv_voice: int = 1
+    # v10.4.1 openevv Sprache/Akzent (ECI-Locale-ID, siehe EVV_LANGUAGES in tts.py)
+    tts_openevv_language: int = 0x10000
     # Medien-Tab: Webradio-Favoriten
     radio_favorites: List[Dict[str, str]] = field(default_factory=list)
     # Medien-Tab: Live-Effekte auf den ausgehenden Stream (Pedalboard)
@@ -569,6 +571,8 @@ class SettingsStore:
             self.settings.tts_macos_volume = float(data.get("tts_macos_volume", 1.0) or 1.0)
             # v8.2.0 openevv
             self.settings.tts_openevv_voice = int(data.get("tts_openevv_voice", 1) or 1)
+            # v10.4.1 openevv Sprache/Akzent
+            self.settings.tts_openevv_language = int(data.get("tts_openevv_language", 0x10000) or 0x10000)
             _old_priv = bool(data.get("notify_background_private", True))
             self.settings.notify_background_private_mode = str(
                 data.get("notify_background_private_mode", "notification" if _old_priv else "off") or "notification"
@@ -794,6 +798,7 @@ class SettingsStore:
             "tts_macos_rate": float(self.settings.tts_macos_rate if self.settings.tts_macos_rate is not None else 0.5),
             "tts_macos_volume": float(self.settings.tts_macos_volume if self.settings.tts_macos_volume is not None else 1.0),
             "tts_openevv_voice": int(self.settings.tts_openevv_voice or 1),
+            "tts_openevv_language": int(self.settings.tts_openevv_language or 0x10000),
             "notify_background_private_mode": str(self.settings.notify_background_private_mode or "notification"),
             "notify_background_channel_mode": str(self.settings.notify_background_channel_mode or "off"),
             "notify_background_broadcast_mode": str(self.settings.notify_background_broadcast_mode or "notification"),

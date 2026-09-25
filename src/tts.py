@@ -12,6 +12,24 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 import sys
 
+# Eloquence/openevv language IDs (IBM ECI locale numbers) for the languages
+# our vendored build actually links in (see scripts/download_openevv.py) -
+# every one of the eight non-English-only ones that pass byte-for-byte
+# against IBM's own reference in the vendor snapshot's docs/status.md.
+# Polish (lang/plpl) and Japanese (lang/jajp) are left out: Polish is an
+# unfinished experiment (Italian's data relabelled, per its own docs) and
+# Japanese doesn't speak at all yet.
+EVV_LANGUAGES: List[Tuple[int, str, str]] = [
+    (0x10000, "enus", "Englisch (USA)"),
+    (0x10001, "engb", "Englisch (Großbritannien)"),
+    (0x40000, "dede", "Deutsch"),
+    (0x20000, "eses", "Spanisch (Spanien)"),
+    (0x20001, "esus", "Spanisch (Mexiko)"),
+    (0x30000, "frfr", "Französisch (Frankreich)"),
+    (0x30001, "frca", "Französisch (Kanada)"),
+    (0x50000, "itit", "Italienisch"),
+]
+
 
 @dataclass
 class TTSSettings:
@@ -37,6 +55,7 @@ class TTSSettings:
     espeak_path: str = ""
     backend: str = "espeak"  # "espeak" | "voiceover" | "macos_say" | "macos_avs" (macOS only) | "openevv"
     openevv_voice: int = 1   # 1–8
+    openevv_language: int = 0x10000  # ECI locale ID, see EVV_LANGUAGES
     macos_voice: str = ""   # voice name for macos_say/macos_avs (empty = system default)
     macos_rate: float = 0.5  # 0.0–1.0; converted to WPM for say, used directly for AVS
     macos_volume: float = 1.0  # 0.0–1.0; only applied for macos_avs
@@ -482,15 +501,28 @@ class TTSManager:
                     voice_num = max(1, min(8, int(self.settings.openevv_voice)))
                     rate = ctx_rate if ctx_rate else self.settings.rate
                     # -r ("real world units") takes volume on a 0-65535 scale
-                    # (see eciToRealVolume in openevv's src/eci_convert.c), not
-                    # 0-100 - our own volume setting is 0-200 (100 = normal),
-                    # so it maps linearly onto the full 0-65535 range.
-                    vol = max(0, min(65535, int(self.settings.volume / 200 * 65535)))
+                    # (see eciToRealVolume in openevv's src/eci_convert.c), where
+                    # 65535 is the engine's own normal/max loudness (ECI's default
+                    # TTS_PARAM_VOLUME is 100/100, i.e. full scale) - not half of
+                    # it. Our own volume setting is 0-200 (100 = normal, like
+                    # espeak's -a), so 100 should map to 65535, not 32767; values
+                    # above 100 clamp at 65535 since evv has no headroom to boost
+                    # beyond its own real-world maximum.
+                    vol = max(0, min(65535, int(self.settings.volume / 100 * 65535)))
+                    lang_id = int(self.settings.openevv_language or 0x10000)
+                    base_cmd = [evv, "-v", str(voice_num), "-s", str(rate), "-V", str(vol), "-r"]
                     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                         tmp_path = tmp.name
                     try:
-                        cmd = [evv, "-v", str(voice_num), "-s", str(rate), "-V", str(vol), "-r", "-o", tmp_path, text]
+                        cmd = base_cmd + ["-L", hex(lang_id), "-o", tmp_path, text]
                         proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                        if proc.returncode != 0 and lang_id != 0x10000:
+                            # Dieser evv-Build hat die gewünschte Sprache nicht
+                            # gelinkt (z.B. älteres Binary) - lieber mit der
+                            # Standardsprache des Builds weitersprechen als
+                            # ganz auf espeak-ng auszuweichen.
+                            cmd = base_cmd + ["-o", tmp_path, text]
+                            proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
                         if proc.returncode != 0:
                             if not self._evv_warned:
                                 self._evv_warned = True

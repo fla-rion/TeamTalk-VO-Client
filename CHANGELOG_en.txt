@@ -1,6 +1,34 @@
 Changelog
 =========
 
+2026-09-25 (v10.4.1)
+Bugfix: Eloquence (volume, languages) and voice activation
+
+- **Eloquence was noticeably too quiet**: the "volume" slider (0-200,
+  100 = normal) used to map linearly onto Eloquence's own 0-65535 scale,
+  so 100 only produced half of Eloquence's own maximum. Now 100 maps to
+  65535 (Eloquence's own normal/max loudness), and values above 100 clamp
+  at that maximum since the engine has no headroom to boost further.
+- **Eloquence only spoke English**: the bundled engine used to be
+  compiled with only the English language module. It is now built with
+  all eight languages that pass byte-for-byte against IBM's own
+  reference in the vendor fork (US/British English, German, Castilian/
+  Mexican Spanish, French/Canadian French, Italian). New "Eloquence
+  language/accent" picker under Settings → System, right next to the
+  voice picker (wx and Qt). Polish and Japanese are left out: Polish is
+  documented upstream as an unfinished experiment (Italian's data
+  relabelled as Polish), and Japanese doesn't speak there yet.
+- **Voice activation required manually picking a device first**: if you
+  never explicitly clicked "Apply audio", the menu/toolbar toggle for
+  voice activation blocked with "No input device configured" even though
+  an automatically preselected default device was already active. The
+  check now also accepts that auto-selected default instead of only the
+  explicitly saved audio settings.
+- Also: the separate, stale "Build openevv (macOS)" workflow
+  (manually triggered) still cloned the unfixed Mudb0y/openevv main
+  branch, which crashes on arm64 - it now uses the same path as the
+  regular app build (scripts/download_openevv.py).
+
 2026-09-25 (v10.4.0)
 New feature: weather announcement
 

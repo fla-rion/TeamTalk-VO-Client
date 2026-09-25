@@ -16,13 +16,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: openevv aus Quellcode bauen
-        run: |
-          git clone --depth=1 https://github.com/Mudb0y/openevv.git /tmp/openevv
-          cd /tmp/openevv
-          make RULES=bytecode
-          mkdir -p "$GITHUB_WORKSPACE/third_party/openevv"
-          cp build/evv "$GITHUB_WORKSPACE/third_party/openevv/evv"
-          chmod +x "$GITHUB_WORKSPACE/third_party/openevv/evv"
+        # Nutzt denselben Weg wie der reguläre macOS-App-Build
+        # (scripts/download_openevv.py): unser eigener Vendor-Fix-Branch
+        # statt Mudb0y/openevv main (vanilla stürzt auf arm64 ab, siehe
+        # Kommentare dort) und alle acht unterstützten Sprachen statt nur
+        # Englisch.
+        run: python3 scripts/download_openevv.py
 
       - name: evv binary testen
         run: |

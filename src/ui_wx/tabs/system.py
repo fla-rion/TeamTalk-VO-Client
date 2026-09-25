@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import wx
 
 from i18n import _
+from tts import EVV_LANGUAGES
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -147,6 +148,15 @@ class SystemTab(wx.Panel):
         evv_voice_row.Add(self.tts_evv_voice, 0)
         tts_sizer.Add(evv_voice_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
+        evv_lang_row = wx.BoxSizer(wx.HORIZONTAL)
+        self._lbl_evv_lang = wx.StaticText(self, label="Eloquence Sprache/Akzent:")
+        evv_lang_row.Add(self._lbl_evv_lang, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._evv_lang_ids = [lang_id for lang_id, _tag, _label in EVV_LANGUAGES]
+        self.tts_evv_lang = wx.Choice(self, choices=[label for _id, _tag, label in EVV_LANGUAGES])
+        self.tts_evv_lang.SetName("Eloquence Sprache/Akzent")
+        evv_lang_row.Add(self.tts_evv_lang, 0)
+        tts_sizer.Add(evv_lang_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
+
         row2 = wx.BoxSizer(wx.HORIZONTAL)
         self.tts_chat = wx.CheckBox(self, label="&Chat vorlesen")
         self.tts_chat.SetName("Chat vorlesen")
@@ -279,6 +289,7 @@ class SystemTab(wx.Panel):
         self.tts_file_event.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_backend.Bind(wx.EVT_CHOICE, self._on_backend_changed)
         self.tts_evv_voice.Bind(wx.EVT_SPINCTRL, self._apply_settings)
+        self.tts_evv_lang.Bind(wx.EVT_CHOICE, self._apply_settings)
         if self.tts_macos_voice is not None:
             self.tts_macos_voice.Bind(wx.EVT_CHOICE, self._apply_settings)
         if self.tts_macos_rate is not None:
@@ -315,6 +326,11 @@ class SystemTab(wx.Panel):
             idx = {"openevv": 1}.get(s.backend, 0)
         self.tts_backend.SetSelection(idx)
         self.tts_evv_voice.SetValue(max(1, min(8, int(s.openevv_voice))))
+        try:
+            lang_idx = self._evv_lang_ids.index(int(s.openevv_language))
+        except ValueError:
+            lang_idx = 0
+        self.tts_evv_lang.SetSelection(lang_idx)
         if self.tts_macos_voice is not None:
             self._set_macos_voice_value(s.macos_voice)
         if self.tts_macos_rate is not None:
@@ -361,6 +377,9 @@ class SystemTab(wx.Panel):
         else:
             s.backend = {1: "openevv"}.get(sel, "espeak")
         s.openevv_voice = self.tts_evv_voice.GetValue()
+        lang_sel = self.tts_evv_lang.GetSelection()
+        if 0 <= lang_sel < len(self._evv_lang_ids):
+            s.openevv_language = self._evv_lang_ids[lang_sel]
         if self.tts_macos_voice is not None:
             s.macos_voice = self._get_macos_voice_value()
         if self.tts_macos_rate is not None:
@@ -400,6 +419,7 @@ class SystemTab(wx.Panel):
         app.tts_macos_rate = s.macos_rate
         app.tts_macos_volume = s.macos_volume
         app.tts_openevv_voice = s.openevv_voice
+        app.tts_openevv_language = s.openevv_language
         self.frame.settings_store.save()
 
     def _refresh_voices(self, _event, force: bool = False):
@@ -532,6 +552,8 @@ class SystemTab(wx.Panel):
             ctrl.Show(is_espeak)
         self._lbl_evv_voice.Show(is_openevv)
         self.tts_evv_voice.Show(is_openevv)
+        self._lbl_evv_lang.Show(is_openevv)
+        self.tts_evv_lang.Show(is_openevv)
         self.Layout()
 
     def _on_backend_changed(self, event):

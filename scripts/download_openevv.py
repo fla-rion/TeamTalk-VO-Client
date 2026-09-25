@@ -38,6 +38,15 @@ SOURCE_REPO = "https://github.com/Mudb0y/openevv.git"
 MACOS_FIX_REPO   = "https://github.com/fla-rion/TeamTalk-VO-Client.git"
 MACOS_FIX_BRANCH = "vendor/openevv-macos-arm64-fix"
 
+# The eight languages that pass byte-for-byte against IBM's own reference in
+# the vendor snapshot (see docs/status.md there) - everything except Polish
+# (lang/plpl, an unfinished experiment relabelling Italian's data) and
+# Japanese (lang/jajp, whose romanizer isn't built yet). A build from source
+# links all of them in; which one speaks is chosen at runtime via evv's -L
+# flag (see EVV_LANGUAGES in src/tts.py), the first one here being the
+# default when none is requested.
+EVV_LANGS = "lang/enus lang/engb lang/dede lang/eses lang/esus lang/frfr lang/frca lang/itit"
+
 ROOT  = Path(__file__).resolve().parent.parent
 DEST  = ROOT / "third_party" / "openevv"
 
@@ -79,7 +88,7 @@ def _build_from_source(*, macos_arena_fix: bool = False) -> None:
         clone_cmd += [repo, tmp]
         subprocess.run(clone_cmd, check=True)
         subprocess.run(
-            ["make", "RULES=bytecode", *make_args],
+            ["make", "RULES=bytecode", f"LANGS={EVV_LANGS}", *make_args],
             cwd=tmp,
             check=True,
         )
