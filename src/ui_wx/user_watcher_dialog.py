@@ -33,7 +33,7 @@ class UserWatcherDialog(wx.Dialog):
         root.Add(self._lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
 
         add_row = wx.BoxSizer(wx.HORIZONTAL)
-        self._name_field = wx.TextCtrl(self, size=(220, -1))
+        self._name_field = wx.TextCtrl(self, size=(220, -1), style=wx.TE_PROCESS_ENTER)
         self._name_field.SetName("Nutzername")
         add_btn = wx.Button(self, label="&Hinzufügen")
         add_row.Add(self._name_field, 1, wx.RIGHT, 4)

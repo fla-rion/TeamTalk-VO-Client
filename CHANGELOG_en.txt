@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.5)
+Bugfix: two completely unreachable dialogs + leftover English labels
+
+- **The user watcher ("Automation" -> "User watcher...") could never be
+  opened**: its name field was created without `wx.TE_PROCESS_ENTER` but
+  still bound to the Enter key - this makes wx abort dialog construction
+  with a hard assertion, with no visible error whatsoever. Same bug and
+  same fix in the chat history search ("Automation" -> "Search chat
+  history...").
+- **Native system dialogs (password/text entry, confirmations) always
+  showed "OK"/"Cancel" in English**, regardless of the app language -
+  the app never initialized a `wx.Locale`, even though matching German/
+  French/Spanish translation catalogs already ship with wxWidgets. Now
+  activated at startup, matching the detected/configured language.
+- **The "Browse" button next to the recording destination folder**
+  (recording tab) was also English (wx.DirPickerCtrl labels its built-in
+  button independently of the app language) -> "Durchsuchen...".
+- **"Play" buttons in the multi-deck mixer** were labelled in English
+  while the main media player right next to it said "Abspielen" -
+  unified.
+
 2026-09-26 (v10.4.4)
 UI: advanced-tabs visibility toggle easier to find
 

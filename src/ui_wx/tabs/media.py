@@ -169,6 +169,9 @@ class MediaTab(wx.Panel):
         dir_row.Add(wx.StaticText(self, label="Zielordner"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         self.user_rec_dir = wx.DirPickerCtrl(self, message="Ordner für Aufnahmen wählen")
         self.user_rec_dir.SetName("Zielordner")
+        # wx.DirPickerCtrl beschriftet seinen eingebauten Button unabhängig von der
+        # App-Sprache immer mit dem englischen "Browse" - hier überschreiben.
+        self.user_rec_dir.GetPickerCtrl().SetLabel("Durchsuchen...")
         dir_row.Add(self.user_rec_dir, 1, wx.EXPAND)
         convo_sizer.Add(dir_row, 0, wx.ALL | wx.EXPAND, 4)
 
@@ -784,7 +787,7 @@ class MediaTab(wx.Panel):
             gain_row.Add(gain_spin, 0)
             ctrl_row.Add(gain_row, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 16)
 
-            play_btn = wx.Button(self, label="&Play")
+            play_btn = wx.Button(self, label="Ab&spielen")
             play_btn.SetName(f"Deck {i + 1} abspielen")
             play_btn.Bind(wx.EVT_BUTTON, lambda evt, idx=i: self._on_deck_play(evt, idx))
             self._deck_play_btns.append(play_btn)

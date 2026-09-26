@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.5)
+Bugfix: zwei komplett unerreichbare Dialoge + englische Restlabels
+
+- **Nutzerwatcher ("Automation" → "Nutzerwatcher…") ließ sich nie öffnen**:
+  das Namensfeld wurde ohne `wx.TE_PROCESS_ENTER` erstellt, aber trotzdem
+  auf Enter-Drücken gebunden – das lässt wx beim Aufbau des Dialogs mit
+  einer harten Assertion abbrechen, ohne jede sichtbare Fehlermeldung.
+  Gleicher Fehler und gleicher Fix in der Chat-Verlaufssuche
+  ("Automation" → "Chat-Verlauf durchsuchen…").
+- **Native System-Dialoge (Passwort-/Text-Eingabe, Bestätigungen) zeigten
+  immer "OK"/"Cancel" auf Englisch**, unabhängig von der App-Sprache –
+  die App initialisierte nie ein `wx.Locale`, obwohl die passenden
+  deutschen/französischen/spanischen Übersetzungs-Kataloge bereits Teil
+  von wxWidgets sind. Jetzt beim Start aktiviert, entsprechend der
+  erkannten/eingestellten Sprache.
+- **"Browse"-Button beim Aufnahme-Zielordner** (Aufnahme-Tab) war
+  ebenfalls englisch (wx.DirPickerCtrl beschriftet seinen eingebauten
+  Button unabhängig von der App-Sprache) → "Durchsuchen...".
+- **"Play"-Buttons im Multi-Deck-Mischer** waren englisch beschriftet,
+  während der Haupt-Mediaplayer direkt daneben "Abspielen" zeigte →
+  vereinheitlicht.
+
 2026-09-26 (v10.4.4)
 UI: Sichtbarkeit erweiterter Tabs besser auffindbar
 

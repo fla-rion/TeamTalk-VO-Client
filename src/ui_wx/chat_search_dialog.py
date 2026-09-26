@@ -23,7 +23,7 @@ class ChatSearchDialog(wx.Dialog):
 
         search_row = wx.BoxSizer(wx.HORIZONTAL)
         search_row.Add(wx.StaticText(self, label="Suche:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 6)
-        self._search_field = wx.TextCtrl(self, size=(300, -1))
+        self._search_field = wx.TextCtrl(self, size=(300, -1), style=wx.TE_PROCESS_ENTER)
         self._search_field.SetName("Suchbegriff")
         search_row.Add(self._search_field, 1, wx.RIGHT, 4)
         search_btn = wx.Button(self, label="&Suchen")

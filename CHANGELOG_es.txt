@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.5)
+Corrección: dos diálogos totalmente inaccesibles + etiquetas en inglés restantes
+
+- **El vigilante de usuarios ("Automatización" → "Vigilante de
+  usuarios…") nunca podía abrirse**: su campo de nombre se creaba sin
+  `wx.TE_PROCESS_ENTER` pero aun así se vinculaba a la tecla Intro -
+  esto hace que wx aborte la construcción del diálogo con una aserción
+  irrecuperable, sin ningún mensaje de error visible. Mismo fallo y
+  misma corrección en la búsqueda de historial de chat
+  ("Automatización" → "Buscar en historial de chat…").
+- **Los diálogos nativos del sistema (entrada de contraseña/texto,
+  confirmaciones) siempre mostraban "OK"/"Cancel" en inglés**,
+  independientemente del idioma de la aplicación - esta nunca
+  inicializaba un `wx.Locale`, aunque los catálogos de traducción
+  correspondientes en alemán/francés/español ya vienen incluidos con
+  wxWidgets. Ahora se activa al iniciar, según el idioma detectado o
+  configurado.
+- **El botón "Browse" junto a la carpeta de destino de grabación**
+  (pestaña de grabación) también estaba en inglés (wx.DirPickerCtrl
+  etiqueta su botón integrado independientemente del idioma de la
+  aplicación) → "Durchsuchen...".
+- **Los botones "Play" del mezclador multi-deck** estaban en inglés
+  mientras que el reproductor multimedia principal justo al lado decía
+  "Abspielen" - unificado.
+
 2026-09-26 (v10.4.4)
 Interfaz: el interruptor de visibilidad de pestañas avanzadas es más fácil de encontrar
 

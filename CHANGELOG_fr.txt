@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.5)
+Correction : deux boîtes de dialogue totalement inaccessibles + libellés anglais restants
+
+- **L'observateur d'utilisateurs (« Automation » → « Observateur
+  d'utilisateurs… ») ne pouvait jamais s'ouvrir** : son champ de nom
+  était créé sans `wx.TE_PROCESS_ENTER` mais était quand même lié à la
+  touche Entrée - cela fait échouer wx avec une assertion irrécupérable
+  lors de la construction, sans aucun message d'erreur visible. Même bug
+  et même correction dans la recherche d'historique de discussion
+  (« Automation » → « Rechercher dans l'historique… »).
+- **Les boîtes de dialogue système natives (saisie de mot de passe/texte,
+  confirmations) affichaient toujours "OK"/"Cancel" en anglais**, quelle
+  que soit la langue de l'application - celle-ci n'initialisait jamais
+  de `wx.Locale`, alors que les catalogues de traduction allemand/
+  français/espagnol correspondants sont déjà fournis avec wxWidgets.
+  Désormais activé au démarrage, selon la langue détectée/configurée.
+- **Le bouton "Browse" à côté du dossier de destination d'enregistrement**
+  (onglet Enregistrement) était lui aussi en anglais (wx.DirPickerCtrl
+  libelle son bouton intégré indépendamment de la langue de
+  l'application) → "Durchsuchen...".
+- **Les boutons "Play" du mixeur multi-decks** étaient en anglais alors
+  que le lecteur média principal juste à côté affichait "Abspielen" -
+  uniformisé.
+
 2026-09-26 (v10.4.4)
 Interface : bascule de visibilité des onglets avancés plus facile à trouver
 
