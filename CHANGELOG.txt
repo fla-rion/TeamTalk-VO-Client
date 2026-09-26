@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.3)
+Bugfix: Chat-Duplikate, Privatnachrichten-Mehrdeutigkeit, Spracherkennung
+
+- **Eigene Chat-/Kanalnachrichten erschienen doppelt**: Der Server schickt
+  gesendete Nachrichten zur Bestätigung an den Absender zurück; der
+  Client zeigte sie dann sowohl über das lokale Echo ("Ich: ...") als
+  auch über die Server-Antwort erneut an. Betraf jede Kanal- und
+  Privatnachricht. Rundnachrichten (kein lokales Echo) sind unverändert.
+- **Privat-Ziel-Auswahl konnte einen selbst als Empfänger anbieten** und
+  zeigte bei zwei Sitzungen desselben Kontos (z. B. gleicher Account auf
+  zwei Geräten) zwei identisch benannte, nicht unterscheidbare Einträge
+  ("Flarion", "Flarion") an. Die eigene Sitzung wird jetzt aus der Liste
+  ausgeschlossen, verbleibende Namensgleichheiten bekommen zur
+  Unterscheidung die Nutzer-ID angehängt.
+- **Automatische Systemsprach-Erkennung beim ersten Start war auf macOS
+  komplett wirkungslos** (fiel still auf Englisch zurück): `i18n.py`
+  fehlte ein `import sys`, das von der macOS-spezifischen
+  NSLocale-Erkennung benötigt wird – der resultierende `NameError` wurde
+  von der umgebenden Fehlerbehandlung verschluckt.
+- Kleinerer Fix: falscher Menü-Accelerator ("Cmd+," statt "Ctrl+,") beim
+  Einstellungen-Menüpunkt erzeugte eine unnötige wx-Debug-Warnung.
+- Aufräumen: unbenutzter, veralteter Duplikat-Ordner `src/ui/tabs/`
+  entfernt (kompletter alter Stand von `src/ui_wx/tabs/`, seit dem
+  Refactor nirgends mehr referenziert).
+
 2026-09-25 (v10.4.2)
 Bugfix: Update-Prüfung (Diagnose + SSL-Härtung)
 

@@ -77,7 +77,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.2"
+APP_VERSION = "10.4.3"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -2268,7 +2268,7 @@ class MainFrame(wx.Frame):
 
         # Hilfe
         help_menu = wx.Menu()
-        help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCmd+,")
+        help_settings = help_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tCtrl+,")
         help_logs = help_menu.Append(wx.ID_ANY, _("Logs exportieren..."))
         help_health = help_menu.Append(wx.ID_ANY, _("Gesundheitsbericht..."))
         help_analytics = help_menu.Append(wx.ID_ANY, _("Nutzungsbericht..."))
@@ -10601,8 +10601,9 @@ class MainFrame(wx.Frame):
             msg_type = int(msg.textmessage.nMsgType)
             from_id = int(msg.textmessage.nFromUserID)
             my_id = int(self.client.get_my_user_id() or 0)
+            is_own = bool(from_id and my_id and from_id == my_id)
             speak = True
-            if from_id and my_id and from_id == my_id:
+            if is_own:
                 # Avoid double TTS for own messages (server echo)
                 speak = False
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
@@ -10634,17 +10635,21 @@ class MainFrame(wx.Frame):
                 _notif_kind = "private_msg" if kind == "private" else "chat_message"
                 _srv = str(self._current_server_key or "")
                 speak = self._notifications.allow_tts(_notif_kind, user=from_user, server=_srv, message=str(content or ""))
-            wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
-            if not (from_id and my_id and from_id == my_id):
+            # Kanal- und Privatnachrichten haben bereits ein lokales Echo beim Senden
+            # (chat.py: "Ich: ..." / "An X: ..."); der Server schickt sie zusätzlich an
+            # den Absender zurück. Ohne diese Sperre erschien die eigene Nachricht doppelt.
+            # Rundnachrichten (broadcast) haben kein lokales Echo, daher hier nicht sperren.
+            if not (is_own and kind in ("chat", "private")):
+                wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
+            if not is_own:
                 self._analytics.on_message_received()
             self._message_buffers.pop(key, None)
             # v2.8.0 – Stichwort-Alarm (nur Kanalnachrichten von anderen)
-            if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL) and not (from_id and my_id and from_id == my_id):
+            if msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL) and not is_own:
                 wx.CallAfter(self._check_keyword_alert, content, from_user)
             # Bus-Event für Plugins
             self.bus.emit("chat_message", text=content, kind=kind, from_user=from_user, from_id=from_id)
             # Letzten privaten Absender merken (für Antwort-Hotkey)
-            is_own = bool(from_id and my_id and from_id == my_id)
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 self._last_private_sender_id = from_id
                 # v3.9.0 – für Antwortvorschläge

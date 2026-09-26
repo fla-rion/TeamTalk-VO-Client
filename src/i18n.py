@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import locale
 import os
+import sys
 
 _LANG = "de"  # Standard: Deutsch
 

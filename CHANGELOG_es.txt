@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.3)
+Corrección: duplicados de chat, ambigüedad en mensajes privados, detección de idioma
+
+- **Los mensajes de chat/canal propios aparecían duplicados**: el
+  servidor reenvía los mensajes enviados al remitente como confirmación;
+  el cliente los mostraba tanto mediante el eco local ("Yo: ...") como
+  de nuevo mediante la respuesta del servidor. Afectaba a todos los
+  mensajes de canal y privados. Los mensajes de difusión (sin eco local)
+  no se ven afectados.
+- **El selector de destinatario de mensajes privados podía ofrecerte a
+  ti mismo como destinatario**, y mostraba dos entradas idénticas e
+  indistinguibles ("Flarion", "Flarion") cuando la misma cuenta tenía
+  dos sesiones (p. ej. conectada en dos dispositivos). Tu propia sesión
+  ahora se excluye de la lista, y las coincidencias de nombre restantes
+  reciben el ID de usuario añadido para distinguirlas.
+- **La detección automática del idioma del sistema en el primer inicio
+  no funcionaba en absoluto en macOS** (volvía silenciosamente al
+  inglés): a i18n.py le faltaba un `import sys` necesario para la
+  detección de NSLocale específica de macOS - el NameError resultante
+  quedaba silenciado por el manejo de errores circundante.
+- Corrección menor: acelerador de menú incorrecto ("Cmd+," en vez de
+  "Ctrl+,") en el elemento de menú Preferencias, que generaba una
+  advertencia de depuración de wx innecesaria.
+- Limpieza: se eliminó el directorio duplicado obsoleto y sin usar
+  `src/ui/tabs/` (una copia completa antigua de `src/ui_wx/tabs/`, ya no
+  referenciada en ningún sitio desde la refactorización).
+
 2026-09-25 (v10.4.2)
 Corrección: comprobación de actualizaciones (diagnóstico + refuerzo SSL)
 

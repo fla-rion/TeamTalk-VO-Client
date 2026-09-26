@@ -535,8 +535,13 @@ h1{{font-size:1.1em;color:#555}}
             return
 
         self.private_user.Enable()
+        my_id = int(self.frame.client.get_my_user_id() or 0)
         items = []
         for user in users:
+            if my_id and int(user.nUserID) == my_id:
+                # Sich selbst per Privatnachricht anschreiben ergibt keinen Sinn
+                # und macht die Liste bei Namensgleichheit nur unnötig mehrdeutig.
+                continue
             nickname = self.frame.tt_str(user.szNickname)
             username = self.frame.tt_str(user.szUsername)
             label = nickname or username
@@ -546,6 +551,16 @@ h1{{font-size:1.1em;color:#555}}
                 label = f"Unbekannt ({int(user.nUserID)})"
             items.append((label, int(user.nUserID)))
 
+        # Gleiche Nickname+Benutzername-Kombination (z. B. dasselbe Konto von
+        # zwei Geräten aus verbunden) sonst nicht unterscheidbar -> User-ID anhängen.
+        label_counts: dict = {}
+        for label, _user_id in items:
+            label_counts[label] = label_counts.get(label, 0) + 1
+        items = [
+            (f"{label} (#{user_id})" if label_counts[label] > 1 else label, user_id)
+            for label, user_id in items
+        ]
+
         # Sort alphabetically by label
         items.sort(key=lambda x: x[0].lower())
 
@@ -554,6 +569,9 @@ h1{{font-size:1.1em;color:#555}}
 
         if items:
             self.private_user.SetSelection(0)
+        else:
+            # Nur ich selbst im Kanal -> kein gültiges Privat-Ziel vorhanden
+            self.private_user.Disable()
         self.update_chat_target()
 
 

@@ -16,6 +16,21 @@ _POSIX_ENV_VARS = ("LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE")
 def _clear_env(monkeypatch):
     for var in _POSIX_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
+    # Auf macOS hat NSLocale.preferredLanguages() Vorrang vor LC_*/LANG
+    # (siehe i18n._iter_locale_candidates) und würde sonst auf einer echten
+    # Mac-Maschine die tatsächliche System-UI-Sprache statt der hier
+    # gemockten locale/env-Werte liefern -> Tests wären plattformabhängig.
+    # AppKit-Klassen sind ObjC-gebrückt, daher wird hier das ganze Modul in
+    # sys.modules durch einen Stub ersetzt statt NSLocale selbst zu patchen.
+    class _StubNSLocale:
+        @staticmethod
+        def preferredLanguages():
+            return []
+
+    class _StubAppKit:
+        NSLocale = _StubNSLocale
+
+    monkeypatch.setitem(sys.modules, "AppKit", _StubAppKit)
 
 
 # ---------------------------------------------------------------------------

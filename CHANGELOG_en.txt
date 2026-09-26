@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.3)
+Bugfix: chat duplicates, private-message ambiguity, language detection
+
+- **Own chat/channel messages appeared twice**: the server echoes sent
+  messages back to the sender for confirmation; the client displayed
+  them both via the local echo ("Me: ...") and again via the server
+  reply. Affected every channel and private message. Broadcast messages
+  (no local echo) are unaffected.
+- **The private-message target picker could offer yourself as a
+  recipient**, and showed two identically-labelled, indistinguishable
+  entries ("Flarion", "Flarion") when the same account had two sessions
+  (e.g. logged in on two devices). Your own session is now excluded from
+  the list, and any remaining name collisions get the user ID appended
+  for disambiguation.
+- **Automatic system-language detection on first launch was completely
+  ineffective on macOS** (silently fell back to English): i18n.py was
+  missing an `import sys` required by the macOS-specific NSLocale
+  detection path - the resulting NameError was swallowed by the
+  surrounding error handling.
+- Minor fix: wrong menu accelerator ("Cmd+," instead of "Ctrl+,") on the
+  Preferences menu item caused a spurious wx debug warning.
+- Cleanup: removed the unused, stale duplicate directory `src/ui/tabs/`
+  (a full old snapshot of `src/ui_wx/tabs/`, no longer referenced
+  anywhere since the refactor).
+
 2026-09-25 (v10.4.2)
 Bugfix: update check (diagnostics + SSL hardening)
 

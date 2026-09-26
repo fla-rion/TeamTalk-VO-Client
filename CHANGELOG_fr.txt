@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.3)
+Correction : doublons de chat, ambiguïté des messages privés, détection de langue
+
+- **Les messages de chat/canal envoyés par soi-même apparaissaient en
+  double** : le serveur renvoie les messages envoyés à l'expéditeur pour
+  confirmation ; le client les affichait à la fois via l'écho local
+  ("Moi : ...") et à nouveau via la réponse du serveur. Concernait
+  chaque message de canal et privé. Les messages de diffusion (sans écho
+  local) ne sont pas concernés.
+- **Le sélecteur de destinataire de message privé pouvait vous proposer
+  vous-même comme destinataire**, et affichait deux entrées identiques
+  et indiscernables ("Flarion", "Flarion") lorsque le même compte avait
+  deux sessions (par ex. connecté sur deux appareils). Votre propre
+  session est désormais exclue de la liste, et les homonymies restantes
+  reçoivent l'ID utilisateur en complément pour les distinguer.
+- **La détection automatique de la langue système au premier lancement
+  était totalement inopérante sur macOS** (repli silencieux sur
+  l'anglais) : il manquait un `import sys` dans i18n.py, nécessaire à la
+  détection NSLocale spécifique à macOS - le NameError résultant était
+  avalé par la gestion d'erreurs environnante.
+- Correction mineure : mauvais raccourci de menu ("Cmd+," au lieu de
+  "Ctrl+,") sur l'élément de menu Préférences, provoquant un
+  avertissement de débogage wx superflu.
+- Nettoyage : suppression du répertoire dupliqué obsolète et inutilisé
+  `src/ui/tabs/` (ancienne copie complète de `src/ui_wx/tabs/`, plus
+  référencée nulle part depuis la refactorisation).
+
 2026-09-25 (v10.4.2)
 Correction : vérification des mises à jour (diagnostic + renforcement SSL)
 
