@@ -77,7 +77,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.3"
+APP_VERSION = "10.4.4"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -2021,6 +2021,8 @@ class MainFrame(wx.Frame):
         file_menu.AppendSubMenu(sound_menu, "Sound-Konfiguration")
         record_convo = file_menu.Append(wx.ID_ANY, _("Konversationen aufzeichnen..."))
         prefs_item = file_menu.Append(wx.ID_PREFERENCES, "Einstellungen...\tF4")
+        self._menu_advanced_tabs = file_menu.AppendCheckItem(wx.ID_ANY, _("Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)"))
+        self._menu_advanced_tabs.Check(bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)))
         file_menu.AppendSeparator()
         con_connect = file_menu.Append(wx.ID_ANY, _("Verbinden"))
         con_disconnect = file_menu.Append(wx.ID_ANY, _("Trennen"))
@@ -2261,9 +2263,6 @@ class MainFrame(wx.Frame):
         auto_weather_now = auto_menu.Append(wx.ID_ANY, _("Wetter jetzt ansagen"))
         auto_menu.AppendSeparator()
         auto_plugin_manager = auto_menu.Append(wx.ID_ANY, _("Plugin-Manager..."))
-        auto_menu.AppendSeparator()
-        self._menu_advanced_tabs = auto_menu.AppendCheckItem(wx.ID_ANY, _("Erweiterte Tabs anzeigen"))
-        self._menu_advanced_tabs.Check(bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)))
         menubar.Append(auto_menu, _("Automation"))
 
         # Hilfe

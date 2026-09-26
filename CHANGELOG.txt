@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.4)
+UI: Sichtbarkeit erweiterter Tabs besser auffindbar
+
+- **"Erweiterte Tabs anzeigen" war im Menü "Automation" versteckt**
+  (17. von 17 Einträgen, zwischen Makro-Editor und Plugin-Manager) –
+  für einen grundlegenden Sichtbarkeits-Umschalter kaum auffindbar.
+  Jetzt direkt im Menü "Datei" (wx/macOS) bzw. ganz oben nach
+  "Auto-Reconnect" (Qt/Windows/Linux). Der Einstellungen-Dialog
+  (Bereich "Allgemein") hatte den Schalter bereits.
+- Veralteten Klammerzusatz "(Admin, Desktop, Video, ElevenLabs)"
+  korrigiert zu den tatsächlich betroffenen Tabs "(Administration,
+  Desktop, Sprechen)" – Video und ElevenLabs gehören nicht dazu.
+
 2026-09-26 (v10.4.3)
 Bugfix: Chat-Duplikate, Privatnachrichten-Mehrdeutigkeit, Spracherkennung
 

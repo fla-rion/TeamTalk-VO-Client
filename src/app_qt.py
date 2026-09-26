@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.4.3"
+APP_VERSION = "10.4.4"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -513,6 +513,11 @@ class MainWindow(QMainWindow):
         self._auto_reconnect_action = self._add_checkable(datei, _("Auto-&Reconnect"),
             self._on_toggle_auto_reconnect,
             bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True)))
+        self._advanced_tabs_action = self._add_checkable(
+            datei, _("Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)"),
+            self._on_toggle_advanced_tabs,
+            bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)),
+        )
         datei.addSeparator()
         self._fav_menu = datei.addMenu(_("&Schnellverbindung"))
         self._rebuild_favorites_menu()
@@ -743,12 +748,6 @@ class MainWindow(QMainWindow):
         self._add_action(auto_m, _("Per-Server-&Soundprofile..."), self.on_menu_server_audio_profiles)
         auto_m.addSeparator()
         self._add_action(auto_m, _("&Wetter jetzt ansagen"), self.on_menu_weather_now)
-        auto_m.addSeparator()
-        self._advanced_tabs_action = self._add_checkable(
-            auto_m, _("Erweiterte Tabs anzeigen"),
-            self._on_toggle_advanced_tabs,
-            bool(getattr(self.settings_store.settings, "show_advanced_tabs", False)),
-        )
         auto_m.addSeparator()
         self._add_action(auto_m, _("&Einstellungen..."), self.on_menu_settings, "F4")
 

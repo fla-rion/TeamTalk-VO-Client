@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.4)
+UI: advanced-tabs visibility toggle easier to find
+
+- **"Show advanced tabs" was hidden in the "Automation" menu** (17th of
+  17 entries, between Macro Editor and Plugin Manager) - hard to find
+  for a basic visibility toggle. Now directly in the "File" menu
+  (wx/macOS) resp. right after "Auto-Reconnect" (Qt/Windows/Linux). The
+  Preferences dialog ("General" section) already had the toggle.
+- Fixed the stale parenthetical "(Admin, Desktop, Video, ElevenLabs)" to
+  the tabs actually affected, "(Administration, Desktop, Speak)" - Video
+  and ElevenLabs are not part of it.
+
 2026-09-26 (v10.4.3)
 Bugfix: chat duplicates, private-message ambiguity, language detection
 

@@ -587,7 +587,7 @@ _TRANSLATIONS: dict[str, str] = {
     # v7.6.0 – Erweiterte Tabs
     "Erweiterte Tabs anzeigen": "Show advanced tabs",
     "Erweiterte Tabs ausblenden": "Hide advanced tabs",
-    "Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)": "Show advanced tabs (Admin, Desktop, Video, ElevenLabs)",
+    "Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)": "Show advanced tabs (Administration, Desktop, Speak)",
     # i18n-Wrapping Qt-UI
     "Suche:": "Search:",
     "Kanal-Info": "Channel info",
@@ -4836,13 +4836,13 @@ _TRANSLATIONS_ES.update({
 _TRANSLATIONS_FR.update({
     "Erweiterte Tabs anzeigen": "Afficher les onglets avancés",
     "Erweiterte Tabs ausblenden": "Masquer les onglets avancés",
-    "Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)": "Afficher les onglets avancés (Admin, Bureau, Vidéo, ElevenLabs)",
+    "Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)": "Afficher les onglets avancés (Administration, Bureau, Parler)",
 })
 
 _TRANSLATIONS_ES.update({
     "Erweiterte Tabs anzeigen": "Mostrar pestañas avanzadas",
     "Erweiterte Tabs ausblenden": "Ocultar pestañas avanzadas",
-    "Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)": "Mostrar pestañas avanzadas (Admin, Escritorio, Vídeo, ElevenLabs)",
+    "Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)": "Mostrar pestañas avanzadas (Administración, Escritorio, Hablar)",
 })
 
 # v9.1.2 – letzte 8 Lücken der DE→FR/ES-Wörterbücher (Rest wird bereits über

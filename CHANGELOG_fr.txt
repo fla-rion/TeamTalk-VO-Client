@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.4)
+Interface : bascule de visibilité des onglets avancés plus facile à trouver
+
+- **« Afficher les onglets avancés » était caché dans le menu
+  « Automation »** (17e entrée sur 17, entre l'éditeur de macros et le
+  gestionnaire de plugins) - difficile à trouver pour un simple
+  interrupteur de visibilité. Désormais directement dans le menu
+  « Fichier » (wx/macOS), resp. juste après « Auto-Reconnect »
+  (Qt/Windows/Linux). La boîte de dialogue Préférences (section
+  « Général ») disposait déjà de ce réglage.
+- Correction du texte entre parenthèses obsolète « (Admin, Bureau,
+  Vidéo, ElevenLabs) » vers les onglets réellement concernés,
+  « (Administration, Bureau, Parler) » - Vidéo et ElevenLabs n'en font
+  pas partie.
+
 2026-09-26 (v10.4.3)
 Correction : doublons de chat, ambiguïté des messages privés, détection de langue
 

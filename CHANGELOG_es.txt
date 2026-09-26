@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-09-26 (v10.4.4)
+Interfaz: el interruptor de visibilidad de pestañas avanzadas es más fácil de encontrar
+
+- **"Mostrar pestañas avanzadas" estaba oculto en el menú
+  "Automatización"** (entrada 17 de 17, entre el editor de macros y el
+  gestor de plugins) - difícil de encontrar para un interruptor de
+  visibilidad tan básico. Ahora directamente en el menú "Archivo"
+  (wx/macOS), resp. justo después de "Auto-Reconnect"
+  (Qt/Windows/Linux). El diálogo de Preferencias (sección "General") ya
+  tenía este interruptor.
+- Se corrigió el texto entre paréntesis obsoleto "(Admin, Escritorio,
+  Vídeo, ElevenLabs)" a las pestañas realmente afectadas,
+  "(Administración, Escritorio, Hablar)" - Vídeo y ElevenLabs no forman
+  parte de ello.
+
 2026-09-26 (v10.4.3)
 Corrección: duplicados de chat, ambigüedad en mensajes privados, detección de idioma
 

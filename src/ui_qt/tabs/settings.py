@@ -145,7 +145,7 @@ class SettingsTab(QWidget):
         self.update_check_on_start.stateChanged.connect(lambda v: self._save_bool("update_check_on_start", v))
         disp_form.addRow("", self.update_check_on_start)
 
-        self.show_advanced_tabs = QCheckBox(_("Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)"))
+        self.show_advanced_tabs = QCheckBox(_("Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)"))
         self.show_advanced_tabs.setAccessibleName("Erweiterte Tabs anzeigen")
         self.show_advanced_tabs.setChecked(bool(getattr(s, "show_advanced_tabs", False)))
         self.show_advanced_tabs.stateChanged.connect(self._on_advanced_tabs_changed)

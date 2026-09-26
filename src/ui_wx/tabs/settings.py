@@ -347,7 +347,7 @@ class SettingsTab(wx.Panel):
         self._show_event_log.Bind(wx.EVT_CHECKBOX, self._on_event_log_changed)
         disp_sizer.Add(self._show_event_log, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
-        self._show_advanced_tabs = wx.CheckBox(panel, label=_("Erweiterte Tabs anzeigen (Admin, Desktop, Video, ElevenLabs)"))
+        self._show_advanced_tabs = wx.CheckBox(panel, label=_("Erweiterte Tabs anzeigen (Administration, Desktop, Sprechen)"))
         self._show_advanced_tabs.SetName("Erweiterte Tabs anzeigen")
         self._show_advanced_tabs.SetValue(bool(getattr(s, "show_advanced_tabs", False)))
         self._show_advanced_tabs.Bind(wx.EVT_CHECKBOX, self._on_advanced_tabs_changed)
