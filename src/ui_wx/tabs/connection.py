@@ -420,9 +420,24 @@ class ConnectionTab(wx.Panel):
             dlg.Destroy()
             return
         dlg.Destroy()
-        self.frame.store.remove(real_idx)
-        self.reload_server_list()
-        self.frame.set_status(_("Server entfernt: {}").format(name))
+
+        # Auswahl/Fokus von der zu löschenden Zeile wegbewegen und die
+        # eigentliche Listen-Neuerstellung (reload_server_list() ->
+        # server_list.Set() zerstört alle nativen NSTableRow-Objekte und
+        # baut sie neu auf) auf den nächsten Event-Loop-Tick verschieben.
+        # Direkt im Anschluss an ShowModal()/Destroy() die native Zeile
+        # zerstören, auf der VoiceOver ggf. noch den AX-Fokus hält, konnte
+        # die App auf macOS hart abstürzen lassen (gleiches Muster wie der
+        # PyObjC-Destruktor-Crash aus v0.10.14, siehe CHANGELOG.txt).
+        self.server_list.SetSelection(wx.NOT_FOUND)
+        self.server_remove.SetFocus()
+
+        def _do_remove():
+            self.frame.store.remove(real_idx)
+            self.reload_server_list()
+            self.frame.set_status(_("Server entfernt: {}").format(name))
+
+        wx.CallAfter(_do_remove)
 
     def on_connect(self, _event):
         self.frame.connect_with_form()

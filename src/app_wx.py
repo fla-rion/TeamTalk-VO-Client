@@ -64,6 +64,7 @@ from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
 from offline_queue import OfflineMessageQueue
 import system_audio as sa
+from coreaudio_watch import CoreAudioDeviceWatcher
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
 from plugin_marketplace import PluginMarketplace
@@ -77,7 +78,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.5"
+APP_VERSION = "10.4.7"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -483,6 +484,8 @@ class MainFrame(wx.Frame):
         self._sound_input_menu: Optional[wx.Menu] = None
         self._sound_output_menu: Optional[wx.Menu] = None
         self._sound_menu_device_map: Dict[int, Tuple[str, int]] = {}
+        self._coreaudio_watcher = CoreAudioDeviceWatcher()
+        self._device_hotplug_refresh_pending = False
         self.speak_tab: Optional[SpeakTab] = None
         self._speak_tab_added = False
         self.media_tab: Optional[MediaTab] = None
@@ -1020,6 +1023,9 @@ class MainFrame(wx.Frame):
 
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
+        # CoreAudio-Hotplug-Watcher: erkennt neue/entfernte Audiogeräte sofort,
+        # unabhängig vom sichtbaren Panel (siehe coreaudio_watch.py)
+        wx.CallLater(1500, self._start_coreaudio_watch)
         # v2.0.0 – Sprachsteuerung starten wenn konfiguriert
         if getattr(self.settings_store.settings, "voice_control_enabled", False):
             wx.CallLater(3000, self._start_voice_control)
@@ -1226,22 +1232,29 @@ class MainFrame(wx.Frame):
     # v2.0.0 – Sprachsteuerung
     # ------------------------------------------------------------------
 
-    def _start_voice_control(self) -> None:
-        """Initialisiert und startet den VoiceCommandManager."""
+    def _start_voice_control(self) -> bool:
+        """Initialisiert und startet den VoiceCommandManager.
+
+        Meldet jeden Ausgang über set_status() (Statuszeile + Log + Tray-
+        Tooltip), nicht nur den Erfolgsfall -- sonst wirkt ein Fehlschlag
+        (fehlende Abhängigkeit, falsches Gerät, Startfehler) nach außen wie
+        "tut nichts".
+        """
         try:
             from voice_control import VoiceCommandManager
             self._voice_control = VoiceCommandManager(self)
             if self._voice_control.is_available():
                 ok = self._voice_control.start()
                 if ok:
-                    self.logger.write("Sprachsteuerung gestartet.")
-                    self.set_status("Sprachsteuerung aktiv")
-                else:
-                    self.logger.write("Sprachsteuerung konnte nicht gestartet werden.")
-            else:
-                self.logger.write("Sprachsteuerung nicht verfügbar (whisper/pyaudio fehlt).")
+                    self.set_status("Sprachsteuerung wird gestartet …")
+                    return True
+                self.set_status("Sprachsteuerung konnte nicht gestartet werden")
+                return False
+            self.set_status("Sprachsteuerung nicht verfügbar (whisper/pyaudio fehlt)")
+            return False
         except Exception as exc:
-            self.logger.write(f"Sprachsteuerung Fehler: {exc}")
+            self.set_status(f"Sprachsteuerung Fehler: {exc}")
+            return False
 
     def _stop_voice_control(self) -> None:
         if self._voice_control is not None:
@@ -4966,6 +4979,39 @@ class MainFrame(wx.Frame):
 
     def on_menu_audio_refresh(self, _event):
         self.audio_tab.on_refresh_audio(None)
+
+    # ------------------------------------------------------------------
+    # CoreAudio-Hotplug-Watcher (macOS) – siehe coreaudio_watch.py
+    # ------------------------------------------------------------------
+
+    def _start_coreaudio_watch(self) -> None:
+        try:
+            self._coreaudio_watcher.start(self._on_coreaudio_device_change)
+        except Exception:
+            pass
+
+    def _on_coreaudio_device_change(self) -> None:
+        # Läuft auf einem CoreAudio-eigenen Thread – in den UI-Hauptthread
+        # marshalen und dort entprellen (Hotplug-Events kommen oft im Burst).
+        wx.CallAfter(self._schedule_device_hotplug_refresh)
+
+    def _schedule_device_hotplug_refresh(self) -> None:
+        if self._device_hotplug_refresh_pending:
+            return
+        self._device_hotplug_refresh_pending = True
+        wx.CallLater(400, self._run_device_hotplug_refresh)
+
+    def _run_device_hotplug_refresh(self) -> None:
+        self._device_hotplug_refresh_pending = False
+        try:
+            auto_apply = bool(
+                getattr(self.settings_store.settings, "auto_apply_audio_on_device_change", False)
+            )
+            self.audio_tab.refresh_audio_devices(
+                announce=True, prefer_previous=True, auto_apply=auto_apply, restart_sound=True
+            )
+        except Exception:
+            pass
 
     def on_menu_video_settings(self, _event):
         if not self.settings_window.IsShown():
@@ -10793,6 +10839,10 @@ class MainFrame(wx.Frame):
             pass
         try:
             self.audio_tab.destroy_timers()
+        except Exception:
+            pass
+        try:
+            self._coreaudio_watcher.stop()
         except Exception:
             pass
         # Stop media / recording

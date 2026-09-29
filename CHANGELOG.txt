@@ -1,6 +1,33 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.7)
+Bugfix: Absturz beim Entfernen eines Servers aus der Serverliste
+
+- **Serverliste: Einen Eintrag entfernen ("Entfernen"-Button oder
+  Kontextmenü) konnte die App komplett beenden.** Der Bestätigungsdialog
+  gab direkt im Anschluss (noch im selben Aufruf) die native Listenzeile
+  zur Zerstörung frei, während VoiceOver ggf. noch auf ihr fokussiert
+  war – gleiches Fehlermuster wie der bereits in v0.10.14 behobene
+  PyObjC-Destruktor-Absturz beim Beenden. Fix: Auswahl/Fokus werden vor
+  dem Entfernen von der Zeile weggenommen, die eigentliche
+  Listen-Neuerstellung läuft jetzt einen Event-Loop-Tick später.
+- Audio-Geräteaktualisierung (macOS): Ein neuer CoreAudio-Hotplug-
+  Watcher erkennt angeschlossene/entfernte Audiogeräte jetzt sofort per
+  Push-Benachrichtigung, unabhängig davon, ob der Audio-Tab gerade
+  sichtbar ist. Geräte werden vor einem Soundsystem-Neustart korrekt
+  geschlossen und danach automatisch wieder geöffnet, damit Mikrofon/
+  Ausgabe nach "Geräte aktualisieren" nicht stumm bleiben.
+- Sprachsteuerung: Der feste Stille-Schwellwert wurde durch eine kurze
+  Rauschgrundlage-Kalibrierung beim Start ersetzt (unterschiedlicher
+  Mikrofon-Gain führte sonst dazu, dass nie sauber ein Sprachsegment
+  erkannt wurde). Lauscht jetzt auf das in TeamTalk gewählte
+  Eingabegerät statt immer auf das Systemstandard-Mikrofon. Start-/
+  Fehlerzustände werden über die Statuszeile gemeldet statt nur in die
+  Konsole geschrieben (dort ohne angehängtes Terminal unsichtbar). Der
+  Sprachbefehl "Status" nannte bisher nie den echten Servernamen
+  (verwaistes Attribut) – behoben.
+
 2026-09-26 (v10.4.5)
 Bugfix: zwei komplett unerreichbare Dialoge + englische Restlabels
 

@@ -57,7 +57,9 @@ class VoiceCommandManager:
 
     SAMPLE_RATE = 16_000
     CHUNK = 1_024
-    SILENCE_THRESHOLD = 500       # RMS-Amplitude unter der Stille angenommen wird
+    SILENCE_THRESHOLD_MIN = 150   # Untergrenze, falls Kalibrierung fehlschlägt/0 misst
+    SILENCE_THRESHOLD_FACTOR = 3.0  # Schwellwert = Rauschgrundlage * Faktor
+    CALIBRATION_SECS = 0.5        # Dauer der Stille-Kalibrierung nach Stream-Start
     SILENCE_SECS = 0.8            # Stille-Dauer bevor Segment verarbeitet wird
     MAX_SEGMENT_SECS = 8          # Maximale Segmentlänge
 
@@ -67,6 +69,8 @@ class VoiceCommandManager:
         self._thread: Optional[threading.Thread] = None
         self._model = None
         self._available = _has_whisper() and _has_pyaudio()
+        self._silence_threshold = self.SILENCE_THRESHOLD_MIN
+        self._target_device_name: Optional[str] = None
 
     def is_available(self) -> bool:
         return self._available
@@ -77,6 +81,11 @@ class VoiceCommandManager:
             return False
         if self._running:
             return True
+        # Muss hier (UI-Thread, da start() nur via wx.CallLater/Direktaufruf
+        # aus dem Hauptthread läuft) und nicht im Hintergrundthread gelesen
+        # werden -- wx-Widget-Zugriffe aus Fremdthreads sind auf macOS/Cocoa
+        # nicht sicher (siehe CLAUDE.md "Thread-Sicherheit").
+        self._target_device_name = self._capture_target_device_name()
         self._running = True
         self._thread = threading.Thread(
             target=self._listen_loop,
@@ -85,6 +94,87 @@ class VoiceCommandManager:
         )
         self._thread.start()
         return True
+
+    # ------------------------------------------------------------------
+    # Diagnose / Status
+    # ------------------------------------------------------------------
+
+    def _log(self, message: str) -> None:
+        """Diagnose ins System-Log statt ins Leere (print landet nirgends
+        sichtbar, wenn die .app ohne angehängtes Terminal läuft)."""
+        text = f"[VoiceControl] {message}"
+        print(text)
+        try:
+            self._frame.logger.write(text)
+        except Exception:
+            pass
+
+    def _announce_status_change(self, message: str) -> None:
+        """Statuszeile/Log/Tray-Tooltip aktualisieren -- muss im UI-Thread laufen."""
+        import wx
+        wx.CallAfter(self._frame.set_status, message)
+
+    # ------------------------------------------------------------------
+    # Geräteauswahl
+    # ------------------------------------------------------------------
+
+    def _capture_target_device_name(self) -> Optional[str]:
+        """Liest den Namen des in TeamTalk gewählten Eingabegeräts.
+
+        Muss im UI-Thread aufgerufen werden (greift auf wx-Widgets zu).
+        """
+        try:
+            audio_tab = getattr(self._frame, "audio_tab", None)
+            if audio_tab is None:
+                return None
+            idx = audio_tab.input_device.GetSelection()
+            devices = audio_tab._input_devices
+            if not (0 <= idx < len(devices)):
+                return None
+            target_name = (self._frame.tt_str(getattr(devices[idx], "szDeviceName", "")) or "").strip().lower()
+            return target_name or None
+        except Exception as exc:
+            self._log(f"Geräteauflösung fehlgeschlagen: {exc}")
+            return None
+
+    def _resolve_input_device_index(self, pa) -> Optional[int]:
+        """Bildet das (im UI-Thread erfasste) TeamTalk-Eingabegerät auf einen
+        PyAudio-Geräteindex ab, statt immer das OS-Default-Mikrofon zu
+        öffnen (sonst lauscht die Sprachsteuerung ggf. auf das falsche
+        oder ein stummes Gerät). Reine PyAudio-Aufrufe -- sicher im
+        Hintergrundthread."""
+        target_name = self._target_device_name
+        if not target_name:
+            return None
+        try:
+            for i in range(pa.get_device_count()):
+                info = pa.get_device_info_by_index(i)
+                if info.get("maxInputChannels", 0) <= 0:
+                    continue
+                name = str(info.get("name", "")).strip().lower()
+                if name == target_name or target_name in name or name in target_name:
+                    return i
+        except Exception as exc:
+            self._log(f"Geräteauflösung fehlgeschlagen: {exc}")
+        return None
+
+    def _calibrate_silence_threshold(self, stream, struct_mod) -> None:
+        """Kurze Ambient-Messung statt festem Schwellwert -- ein fixer Wert
+        ist bei unterschiedlichem Mikrofon-Gain entweder nie oder ständig
+        überschritten, wodurch nie sauber ein Sprachsegment erkannt wird."""
+        chunks = max(1, int(self.CALIBRATION_SECS * self.SAMPLE_RATE / self.CHUNK))
+        peak = 0
+        for _ in range(chunks):
+            try:
+                data = stream.read(self.CHUNK, exception_on_overflow=False)
+            except Exception:
+                continue
+            shorts = struct_mod.unpack(f"{len(data) // 2}h", data)
+            if shorts:
+                rms = int((sum(s * s for s in shorts) / len(shorts)) ** 0.5)
+                peak = max(peak, rms)
+        self._silence_threshold = max(self.SILENCE_THRESHOLD_MIN, int(peak * self.SILENCE_THRESHOLD_FACTOR))
+        self._log(f"Stille-Schwellwert kalibriert: {self._silence_threshold} (Rauschgrundlage {peak})")
 
     def stop(self) -> None:
         """Stoppt den Sprachsteuerungs-Thread."""
@@ -104,29 +194,36 @@ class VoiceCommandManager:
             import numpy as np
             import struct
         except ImportError as exc:
-            print(f"[VoiceControl] Import fehlgeschlagen: {exc}")
+            self._log(f"Import fehlgeschlagen: {exc}")
+            self._announce_status_change(f"Sprachsteuerung: Abhängigkeit fehlt ({exc})")
             self._running = False
             return
 
         # Modell beim ersten Start laden
         if self._model is None:
+            self._announce_status_change("Sprachsteuerung: Whisper-Modell wird geladen …")
             try:
                 self._model = whisper.load_model("base")
             except Exception as exc:
-                print(f"[VoiceControl] Whisper-Modell konnte nicht geladen werden: {exc}")
+                self._log(f"Whisper-Modell konnte nicht geladen werden: {exc}")
+                self._announce_status_change(f"Sprachsteuerung: Modell-Fehler ({exc})")
                 self._running = False
                 return
 
         pa = pyaudio.PyAudio()
         stream = None
         try:
+            device_index = self._resolve_input_device_index(pa)
             stream = pa.open(
                 format=pyaudio.paInt16,
                 channels=1,
                 rate=self.SAMPLE_RATE,
                 input=True,
+                input_device_index=device_index,
                 frames_per_buffer=self.CHUNK,
             )
+            self._calibrate_silence_threshold(stream, struct)
+            self._announce_status_change("Sprachsteuerung aktiv – lauscht")
 
             audio_frames: list = []
             silent_chunks = 0
@@ -144,7 +241,7 @@ class VoiceCommandManager:
                 shorts = struct.unpack(f"{len(data) // 2}h", data)
                 rms = int((sum(s * s for s in shorts) / len(shorts)) ** 0.5) if shorts else 0
 
-                if rms < self.SILENCE_THRESHOLD:
+                if rms < self._silence_threshold:
                     silent_chunks += 1
                     if audio_frames:
                         audio_frames.append(data)
@@ -164,7 +261,8 @@ class VoiceCommandManager:
                     self._process_audio(raw, np)
 
         except Exception as exc:
-            print(f"[VoiceControl] Fehler im Listen-Loop: {exc}")
+            self._log(f"Fehler im Listen-Loop: {exc}")
+            self._announce_status_change(f"Sprachsteuerung: Fehler ({exc})")
         finally:
             if stream:
                 try:
@@ -184,10 +282,10 @@ class VoiceCommandManager:
             result = self._model.transcribe(audio, language="de", fp16=False)
             text = (result.get("text") or "").strip().lower()
             if text:
-                print(f"[VoiceControl] Erkannt: {text!r}")
+                self._log(f"Erkannt: {text!r}")
                 self._handle_command(text)
         except Exception as exc:
-            print(f"[VoiceControl] Transkription fehlgeschlagen: {exc}")
+            self._log(f"Transkription fehlgeschlagen: {exc}")
 
     def _handle_command(self, text: str) -> None:
         """Führt den erkannten Befehl aus."""
@@ -228,7 +326,7 @@ class VoiceCommandManager:
             msg = "Ausgabe stummgeschaltet" if new_val else "Ausgabe aktiv"
             self._frame.tts.speak(msg, kind="system")
         except Exception as exc:
-            print(f"[VoiceControl] Mute-Toggle fehlgeschlagen: {exc}")
+            self._log(f"Mute-Toggle fehlgeschlagen: {exc}")
 
     def _toggle_ptt(self) -> None:
         try:
@@ -240,13 +338,12 @@ class VoiceCommandManager:
             msg = "PTT aktiv" if new_val else "PTT deaktiviert"
             self._frame.tts.speak(msg, kind="system")
         except Exception as exc:
-            print(f"[VoiceControl] PTT-Toggle fehlgeschlagen: {exc}")
+            self._log(f"PTT-Toggle fehlgeschlagen: {exc}")
 
     def _announce_status(self) -> None:
         try:
             if self._frame.client.is_connected():
-                profile = getattr(self._frame, "_current_profile", None)
-                server = profile.name if profile else "Server"
+                server = getattr(self._frame, "_current_server_key", "") or "Server"
                 chan_id = self._frame.client.get_my_channel_id()
                 chan_name = ""
                 if chan_id:
@@ -262,7 +359,7 @@ class VoiceCommandManager:
                 msg = "Nicht verbunden"
             self._frame.tts.speak(msg, kind="system")
         except Exception as exc:
-            print(f"[VoiceControl] Status-Ansage fehlgeschlagen: {exc}")
+            self._log(f"Status-Ansage fehlgeschlagen: {exc}")
 
     def _announce_help(self) -> None:
         commands = (
@@ -297,4 +394,4 @@ class VoiceCommandManager:
             else:
                 self._frame.tts.speak(f"Kanal {name} nicht gefunden", kind="system")
         except Exception as exc:
-            print(f"[VoiceControl] Kanal-Join fehlgeschlagen: {exc}")
+            self._log(f"Kanal-Join fehlgeschlagen: {exc}")

@@ -54,8 +54,8 @@ app = BUNDLE(
     icon=None,
     bundle_identifier=None,
     info_plist={
-        'CFBundleShortVersionString': '10.4.5',
-        'CFBundleVersion': '10.4.5',
+        'CFBundleShortVersionString': '10.4.7',
+        'CFBundleVersion': '10.4.7',
         'NSMicrophoneUsageDescription': 'Der TeamTalk VO Client benötigt Zugriff auf das Mikrofon, um Sprache übertragen zu können.',
         'CFBundleDevelopmentRegion': 'de',
         'CFBundleLocalizations': ['de', 'en', 'fr', 'es'],

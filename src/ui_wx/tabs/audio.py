@@ -27,6 +27,7 @@ class AudioTab(wx.Panel):
         self._last_default_ids = (None, None)
         self._lp_session_id: Optional[int] = None
         self._lp_paused = False
+        self._devices_applied = False
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -359,9 +360,9 @@ class AudioTab(wx.Panel):
         self._vu_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
 
-        # Polling fallback for OS/device changes when SDK hotplug events are missing
-        self._device_poll_timer = wx.Timer(self)
-        self.Bind(wx.EVT_TIMER, self._on_device_poll_timer, self._device_poll_timer)
+        # Hotplug/device-change detection now runs via the frame-level
+        # CoreAudioDeviceWatcher (coreaudio_watch.py), independent of tab
+        # visibility -- no tab-bound poll timer needed here anymore.
 
         self._timers_active = False
 
@@ -371,7 +372,6 @@ class AudioTab(wx.Panel):
     def destroy_timers(self):
 
         self._vu_timer.Stop()
-        self._device_poll_timer.Stop()
         if self._loopback_handle is not None:
             self.frame.client.close_sound_loopback_test(self._loopback_handle)
             self._loopback_handle = None
@@ -381,13 +381,10 @@ class AudioTab(wx.Panel):
             if not self._timers_active:
                 # VU updates are only needed while the audio tab is visible.
                 self._vu_timer.Start(250)
-                # Device polling is only needed while the tab is visible.
-                self._device_poll_timer.Start(5000)
                 self._timers_active = True
         else:
             if self._timers_active:
                 self._vu_timer.Stop()
-                self._device_poll_timer.Stop()
                 self._timers_active = False
 
     # --- VU ---
@@ -404,7 +401,9 @@ class AudioTab(wx.Panel):
     # --- Device refresh & apply ---
 
     def on_refresh_audio(self, _event):
-        self.refresh_audio_devices(announce=True, prefer_previous=True, auto_apply=False, restart_sound=True)
+        self.refresh_audio_devices(
+            announce=True, prefer_previous=True, auto_apply=False, restart_sound=True, reapply=True
+        )
 
     def refresh_audio_devices(
         self,
@@ -412,6 +411,7 @@ class AudioTab(wx.Panel):
         prefer_previous: bool = True,
         auto_apply: bool = False,
         restart_sound: bool = True,
+        reapply: bool = False,
         _attempt: int = 0,
     ):
         client = self.frame.client
@@ -425,7 +425,22 @@ class AudioTab(wx.Panel):
         if 0 <= prev_out_idx < len(self._output_devices):
             prev_out_id = int(self._output_devices[prev_out_idx].nDeviceID)
 
-        restarted = client.restart_sound_system() if restart_sound else True
+        if restart_sound:
+            # SDK-Vorgabe (TT_RestartSoundSystem-Doku): Geräte MÜSSEN vor dem
+            # Neustart geschlossen werden, sonst erkennt der Neustart weder
+            # neue noch entfernte Hardware zuverlässig. Einzeln absichern,
+            # damit ein Fehler hier nicht die restliche Geräteaktualisierung
+            # (Liste neu füllen, UI aktualisieren) verhindert.
+            try:
+                client.close_sound_input_device()
+                client.close_sound_output_device()
+                client.close_sound_duplex_devices()
+            except Exception:
+                pass
+        try:
+            restarted = client.restart_sound_system() if restart_sound else True
+        except Exception:
+            restarted = False
         devices = list(client.get_sound_devices())
         if not devices and _attempt < 2:
             # Hotplug events can arrive a bit later after restart.
@@ -436,6 +451,7 @@ class AudioTab(wx.Panel):
                     prefer_previous=prefer_previous,
                     auto_apply=auto_apply,
                     restart_sound=restart_sound,
+                    reapply=reapply,
                     _attempt=_attempt + 1,
                 ),
             )
@@ -484,7 +500,10 @@ class AudioTab(wx.Panel):
 
         status_ready = "status" in self.frame.__dict__
 
-        if auto_apply and (changed or defaults_changed):
+        if self._devices_applied and restart_sound and (reapply or (auto_apply and (changed or defaults_changed))):
+            # Der Restart-Zyklus hat oben die zuvor aktiven Geräte geschlossen
+            # (SDK-Vorgabe) -- sie müssen jetzt wieder geöffnet werden, sonst
+            # bleiben Mikrofon/Ausgabe nach einem Refresh stumm.
             self.on_apply_audio(None)
 
         if announce and status_ready:
@@ -509,15 +528,6 @@ class AudioTab(wx.Panel):
         if devices:
             if choice.GetSelection() != 0:
                 choice.SetSelection(0)
-
-    def _on_device_poll_timer(self, _event):
-        auto_apply = bool(self.frame.settings_store.settings.auto_apply_audio_on_device_change)
-        self.refresh_audio_devices(
-            announce=False,
-            prefer_previous=False,
-            auto_apply=auto_apply,
-            restart_sound=False,
-        )
 
     def on_apply_audio(self, _event):
         client = self.frame.client
@@ -574,6 +584,7 @@ class AudioTab(wx.Panel):
 
         if self.voice_activation.GetValue() and not self.frame._ptt_enabled:
             client.enable_voice_transmission(True)
+        self._devices_applied = True
         self.frame.set_status("Audiogeräte aktiviert")
 
     # --- Voice controls ---

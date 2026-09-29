@@ -31,6 +31,7 @@ class AudioTab(QWidget):
         self._loopback_handle: Optional[int] = None
         self._lp_session_id: Optional[int] = None
         self._lp_paused = False
+        self._devices_applied = False
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -219,7 +220,7 @@ class AudioTab(QWidget):
         actions_v.addWidget(self.loopback_check)
         action_btn_row = QHBoxLayout()
         self.refresh_btn = QPushButton(_("Geräte a&ktualisieren"))
-        self.refresh_btn.clicked.connect(self.refresh_devices)
+        self.refresh_btn.clicked.connect(lambda: self.refresh_devices(reapply=True))
         self.apply_btn = QPushButton(_("Audio &anwenden"))
         self.apply_btn.clicked.connect(self.on_apply)
         action_btn_row.addWidget(self.refresh_btn)
@@ -358,13 +359,35 @@ class AudioTab(QWidget):
             self.window.settings_store.settings,
             "auto_apply_audio_on_device_change", False
         ))
-        self.refresh_devices(auto_apply=auto_apply)
+        # restart_sound=False: ein SDK-Neustart erfordert vorheriges Schließen
+        # der Geräte (siehe refresh_devices) und würde bei jedem 5s-Tick eine
+        # aktive Verbindung kurz unterbrechen. Ohne natives Hotplug-Signal
+        # (Windows/Linux haben aktuell keins, siehe coreaudio_watch.py für
+        # macOS) bleibt dieser Poll daher bewusst auf die gecachte Liste
+        # beschränkt; echte Hotplug-Erkennung läuft nur über den expliziten
+        # "Geräte aktualisieren"-Button/Menüpunkt.
+        self.refresh_devices(auto_apply=auto_apply, restart_sound=False)
 
     # ── Device refresh ────────────────────────────────────────────────────
 
-    def refresh_devices(self, auto_apply: bool = False) -> None:
+    def refresh_devices(self, auto_apply: bool = False, restart_sound: bool = True, reapply: bool = False) -> None:
+        client = self.window.client
+        if restart_sound:
+            # SDK-Vorgabe (TT_RestartSoundSystem-Doku): Geräte MÜSSEN vor dem
+            # Neustart geschlossen werden, sonst erkennt der Neustart weder
+            # neue noch entfernte Hardware zuverlässig.
+            try:
+                client.close_sound_input_device()
+                client.close_sound_output_device()
+                client.close_sound_duplex_devices()
+            except Exception:
+                pass
+            try:
+                client.restart_sound_system()
+            except Exception:
+                pass
         try:
-            devices = list(self.window.client.get_sound_devices())
+            devices = list(client.get_sound_devices())
         except Exception:
             devices = []
 
@@ -403,7 +426,10 @@ class AudioTab(QWidget):
         self.input_device.blockSignals(False)
         self.output_device.blockSignals(False)
 
-        if auto_apply and changed:
+        if self._devices_applied and restart_sound and (reapply or (auto_apply and changed)):
+            # Der Restart-Zyklus hat oben die zuvor aktiven Geräte geschlossen
+            # (SDK-Vorgabe) -- sie müssen jetzt wieder geöffnet werden, sonst
+            # bleiben Mikrofon/Ausgabe nach einem Refresh stumm.
             self.on_apply()
 
     # ── Apply ─────────────────────────────────────────────────────────────
@@ -445,6 +471,7 @@ class AudioTab(QWidget):
             except Exception:
                 pass
 
+            self._devices_applied = True
             self.window.set_status("Audio-Einstellungen übernommen")
         except Exception as exc:
             self.window.set_status(f"Audio-Fehler: {exc}")

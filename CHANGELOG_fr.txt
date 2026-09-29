@@ -1,6 +1,35 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.7)
+Correction : plantage lors de la suppression d'un serveur de la liste
+
+- **Liste des serveurs : supprimer une entrée (bouton « Supprimer » ou
+  menu contextuel) pouvait quitter complètement l'application.** La
+  boîte de dialogue de confirmation libérait juste après (dans le même
+  appel) la ligne native de la liste pour destruction, alors que
+  VoiceOver pouvait encore y être focalisé - même schéma d'erreur que
+  le plantage du destructeur PyObjC à la fermeture déjà corrigé en
+  v0.10.14. Correction : la sélection/le focus sont retirés de la ligne
+  avant la suppression, et la reconstruction de la liste s'exécute
+  désormais un cycle d'événements plus tard.
+- Actualisation des périphériques audio (macOS) : un nouveau moniteur
+  de branchement CoreAudio détecte désormais instantanément (par
+  notification push) les périphériques audio branchés/débranchés, que
+  l'onglet Audio soit visible ou non. Les périphériques sont
+  correctement fermés avant un redémarrage du système audio, puis
+  rouverts ensuite, afin que le micro/la sortie ne restent plus muets
+  après « Actualiser les périphériques ».
+- Commande vocale : le seuil de silence fixe a été remplacé par un bref
+  étalonnage du bruit ambiant au démarrage (un gain de microphone
+  différent empêchait auparavant toute détection fiable d'un segment de
+  parole). Écoute désormais le périphérique d'entrée sélectionné dans
+  TeamTalk plutôt que toujours le micro par défaut du système. Les
+  états de démarrage/erreur sont désormais signalés via la barre d'état
+  au lieu d'être seulement affichés dans la console (invisible sans
+  terminal attaché). La commande vocale « status » n'annonçait jamais
+  le vrai nom du serveur (référence à un attribut obsolète) - corrigé.
+
 2026-09-26 (v10.4.5)
 Correction : deux boîtes de dialogue totalement inaccessibles + libellés anglais restants
 

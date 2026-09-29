@@ -1,6 +1,32 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.7)
+Bugfix: crash when removing a server from the server list
+
+- **Server list: removing an entry (the "Remove" button or context
+  menu) could quit the app entirely.** The confirmation dialog freed
+  the native list row for destruction right afterwards (in the same
+  call), while VoiceOver could still be focused on it - the same
+  failure pattern as the PyObjC destructor crash on quit already fixed
+  in v0.10.14. Fix: selection/focus are moved off the row before
+  removal, and the actual list rebuild now runs one event-loop tick
+  later.
+- Audio device refresh (macOS): a new CoreAudio hotplug watcher now
+  detects plugged/unplugged audio devices instantly via push
+  notification, regardless of whether the audio tab is currently
+  visible. Devices are properly closed before a sound-system restart
+  and reopened afterwards, so mic/output no longer stay silent after
+  "Refresh devices".
+- Voice control: the fixed silence threshold was replaced with a short
+  noise-floor calibration at startup (different microphone gain meant
+  a speech segment was never reliably detected before). Now listens on
+  the input device selected in TeamTalk instead of always the OS
+  default microphone. Start/error states are now reported via the
+  status line instead of only printed to the console (invisible
+  without an attached terminal). The "status" voice command never
+  announced the real server name (stale attribute reference) - fixed.
+
 2026-09-26 (v10.4.5)
 Bugfix: two completely unreachable dialogs + leftover English labels
 

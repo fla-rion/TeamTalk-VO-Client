@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.4.5"
+APP_VERSION = "10.4.7"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -3745,7 +3745,7 @@ class MainWindow(QMainWindow):
 
     def on_menu_audio_refresh(self) -> None:
         try:
-            self.audio_tab.refresh_devices()
+            self.audio_tab.refresh_devices(reapply=True)
             self.set_status("Audio-Geräte aktualisiert")
         except Exception as exc:
             self.set_status(f"Geräte aktualisieren Fehler: {exc}")
