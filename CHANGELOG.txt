@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.8)
+Konto bearbeiten (macOS) + zwei Datenverlust-Bugs bei Benutzerkonten behoben
+
+- **Neu (macOS): Benutzerkonten können jetzt auch unter macOS bearbeitet
+  werden** ("Konto bearbeiten"-Button neben "hinzufügen"/"löschen"),
+  inklusive der 6 Rechte-Checkboxen (Kanal erstellen, Broadcast senden,
+  Kanal-Operator, Aufnahme, Upload, Download) – bisher gab es dort nur
+  Anlegen/Löschen. Der Windows/Linux-Client (Qt) hatte "Bearbeiten"
+  bereits.
+- **Bugfix (Windows/Linux): Konto bearbeiten löschte stillschweigend
+  Felder, die das Formular nicht zeigt.** Der Speichern-Pfad baute für
+  jede Änderung ein komplett leeres Konto-Struct neu auf – dabei gingen
+  Auto-Operator-Kanäle, Startkanal, Audio-Codec-Bitratenlimit und
+  Missbrauchsschutz-Einstellungen verloren, und ein leer gelassenes
+  Passwortfeld hat das bestehende Passwort auf leer gesetzt. Jetzt wird
+  vom Server-Struct ausgegangen, nur die tatsächlich geänderten Felder
+  werden überschrieben; ein leeres Passwort lässt das bisherige
+  unangetastet. Gleiches Prinzip jetzt auch für macOS neu implementiert.
+- **Bugfix (Windows/Linux): "Aufnahme erlaubt"-Checkbox beim Konto
+  bearbeiten/anlegen setzte das falsche Recht.** Verwendet wurde Bit
+  0x00000008 (tatsächlich USERRIGHT_MODIFY_CHANNELS, "Kanäle
+  bearbeiten") statt des echten USERRIGHT_RECORD_VOICE (0x00100000) –
+  wer dieses Häkchen setzte, gab also unbeabsichtigt Kanal-
+  Bearbeitungsrechte statt Aufnahmerechte. Korrigiert.
+
 2026-09-29 (v10.4.7)
 Bugfix: Absturz beim Entfernen eines Servers aus der Serverliste
 

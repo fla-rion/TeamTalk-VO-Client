@@ -78,7 +78,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.7"
+APP_VERSION = "10.4.8"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -6141,7 +6141,10 @@ class MainFrame(wx.Frame):
             "Bereich 'Benutzerkonten'\n"
             "  Spalten: Benutzername, Typ (Standard/Administrator), Notiz.\n"
             "  Konten laden: Liste der Konten vom Server laden.\n"
-            "  Konto hinzufügen: Neues Konto anlegen (Benutzername, Passwort, Notiz, Typ).\n"
+            "  Konto hinzufügen: Neues Konto anlegen (Benutzername, Passwort, Notiz, Typ,\n"
+            "    Rechte).\n"
+            "  Konto bearbeiten: Ausgewähltes Konto ändern (Passwort leer lassen, um es\n"
+            "    unverändert zu lassen; Benutzername kann nicht geändert werden).\n"
             "  Konto löschen: Ausgewähltes Konto entfernen (Bestätigungsdialog).\n"
             "\n"
             "Bereich 'Sperren'\n"
@@ -7311,7 +7314,10 @@ class MainFrame(wx.Frame):
             "Section 'User accounts'\n"
             "  Columns: Username, type (Standard/Administrator), note.\n"
             "  Load accounts: Load the account list from the server.\n"
-            "  Add account: Create a new account (username, password, note, type).\n"
+            "  Add account: Create a new account (username, password, note, type,\n"
+            "    rights).\n"
+            "  Edit account: Change the selected account (leave the password blank to\n"
+            "    keep it unchanged; the username cannot be changed).\n"
             "  Delete account: Remove the selected account (confirmation dialog).\n"
             "\n"
             "Section 'Bans'\n"

@@ -1204,6 +1204,41 @@ class TeamTalkClient:
         account.szNote = self.tt.ttstr(note)
         return self.client.doNewUserAccount(account)
 
+    def do_update_user_account(
+        self,
+        base_account: Any,
+        username: str,
+        password: str = "",
+        user_type: Optional[int] = None,
+        user_rights: Optional[int] = None,
+        note: Optional[str] = None,
+    ) -> int:
+        """Bearbeitet ein bestehendes Konto ausgehend vom Server-Struct.
+
+        `doNewUserAccount` legt ein Konto neu an ODER ersetzt ein
+        bestehendes mit gleichem Benutzernamen komplett -- ein von Grund
+        auf neu gebautes, leeres UserAccount-Struct (wie in
+        `do_new_user_account`) verliert dabei stillschweigend jedes Feld,
+        das das Bearbeiten-Formular nicht zeigt (autoOperatorChannels,
+        szInitChannel, nAudioCodecBpsLimit, abusePrevent, szNote, ...).
+        `base_account` muss daher das vom Server gelieferte UserAccount-
+        Struct sein (z. B. aus der geladenen Kontoliste); alle nicht
+        übergebenen Felder bleiben unverändert. Ein leeres Passwort
+        behält das bisherige Passwort bei, statt es zu leeren.
+        """
+        account = self.tt.UserAccount()
+        ctypes.memmove(ctypes.byref(account), ctypes.byref(base_account), ctypes.sizeof(account))
+        account.szUsername = self.tt.ttstr(username)
+        if password:
+            account.szPassword = self.tt.ttstr(password)
+        if user_type is not None:
+            account.uUserType = user_type
+        if user_rights is not None:
+            account.uUserRights = user_rights
+        if note is not None:
+            account.szNote = self.tt.ttstr(note)
+        return self.client.doNewUserAccount(account)
+
     def do_delete_user_account(self, username: str) -> int:
         return self.client.doDeleteUserAccount(self.tt.ttstr(username))
 

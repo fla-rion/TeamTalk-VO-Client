@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.8)
+Edición de cuentas en macOS + dos fallos de pérdida de datos corregidos
+
+- **Nuevo (macOS): ahora las cuentas de usuario también se pueden
+  editar en macOS** (botón "Editar cuenta" junto a "Añadir"/"Eliminar"),
+  incluidas las 6 casillas de derechos (crear canal, difundir, operador
+  de canal, grabación, subida, descarga) - antes solo era posible
+  crear/eliminar. El cliente Windows/Linux (Qt) ya tenía "Editar".
+- **Corrección (Windows/Linux): editar una cuenta borraba en silencio
+  los campos que el formulario no muestra.** La ruta de guardado
+  reconstruía una estructura de cuenta completamente vacía en cada
+  cambio, perdiendo los canales de auto-operador, el canal inicial, el
+  límite de tasa de bits del códec de audio y los ajustes de prevención
+  de abusos - y dejar el campo de contraseña vacío borraba la
+  contraseña existente. Ahora parte de la estructura del servidor y
+  solo sobrescribe los campos realmente modificados; una contraseña
+  vacía deja intacta la existente. Mismo principio implementado ahora
+  también para macOS.
+- **Corrección (Windows/Linux): la casilla "Grabación permitida" al
+  editar/crear una cuenta establecía el derecho incorrecto.** Se
+  utilizaba el bit 0x00000008 (en realidad USERRIGHT_MODIFY_CHANNELS,
+  "modificar canales") en lugar del verdadero USERRIGHT_RECORD_VOICE
+  (0x00100000) - marcar esa casilla concedía sin querer el derecho a
+  modificar canales en vez del derecho de grabación. Corregido.
+
 2026-09-29 (v10.4.7)
 Corrección: bloqueo al eliminar un servidor de la lista de servidores
 

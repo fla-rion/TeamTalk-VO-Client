@@ -1,6 +1,29 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.8)
+Edit accounts on macOS + two account data-loss bugs fixed
+
+- **New (macOS): user accounts can now be edited on macOS too** (an
+  "Edit account" button next to "Add"/"Delete"), including the 6 rights
+  checkboxes (create channel, broadcast, channel operator, record,
+  upload, download) - previously only creating/deleting was possible
+  there. The Windows/Linux client (Qt) already had "Edit".
+- **Bugfix (Windows/Linux): editing an account silently dropped fields
+  the form doesn't show.** The save path rebuilt a completely empty
+  account struct for every change, losing auto-operator channels, the
+  init channel, the audio codec bitrate limit and abuse-prevention
+  settings - and leaving the password field blank cleared the existing
+  password. It now starts from the server's struct and only overwrites
+  the fields actually changed; an empty password leaves the existing
+  one untouched. Same principle newly implemented for macOS.
+- **Bugfix (Windows/Linux): the "Recording allowed" checkbox when
+  editing/creating an account set the wrong right.** It used bit
+  0x00000008 (actually USERRIGHT_MODIFY_CHANNELS, "modify channels")
+  instead of the real USERRIGHT_RECORD_VOICE (0x00100000) - checking
+  that box unintentionally granted channel-modify rights instead of
+  recording rights. Fixed.
+
 2026-09-29 (v10.4.7)
 Bugfix: crash when removing a server from the server list
 

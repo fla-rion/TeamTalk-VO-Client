@@ -1,6 +1,34 @@
 Changelog
 =========
 
+2026-09-29 (v10.4.8)
+Modification de comptes sous macOS + deux bugs de perte de données corrigés
+
+- **Nouveau (macOS) : les comptes utilisateur peuvent désormais aussi
+  être modifiés sous macOS** (bouton « Modifier le compte » à côté
+  d'« Ajouter »/« Supprimer »), avec les 6 cases à cocher de droits
+  (créer un salon, diffuser, opérateur de salon, enregistrement,
+  téléversement, téléchargement) - jusqu'ici seuls l'ajout/la
+  suppression étaient possibles. Le client Windows/Linux (Qt) disposait
+  déjà de « Modifier ».
+- **Correction (Windows/Linux) : modifier un compte effaçait
+  silencieusement les champs non affichés par le formulaire.** Le
+  chemin d'enregistrement reconstruisait à chaque modification une
+  structure de compte totalement vide, perdant les salons auto-
+  opérateur, le salon initial, la limite de débit du codec audio et les
+  paramètres de prévention des abus - et laisser le champ mot de passe
+  vide effaçait le mot de passe existant. Il part désormais de la
+  structure fournie par le serveur et n'écrase que les champs
+  réellement modifiés ; un mot de passe vide laisse l'existant intact.
+  Même principe désormais implémenté pour macOS.
+- **Correction (Windows/Linux) : la case « Enregistrement autorisé »
+  lors de la modification/création d'un compte réglait le mauvais
+  droit.** Le bit 0x00000008 était utilisé (en réalité
+  USERRIGHT_MODIFY_CHANNELS, « modifier les salons ») au lieu du
+  véritable USERRIGHT_RECORD_VOICE (0x00100000) - cocher cette case
+  accordait donc involontairement le droit de modifier les salons au
+  lieu du droit d'enregistrement. Corrigé.
+
 2026-09-29 (v10.4.7)
 Correction : plantage lors de la suppression d'un serveur de la liste
 

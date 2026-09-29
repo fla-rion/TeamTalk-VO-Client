@@ -47,11 +47,15 @@ class AdminTab(wx.Panel):
         self.add_account_btn = wx.Button(self, label="Konto &hinzufügen")
         self.add_account_btn.SetName("Konto hinzufügen")
         self.add_account_btn.Bind(wx.EVT_BUTTON, self.on_add_account)
+        self.edit_account_btn = wx.Button(self, label="Konto &bearbeiten")
+        self.edit_account_btn.SetName("Konto bearbeiten")
+        self.edit_account_btn.Bind(wx.EVT_BUTTON, self.on_edit_account)
         self.del_account_btn = wx.Button(self, label="Konto &löschen")
         self.del_account_btn.SetName("Konto löschen")
         self.del_account_btn.Bind(wx.EVT_BUTTON, self.on_del_account)
         acc_btn_row.Add(self.load_accounts_btn, 0, wx.RIGHT, 8)
         acc_btn_row.Add(self.add_account_btn, 0, wx.RIGHT, 8)
+        acc_btn_row.Add(self.edit_account_btn, 0, wx.RIGHT, 8)
         acc_btn_row.Add(self.del_account_btn, 0)
         acc_sizer.Add(acc_btn_row, 0, wx.ALL, 4)
 
@@ -141,6 +145,7 @@ class AdminTab(wx.Panel):
     def on_load_accounts(self, _event):
         self.load_accounts_btn.Disable()
         self.add_account_btn.Disable()
+        self.edit_account_btn.Disable()
         self.del_account_btn.Disable()
         self.account_list.Clear()
         self._accounts = []
@@ -161,6 +166,7 @@ class AdminTab(wx.Panel):
             finally:
                 wx.CallAfter(self.load_accounts_btn.Enable)
                 wx.CallAfter(self.add_account_btn.Enable)
+                wx.CallAfter(self.edit_account_btn.Enable)
                 wx.CallAfter(self.del_account_btn.Enable)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -184,7 +190,7 @@ class AdminTab(wx.Panel):
         self.account_list.Append(label)
 
     def on_add_account(self, _event):
-        dlg = _NewAccountDialog(self)
+        dlg = _AccountDialog(self, self.frame)
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
         dlg.SetAcceleratorTable(accel)
         dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
@@ -204,7 +210,8 @@ class AdminTab(wx.Panel):
                     tt = self.frame.client.tt
                     utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
                     success = self.frame.client.do_new_user_account(
-                        vals["username"], vals["password"], utype, note=vals["note"],
+                        vals["username"], vals["password"], utype,
+                        user_rights=vals["rights"], note=vals["note"],
                     )
                     if success > 0:
                         wx.CallAfter(self.frame.set_status, f"Konto erstellt: {vals['username']}")
@@ -219,6 +226,49 @@ class AdminTab(wx.Panel):
             threading.Thread(target=worker, daemon=True).start()
         else:
             dlg.Destroy() # Destroy dialog if it's not OK.
+
+    def on_edit_account(self, _event):
+        sel = self.account_list.GetSelection()
+        if sel == wx.NOT_FOUND or sel >= len(self._accounts):
+            self.frame.set_status("Bitte ein Konto auswählen")
+            return
+        account = self._accounts[sel]
+        dlg = _AccountDialog(self, self.frame, account=account)
+        accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
+        dlg.SetAcceleratorTable(accel)
+        dlg.Bind(wx.EVT_MENU, lambda e: dlg.EndModal(wx.ID_CANCEL), id=wx.ID_CLOSE)
+        if dlg.ShowModal() != wx.ID_OK:
+            dlg.Destroy()
+            return
+        vals = dlg.get_values()
+        dlg.Destroy()
+
+        if not vals["username"]:
+            self.frame.set_status("Benutzername ist erforderlich.")
+            return
+
+        self.edit_account_btn.Disable()
+        self.frame.set_status(f"Konto wird gespeichert: {vals['username']}...")
+
+        def worker():
+            try:
+                tt = self.frame.client.tt
+                utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
+                success = self.frame.client.do_update_user_account(
+                    account, vals["username"], vals["password"], user_type=utype,
+                    user_rights=vals["rights"], note=vals["note"],
+                )
+                if success > 0:
+                    wx.CallAfter(self.frame.set_status, f"Konto gespeichert: {vals['username']}")
+                    wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                else:
+                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht gespeichert werden: {vals['username']}")
+            except Exception as e:
+                wx.CallAfter(self.frame.set_status, f"Fehler beim Speichern des Kontos: {e}")
+            finally:
+                wx.CallAfter(self.edit_account_btn.Enable)
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def on_del_account(self, _event):
         sel = self.account_list.GetSelection()
@@ -413,9 +463,32 @@ class AdminTab(wx.Panel):
 
 
 
-class _NewAccountDialog(wx.Dialog):
-    def __init__(self, parent):
-        super().__init__(parent, title="Neues Benutzerkonto", size=(360, 260))
+class _AccountDialog(wx.Dialog):
+    """Formular zum Anlegen ODER Bearbeiten eines Benutzerkontos.
+
+    Ohne `account` (None): leeres Formular fuer ein neues Konto.
+    Mit `account` (Server-UserAccount-Struct): Formular vorausgefuellt,
+    Benutzername gesperrt (Primaerschluessel, siehe
+    `TeamTalkClient.do_update_user_account`), Passwort optional (leer =
+    unveraendert lassen).
+    """
+
+    # (Anzeigename, UserRight-Konstantenname aus TeamTalk5.UserRight)
+    _RIGHTS = [
+        ("&Kanal erstellen", "USERRIGHT_CREATE_TEMPORARY_CHANNEL"),
+        ("&Broadcast senden", "USERRIGHT_TEXTMESSAGE_BROADCAST"),
+        ("Kanal-&Operator", "USERRIGHT_OPERATOR_ENABLE"),
+        ("&Aufnahme erlaubt", "USERRIGHT_RECORD_VOICE"),
+        ("&Upload erlaubt", "USERRIGHT_UPLOAD_FILES"),
+        ("&Download erlaubt", "USERRIGHT_DOWNLOAD_FILES"),
+    ]
+
+    def __init__(self, parent, frame, account=None):
+        title = "Konto bearbeiten" if account is not None else "Neues Benutzerkonto"
+        super().__init__(parent, title=title, size=(380, 440))
+        tt = frame.client.tt
+        self._editing = account is not None
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         form.AddGrowableCol(1)
@@ -425,9 +498,10 @@ class _NewAccountDialog(wx.Dialog):
         self._username.SetName("Benutzername")
         form.Add(self._username, 1, wx.EXPAND)
 
-        form.Add(wx.StaticText(self, label="Passwort"), 0, wx.ALIGN_CENTER_VERTICAL)
+        pw_label = "Passwort (leer = unverändert)" if self._editing else "Passwort"
+        form.Add(wx.StaticText(self, label=pw_label), 0, wx.ALIGN_CENTER_VERTICAL)
         self._password = wx.TextCtrl(self, style=wx.TE_PASSWORD)
-        self._password.SetName("Passwort")
+        self._password.SetName(pw_label)
         form.Add(self._password, 1, wx.EXPAND)
 
         form.Add(wx.StaticText(self, label="Notiz"), 0, wx.ALIGN_CENTER_VERTICAL)
@@ -439,16 +513,44 @@ class _NewAccountDialog(wx.Dialog):
         self._admin_check.SetName("Administrator")
 
         sizer.Add(form, 0, wx.ALL | wx.EXPAND, 12)
-        sizer.Add(self._admin_check, 0, wx.LEFT | wx.BOTTOM, 12)
+        sizer.Add(self._admin_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 12)
+
+        rights_box = wx.StaticBox(self, label="Rechte")
+        rights_sizer = wx.StaticBoxSizer(rights_box, wx.VERTICAL)
+        self._rights_checks = []
+        for label, const_name in self._RIGHTS:
+            cb = wx.CheckBox(rights_box, label=label)
+            cb.SetName(label.replace("&", ""))
+            self._rights_checks.append((cb, int(getattr(tt.UserRight, const_name))))
+            rights_sizer.Add(cb, 0, wx.ALL, 2)
+        sizer.Add(rights_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 12)
 
         btn_sizer = self.CreateStdDialogButtonSizer(wx.OK | wx.CANCEL)
         sizer.Add(btn_sizer, 0, wx.ALL | wx.EXPAND, 12)
         self.SetSizer(sizer)
 
+        if account is not None:
+            self._username.SetValue(frame.tt_str(account.szUsername))
+            self._username.SetEditable(False)
+            self._note.SetValue(frame.tt_str(account.szNote))
+            utype = int(getattr(account, "uUserType", 0))
+            self._admin_check.SetValue(bool(utype & int(tt.UserType.USERTYPE_ADMIN)))
+            rights = int(getattr(account, "uUserRights", 0))
+            for cb, bit in self._rights_checks:
+                cb.SetValue(bool(rights & bit))
+            self._password.SetFocus()
+        else:
+            self._username.SetFocus()
+
     def get_values(self):
+        rights = 0
+        for cb, bit in self._rights_checks:
+            if cb.GetValue():
+                rights |= bit
         return {
             "username": self._username.GetValue().strip(),
             "password": self._password.GetValue().strip(),
             "note": self._note.GetValue().strip(),
             "admin": self._admin_check.GetValue(),
+            "rights": rights,
         }

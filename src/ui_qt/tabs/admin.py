@@ -23,7 +23,10 @@ if TYPE_CHECKING:
 _UR_CREATE_CHANNEL = 0x00000004
 _UR_BROADCAST      = 0x00000010
 _UR_OPERATOR       = 0x00000100
-_UR_RECORD         = 0x00000008   # USERRIGHT_RECORD_VOICE
+_UR_RECORD         = 0x00100000   # USERRIGHT_RECORD_VOICE (0x00000008 is
+                                   # actually USERRIGHT_MODIFY_CHANNELS --
+                                   # the "Aufnahme erlaubt"-Checkbox setzte
+                                   # bisher fälschlich dieses Recht)
 _UR_UPLOAD         = 0x00000200
 _UR_DOWNLOAD       = 0x00000400
 
@@ -42,6 +45,7 @@ class AdminTab(QWidget):
         self._accounts: List = []
         self._bans: List = []
         self._selected_account_index: int = -1
+        self._account_edit_base = None  # None = neues Konto; sonst Server-Struct des bearbeiteten Kontos
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -277,6 +281,7 @@ class AdminTab(QWidget):
 
     def on_new_account(self) -> None:
         self._selected_account_index = -1
+        self._account_edit_base = None
         self._acc_username.clear()
         self._acc_password.clear()
         self._acc_usertype.setCurrentIndex(0)
@@ -294,6 +299,7 @@ class AdminTab(QWidget):
             return
         acc = self._accounts[row]
         self._selected_account_index = row
+        self._account_edit_base = acc
         self._acc_username.setText(self._tt_str(acc.szUsername))
         self._acc_username.setReadOnly(True)  # username is PK, cannot change
         self._acc_password.clear()
@@ -317,8 +323,12 @@ class AdminTab(QWidget):
     def _on_save_account(self) -> None:
         username = self._acc_username.text().strip()
         password = self._acc_password.text().strip()
+        base_account = self._account_edit_base
         if not username:
             QMessageBox.warning(self, _("Fehler"), _("Benutzername darf nicht leer sein."))
+            return
+        if base_account is None and not password:
+            QMessageBox.warning(self, _("Fehler"), _("Passwort darf beim Anlegen eines neuen Kontos nicht leer sein."))
             return
         utype_idx = self._acc_usertype.currentIndex()
         if utype_idx == 1:
@@ -340,9 +350,14 @@ class AdminTab(QWidget):
 
         def worker():
             try:
-                cmd_id = self.window.client.do_new_user_account(
-                    username, password, utype, user_rights=rights
-                )
+                if base_account is not None:
+                    cmd_id = self.window.client.do_update_user_account(
+                        base_account, username, password, user_type=utype, user_rights=rights
+                    )
+                else:
+                    cmd_id = self.window.client.do_new_user_account(
+                        username, password, utype, user_rights=rights
+                    )
                 if cmd_id > 0:
                     call_after(self._set_status, _("Konto gespeichert: {}").format(username))
                     call_after(self._account_form_group.setVisible, False)
