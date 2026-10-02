@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-10-02 (v10.4.9)
+Corrección (macOS): cierre inesperado poco después del inicio si hay una actualización
+
+- **Corrección (macOS): la aplicación se cerraba unos segundos después
+  de iniciarse cuando la comprobación encontraba una versión más
+  reciente** ("Fatal Python error: PyGILState_Release"). La causa era
+  el wx.Locale introducido en v10.4.5: con él, cualquier diálogo nativo
+  (p. ej. "Actualización disponible") cerraba la aplicación. wx.Locale
+  ya no se establece; los botones de los diálogos nativos siguen
+  traducidos por macOS. Versiones afectadas: v10.4.5 a v10.4.8.
+
 2026-09-29 (v10.4.8)
 Edición de cuentas en macOS + dos fallos de pérdida de datos corregidos
 

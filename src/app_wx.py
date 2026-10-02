@@ -78,7 +78,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.8"
+APP_VERSION = "10.4.9"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -516,20 +516,14 @@ class MainFrame(wx.Frame):
         self.store = SQLiteServerStore(self._settings_db)
         # v3.6.0 – Sprache initialisieren (mit Auto-Detect beim ersten Start)
         resolved_lang = ensure_language(self.settings_store)
-        # Ohne wx.Locale bleiben native wx-Stock-Buttons (OK/Cancel/Save/Browse
-        # in wx.TextEntryDialog, wx.FileDialog, wx.MessageDialog) immer englisch,
-        # auch wenn die eigene _()-Übersetzung für alle selbst gebauten Labels
-        # korrekt greift. wx bringt dafür passende .mo-Kataloge (de/fr/es) mit.
-        _WX_LANGUAGE_IDS = {
-            "de": wx.LANGUAGE_GERMAN,
-            "en": wx.LANGUAGE_ENGLISH,
-            "fr": wx.LANGUAGE_FRENCH,
-            "es": wx.LANGUAGE_SPANISH,
-        }
-        try:
-            self._wx_locale = wx.Locale(_WX_LANGUAGE_IDS.get(resolved_lang, wx.LANGUAGE_GERMAN))
-        except Exception:
-            self._wx_locale = None
+        # v10.4.9 – Kein wx.Locale mehr (in v10.4.5 eingeführt): Es setzt die
+        # C-Locale per setlocale() um und ließ damit unter macOS jeden nativen
+        # modalen Dialog (NSAlert via wx.MessageDialog/wx.MessageBox) die App
+        # mit "Fatal Python error: PyGILState_Release: thread state ... must be
+        # current when releasing" abstürzen – u. a. den Update-Hinweis direkt
+        # nach dem Start. Übersetzte Stock-Buttons brachte es ohnehin nicht:
+        # wxstd.mo wird nicht ins Bundle gepackt. Die Beschriftung nativer
+        # Dialoge kommt von macOS über die .lproj-Stubs (siehe .spec).
 
         # JSON-Stores als Fallback (werden nicht mehr aktiv beschrieben)
         self._json_settings_store = SettingsStore(app_dir / "settings.json")

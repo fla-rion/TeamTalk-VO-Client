@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-10-02 (v10.4.9)
+Correctif (macOS) : plantage peu après le démarrage si une mise à jour est disponible
+
+- **Correctif (macOS) : l'application plantait quelques secondes après
+  le démarrage dès que la vérification trouvait une version plus
+  récente** ("Fatal Python error: PyGILState_Release"). La cause était
+  le wx.Locale introduit en v10.4.5 : chaque boîte de dialogue native
+  (p. ex. "Mise à jour disponible") faisait planter l'application.
+  wx.Locale n'est plus défini ; les boutons des dialogues natifs restent
+  traduits par macOS. Versions concernées : v10.4.5 à v10.4.8.
+
 2026-09-29 (v10.4.8)
 Modification de comptes sous macOS + deux bugs de perte de données corrigés
 

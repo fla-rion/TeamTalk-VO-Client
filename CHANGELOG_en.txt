@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-10-02 (v10.4.9)
+Bugfix (macOS): crash shortly after launch when an update is available
+
+- **Bugfix (macOS): the app crashed a few seconds after launch whenever
+  the update check found a newer version** ("Fatal Python error:
+  PyGILState_Release"). The cause was the wx.Locale introduced in
+  v10.4.5: with it, every native message dialog (e.g. "Update
+  available", "No update available", "Update downloaded") crashed the
+  app. wx.Locale is no longer set; native dialog buttons are still
+  labelled by macOS. Affected: v10.4.5 to v10.4.8.
+
 2026-09-29 (v10.4.8)
 Edit accounts on macOS + two account data-loss bugs fixed
 

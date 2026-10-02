@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-10-02 (v10.4.9)
+Bugfix (macOS): Absturz kurz nach dem Start, wenn ein Update verfügbar ist
+
+- **Bugfix (macOS): Die App stürzte wenige Sekunden nach dem Start ab,
+  sobald die Update-Prüfung eine neuere Version fand** ("Fatal Python
+  error: PyGILState_Release"). Auslöser war das in v10.4.5 eingeführte
+  wx.Locale: Damit stürzte jeder native Hinweisdialog (z. B. "Update
+  verfügbar", "Kein Update verfügbar", "Update heruntergeladen") die App
+  ab. wx.Locale wird nicht mehr gesetzt; die Beschriftung der nativen
+  Dialoge übernimmt weiterhin macOS. Betroffen waren v10.4.5 bis v10.4.8.
+
 2026-09-29 (v10.4.8)
 Konto bearbeiten (macOS) + zwei Datenverlust-Bugs bei Benutzerkonten behoben
 
