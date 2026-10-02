@@ -582,21 +582,15 @@ class AudioTab(wx.Panel):
         client.set_sound_output_volume(int(self.output_volume.GetValue()))
         client.set_voice_activation_level(int(self.voice_level.GetValue()))
 
-        if self.voice_activation.GetValue() and not self.frame._ptt_enabled:
-            client.enable_voice_transmission(True)
+        if self.voice_activation.GetValue():
+            client.enable_voice_activation(True)
         self._devices_applied = True
         self.frame.set_status("Audiogeräte aktiviert")
 
     # --- Voice controls ---
 
     def on_voice_activation(self, event):
-        enabled = event.IsChecked()
-        self.frame.client.enable_voice_activation(enabled)
-        if enabled and not self.frame._ptt_enabled:
-            self.frame.client.enable_voice_transmission(True)
-        if not enabled and not self.frame._ptt_enabled:
-            self.frame.client.enable_voice_transmission(False)
-        self.frame.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+        self.frame.set_voice_activation(event.IsChecked())
 
     def on_voice_level(self, _event):
         self.frame.client.set_voice_activation_level(int(self.voice_level.GetValue()))
@@ -809,10 +803,6 @@ class AudioTab(wx.Panel):
             enabled = bool(prefs["voice_activation"])
             self.voice_activation.SetValue(enabled)
             self.frame.client.enable_voice_activation(enabled)
-            if enabled and not self.frame._ptt_enabled:
-                self.frame.client.enable_voice_transmission(True)
-            if not enabled and not self.frame._ptt_enabled:
-                self.frame.client.enable_voice_transmission(False)
 
         # VA delay
         if "va_delay" in prefs:

@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.0)
+Sprachaktivierung wirkt sofort + TTS-Ducking
+
+- **Verbessert: Sprachaktivierung schaltet sofort frei – kein "Audio
+  anwenden" mehr nötig.** Bisher wurde beim Einschalten zusätzlich
+  Dauer-Senden (wie gedrückte PTT) aktiviert; diese Kombination legt den
+  Audioeingang im TeamTalk-SDK lahm, es kam nichts beim Kanal an, bis man
+  die Geräte über "Audio anwenden" neu öffnete. Sprachaktivierung und PTT
+  sind jetzt sauber getrennt: PTT pausiert eine aktive Sprachaktivierung
+  nur, solange die Taste gehalten wird. Gilt für Checkbox, Menü, Tastenkürzel,
+  gespeicherte Audioeinstellungen und das Wiederverbinden (macOS, Windows,
+  Linux). Pegel und Nachlauf werden dabei direkt übernommen.
+- **Neu: TTS-Ducking (Roadmap Punkt 10).** Während die Sprachausgabe
+  spricht, wird das Kanalaudio automatisch leiser und danach wieder auf
+  den eingestellten Wert hochgefahren. Mehrere Ansagen direkt
+  hintereinander lösen nur eine Absenkung aus. Einstellbar unter
+  Sprachausgabe: "Kanalaudio leiser, während die Sprachausgabe spricht"
+  (Standard an) und "Absenkung in dB" (3–30, Standard 12). Mit der
+  TTS-Engine "VoiceOver" nicht verfügbar, da deren Sprechdauer unbekannt ist.
+
 2026-10-02 (v10.4.9)
 Bugfix (macOS): Absturz kurz nach dem Start, wenn ein Update verfügbar ist
 

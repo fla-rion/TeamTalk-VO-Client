@@ -9,7 +9,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple
 import sys
 
 # Eloquence/openevv language IDs (IBM ECI locale numbers) for the languages
@@ -67,6 +67,10 @@ class TTSSettings:
     channel_rate: int = 0
     chat_voice: str = ""
     system_voice: str = ""
+    # v10.5.0 – TTS-Ducking (Roadmap Punkt 10): Kanalaudio absenken, solange
+    # die Sprachausgabe spricht
+    ducking_enabled: bool = True
+    ducking_db: int = 12
 
 
 class TTSManager:
@@ -75,6 +79,13 @@ class TTSManager:
         self.settings = TTSSettings()
         self._queue: "queue.Queue[str]" = queue.Queue()
         self._stop = threading.Event()
+        # v10.5.0 – Ducking: on_speaking(True) beim Start einer Ansage,
+        # on_speaking(False) nach dem Ende (läuft im TTS-Worker-Thread; das
+        # Fenster marshalt selbst in den UI-Thread).
+        self.on_speaking: Optional[Callable[[bool], None]] = None
+        self._speaking = False
+        self._duck_release_timer: Optional[threading.Timer] = None
+        self._duck_lock = threading.Lock()
         self._thread = threading.Thread(target=self._worker, daemon=True)
         self._thread.start()
         self._current_proc: Optional[subprocess.Popen] = None
@@ -453,224 +464,266 @@ class TTSManager:
             else:
                 text, ctx_rate, ctx_voice = item, 0, ""
             if not text:
+                if self._speaking and self._queue.empty():
+                    self._schedule_duck_release()
                 continue
-            if self.settings.backend == "voiceover" and sys.platform == "darwin":
-                escaped = text.replace("\\", "\\\\").replace('"', '\\"')
-                subprocess.run(
-                    ["osascript", "-e", f'tell application "VoiceOver" to output "{escaped}"'],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
-                continue
-            if self.settings.backend == "macos_avs" and sys.platform == "darwin":
+            # VoiceOver gibt sofort zurück – Sprechdauer unbekannt, kein Ducking.
+            duck = self.settings.backend != "voiceover"
+            if duck:
+                self._set_speaking(True)
+            try:
+                self._speak_item(text, ctx_rate, ctx_voice)
+            finally:
+                if duck and self._queue.empty():
+                    self._schedule_duck_release()
+
+    def _set_speaking(self, active: bool) -> None:
+        with self._duck_lock:
+            if self._duck_release_timer is not None:
+                self._duck_release_timer.cancel()
+                self._duck_release_timer = None
+            if active == self._speaking:
+                return
+            self._speaking = active
+            # Unter dem Lock aufrufen, damit Start/Ende nie vertauscht beim
+            # Fenster ankommen (Timer-Thread vs. Worker); der Callback darf
+            # daher nur marshalen (wx.CallAfter / Qt-Signal), nicht blockieren.
+            cb = self.on_speaking
+            if cb is not None:
                 try:
-                    import objc
-                    AVSpeechSynthesizer = objc.lookUpClass("AVSpeechSynthesizer")
-                    AVSpeechUtterance = objc.lookUpClass("AVSpeechUtterance")
-                    AVSpeechSynthesisVoice = objc.lookUpClass("AVSpeechSynthesisVoice")
-                    synth = AVSpeechSynthesizer.alloc().init()
-                    utterance = AVSpeechUtterance.speechUtteranceWithString_(text)
-                    utterance.setRate_(float(self.settings.macos_rate))
-                    utterance.setVolume_(float(self.settings.macos_volume))
-                    voice_name = self.settings.macos_voice.strip()
-                    if voice_name:
-                        for _v in (AVSpeechSynthesisVoice.speechVoices() or []):
-                            if str(_v.name()) == voice_name:
-                                utterance.setVoice_(_v)
-                                break
-                    synth.speakUtterance_(utterance)
-                    while synth.isSpeaking() and not self._stop.is_set():
-                        time.sleep(0.05)
-                    if synth.isSpeaking():
-                        synth.stopSpeakingAtBoundary_(0)
+                    cb(active)
                 except Exception:
                     pass
-                continue
-            if self.settings.backend == "openevv":
-                evv_ok = False
-                evv = self._resolve_evv_binary()
-                if not evv:
-                    if not self._evv_warned:
-                        self._evv_warned = True
-                        try:
-                            self.frame.logger.write(
-                                "TTS: evv (openevv/Eloquence) nicht gefunden – Fallback auf espeak-ng"
-                            )
-                        except Exception:
-                            pass
-                else:
-                    voice_num = max(1, min(8, int(self.settings.openevv_voice)))
-                    rate = ctx_rate if ctx_rate else self.settings.rate
-                    # -r ("real world units") takes volume on a 0-65535 scale
-                    # (see eciToRealVolume in openevv's src/eci_convert.c), where
-                    # 65535 is the engine's own normal/max loudness (ECI's default
-                    # TTS_PARAM_VOLUME is 100/100, i.e. full scale) - not half of
-                    # it. Our own volume setting is 0-200 (100 = normal, like
-                    # espeak's -a), so 100 should map to 65535, not 32767; values
-                    # above 100 clamp at 65535 since evv has no headroom to boost
-                    # beyond its own real-world maximum.
-                    vol = max(0, min(65535, int(self.settings.volume / 100 * 65535)))
-                    lang_id = int(self.settings.openevv_language or 0x10000)
-                    base_cmd = [evv, "-v", str(voice_num), "-s", str(rate), "-V", str(vol), "-r"]
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                        tmp_path = tmp.name
-                    try:
-                        cmd = base_cmd + ["-L", hex(lang_id), "-o", tmp_path, text]
-                        proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-                        if proc.returncode != 0 and lang_id != 0x10000:
-                            # Dieser evv-Build hat die gewünschte Sprache nicht
-                            # gelinkt (z.B. älteres Binary) - lieber mit der
-                            # Standardsprache des Builds weitersprechen als
-                            # ganz auf espeak-ng auszuweichen.
-                            cmd = base_cmd + ["-o", tmp_path, text]
-                            proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-                        if proc.returncode != 0:
-                            if not self._evv_warned:
-                                self._evv_warned = True
-                                try:
-                                    self.frame.logger.write(
-                                        f"TTS: evv (Eloquence) abgestürzt/fehlgeschlagen "
-                                        f"(Code {proc.returncode}) {proc.stderr.decode('utf-8', 'ignore')} "
-                                        f"– Fallback auf espeak-ng"
-                                    )
-                                except Exception:
-                                    pass
-                        else:
-                            evv_ok = True
-                            if sys.platform == "win32":
-                                import winsound
-                                winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
-                            else:
-                                self._current_proc = subprocess.Popen(
-                                    ["afplay", tmp_path] if sys.platform == "darwin" else ["aplay", "-q", tmp_path],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                )
-                                self._current_proc.wait()
-                    finally:
-                        try:
-                            os.unlink(tmp_path)
-                        except Exception:
-                            pass
-                        self._current_proc = None
-                if evv_ok:
-                    continue
-                # Eloquence nicht verfügbar oder abgestürzt: mit espeak-ng weitersprechen,
-                # statt den Nutzer ohne jede Sprachausgabe stehen zu lassen.
-            if self.settings.backend == "macos_say" and sys.platform == "darwin":
-                cmd = ["say"]
-                voice = self.settings.macos_voice.strip()
-                if voice:
-                    cmd += ["-v", voice]
-                wpm = max(50, min(400, int(50 + self.settings.macos_rate * 350)))
-                cmd += ["-r", str(wpm), "--", text]
-                proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                self._current_proc = proc
-                proc.wait()
-                self._current_proc = None
-                continue
-            binary = self._resolve_binary()
-            if not binary:
-                if not self._missing_warned:
-                    self._missing_warned = True
-                    try:
-                        self.frame.logger.write("TTS: espeak-ng nicht gefunden")
-                    except Exception:
-                        pass
-                continue
-            env = self._build_env(binary)
-            mbrola_bin = self._resolve_mbrola_bin()
-            if mbrola_bin:
-                env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
+
+    def _schedule_duck_release(self) -> None:
+        # Kurz nachlaufen lassen: direkt folgende Ansagen sollen die
+        # Lautstärke nicht hoch- und gleich wieder runterfahren.
+        with self._duck_lock:
+            if self._duck_release_timer is not None:
+                self._duck_release_timer.cancel()
+            t = threading.Timer(0.4, self._set_speaking, args=(False,))
+            t.daemon = True
+            self._duck_release_timer = t
+        t.start()
+
+    def _speak_item(self, text: str, ctx_rate: int, ctx_voice: str) -> None:
+        if self.settings.backend == "voiceover" and sys.platform == "darwin":
+            escaped = text.replace("\\", "\\\\").replace('"', '\\"')
+            subprocess.run(
+                ["osascript", "-e", f'tell application "VoiceOver" to output "{escaped}"'],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            return
+        if self.settings.backend == "macos_avs" and sys.platform == "darwin":
             try:
-                eff_rate = ctx_rate if ctx_rate else self.settings.rate
-                eff_voice = ctx_voice if ctx_voice else (self.settings.voice or self.settings.language or "de")
-                selected = eff_voice
-
-                def run_espeak(voice: str, _rate: int = eff_rate):
-                    cmd = [
-                        binary, "-v", voice,
-                        "-s", str(_rate),
-                        "-a", str(self.settings.volume),
-                        "--stdout", text,
-                    ]
-                    return subprocess.run(
-                        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
-                    )
-
-                if sys.platform == "darwin":
-                    fallback_lang = self.settings.language or "en"
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                        tmp_path = tmp.name
-                    try:
-                        proc = run_espeak(selected)
-                        if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
-                            proc = run_espeak(fallback_lang)
-                        if proc.returncode != 0:
-                            try:
-                                if not self._stop.is_set():
-                                    self.frame.logger.write(
-                                        f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                                    )
-                            except Exception:
-                                pass
-                        elif proc.stdout:
-                            with open(tmp_path, "wb") as f:
-                                f.write(proc.stdout)
-                            self._current_proc = subprocess.Popen(
-                                ["afplay", tmp_path],
-                                stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL,
-                            )
-                            self._current_proc.wait()
-                    finally:
-                        try:
-                            os.unlink(tmp_path)
-                        except Exception:
-                            pass
-                elif sys.platform == "win32":
-                    import winsound
-                    fallback_lang = self.settings.language or "en"
-                    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                        tmp_path = tmp.name
-                    try:
-                        proc = run_espeak(selected)
-                        if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
-                            proc = run_espeak(fallback_lang)
-                        if proc.returncode != 0:
-                            try:
-                                if not self._stop.is_set():
-                                    self.frame.logger.write(
-                                        f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
-                                    )
-                            except Exception:
-                                pass
-                        elif proc.stdout:
-                            with open(tmp_path, "wb") as f:
-                                f.write(proc.stdout)
-                            winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
-                    finally:
-                        try:
-                            os.unlink(tmp_path)
-                        except Exception:
-                            pass
-                else:
-                    cmd = [
-                        binary,
-                        "-v",
-                        selected,
-                        "-s",
-                        str(eff_rate),
-                        "-a",
-                        str(self.settings.volume),
-                        text,
-                    ]
-                    self._current_proc = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                        env=env,
-                    )
-                    self._current_proc.wait()
+                import objc
+                AVSpeechSynthesizer = objc.lookUpClass("AVSpeechSynthesizer")
+                AVSpeechUtterance = objc.lookUpClass("AVSpeechUtterance")
+                AVSpeechSynthesisVoice = objc.lookUpClass("AVSpeechSynthesisVoice")
+                synth = AVSpeechSynthesizer.alloc().init()
+                utterance = AVSpeechUtterance.speechUtteranceWithString_(text)
+                utterance.setRate_(float(self.settings.macos_rate))
+                utterance.setVolume_(float(self.settings.macos_volume))
+                voice_name = self.settings.macos_voice.strip()
+                if voice_name:
+                    for _v in (AVSpeechSynthesisVoice.speechVoices() or []):
+                        if str(_v.name()) == voice_name:
+                            utterance.setVoice_(_v)
+                            break
+                synth.speakUtterance_(utterance)
+                while synth.isSpeaking() and not self._stop.is_set():
+                    time.sleep(0.05)
+                if synth.isSpeaking():
+                    synth.stopSpeakingAtBoundary_(0)
             except Exception:
                 pass
-            finally:
-                self._current_proc = None
+            return
+        if self.settings.backend == "openevv":
+            evv_ok = False
+            evv = self._resolve_evv_binary()
+            if not evv:
+                if not self._evv_warned:
+                    self._evv_warned = True
+                    try:
+                        self.frame.logger.write(
+                            "TTS: evv (openevv/Eloquence) nicht gefunden – Fallback auf espeak-ng"
+                        )
+                    except Exception:
+                        pass
+            else:
+                voice_num = max(1, min(8, int(self.settings.openevv_voice)))
+                rate = ctx_rate if ctx_rate else self.settings.rate
+                # -r ("real world units") takes volume on a 0-65535 scale
+                # (see eciToRealVolume in openevv's src/eci_convert.c), where
+                # 65535 is the engine's own normal/max loudness (ECI's default
+                # TTS_PARAM_VOLUME is 100/100, i.e. full scale) - not half of
+                # it. Our own volume setting is 0-200 (100 = normal, like
+                # espeak's -a), so 100 should map to 65535, not 32767; values
+                # above 100 clamp at 65535 since evv has no headroom to boost
+                # beyond its own real-world maximum.
+                vol = max(0, min(65535, int(self.settings.volume / 100 * 65535)))
+                lang_id = int(self.settings.openevv_language or 0x10000)
+                base_cmd = [evv, "-v", str(voice_num), "-s", str(rate), "-V", str(vol), "-r"]
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    cmd = base_cmd + ["-L", hex(lang_id), "-o", tmp_path, text]
+                    proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                    if proc.returncode != 0 and lang_id != 0x10000:
+                        # Dieser evv-Build hat die gewünschte Sprache nicht
+                        # gelinkt (z.B. älteres Binary) - lieber mit der
+                        # Standardsprache des Builds weitersprechen als
+                        # ganz auf espeak-ng auszuweichen.
+                        cmd = base_cmd + ["-o", tmp_path, text]
+                        proc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                    if proc.returncode != 0:
+                        if not self._evv_warned:
+                            self._evv_warned = True
+                            try:
+                                self.frame.logger.write(
+                                    f"TTS: evv (Eloquence) abgestürzt/fehlgeschlagen "
+                                    f"(Code {proc.returncode}) {proc.stderr.decode('utf-8', 'ignore')} "
+                                    f"– Fallback auf espeak-ng"
+                                )
+                            except Exception:
+                                pass
+                    else:
+                        evv_ok = True
+                        if sys.platform == "win32":
+                            import winsound
+                            winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
+                        else:
+                            self._current_proc = subprocess.Popen(
+                                ["afplay", tmp_path] if sys.platform == "darwin" else ["aplay", "-q", tmp_path],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            )
+                            self._current_proc.wait()
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+                    self._current_proc = None
+            if evv_ok:
+                return
+            # Eloquence nicht verfügbar oder abgestürzt: mit espeak-ng weitersprechen,
+            # statt den Nutzer ohne jede Sprachausgabe stehen zu lassen.
+        if self.settings.backend == "macos_say" and sys.platform == "darwin":
+            cmd = ["say"]
+            voice = self.settings.macos_voice.strip()
+            if voice:
+                cmd += ["-v", voice]
+            wpm = max(50, min(400, int(50 + self.settings.macos_rate * 350)))
+            cmd += ["-r", str(wpm), "--", text]
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self._current_proc = proc
+            proc.wait()
+            self._current_proc = None
+            return
+        binary = self._resolve_binary()
+        if not binary:
+            if not self._missing_warned:
+                self._missing_warned = True
+                try:
+                    self.frame.logger.write("TTS: espeak-ng nicht gefunden")
+                except Exception:
+                    pass
+            return
+        env = self._build_env(binary)
+        mbrola_bin = self._resolve_mbrola_bin()
+        if mbrola_bin:
+            env["PATH"] = f"{mbrola_bin.parent}{os.pathsep}{env.get('PATH','')}"
+        try:
+            eff_rate = ctx_rate if ctx_rate else self.settings.rate
+            eff_voice = ctx_voice if ctx_voice else (self.settings.voice or self.settings.language or "de")
+            selected = eff_voice
+
+            def run_espeak(voice: str, _rate: int = eff_rate):
+                cmd = [
+                    binary, "-v", voice,
+                    "-s", str(_rate),
+                    "-a", str(self.settings.volume),
+                    "--stdout", text,
+                ]
+                return subprocess.run(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+                )
+
+            if sys.platform == "darwin":
+                fallback_lang = self.settings.language or "en"
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    proc = run_espeak(selected)
+                    if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
+                        proc = run_espeak(fallback_lang)
+                    if proc.returncode != 0:
+                        try:
+                            if not self._stop.is_set():
+                                self.frame.logger.write(
+                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                )
+                        except Exception:
+                            pass
+                    elif proc.stdout:
+                        with open(tmp_path, "wb") as f:
+                            f.write(proc.stdout)
+                        self._current_proc = subprocess.Popen(
+                            ["afplay", tmp_path],
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        self._current_proc.wait()
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+            elif sys.platform == "win32":
+                import winsound
+                fallback_lang = self.settings.language or "en"
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+                    tmp_path = tmp.name
+                try:
+                    proc = run_espeak(selected)
+                    if proc.returncode != 0 and fallback_lang and fallback_lang != selected:
+                        proc = run_espeak(fallback_lang)
+                    if proc.returncode != 0:
+                        try:
+                            if not self._stop.is_set():
+                                self.frame.logger.write(
+                                    f"TTS: espeak-ng failed {proc.stderr.decode('utf-8', 'ignore')}"
+                                )
+                        except Exception:
+                            pass
+                    elif proc.stdout:
+                        with open(tmp_path, "wb") as f:
+                            f.write(proc.stdout)
+                        winsound.PlaySound(tmp_path, winsound.SND_FILENAME)
+                finally:
+                    try:
+                        os.unlink(tmp_path)
+                    except Exception:
+                        pass
+            else:
+                cmd = [
+                    binary,
+                    "-v",
+                    selected,
+                    "-s",
+                    str(eff_rate),
+                    "-a",
+                    str(self.settings.volume),
+                    text,
+                ]
+                self._current_proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    env=env,
+                )
+                self._current_proc.wait()
+        except Exception:
+            pass
+        finally:
+            self._current_proc = None

@@ -147,6 +147,9 @@ class AppSettings:
     tts_speak_system: bool = True
     tts_speak_own: bool = True
     tts_interrupt: bool = False
+    # v10.5.0 – TTS-Ducking (Roadmap Punkt 10)
+    tts_ducking_enabled: bool = True
+    tts_ducking_db: int = 12
     tts_language: str = "de"
     tts_voice: str = ""
     tts_rate: int = 175
@@ -410,6 +413,8 @@ class SettingsStore:
             self.settings.tts_speak_system = bool(data.get("tts_speak_system", True))
             self.settings.tts_speak_own = bool(data.get("tts_speak_own", True))
             self.settings.tts_interrupt = bool(data.get("tts_interrupt", False))
+            self.settings.tts_ducking_enabled = bool(data.get("tts_ducking_enabled", True))
+            self.settings.tts_ducking_db = int(data.get("tts_ducking_db", 12) or 12)
             self.settings.tts_language = str(data.get("tts_language", "de") or "de")
             self.settings.tts_voice = str(data.get("tts_voice", "") or "")
             self.settings.tts_rate = int(data.get("tts_rate", 175) or 175)
@@ -652,6 +657,8 @@ class SettingsStore:
             "tts_speak_system": bool(self.settings.tts_speak_system),
             "tts_speak_own": bool(self.settings.tts_speak_own),
             "tts_interrupt": bool(self.settings.tts_interrupt),
+            "tts_ducking_enabled": bool(self.settings.tts_ducking_enabled),
+            "tts_ducking_db": int(self.settings.tts_ducking_db),
             "tts_language": str(self.settings.tts_language or "de"),
             "tts_voice": str(self.settings.tts_voice or ""),
             "tts_rate": int(self.settings.tts_rate or 175),

@@ -84,6 +84,21 @@ class SystemTab(QWidget):
         row1.addStretch()
         tts_layout.addLayout(row1)
 
+        # v10.5.0 – TTS-Ducking (Roadmap Punkt 10)
+        duck_row = QHBoxLayout()
+        self.tts_ducking = QCheckBox(_("Kanalaudio &leiser, während die Sprachausgabe spricht"))
+        duck_row.addWidget(self.tts_ducking)
+        _lbl_duck_db = QLabel(_("Absenkung in dB (3–30):"))
+        duck_row.addWidget(_lbl_duck_db)
+        self.tts_ducking_db = QSpinBox()
+        self.tts_ducking_db.setRange(3, 30)
+        self.tts_ducking_db.setValue(12)
+        self.tts_ducking_db.setAccessibleName(_("Absenkung in dB"))
+        _lbl_duck_db.setBuddy(self.tts_ducking_db)
+        duck_row.addWidget(self.tts_ducking_db)
+        duck_row.addStretch()
+        tts_layout.addLayout(duck_row)
+
         backend_row = QHBoxLayout()
         backend_row.addWidget(QLabel(_("TTS-Engine:")))
         self.tts_backend = QComboBox()
@@ -221,6 +236,8 @@ class SystemTab(QWidget):
     def _bind_events(self) -> None:
         self.tts_enabled.stateChanged.connect(self._on_enable_changed)
         self.tts_interrupt.stateChanged.connect(self._apply_settings)
+        self.tts_ducking.stateChanged.connect(self._apply_settings)
+        self.tts_ducking_db.valueChanged.connect(self._apply_settings)
         self.tts_chat.stateChanged.connect(self._apply_settings)
         self.tts_private.stateChanged.connect(self._apply_settings)
         self.tts_system.stateChanged.connect(self._apply_settings)
@@ -271,6 +288,8 @@ class SystemTab(QWidget):
         s = self.window.tts.settings
         self.tts_enabled.setChecked(s.enabled)
         self.tts_interrupt.setChecked(s.interrupt)
+        self.tts_ducking.setChecked(s.ducking_enabled)
+        self.tts_ducking_db.setValue(max(3, min(30, int(s.ducking_db))))
         self.tts_chat.setChecked(s.speak_chat)
         self.tts_private.setChecked(s.speak_private)
         self.tts_system.setChecked(s.speak_system)
@@ -316,6 +335,8 @@ class SystemTab(QWidget):
         s = self.window.tts.settings
         s.enabled = self.tts_enabled.isChecked()
         s.interrupt = self.tts_interrupt.isChecked()
+        s.ducking_enabled = self.tts_ducking.isChecked()
+        s.ducking_db = int(self.tts_ducking_db.value())
         s.speak_chat = self.tts_chat.isChecked()
         s.speak_private = self.tts_private.isChecked()
         s.speak_system = self.tts_system.isChecked()
@@ -342,6 +363,8 @@ class SystemTab(QWidget):
         app.tts_speak_system = s.speak_system
         app.tts_speak_own = s.speak_own
         app.tts_interrupt = s.interrupt
+        app.tts_ducking_enabled = s.ducking_enabled
+        app.tts_ducking_db = s.ducking_db
         app.tts_language = s.language
         app.tts_voice = s.voice
         app.tts_rate = s.rate

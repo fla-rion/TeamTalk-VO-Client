@@ -532,7 +532,7 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <table>
 <tr><th>Element</th><th>Alt shortcut</th><th>Description</th></tr>
 <tr><td>PTT (checkbox)</td><td>Alt+P</td><td>Quickly toggle Push-to-Talk on/off</td></tr>
-<tr><td>Voice activation (checkbox)</td><td>Alt+S</td><td>Quickly toggle voice activation on/off</td></tr>
+<tr><td>Voice activation (checkbox)</td><td>Alt+S</td><td>Quickly toggle voice activation on/off – takes effect immediately, no "Apply Audio" needed (since v10.5.0)</td></tr>
 <tr><td>Video (checkbox)</td><td>Alt+V</td><td>Start/stop camera transmission</td></tr>
 <tr><td>Desktop (checkbox)</td><td>Alt+D</td><td>Start/stop desktop sharing</td></tr>
 <tr><td>Mute (checkbox)</td><td>Alt+T</td><td>Mutes all other users</td></tr>
@@ -758,6 +758,7 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <ul>
   <li><strong>TTS active</strong> (Alt+T): Enables voice output.</li>
   <li><strong>New message interrupts</strong> (Alt+N): Interrupts an ongoing announcement when a new one arrives.</li>
+  <li><strong>Lower channel audio while speech output is speaking</strong> (Alt+L, since v10.5.0): Lowers channel audio during an announcement by the configured amount (<strong>Reduction in dB</strong>, 3–30, default 12) and raises it again afterwards. Not available with the "VoiceOver" TTS engine, since its speaking duration is unknown.</li>
 </ul>
 
 <h2>What Should Be Read Aloud?</h2>

@@ -122,6 +122,7 @@ class TeamTalkClient:
         # connect() is even called.
         self.client = self.tt.TeamTalk()
         self._connected = False
+        self._ptt_transmitting = False
         self._drain_message_queue()
 
     def _apply_encryption_context(
@@ -732,11 +733,40 @@ class TeamTalkClient:
             return False
         return fn(self.client._tt)
 
+    # v10.5.0 – Sprachaktivierung (VA) und Dauer-Senden (TX_VOICE, d. h. PTT)
+    # dürfen im SDK nie gleichzeitig aktiv sein: Sind beide an, sendet der
+    # Client gar nichts mehr, und auch ein späteres Abschalten von TX hilft
+    # nicht – erst ein Neuöffnen des Eingabegeräts ("Audio anwenden") löst
+    # den Zustand wieder (gegen tt5srv lokal nachgemessen). Deshalb merkt
+    # sich der Wrapper die gewünschte VA und pausiert sie, solange PTT sendet.
+
     def enable_voice_transmission(self, enable: bool) -> bool:
-        return self.client.enableVoiceTransmission(enable)
+        """PTT: sendet dauerhaft, solange enable=True. Eine aktive
+        Sprachaktivierung wird dafür pausiert und danach wiederhergestellt."""
+        if enable:
+            if getattr(self, "_voice_activation_wanted", False):
+                self.tt._EnableVoiceActivation(self.client._tt, False)
+            self._ptt_transmitting = True
+            return self.client.enableVoiceTransmission(True)
+        self._ptt_transmitting = False
+        ok = self.client.enableVoiceTransmission(False)
+        if getattr(self, "_voice_activation_wanted", False):
+            self.tt._EnableVoiceActivation(self.client._tt, True)
+        return ok
 
     def enable_voice_activation(self, enable: bool) -> bool:
-        return self.tt._EnableVoiceActivation(self.client._tt, enable)
+        """Schaltet die Sprachaktivierung sofort scharf – ohne zusätzliches
+        enable_voice_transmission(True) und ohne "Audio anwenden"."""
+        self._voice_activation_wanted = bool(enable)
+        if getattr(self, "_ptt_transmitting", False):
+            # PTT hält gerade; VA wird beim Loslassen aktiviert.
+            return True
+        if enable:
+            self.client.enableVoiceTransmission(False)
+        return self.tt._EnableVoiceActivation(self.client._tt, bool(enable))
+
+    def is_voice_activation_enabled(self) -> bool:
+        return bool(getattr(self, "_voice_activation_wanted", False))
 
     def set_voice_activation_level(self, level: int) -> bool:
         return self.tt._SetVoiceActivationLevel(self.client._tt, level)
@@ -745,7 +775,32 @@ class TeamTalkClient:
         return self.tt._SetSoundInputGainLevel(self.client._tt, level)
 
     def set_sound_output_volume(self, level: int) -> bool:
-        return self.tt._SetSoundOutputVolume(self.client._tt, level)
+        # v10.5.0 – Grundlautstärke merken, damit TTS-Ducking sie nach der
+        # Ansage wiederherstellt; während einer Absenkung gilt sie abgesenkt.
+        self._output_volume_base = int(level)
+        return self.tt._SetSoundOutputVolume(self.client._tt, self._ducked_output_level())
+
+    def set_output_ducking(self, db: float) -> bool:
+        """v10.5.0 – Senkt das gesamte Kanalaudio um ``db`` Dezibel ab
+        (0 = keine Absenkung, Grundlautstärke wiederherstellen).
+
+        Die SDK-Ausgabelautstärke ist linear (SOUND_VOLUME_DEFAULT = 1000 =
+        Faktor 1), daher Faktor 10^(-dB/20).
+        """
+        if getattr(self, "_output_volume_base", None) is None:
+            try:
+                self._output_volume_base = int(self.tt._GetSoundOutputVolume(self.client._tt))
+            except Exception:
+                self._output_volume_base = 1000
+        self._output_duck_db = max(0.0, float(db))
+        return self.tt._SetSoundOutputVolume(self.client._tt, self._ducked_output_level())
+
+    def _ducked_output_level(self) -> int:
+        base = int(getattr(self, "_output_volume_base", None) or 0)
+        db = float(getattr(self, "_output_duck_db", 0.0) or 0.0)
+        if db <= 0:
+            return base
+        return int(round(base * 10 ** (-db / 20.0)))
 
     def set_sound_output_mute(self, enabled: bool) -> bool:
         return self.tt._SetSoundOutputMute(self.client._tt, bool(enabled))

@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.4.9"
+APP_VERSION = "10.5.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -254,6 +254,10 @@ class MainWindow(QMainWindow):
         self.tts.settings.channel_rate = getattr(_ts, "tts_channel_rate", 0) or 0
         self.tts.settings.chat_voice = getattr(_ts, "tts_chat_voice", "") or ""
         self.tts.settings.system_voice = getattr(_ts, "tts_system_voice", "") or ""
+        # v10.5.0 – TTS-Ducking: Kanalaudio absenken, solange TTS spricht
+        self.tts.settings.ducking_enabled = bool(getattr(_ts, "tts_ducking_enabled", True))
+        self.tts.settings.ducking_db = int(getattr(_ts, "tts_ducking_db", 12) or 12)
+        self.tts.on_speaking = lambda active: call_after(lambda: self._on_tts_speaking(active))
 
         self.sound_manager = SoundManager()
         self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
@@ -956,6 +960,15 @@ class MainWindow(QMainWindow):
             if _away_min > 0:
                 self._away_timer.start(_away_min * 60 * 1000)
             self.client.start_event_loop(self._handle_tt_message)
+            # v10.5.0 – Sprachaktivierung nach (Re-)Connect sofort wieder scharf
+            # schalten; der SDK-Client wird beim Verbinden neu erzeugt.
+            try:
+                if (bool(getattr(self.settings_store.settings, "voice_activation", False))
+                        or self.audio_tab.voice_activation.isChecked()):
+                    self.client.set_voice_activation_level(self.audio_tab.voice_level.value())
+                    self.client.enable_voice_activation(True)
+            except Exception:
+                pass
             # Zweiter Refresh nach 1 s – Timing-Fallback falls SDK-Cache noch nicht vollständig
             QTimer.singleShot(1000, self._refresh_channels)
         else:
@@ -1759,6 +1772,15 @@ class MainWindow(QMainWindow):
             self.set_status("Audio-Einstellungen übernommen")
         except Exception as exc:
             self.set_status(f"Audio-Fehler: {exc}")
+
+    def _on_tts_speaking(self, active: bool) -> None:
+        """v10.5.0 – TTS-Ducking (Roadmap Punkt 10), läuft im UI-Thread."""
+        s = self.tts.settings
+        db = s.ducking_db if (active and s.ducking_enabled) else 0
+        try:
+            self.client.set_output_ducking(db)
+        except Exception:
+            pass
 
     def set_voice_activation(self, enabled: bool) -> None:
         try:

@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.0)
+Voice activation takes effect immediately + TTS ducking
+
+- **Improved: voice activation unmutes immediately – no "Apply Audio"
+  needed anymore.** Enabling it also switched on continuous transmission
+  (like a held PTT key); in the TeamTalk SDK this combination stalls the
+  audio input, so nothing reached the channel until the devices were
+  reopened via "Apply Audio". Voice activation and PTT are now cleanly
+  separated: PTT only pauses an active voice activation while the key is
+  held. Applies to the checkbox, menu, hotkey, saved audio settings and
+  reconnects (macOS, Windows, Linux). Level and stop delay are applied
+  right away.
+- **New: TTS ducking (roadmap item 10).** While speech output is talking,
+  channel audio is automatically lowered and raised back to the configured
+  level afterwards. Several announcements in a row cause only one dip.
+  Configurable under speech output: "Lower channel audio while speech
+  output is speaking" (on by default) and "Reduction in dB" (3–30,
+  default 12). Not available with the "VoiceOver" TTS engine, since its
+  speaking duration is unknown.
+
 2026-10-02 (v10.4.9)
 Bugfix (macOS): crash shortly after launch when an update is available
 

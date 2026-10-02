@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.0)
+La activación por voz actúa al instante + atenuación durante la voz
+
+- **Mejorado: la activación por voz reactiva el micrófono al instante – ya
+  no hace falta «Aplicar audio».** Al activarla se encendía también la
+  transmisión continua (como una tecla PTT pulsada); en el SDK de TeamTalk
+  esa combinación bloquea la entrada de audio y no llegaba nada al canal
+  hasta reabrir los dispositivos. Activación por voz y PTT ahora están
+  separados: el PTT solo pausa la activación por voz mientras se mantiene
+  la tecla (macOS, Windows, Linux).
+- **Nuevo: atenuación durante la voz (hoja de ruta, punto 10).** Mientras
+  habla la síntesis de voz, el audio del canal baja automáticamente y
+  luego se restablece. Configurable: «Bajar el audio del canal mientras
+  habla la voz» (activado por defecto) y «Reducción en dB» (3–30, 12 por
+  defecto). No disponible con el motor «VoiceOver».
+
 2026-10-02 (v10.4.9)
 Corrección (macOS): cierre inesperado poco después del inicio si hay una actualización
 

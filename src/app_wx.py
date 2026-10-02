@@ -78,7 +78,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.4.9"
+APP_VERSION = "10.5.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -658,6 +658,10 @@ class MainFrame(wx.Frame):
         self.tts.settings.channel_rate = int(getattr(_ts, "tts_channel_rate", 0) or 0)
         self.tts.settings.chat_voice = str(getattr(_ts, "tts_chat_voice", "") or "")
         self.tts.settings.system_voice = str(getattr(_ts, "tts_system_voice", "") or "")
+        # v10.5.0 – TTS-Ducking: Kanalaudio absenken, solange TTS spricht
+        self.tts.settings.ducking_enabled = bool(getattr(_ts, "tts_ducking_enabled", True))
+        self.tts.settings.ducking_db = int(getattr(_ts, "tts_ducking_db", 12) or 12)
+        self.tts.on_speaking = lambda active: wx.CallAfter(self._on_tts_speaking, active)
         self.sound_manager = SoundManager()
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
         # v2.1.0 – Auto-Reconnect persistent
@@ -4956,16 +4960,33 @@ class MainFrame(wx.Frame):
         at.ptt_toggle.SetValue(new_val)
         at.on_ptt_toggle(None)
 
+    def _on_tts_speaking(self, active: bool) -> None:
+        """v10.5.0 – TTS-Ducking (Roadmap Punkt 10), läuft im UI-Thread."""
+        s = self.tts.settings
+        db = s.ducking_db if (active and s.ducking_enabled) else 0
+        try:
+            self.client.set_output_ducking(db)
+        except Exception:
+            pass
+
     def on_menu_audio_va(self, _event):
-        enabled = not self.audio_tab.voice_activation.GetValue()
+        self.set_voice_activation(not self.audio_tab.voice_activation.GetValue())
+
+    def set_voice_activation(self, enabled: bool) -> None:
+        """v10.5.0 – Sprachaktivierung ein/aus, wirkt sofort (Checkbox, Menü).
+
+        Übernimmt dabei Pegel und Nachlauf aus dem Audio-Tab, damit kein
+        "Audio anwenden" mehr nötig ist. Die PTT-/VA-Verriegelung liegt in
+        TeamTalkClient.enable_voice_activation().
+        """
         if enabled and not self._check_input_device_configured():
+            self.audio_tab.voice_activation.SetValue(False)
             return
         self.audio_tab.voice_activation.SetValue(enabled)
+        if enabled:
+            self.client.set_voice_activation_level(int(self.audio_tab.voice_level.GetValue()))
+            self.client.set_voice_activation_stop_delay(int(self.audio_tab.va_delay.GetValue()))
         self.client.enable_voice_activation(enabled)
-        if enabled and not self._ptt_enabled:
-            self.client.enable_voice_transmission(True)
-        if not enabled and not self._ptt_enabled:
-            self.client.enable_voice_transmission(False)
         self.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
 
     def on_menu_audio_apply(self, _event):
@@ -8711,8 +8732,10 @@ class MainFrame(wx.Frame):
             # v2.3.0 – Auto-Kanal nach Name beitreten
             elif getattr(self.settings_store.settings, "auto_join_channel_per_server", None):
                 wx.CallLater(900, self._auto_join_channel_by_name)
-            if self.audio_tab.voice_activation.GetValue() and not self._ptt_enabled:
-                self.client.enable_voice_transmission(True)
+            if self.audio_tab.voice_activation.GetValue():
+                self.client.set_voice_activation_level(int(self.audio_tab.voice_level.GetValue()))
+                self.client.set_voice_activation_stop_delay(int(self.audio_tab.va_delay.GetValue()))
+                self.client.enable_voice_activation(True)
             if self.admin_tab is not None:
                 self.admin_tab.check_admin_visibility()
             api_key = self.settings_store.settings.elevenlabs_api_key or ""

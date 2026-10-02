@@ -481,11 +481,12 @@ class AudioTab(QWidget):
     def on_voice_activation(self, *_) -> None:
         enabled = self.voice_activation.isChecked()
         try:
+            # v10.5.0 – wirkt sofort; kein zusätzliches
+            # enable_voice_transmission(True) (blockiert VA im SDK, siehe
+            # TeamTalkClient.enable_voice_activation).
+            if enabled:
+                self.window.client.set_voice_activation_level(self.voice_level.value())
             self.window.client.enable_voice_activation(enabled)
-            if enabled and not self.window._ptt_enabled:
-                self.window.client.enable_voice_transmission(True)
-            if not enabled and not self.window._ptt_enabled:
-                self.window.client.enable_voice_transmission(False)
         except Exception:
             pass
         self.window.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")

@@ -113,9 +113,9 @@ Wetteransage per TTS – beim Verbinden, zu festen Zeiten oder per Menüpunkt "W
 
 ---
 
-## 10. TTS-Ducking bei Kanalaudio-Überlappung – für v10.5.0 vorgesehen
+## 10. ~~TTS-Ducking bei Kanalaudio-Überlappung~~ – erledigt in v10.5.0
 
-🟢 · Eigene Idee, kein bestehendes Feature im Code (gegengecheckt).
+✅ 🟢 · Eigene Idee, kein bestehendes Feature im Code (gegengecheckt). Umgesetzt über einen Sprech-Callback im TTS-Worker (`tts.py`, mit kurzem Nachlauf gegen Pumpen bei Ansagefolgen) und `TeamTalkClient.set_output_ducking()`, das die zuletzt gesetzte Grundlautstärke absenkt bzw. wiederherstellt – wx + Qt, Einstellungen "Kanalaudio leiser, während die Sprachausgabe spricht" und "Absenkung in dB" (3–30, Standard 12). VoiceOver-Backend ausgenommen (Sprechdauer unbekannt).
 
 Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldungen), wird das eingehende Kanalaudio bisher nicht leiser – Verständlichkeitsproblem bei überlappender Sprache. Neu: eingehende Lautstärke automatisch kurz absenken, solange TTS aktiv spricht (Hook an bestehenden `tts.py`-Sprechzyklus), danach wieder auf Ausgangswert zurückfahren. Einstellbar: Ducking an/aus, Absenkung in dB. Kein Neubau einer Audio-Pipeline nötig, nur ein Aufsatz auf vorhandene Lautstärkeregelung.
 
@@ -186,7 +186,7 @@ Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Informatio
 | ✅ v10.2.0 | Multi-Deck-Mischer (2) | 🔴→🟡 | Crossfade-Überblenden statt echtem Mix (SDK-Grenze) |
 | ✅ v10.2.0 | Geräte-Sync (7) | 🔴 | HMAC-Auth, mDNS, Keychain-Secrets, wx + Qt |
 | ✅ v10.4.0 | Wetter-Ansage (9) | 🟢 | Open-Meteo, plattformunabhängiger Scheduler, wx + Qt |
-| geplant v10.5.0 | TTS-Ducking (10) | 🟢 | Aufsatz auf vorhandene Lautstärkeregelung |
+| ✅ v10.5.0 | TTS-Ducking (10) | 🟢 | Aufsatz auf vorhandene Lautstärkeregelung, wx + Qt |
 | geplant v10.6.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
 | geplant v10.7.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
 | geplant v10.8.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |

@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.0)
+L'activation vocale agit immédiatement + atténuation pendant la synthèse vocale
+
+- **Amélioré : l'activation vocale réactive le micro immédiatement – plus
+  besoin d'« Appliquer l'audio ».** Son activation déclenchait aussi la
+  transmission continue (comme une touche PTT maintenue) ; dans le SDK
+  TeamTalk, cette combinaison bloque l'entrée audio, rien n'arrivait dans
+  le canal tant que les périphériques n'étaient pas rouverts. Activation
+  vocale et PTT sont maintenant séparés : le PTT ne met l'activation
+  vocale en pause que tant que la touche est maintenue (macOS, Windows,
+  Linux).
+- **Nouveau : atténuation pendant la synthèse vocale (feuille de route,
+  point 10).** Pendant une annonce, l'audio du canal est baissé
+  automatiquement puis rétabli. Réglable : « Baisser l'audio du canal
+  pendant la synthèse vocale » (activé par défaut) et « Atténuation en
+  dB » (3–30, 12 par défaut). Non disponible avec le moteur « VoiceOver ».
+
 2026-10-02 (v10.4.9)
 Correctif (macOS) : plantage peu après le démarrage si une mise à jour est disponible
 

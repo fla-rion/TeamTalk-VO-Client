@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING
 
 import wx
 
+from ui_wx.accessible_controls import AccessibleSpinCtrl
+
 from i18n import _
 from tts import EVV_LANGUAGES
 from ui_wx.a11y import setup_list_accessible
@@ -96,6 +98,18 @@ class SystemTab(wx.Panel):
         row1.Add(self.tts_enabled, 0, wx.RIGHT, 12)
         row1.Add(self.tts_interrupt, 0)
         tts_sizer.Add(row1, 0, wx.ALL, 6)
+
+        # v10.5.0 – TTS-Ducking (Roadmap Punkt 10)
+        duck_row = wx.BoxSizer(wx.HORIZONTAL)
+        self.tts_ducking = wx.CheckBox(self, label="Kanalaudio &leiser, während die Sprachausgabe spricht")
+        self.tts_ducking.SetName("Kanalaudio leiser, während die Sprachausgabe spricht")
+        duck_row.Add(self.tts_ducking, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
+        self._lbl_tts_ducking_db = wx.StaticText(self, label="Absenkung in dB (3–30):")
+        duck_row.Add(self._lbl_tts_ducking_db, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self.tts_ducking_db = AccessibleSpinCtrl(self, min=3, max=30, inc=1, initial=12)
+        self.tts_ducking_db.SetName("Absenkung in dB")
+        duck_row.Add(self.tts_ducking_db, 0)
+        tts_sizer.Add(duck_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         backend_row = wx.BoxSizer(wx.HORIZONTAL)
         backend_row.Add(wx.StaticText(self, label="TTS-Engine:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
@@ -269,6 +283,10 @@ class SystemTab(wx.Panel):
     def _bind_events(self):
         self.tts_enabled.Bind(wx.EVT_CHECKBOX, self._on_enable_changed)
         self.tts_interrupt.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_ducking.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        _duck_db_text = self.tts_ducking_db.GetTextCtrl()
+        _duck_db_text.Bind(wx.EVT_TEXT, self._apply_settings)
+        _duck_db_text.Bind(wx.EVT_KEY_UP, lambda e: (self._apply_settings(e), e.Skip()))
         self.tts_chat.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_private.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_system.Bind(wx.EVT_CHECKBOX, self._apply_settings)
@@ -305,6 +323,8 @@ class SystemTab(wx.Panel):
         s = self.frame.tts.settings
         self.tts_enabled.SetValue(s.enabled)
         self.tts_interrupt.SetValue(s.interrupt)
+        self.tts_ducking.SetValue(s.ducking_enabled)
+        self.tts_ducking_db.SetValue(max(3, min(30, int(s.ducking_db))))
         self.tts_chat.SetValue(s.speak_chat)
         self.tts_private.SetValue(s.speak_private)
         self.tts_system.SetValue(s.speak_system)
@@ -356,6 +376,8 @@ class SystemTab(wx.Panel):
         s = self.frame.tts.settings
         s.enabled = self.tts_enabled.GetValue()
         s.interrupt = self.tts_interrupt.GetValue()
+        s.ducking_enabled = self.tts_ducking.GetValue()
+        s.ducking_db = int(self.tts_ducking_db.GetValue())
         s.speak_chat = self.tts_chat.GetValue()
         s.speak_private = self.tts_private.GetValue()
         s.speak_system = self.tts_system.GetValue()
@@ -399,6 +421,8 @@ class SystemTab(wx.Panel):
         app.tts_speak_system = s.speak_system
         app.tts_speak_own = s.speak_own
         app.tts_interrupt = s.interrupt
+        app.tts_ducking_enabled = s.ducking_enabled
+        app.tts_ducking_db = s.ducking_db
         app.tts_language = s.language
         app.tts_voice = s.voice
         app.tts_rate = s.rate
