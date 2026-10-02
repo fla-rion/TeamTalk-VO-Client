@@ -55,7 +55,9 @@ class AccessibleSpinCtrl(wx.Panel):
         self._spin.SetRange(0, 1_000_000)
         self._spin.SetValue(self._last_spin_pos)
 
-        sizer.Add(self._text, 1, wx.EXPAND | wx.ALIGN_CENTER_VERTICAL)
+        # v10.5.0 – kein wx.ALIGN_CENTER_VERTICAL zusammen mit wx.EXPAND: wx 3.3
+        # bricht den Aufbau mit einer Sizer-Assertion ab (App-Start/Dialog).
+        sizer.Add(self._text, 1, wx.EXPAND)
         sizer.Add(self._spin, 0, wx.ALIGN_CENTER_VERTICAL)
         self.SetSizerAndFit(sizer)
 
