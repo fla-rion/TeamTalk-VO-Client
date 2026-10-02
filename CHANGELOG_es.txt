@@ -1,6 +1,18 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.1)
+Correcciones: ajustes perdidos al reiniciar, voz muda
+
+- **Corrección: 46 ajustes nunca se guardaban** y volvían a su valor por
+  defecto en cada reinicio (motor TTS, voz de macOS, anuncio del tiempo,
+  favoritos de radio, saludo automático, etc.). Ahora se guardan todos los
+  ajustes; los existentes se conservan.
+- **Corrección: la voz (espeak-ng) quedaba muda si el campo «ruta de
+  espeak-ng» no contenía un programa válido.** Una ruta no válida ahora se
+  ignora y se usa el espeak-ng incluido.
+- **Corrección (macOS): el diálogo «Posición 3D» no se abría.** (ya corregido en la versión 10.5.0 republicada)
+
 2026-10-02 (v10.5.0)
 La activación por voz actúa al instante + atenuación durante la voz
 

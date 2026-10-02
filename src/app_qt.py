@@ -72,7 +72,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "10.5.0"
+APP_VERSION = "10.5.1"
 
 
 def _start_demo_dialog_suppressor() -> None:

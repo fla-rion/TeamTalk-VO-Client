@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.1)
+Correctifs : réglages perdus au redémarrage, synthèse vocale muette
+
+- **Correctif : 46 réglages n'étaient jamais enregistrés** et revenaient à
+  leur valeur par défaut à chaque redémarrage (moteur TTS, voix macOS,
+  annonce météo, favoris radio, salutation automatique, etc.). Tous les
+  réglages sont désormais enregistrés ; les réglages existants sont
+  conservés.
+- **Correctif : la synthèse vocale (espeak-ng) restait muette si le champ
+  « chemin espeak-ng » ne contenait pas de programme valide.** Un chemin
+  invalide est maintenant ignoré et l'espeak-ng intégré est utilisé.
+- **Correctif (macOS) : la boîte de dialogue « Position 3D » ne s'ouvrait
+  pas.** (déjà corrigé dans la version 10.5.0 republiée)
+
 2026-10-02 (v10.5.0)
 L'activation vocale agit immédiatement + atténuation pendant la synthèse vocale
 

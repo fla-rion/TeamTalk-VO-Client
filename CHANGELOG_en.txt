@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.1)
+Bugfixes: settings lost on restart, silent speech output
+
+- **Bugfix: 46 settings were never saved** and reset to their defaults on
+  every restart – including TTS engine, macOS voice/rate/volume, Eloquence
+  voice, weather announcements, radio favourites, channel favourites,
+  auto-greeting, background notifications and spatial audio. The settings
+  database only stored explicitly listed fields. All settings are now
+  saved, including ones added in the future. Existing settings are kept.
+- **Bugfix: speech output (espeak-ng) stayed silent if the "espeak-ng
+  path" field did not contain a valid program** (e.g. accidentally typed
+  text). An invalid path is now ignored and the bundled espeak-ng is used;
+  a note is written to the log.
+- **Bugfix (macOS): the "3D position" dialog could not open** (same sizer
+  cause as the startup abort; already fixed in the re-published 10.5.0
+  build, listed here for completeness).
+
 2026-10-02 (v10.5.0)
 Voice activation takes effect immediately + TTS ducking
 

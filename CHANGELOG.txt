@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-02 (v10.5.1)
+Bugfixes: Einstellungen gingen beim Neustart verloren, stumme Sprachausgabe
+
+- **Bugfix: 46 Einstellungen wurden nie gespeichert** und standen nach jedem
+  Neustart wieder auf Standard – u. a. TTS-Engine, macOS-Stimme/-Tempo/
+  -Lautstärke, Eloquence-Stimme, Wetter-Ansage, Radio-Favoriten,
+  Kanal-Favoriten, Auto-Begrüßung, Hintergrund-Benachrichtigungen und
+  räumliches Audio. Ursache: Die Einstellungsdatenbank speicherte nur
+  ausdrücklich aufgeführte Felder. Jetzt werden alle Einstellungen
+  gespeichert, auch künftig neu hinzukommende. Bestehende Einstellungen
+  bleiben unverändert erhalten.
+- **Bugfix: Sprachausgabe (espeak-ng) blieb stumm, wenn im Feld
+  "espeak-ng Pfad" kein gültiges Programm stand** (z. B. versehentlich
+  eingetippter Text). Ein ungültiger Pfad wird jetzt ignoriert und das
+  mitgelieferte espeak-ng verwendet; ein Hinweis landet im Log.
+- **Bugfix (macOS): Der Dialog "3D-Position" konnte sich nicht öffnen**
+  (gleiche Sizer-Ursache wie der Startabbruch; bereits im neu
+  veröffentlichten 10.5.0-Build behoben, hier nachgetragen).
+
 2026-10-02 (v10.5.0)
 Sprachaktivierung wirkt sofort + TTS-Ducking
 

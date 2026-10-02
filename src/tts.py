@@ -132,8 +132,20 @@ class TTSManager:
         self._stop_current()
 
     def _resolve_binary(self) -> Optional[str]:
-        if self.settings.espeak_path:
-            return self.settings.espeak_path
+        custom = (self.settings.espeak_path or "").strip()
+        if custom:
+            # v10.5.1 – nur verwenden, wenn dort wirklich ein Programm liegt;
+            # sonst blieb die Sprachausgabe stumm (z. B. Testtext im Pfadfeld).
+            if os.path.isfile(custom) and os.access(custom, os.X_OK):
+                return custom
+            if not getattr(self, "_bad_path_warned", False):
+                self._bad_path_warned = True
+                try:
+                    self.frame.logger.write(
+                        f"TTS: espeak-ng Pfad ungültig ({custom!r}) – verwende Standard-espeak-ng"
+                    )
+                except Exception:
+                    pass
         exe_name = "espeak-ng.exe" if sys.platform == "win32" else "espeak-ng"
         # Prefer local app-data copy if available
         if self._local_espeak_dir:

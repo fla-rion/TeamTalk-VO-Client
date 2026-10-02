@@ -24,6 +24,56 @@ from ui.models import AppSettings, ServerProfile
 # Datenbank-Kern
 # ---------------------------------------------------------------------------
 
+class _KeyRecorder:
+    """v10.5.1 – Merkt sich, welche Schlüssel load()/save() ausdrücklich
+    lesen bzw. schreiben, damit der generische Durchlauf nur den Rest
+    übernimmt."""
+
+    def __init__(self, db: "SettingsDB") -> None:
+        self._db = db
+        self.keys: set = set()
+
+    def get(self, key: str, default: str = "") -> str:
+        self.keys.add(key)
+        return self._db.get(key, default)
+
+    def set(self, key: str, value: str) -> None:
+        self.keys.add(key)
+        self._db.set(key, value)
+
+    def commit(self) -> None:
+        self._db.commit()
+
+
+def _coerce_like(value, current):
+    """Wandelt einen JSON-Wert in den Typ des aktuellen (Default-)Werts um;
+    wirft ValueError, wenn das nicht sinnvoll geht."""
+    if isinstance(current, bool):
+        if isinstance(value, (bool, int)):
+            return bool(value)
+        raise ValueError("bool erwartet")
+    if isinstance(current, int):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return int(value)
+        raise ValueError("int erwartet")
+    if isinstance(current, float):
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+        raise ValueError("float erwartet")
+    if isinstance(current, str):
+        if value is None:
+            raise ValueError("str erwartet")
+        return str(value)
+    if isinstance(current, list):
+        if isinstance(value, list):
+            return value
+        raise ValueError("list erwartet")
+    if isinstance(current, dict):
+        if isinstance(value, dict):
+            return value
+        raise ValueError("dict erwartet")
+    return value
+
 class SettingsDB:
     """Öffnet/erstellt die SQLite-Datenbank und stellt die Verbindung bereit."""
 
@@ -136,7 +186,7 @@ class SQLiteSettingsStore:
 
     def load(self) -> None:
         s = self.settings
-        db = self._db
+        db = _KeyRecorder(self._db)
 
         def _bool(key: str, default: bool) -> bool:
             raw = db.get(key)
@@ -392,9 +442,23 @@ class SQLiteSettingsStore:
         # v7.1.0
         s.notification_rules = _list("notification_rules")
 
+        # v10.5.1 – alle übrigen AppSettings-Felder generisch laden (bisher
+        # gingen 46 Einstellungen, z. B. TTS-Engine oder Wetter-Ansage, bei
+        # jedem Neustart verloren, weil sie hier nie aufgeführt waren).
+        for f in dataclasses.fields(AppSettings):
+            if f.name in db.keys:
+                continue
+            raw = self._db.get(f.name)
+            if raw == "":
+                continue
+            try:
+                setattr(s, f.name, _coerce_like(json.loads(raw), getattr(s, f.name)))
+            except Exception:
+                pass
+
     def save(self) -> None:
         s = self.settings
-        db = self._db
+        db = _KeyRecorder(self._db)
 
         def _set(key: str, value) -> None:
             db.set(key, json.dumps(value))
@@ -592,6 +656,15 @@ class SQLiteSettingsStore:
         _set("auto_reply_text", str(getattr(s, "auto_reply_text", "") or ""))
         # v7.1.0
         _set("notification_rules", list(getattr(s, "notification_rules", []) or []))
+
+        # v10.5.1 – alle übrigen AppSettings-Felder generisch speichern
+        for f in dataclasses.fields(AppSettings):
+            if f.name in db.keys:
+                continue
+            try:
+                self._db.set(f.name, json.dumps(getattr(s, f.name)))
+            except (TypeError, ValueError):
+                pass
 
         db.commit()
 
