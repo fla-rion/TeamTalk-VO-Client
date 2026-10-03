@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-03 (v10.5.2)
+Correction : coupures/« bégaiement » audio avec des pilotes audio virtuels installés (ex. Loopback)
+
+- **Le moniteur de branchement CoreAudio déclenchait des redémarrages
+  inutiles et incessants du système audio avec certains pilotes audio
+  virtuels installés** (ex. « Loopback » de Rogue Amoeba), audibles
+  comme un bégaiement/des coupures dans sa propre voix pendant un appel -
+  que le microphone intégré ou un périphérique virtuel soit sélectionné
+  comme entrée. Ces pilotes peuvent signaler des changements de
+  périphérique CoreAudio très fréquemment même sans changement réel de
+  la liste des périphériques (reconfiguration interne de leur moteur de
+  capture audio) ; chaque notification déclenchait jusqu'ici, sans
+  filtrage, un cycle complet de fermeture+redémarrage (micro/sortie
+  brièvement fermés), le moniteur transmettant chaque notification
+  depuis la v10.4.7. Il compare désormais une signature peu coûteuse lue
+  directement depuis CoreAudio (identifiants des périphériques + entrée/
+  sortie par défaut) avant de transmettre ; le cycle de redémarrage ne
+  s'exécute plus que si quelque chose a réellement changé.
+
 2026-10-02 (v10.5.1)
 Correctifs : réglages perdus au redémarrage, synthèse vocale muette
 

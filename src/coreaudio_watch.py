@@ -71,6 +71,23 @@ def _load_coreaudio() -> ctypes.CDLL:
         _LISTENER_PROC,
         ctypes.c_void_p,
     ]
+    lib.AudioObjectGetPropertyDataSize.restype = OSStatus
+    lib.AudioObjectGetPropertyDataSize.argtypes = [
+        AudioObjectID,
+        ctypes.POINTER(AudioObjectPropertyAddress),
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_uint32),
+    ]
+    lib.AudioObjectGetPropertyData.restype = OSStatus
+    lib.AudioObjectGetPropertyData.argtypes = [
+        AudioObjectID,
+        ctypes.POINTER(AudioObjectPropertyAddress),
+        ctypes.c_uint32,
+        ctypes.c_void_p,
+        ctypes.POINTER(ctypes.c_uint32),
+        ctypes.c_void_p,
+    ]
     return lib
 
 
@@ -80,6 +97,19 @@ class CoreAudioDeviceWatcher:
     `callback` wird auf einem CoreAudio-eigenen Thread aufgerufen -- der
     Aufrufer ist dafür zuständig, in den UI-Hauptthread zu marshalen
     (z. B. via `wx.CallAfter`) und ggf. zu entprellen.
+
+    Manche virtuellen Audiotreiber (z. B. Rogue Amoebas "Loopback") melden
+    `kAudioHardwarePropertyDevices`/Default-Geräte-Wechsel sehr häufig,
+    auch ohne dass sich an der Geräteliste wirklich etwas ändert (interne
+    Neukonfiguration ihrer Audio-Capture-Engine). Da der Aufrufer auf jede
+    Meldung mit einem vollen `TT_RestartSoundSystem()`-Zyklus reagiert
+    (Mikrofon/Ausgabe kurz schließen+neu öffnen), würde ungefiltertes
+    Weiterleiten bei so einem Treiber zu ständigen, hörbaren Tonaussetzern
+    führen -- unabhängig vom gewählten Gerät, da jeder Zyklus alle Geräte
+    betrifft. Deshalb wird vor jedem Callback-Aufruf eine billige,
+    treiberunabhängige Signatur (Geräte-IDs + Default-In/Out) direkt per
+    CoreAudio gelesen; der Callback feuert nur, wenn sie sich wirklich
+    geändert hat.
     """
 
     def __init__(self) -> None:
@@ -89,6 +119,48 @@ class CoreAudioDeviceWatcher:
         self._c_listener = None
         self._addresses: List[AudioObjectPropertyAddress] = []
         self._lock = threading.Lock()
+        self._sig_lock = threading.Lock()
+        self._last_signature = None
+
+    def _read_signature(self):
+        """Liest Geräte-IDs + Default-In/Out direkt von CoreAudio (billig,
+        kein SDK-Zugriff). None bei Fehler (Signatur bleibt dann unverändert
+        -- lieber einen Callback zu viel als einen zu wenig)."""
+        lib = self._lib
+        if lib is None:
+            return None
+        try:
+            devices_addr = AudioObjectPropertyAddress(_K_PROP_DEVICES, _K_SCOPE_GLOBAL, _K_ELEMENT_MAIN)
+            size = ctypes.c_uint32(0)
+            status = lib.AudioObjectGetPropertyDataSize(
+                _K_SYSTEM_OBJECT, ctypes.byref(devices_addr), 0, None, ctypes.byref(size)
+            )
+            if status != 0 or size.value == 0:
+                return None
+            count = size.value // ctypes.sizeof(AudioObjectID)
+            buf = (AudioObjectID * count)()
+            got_size = ctypes.c_uint32(size.value)
+            status = lib.AudioObjectGetPropertyData(
+                _K_SYSTEM_OBJECT, ctypes.byref(devices_addr), 0, None, ctypes.byref(got_size), buf
+            )
+            if status != 0:
+                return None
+            device_ids = frozenset(int(x) for x in buf)
+
+            def _read_default(selector: int) -> int:
+                addr = AudioObjectPropertyAddress(selector, _K_SCOPE_GLOBAL, _K_ELEMENT_MAIN)
+                val = AudioObjectID(0)
+                sz = ctypes.c_uint32(ctypes.sizeof(val))
+                st = lib.AudioObjectGetPropertyData(
+                    _K_SYSTEM_OBJECT, ctypes.byref(addr), 0, None, ctypes.byref(sz), ctypes.byref(val)
+                )
+                return int(val.value) if st == 0 else -1
+
+            default_in = _read_default(_K_PROP_DEFAULT_INPUT)
+            default_out = _read_default(_K_PROP_DEFAULT_OUTPUT)
+            return (device_ids, default_in, default_out)
+        except Exception:
+            return None
 
     def start(self, callback: Callable[[], None]) -> bool:
         if not _IS_MAC:
@@ -103,14 +175,23 @@ class CoreAudioDeviceWatcher:
                 return False
 
             self._callback = callback
+            self._last_signature = self._read_signature()
 
             def _proc(_object_id, _num_addresses, _addresses, _client_data):
                 cb = self._callback
-                if cb is not None:
-                    try:
+                if cb is None:
+                    return 0
+                try:
+                    sig = self._read_signature()
+                    changed = True
+                    with self._sig_lock:
+                        if sig is not None:
+                            changed = sig != self._last_signature
+                            self._last_signature = sig
+                    if changed:
                         cb()
-                    except Exception:
-                        pass
+                except Exception:
+                    pass
                 return 0
 
             self._c_listener = _LISTENER_PROC(_proc)
@@ -148,6 +229,8 @@ class CoreAudioDeviceWatcher:
             self._c_listener = None
             self._callback = None
             self._listening = False
+            with self._sig_lock:
+                self._last_signature = None
 
     def is_listening(self) -> bool:
         return self._listening

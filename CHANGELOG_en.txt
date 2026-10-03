@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-10-03 (v10.5.2)
+Bugfix: audio dropouts/"stuttering" with virtual audio drivers installed (e.g. Loopback)
+
+- **The CoreAudio hotplug watcher triggered constant, unnecessary sound-
+  system restarts with some virtual audio drivers installed** (e.g.
+  Rogue Amoeba's "Loopback"), audible as stuttering/dropouts in your own
+  voice during a call - regardless of whether the built-in microphone or
+  a virtual device was selected as input. Such drivers can report
+  CoreAudio device-change notifications very frequently even when the
+  device list hasn't actually changed (internal reconfiguration of their
+  audio capture engine); every notification used to trigger a full
+  close+restart cycle unfiltered (briefly closing mic/output), since the
+  watcher has forwarded every notification since v10.4.7. It now compares
+  a cheap signature read directly from CoreAudio (device IDs + default
+  input/output) before forwarding; the restart cycle now only runs when
+  something actually changed.
+
 2026-10-02 (v10.5.1)
 Bugfixes: settings lost on restart, silent speech output
 

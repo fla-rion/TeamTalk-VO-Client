@@ -1,6 +1,23 @@
 Changelog
 =========
 
+2026-10-03 (v10.5.2)
+Bugfix: Tonaussetzer/"Stottern" bei installierten virtuellen Audiotreibern (z. B. Loopback)
+
+- **CoreAudio-Hotplug-Watcher löste bei manchen virtuellen Audiotreibern
+  (z. B. Rogue Amoebas "Loopback") ständig unnötige Soundsystem-Neustarts
+  aus**, hörbar als Stottern/Tonaussetzer in der eigenen Stimme während
+  eines Gesprächs – unabhängig davon, ob das eingebaute Mikrofon oder ein
+  virtuelles Gerät als Eingabe ausgewählt war. Solche Treiber melden
+  CoreAudio-Geräteänderungen teils sehr häufig, auch ohne dass sich an der
+  Geräteliste tatsächlich etwas ändert (interne Neukonfiguration ihrer
+  Audio-Capture-Engine); jede Meldung löste bisher ungefiltert einen
+  vollen Schließen+Neustart-Zyklus aus (Mikrofon/Ausgabe kurz geschlossen),
+  da der Watcher seit v10.4.7 jede Meldung weiterleitete. Jetzt wird vor
+  jeder Weiterleitung eine billige, direkt von CoreAudio gelesene Signatur
+  (Geräte-IDs + Standard-Ein-/Ausgabe) verglichen; der Neustart-Zyklus
+  läuft nur noch, wenn sich wirklich etwas geändert hat.
+
 2026-10-02 (v10.5.1)
 Bugfixes: Einstellungen gingen beim Neustart verloren, stumme Sprachausgabe
 

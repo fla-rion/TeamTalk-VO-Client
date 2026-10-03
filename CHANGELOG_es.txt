@@ -1,6 +1,26 @@
 Changelog
 =========
 
+2026-10-03 (v10.5.2)
+Corrección: cortes/"tartamudeo" de audio con controladores de audio virtuales instalados (p. ej. Loopback)
+
+- **El vigilante de conexión/desconexión de CoreAudio provocaba
+  reinicios constantes e innecesarios del sistema de sonido con algunos
+  controladores de audio virtuales instalados** (p. ej. "Loopback" de
+  Rogue Amoeba), audibles como tartamudeo/cortes en la propia voz
+  durante una llamada - sin importar si el micrófono integrado o un
+  dispositivo virtual estaba seleccionado como entrada. Estos
+  controladores pueden notificar cambios de dispositivo de CoreAudio con
+  mucha frecuencia incluso sin que la lista de dispositivos cambie
+  realmente (reconfiguración interna de su motor de captura de audio);
+  cada notificación desencadenaba hasta ahora, sin filtrar, un ciclo
+  completo de cierre+reinicio (micrófono/salida cerrados brevemente), ya
+  que el vigilante reenviaba cada notificación desde la v10.4.7. Ahora
+  compara una firma económica leída directamente de CoreAudio
+  (identificadores de dispositivo + entrada/salida predeterminada) antes
+  de reenviar; el ciclo de reinicio solo se ejecuta cuando algo ha
+  cambiado realmente.
+
 2026-10-02 (v10.5.1)
 Correcciones: ajustes perdidos al reiniciar, voz muda
 
