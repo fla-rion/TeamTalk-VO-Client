@@ -9,6 +9,24 @@ from typing import Optional
 
 from .models import ParsedTeamTalkFile, ServerProfile
 
+# Alle Kanaltyp-Bits, die eine .tt-Datei setzen darf (CHANNEL_PERMANENT …
+# CHANNEL_HIDDEN, analog CHANNELTYPE_ALL im offiziellen Client).
+CHANNEL_TYPE_MASK = 0x007F
+
+
+def _to_channel_type(value) -> int:
+    """Liest <channel-type> (Dezimalzahl, wie TeamTalk 5.23 sie schreibt)."""
+    if value is None:
+        return 0
+    text = str(value).strip()
+    if not text:
+        return 0
+    try:
+        value_int = int(text, 16) if text.lower().startswith("0x") else int(text)
+    except ValueError:
+        return 0
+    return value_int & CHANNEL_TYPE_MASK if value_int > 0 else 0
+
 
 def _to_bool(value, default: bool = False) -> bool:
     if isinstance(value, bool):
@@ -101,6 +119,7 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
     channel_path = pick("channelpath", "channel_path", "channel") or None
     channel_id = pick("channelid", "channel_id")
     channel_id_int = int(channel_id) if channel_id.isdigit() else None
+    channel_type = _to_channel_type(pick("channel-type", "channeltype", "channel_type", "chantype"))
     encrypted_flag = _to_bool(
         pick("encrypted", "encryption", "tls", "ssl", "secure", default="false"),
         default=False,
@@ -127,7 +146,7 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
     )
     return ParsedTeamTalkFile(
         profile=profile, channel_path=channel_path, channel_id=channel_id_int, encrypted=encrypted_flag,
-        verify_peer=verify_peer,
+        verify_peer=verify_peer, channel_type=channel_type,
     )
 
 
@@ -155,6 +174,7 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
     channel_path = text_of(join.find("channel") if join is not None else None, "") or None
     channel_password = text_of(join.find("password") if join is not None else None, "") or None
     join_last_channel = text_of(join.find("join-last-channel") if join is not None else None, "false").lower() == "true"
+    channel_type = _to_channel_type(text_of(join.find("channel-type") if join is not None else None, ""))
 
     trusted = host_node.find("trusted-certificate")
     verify_peer = _to_optional_bool(text_of(trusted.find("verify-peer") if trusted is not None else None, ""))
@@ -183,6 +203,7 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
         profile=profile, channel_path=channel_path, channel_id=None,
         channel_password=channel_password, encrypted=encrypted_flag,
         join_last_channel=join_last_channel, verify_peer=verify_peer,
+        channel_type=channel_type,
         ca_certificate_pem=ca_certificate_pem,
         client_certificate_pem=client_certificate_pem,
         client_private_key_pem=client_private_key_pem,
@@ -216,7 +237,22 @@ def build_teamtalk_xml(
     profile: ServerProfile,
     channel_path: Optional[str] = None,
     channel_password: Optional[str] = None,
+    channel_type: Optional[int] = None,
 ) -> str:
+    """Erzeugt eine .tt-Datei.
+
+    Ohne ausdrücklichen ``channel_path`` werden Kanal, Kanalpasswort und
+    Kanaltyp aus dem Profil übernommen (wie der offizielle Client). Der
+    Kanaltyp wird nur geschrieben, wenn ein Kanal angegeben und der Typ nicht
+    "Standard" ist."""
+    profile_channel = (getattr(profile, "channel", "") or "").strip()
+    if channel_path is None and profile_channel:
+        channel_path = profile_channel
+        if channel_password is None:
+            channel_password = getattr(profile, "channel_password", "") or None
+        if channel_type is None:
+            channel_type = int(getattr(profile, "channel_type", 0) or 0)
+    channel_type = int(channel_type or 0) & CHANNEL_TYPE_MASK
     root = ET.Element("teamtalk", {"version": "5.0"})
     host = ET.SubElement(root, "host")
     ET.SubElement(host, "name").text = profile.name or profile.host
@@ -236,5 +272,7 @@ def build_teamtalk_xml(
             ET.SubElement(join, "channel").text = channel_path
         if channel_password:
             ET.SubElement(join, "password").text = channel_password
+        if channel_path and channel_type:
+            ET.SubElement(join, "channel-type").text = str(channel_type)
 
     return ET.tostring(root, encoding="utf-8", xml_declaration=True).decode("utf-8")
