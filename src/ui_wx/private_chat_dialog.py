@@ -50,13 +50,21 @@ class PrivateChatDialog(wx.Frame):
     """
 
     def __init__(self, frame: "App", user_id: int, nick: str = "") -> None:
-        super().__init__(frame, title=f"Privat: {nick or f'User#{user_id}'}",
+        # _nick = Schlüssel für den gespeicherten Verlauf; _title = Anzeige
+        # gemäß "Nutzer anzeigen als"
+        nick = nick or f"User#{user_id}"
+        try:
+            title = frame.user_display_name_for_id(user_id, "") or nick
+        except Exception:
+            title = nick
+        super().__init__(frame, title=f"Privat: {title}",
                          style=wx.DEFAULT_FRAME_STYLE)
         self.frame = frame
         self.user_id = user_id
-        self._nick = nick or f"User#{user_id}"
+        self._nick = nick
+        self._title = title
 
-        self.SetName(f"Privater Chat mit {self._nick}")
+        self.SetName(f"Privater Chat mit {self._title}")
         self.SetSize(520, 420)
 
         self._build_ui()
@@ -78,18 +86,18 @@ class PrivateChatDialog(wx.Frame):
         sizer = wx.BoxSizer(wx.VERTICAL)
 
         # Status label
-        self._status_label = wx.StaticText(panel, label=f"Chat mit {self._nick}")
+        self._status_label = wx.StaticText(panel, label=f"Chat mit {self._title}")
         sizer.Add(self._status_label, 0, wx.ALL, 6)
 
         # Chat log (read-only)
         self._log = wx.TextCtrl(panel, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
-        self._log.SetName(f"Verlauf des privaten Chats mit {self._nick}")
+        self._log.SetName(f"Verlauf des privaten Chats mit {self._title}")
         sizer.Add(self._log, 1, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         # Input row
         input_row = wx.BoxSizer(wx.HORIZONTAL)
         self._input = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
-        self._input.SetName(f"Nachricht an {self._nick}")
+        self._input.SetName(f"Nachricht an {self._title}")
         self._input.Bind(wx.EVT_TEXT_ENTER, self._on_send)
         self._send_btn = wx.Button(panel, label="&Senden")
         self._send_btn.SetName("Nachricht senden")
@@ -162,7 +170,7 @@ class PrivateChatDialog(wx.Frame):
                 my_id = self.frame.client.get_my_user_id()
                 u = self.frame.client.get_user(my_id)
                 if u:
-                    my_nick = self.frame.tt_str(u.szNickname) or "Ich"
+                    my_nick = self.frame.user_display_name(u, "Ich")
             except Exception:
                 pass
             self.append_message(my_nick, text, own=True)
@@ -199,10 +207,12 @@ class PrivateChatDialog(wx.Frame):
                     or self.frame.tt_str(u.szUsername)
                     or f"User#{self.user_id}"
                 )
-                if nick != self._nick:
-                    self._nick = nick
-                    wx.CallAfter(self.SetTitle, f"Privat: {nick}")
-                    wx.CallAfter(self._status_label.SetLabel, f"Chat mit {nick}")
+                self._nick = nick
+                title = self.frame.user_display_name(u, nick)
+                if title != self._title:
+                    self._title = title
+                    wx.CallAfter(self.SetTitle, f"Privat: {title}")
+                    wx.CallAfter(self._status_label.SetLabel, f"Chat mit {title}")
         except Exception:
             pass
 

@@ -220,7 +220,7 @@ class ChannelsTab(wx.Panel):
             items.append((_NODE_CHANNEL, chan_id))
 
             # Nutzer alphabetisch
-            for user in sorted(users, key=lambda u: (self.frame.tt_str(u.szNickname) or "").lower()):
+            for user in sorted(users, key=lambda u: self.frame.user_display_name(u).lower()):
                 user_indent = "  " * (depth + 1)
                 labels.append(user_indent + self._format_user_label(user))
                 items.append((_NODE_USER, int(user.nUserID)))
@@ -279,7 +279,7 @@ class ChannelsTab(wx.Panel):
 
     def _format_user_label(self, user) -> str:
         try:
-            name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer")
+            name = self.frame.user_display_name(user, _("Benutzer"))
         except Exception:
             name = _("Benutzer")
         flags = []
@@ -456,7 +456,7 @@ class ChannelsTab(wx.Panel):
             self.frame.tts.speak(_("Nutzer nicht gefunden"), kind="system")
             return
         tt = self.frame.client.tt
-        name = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Unbekannt")
+        name = self.frame.user_display_name(user, _("Unbekannt"))
         parts = [name]
         try:
             if user.uUserType & tt.UserType.USERTYPE_ADMIN:

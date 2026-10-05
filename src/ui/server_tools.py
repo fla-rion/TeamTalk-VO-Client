@@ -140,7 +140,13 @@ class OnlineUsersDialog(wx.Dialog):
                 ch = self.frame.client.get_channel(ch_id)
                 if ch is not None:
                     channel = tt_str(ch.szName) or f"#{ch_id}"
-            items.append(f"{nickname}, {username}, {channel}")
+            mode = getattr(self.frame.settings_store.settings, "user_name_display", "nickname")
+            if mode == "username":
+                items.append(f"{username}, {nickname}, {channel}")
+            elif mode == "both":
+                items.append(f"{self.frame.user_display_name(user, '-')}, {channel}")
+            else:
+                items.append(f"{nickname}, {username}, {channel}")
         self.user_list.Set(items)
         self.count_label.SetLabel(f"{len(items)} Benutzer online")
 
@@ -236,7 +242,7 @@ class OnlineUsersDialog(wx.Dialog):
         if not user:
             return
         tt_str = self.frame.tt_str
-        nick = tt_str(user.szNickname) or tt_str(user.szUsername) or "Benutzer"
+        nick = self.frame.user_display_name(user, "Benutzer")
         dlg = wx.TextEntryDialog(self, f"Nachricht an {nick}:", "Privatnachricht senden")
         if dlg.ShowModal() == wx.ID_OK:
             msg = dlg.GetValue().strip()

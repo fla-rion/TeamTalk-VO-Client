@@ -243,6 +243,23 @@ class SettingsTab(wx.Panel):
         self._auto_join_root_channel.SetValue(bool(getattr(s, "auto_join_root_channel", False)))
         gen_sizer.Add(self._auto_join_root_channel, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        self._connect_with_mic_off = wx.CheckBox(panel, label=_("Beim Verbinden immer mit ausgeschaltetem &Mikrofon starten"))
+        self._connect_with_mic_off.SetName(_("Beim Verbinden immer mit ausgeschaltetem Mikrofon starten"))
+        self._connect_with_mic_off.SetValue(bool(getattr(s, "connect_with_mic_off", False)))
+        gen_sizer.Add(self._connect_with_mic_off, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        name_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        name_sizer.Add(wx.StaticText(panel, label=_("Nutzer anzeigen als:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._user_name_display = wx.Choice(
+            panel, choices=[_("Nickname"), _("Benutzername"), _("Nickname und Benutzername")]
+        )
+        self._user_name_display.SetName(_("Nutzer anzeigen als"))
+        _modes = ("nickname", "username", "both")
+        _cur_mode = getattr(s, "user_name_display", "nickname") or "nickname"
+        self._user_name_display.SetSelection(_modes.index(_cur_mode) if _cur_mode in _modes else 0)
+        name_sizer.Add(self._user_name_display, 0)
+        gen_sizer.Add(name_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         self._save_private_history = wx.CheckBox(panel, label="&Privatnachrichten-Verlauf speichern")
         self._save_private_history.SetName("Privatnachrichten-Verlauf speichern")
         self._save_private_history.SetValue(bool(s.save_private_chat_history))
@@ -1663,6 +1680,12 @@ class SettingsTab(wx.Panel):
         s.save_chat_history = self._save_chat_history.GetValue()
         s.auto_join_last_channel = self._auto_join_last_channel.GetValue()
         s.auto_join_root_channel = self._auto_join_root_channel.GetValue()
+        s.connect_with_mic_off = self._connect_with_mic_off.GetValue()
+        _name_modes = ("nickname", "username", "both")
+        _name_sel = self._user_name_display.GetSelection()
+        _new_name_mode = _name_modes[_name_sel] if 0 <= _name_sel < len(_name_modes) else "nickname"
+        _name_mode_changed = _new_name_mode != (getattr(s, "user_name_display", "nickname") or "nickname")
+        s.user_name_display = _new_name_mode
         s.save_private_chat_history = self._save_private_history.GetValue()
         s.update_check_on_start = self._update_check.GetValue()
         s.chat_show_timestamps = self._chat_show_timestamps.GetValue()
@@ -1680,6 +1703,12 @@ class SettingsTab(wx.Panel):
         self.frame.settings_store.save()
         self.frame.apply_general_settings()
         self.frame.set_status("Allgemeine Einstellungen gespeichert")
+        # Namensanzeige wirkt sofort – Kanal-/Nutzerliste neu aufbauen
+        if _name_mode_changed:
+            try:
+                self.frame.channels_tab.refresh_channels_and_users()
+            except Exception:
+                pass
         # v6.1.2 – Neustart bei Sprachänderung
         if _lang_changed:
             dlg = wx.MessageDialog(

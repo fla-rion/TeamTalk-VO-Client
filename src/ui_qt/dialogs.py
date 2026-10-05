@@ -346,8 +346,16 @@ class OnlineUsersDialog(QDialog):
         for nick, username, ch_name, _user in self._all_items:
             if not q or q in nick.lower() or q in username.lower():
                 suffix  = f" ({username})" if username and username != nick else ""
+                label   = f"{nick}{suffix}"
+                # "Nutzer anzeigen als: Benutzername" → Benutzername zuerst
+                if (_user is not None and self._window is not None
+                        and getattr(self._window.settings_store.settings, "user_name_display", "nickname") == "username"):
+                    label = self._window.user_display_name(_user, nick)
+                    _nick_raw = self._tt_str(_user.szNickname)
+                    if _nick_raw and _nick_raw != label:
+                        label += f" ({_nick_raw})"
                 ch_part = f" — {ch_name}" if ch_name else ""
-                self._list.addItem(f"{nick}{suffix}{ch_part}")
+                self._list.addItem(f"{label}{ch_part}")
                 shown += 1
         total = len(self._all_items)
         self._count_label.setText(f"{shown} von {total} Nutzern angezeigt")

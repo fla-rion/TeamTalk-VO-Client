@@ -202,7 +202,7 @@ class PrivateChatDialog(QDialog):
             try:
                 my_id = self.window.client.get_my_user_id()
                 u = self.window.client.get_user(my_id)
-                my_nick = self.window.tt_str(u.szNickname) if u else "Ich"
+                my_nick = self.window.user_display_name(u, "Ich") if u else "Ich"
             except Exception:
                 my_nick = "Ich"
             self.append_message(my_nick, text, own=True)
@@ -258,7 +258,7 @@ class PrivateChatDialog(QDialog):
         try:
             u = self.window.client.get_user(self.user_id)
             if u:
-                nick = self.window.tt_str(u.szNickname) or f"User#{self.user_id}"
+                nick = self.window.user_display_name(u, f"User#{self.user_id}")
                 if nick != self._nick:
                     self._nick = nick
                     self.setWindowTitle(f"Privat: {nick}")

@@ -328,6 +328,10 @@ class AppSettings:
     notify_background_channel_mode: str = "off"
     notify_background_broadcast_mode: str = "notification"
     auto_join_root_channel: bool = False
+    # Beim Login/Wiederverbinden Mikrofon (Sprachaktivierung/Senden) nicht wiederherstellen
+    connect_with_mic_off: bool = False
+    # Nutzer anzeigen als: "nickname" | "username" | "both" (siehe ui/user_names.py)
+    user_name_display: str = "nickname"
     user_stereo_prefs: Dict[str, str] = field(default_factory=dict)  # username → "normal"|"left"|"right"
     # v10.1.0 – automatisches räumliches Audio (Roadmap Punkt 4)
     auto_spatial_audio: bool = False
