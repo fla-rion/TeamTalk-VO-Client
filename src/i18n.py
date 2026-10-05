@@ -7261,6 +7261,17 @@ _TRANSLATIONS_ES.update({
     "Konto konnte nicht gelöscht werden: {}": "No se pudo eliminar la cuenta: {}",
 })
 
+# Kanaldialog – Wartezeit der Sprecher-Warteschlange (nTransmitUsersQueueDelayMSec)
+_TRANSLATIONS.update({
+    "Wartezeit bis zum nächsten Sprecher (ms)": "Delay before next speaker in queue (ms)",
+})
+_TRANSLATIONS_FR.update({
+    "Wartezeit bis zum nächsten Sprecher (ms)": "Délai avant l'orateur suivant de la file (ms)",
+})
+_TRANSLATIONS_ES.update({
+    "Wartezeit bis zum nächsten Sprecher (ms)": "Espera hasta el siguiente orador de la cola (ms)",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

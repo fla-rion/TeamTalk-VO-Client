@@ -10,6 +10,11 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from i18n import _
+from teamtalk_client.channel_options import (
+    DEFAULT_FIXED_VOLUME,
+    MAX_FIXED_VOLUME,
+    default_channel_options,
+)
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -34,6 +39,7 @@ class ChannelDialog(QDialog):
         audio_codec_mode: str = "inherit",
         audio_codec_locked: bool = False,
         edit_mode: bool = False,
+        options: Optional[dict] = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(_(title))
@@ -126,6 +132,42 @@ class ChannelDialog(QDialog):
             self._type_flags.append((cb, flag_val))
             type_v.addWidget(cb)
         root.addWidget(type_group)
+
+        # ── Audio-Optionen (feste Lautstärke, Warteschlange, Zeitlimits) ──
+        opts = dict(default_channel_options())
+        opts.update(options or {})
+        adv_group = QGroupBox(_("Audio-Optionen"))
+        adv_form = QFormLayout(adv_group)
+        fixed_level = int(opts.get("fixed_volume", 0) or 0)
+        self.fixed_vol_check = QCheckBox(_("Feste Lautstärke für alle Nutzer"))
+        self.fixed_vol_check.setAccessibleName(_("Feste Lautstärke für alle Nutzer"))
+        self.fixed_vol_check.setChecked(fixed_level > 0)
+        adv_form.addRow(QLabel(""), self.fixed_vol_check)
+        self.fixed_vol_spin = QSpinBox()
+        self.fixed_vol_spin.setRange(0, MAX_FIXED_VOLUME)
+        self.fixed_vol_spin.setSingleStep(500)
+        self.fixed_vol_spin.setValue(fixed_level or DEFAULT_FIXED_VOLUME)
+        self.fixed_vol_spin.setAccessibleName(_("Lautstärke"))
+        self.fixed_vol_spin.setEnabled(fixed_level > 0)
+        self.fixed_vol_check.toggled.connect(self.fixed_vol_spin.setEnabled)
+        adv_form.addRow(QLabel(_("Lautstärke")), self.fixed_vol_spin)
+        self.queue_delay_spin = QSpinBox()
+        self.queue_delay_spin.setRange(0, 60000)
+        self.queue_delay_spin.setSingleStep(100)
+        self.queue_delay_spin.setValue(int(opts.get("queue_delay_ms", 0) or 0))
+        self.queue_delay_spin.setAccessibleName(_("Wartezeit bis zum nächsten Sprecher (ms)"))
+        adv_form.addRow(QLabel(_("Wartezeit bis zum nächsten Sprecher (ms)")), self.queue_delay_spin)
+        self.voice_timeout_spin = QSpinBox()
+        self.voice_timeout_spin.setRange(0, 3600)
+        self.voice_timeout_spin.setValue(int(opts.get("voice_timeout_sec", 0) or 0))
+        self.voice_timeout_spin.setAccessibleName(_("Max. Sprachdauer (Sek., 0=aus)"))
+        adv_form.addRow(QLabel(_("Max. Sprachdauer (Sek., 0=aus)")), self.voice_timeout_spin)
+        self.media_timeout_spin = QSpinBox()
+        self.media_timeout_spin.setRange(0, 3600)
+        self.media_timeout_spin.setValue(int(opts.get("media_timeout_sec", 0) or 0))
+        self.media_timeout_spin.setAccessibleName(_("Max. Mediendauer (Sek., 0=aus)"))
+        adv_form.addRow(QLabel(_("Max. Mediendauer (Sek., 0=aus)")), self.media_timeout_spin)
+        root.addWidget(adv_group)
 
         # ── Audio-Codec ───────────────────────────────────────────────
         codec_group = QGroupBox(_("Audio-Codec"))
@@ -273,6 +315,10 @@ class ChannelDialog(QDialog):
             "speex_tx_interval": self.spx_tx.value(),
             "speex_max_bitrate": self.spx_maxbr.value(),
             "speex_dtx": self.spx_dtx.isChecked(),
+            "fixed_volume": self.fixed_vol_spin.value() if self.fixed_vol_check.isChecked() else 0,
+            "queue_delay_ms": self.queue_delay_spin.value(),
+            "voice_timeout_sec": self.voice_timeout_spin.value(),
+            "media_timeout_sec": self.media_timeout_spin.value(),
         }
 
 

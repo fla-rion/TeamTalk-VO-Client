@@ -1371,13 +1371,14 @@ class MainWindow(QMainWindow):
             if result.ok:
                 join_ch = getattr(profile, "channel", "") or ""
                 ch_pw = getattr(profile, "channel_password", "") or ""
+                ch_type = int(getattr(profile, "channel_type", 0) or 0) if join_ch else 0
                 if not join_ch:
                     server_key = f"{profile.host}:{getattr(profile, 'tcp_port', 10333)}"
                     ajc_map = getattr(self.settings_store.settings, "auto_join_channel_per_server", {}) or {}
                     join_ch = ajc_map.get(server_key, "")
                 try:
                     if join_ch:
-                        self.client.join_channel_by_path(join_ch, ch_pw)
+                        self.client.join_channel_by_path(join_ch, ch_pw, channel_type=ch_type)
                     else:
                         root_id = self.client.get_root_channel_id()
                         if root_id:
@@ -2115,6 +2116,8 @@ class MainWindow(QMainWindow):
                     profile.channel = result.channel_path
                 if result.channel_password:
                     profile.channel_password = result.channel_password
+                if result.channel_path and result.channel_type:
+                    profile.channel_type = int(result.channel_type)
                 self.store.add(profile)
                 self._rebuild_favorites_menu()
                 self.set_status(f"TT-Datei importiert: {profile.name}")
@@ -2477,54 +2480,8 @@ class MainWindow(QMainWindow):
             return 0
 
     def _build_codec_from_data(self, data: dict, parent_channel=None):
-        codec_mode = data.get("audio_codec_mode", "inherit")
-        if codec_mode == "keep":
-            return None
-        if codec_mode == "inherit" and parent_channel is not None:
-            return getattr(parent_channel, "audiocodec", None)
-        if codec_mode == "opus":
-            codec = self.client.build_default_opus_codec()
-            try:
-                codec.opus.nSampleRate = int(data.get("opus_samplerate", 48000))
-                codec.opus.nChannels = int(data.get("opus_channels", 1))
-                codec.opus.nBitRate = int(data.get("opus_bitrate", 64)) * 1000
-                codec.opus.bVBR = bool(data.get("opus_vbr", True))
-                codec.opus.bDTX = bool(data.get("opus_dtx", False))
-                codec.opus.nTxIntervalMSec = int(data.get("opus_tx_interval", 40))
-                codec.opus.nFrameSizeMSec = int(data.get("opus_frame_size", 0))
-                tt_mod = self.client.tt
-                codec.opus.nApplication = int(
-                    tt_mod.OPUS_APPLICATION_VOIP if data.get("opus_app", 0) == 0
-                    else tt_mod.OPUS_APPLICATION_MUSIC
-                )
-            except Exception:
-                pass
-            return codec
-        if codec_mode == "speex":
-            codec = self.client.build_default_speex_codec()
-            try:
-                sr = int(data.get("speex_samplerate", 16000))
-                codec.speex.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
-                codec.speex.nQuality = int(data.get("speex_quality", 4))
-                codec.speex.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
-            except Exception:
-                pass
-            return codec
-        if codec_mode == "speex_vbr":
-            codec = self.client.build_default_speex_vbr_codec()
-            try:
-                sr = int(data.get("speex_samplerate", 16000))
-                codec.speex_vbr.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
-                codec.speex_vbr.nQuality = int(data.get("speex_quality", 4))
-                codec.speex_vbr.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
-                codec.speex_vbr.nMaxBitRate = int(data.get("speex_max_bitrate", 0))
-                codec.speex_vbr.bDTX = bool(data.get("speex_dtx", True))
-            except Exception:
-                pass
-            return codec
-        if codec_mode == "none":
-            return self.client.build_no_audio_codec()
-        return None
+        from teamtalk_client.channel_options import build_audio_codec_from_data
+        return build_audio_codec_from_data(self.client, data, parent_channel)
 
     def on_menu_join_channel(self) -> None:
         try:
@@ -2592,6 +2549,7 @@ class MainWindow(QMainWindow):
                     disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
                     max_users=int(data.get("max_users", 0)),
                     op_password=str(data.get("op_password", "")),
+                    options=data,
                 )
             else:
                 result = self.client.make_temporary_channel(
@@ -2630,6 +2588,7 @@ class MainWindow(QMainWindow):
         except Exception:
             users_in_channel = []
         from ui_qt.channel_dialog import ChannelDialog
+        from teamtalk_client.channel_options import apply_channel_options, channel_options_from_channel
         dlg = ChannelDialog(
             self, title="Kanal bearbeiten",
             name=self.tt_str(channel.szName),
@@ -2643,6 +2602,7 @@ class MainWindow(QMainWindow):
             audio_codec_mode="keep",
             audio_codec_locked=bool(users_in_channel),
             edit_mode=True,
+            options=channel_options_from_channel(channel),
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
@@ -2667,6 +2627,7 @@ class MainWindow(QMainWindow):
                 op_pw = str(data.get("op_password", "")).strip()
                 if op_pw:
                     channel.szOpPassword = self.client.tt.ttstr(op_pw)
+                apply_channel_options(channel, data)
                 codec_mode = data.get("audio_codec_mode")
                 if not users_in_channel and codec_mode and codec_mode != "keep":
                     new_codec = self._build_codec_from_data(data, None)

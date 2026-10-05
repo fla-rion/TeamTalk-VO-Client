@@ -23,6 +23,9 @@ class ServerProfile:
     display_name: str = ""
     channel: str = ""
     channel_password: str = ""
+    # Kanaltyp (ChannelType-Bits), mit dem ``channel`` angelegt wird, falls er
+    # beim Beitritt noch nicht existiert (.tt <join><channel-type>, TeamTalk 5.23)
+    channel_type: int = 0
 
 
 @dataclass
@@ -33,6 +36,7 @@ class ParsedTeamTalkFile:
     channel_password: Optional[str] = None
     encrypted: bool = False
     join_last_channel: bool = False
+    channel_type: int = 0
     verify_peer: Optional[bool] = None
     ca_certificate_pem: str = ""
     client_certificate_pem: str = ""

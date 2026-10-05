@@ -14,6 +14,14 @@ import wx.adv
 import wx.dataview as dv
 
 from teamtalk_client.client import TeamTalkClient, ConnectResult
+from teamtalk_client.channel_options import (
+    DEFAULT_FIXED_VOLUME,
+    MAX_FIXED_VOLUME,
+    apply_channel_options,
+    build_audio_codec_from_data,
+    channel_options_from_channel,
+    default_channel_options,
+)
 from ui_wx.models import (
     FileLogger,
     ParsedTeamTalkFile,
@@ -2799,7 +2807,10 @@ class MainFrame(wx.Frame):
         op_password: str = "",
         audio_codec_mode: str = "inherit",
         audio_codec_locked: bool = False,
+        options: Optional[dict] = None,
     ) -> Optional[dict]:
+        opts = dict(default_channel_options())
+        opts.update(options or {})
         dlg = wx.Dialog(self, title=title)
         accel = wx.AcceleratorTable([(wx.ACCEL_CMD, ord("W"), wx.ID_CLOSE)])
         dlg.SetAcceleratorTable(accel)
@@ -2955,20 +2966,43 @@ class MainFrame(wx.Frame):
         speex_box.Add(speex_form, 0, wx.ALL | wx.EXPAND, 8)
         root.Add(speex_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 10)
 
-        # Fixed audio volume + stream timeouts
+        # Feste Lautstärke, Sprecher-Warteschlange, Zeitlimits (Kanal-Struct:
+        # audiocfg, nTransmitUsersQueueDelayMSec, nTimeOutTimer*MSec)
         audio_adv_box = wx.StaticBoxSizer(wx.StaticBox(dlg, label="Audio-Optionen"), wx.VERTICAL)
         audio_adv_form = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         audio_adv_form.AddGrowableCol(1)
+        fixed_level = int(opts.get("fixed_volume", 0) or 0)
         fixed_vol_check = wx.CheckBox(dlg, label="Feste Lautstärke für alle Nutzer")
-        fixed_vol_spin = wx.SpinCtrl(dlg, min=0, max=32000, initial=0)
+        fixed_vol_check.SetValue(fixed_level > 0)
+        lbl_fixed_vol = wx.StaticText(dlg, label="Lautstärke")
+        fixed_vol_spin = AccessibleSpinCtrl(
+            dlg, min=0, max=MAX_FIXED_VOLUME, inc=500,
+            initial=fixed_level or DEFAULT_FIXED_VOLUME,
+        )
+        fixed_vol_spin.SetName("Lautstärke")
+        fixed_vol_spin.Enable(fixed_level > 0)
+        fixed_vol_check.Bind(wx.EVT_CHECKBOX, lambda e: fixed_vol_spin.Enable(fixed_vol_check.GetValue()))
+        lbl_queue_delay = wx.StaticText(dlg, label="Wartezeit bis zum nächsten Sprecher (ms)")
+        queue_delay = AccessibleSpinCtrl(
+            dlg, min=0, max=60000, inc=100, initial=int(opts.get("queue_delay_ms", 0) or 0),
+        )
+        queue_delay.SetName("Wartezeit bis zum nächsten Sprecher (ms)")
         lbl_voice_timeout = wx.StaticText(dlg, label="Max. Sprachdauer (Sek., 0=aus)")
-        voice_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
+        voice_timeout = AccessibleSpinCtrl(
+            dlg, min=0, max=3600, inc=1, initial=int(opts.get("voice_timeout_sec", 0) or 0),
+        )
+        voice_timeout.SetName("Max. Sprachdauer (Sek., 0=aus)")
         lbl_media_timeout = wx.StaticText(dlg, label="Max. Mediendauer (Sek., 0=aus)")
-        media_timeout = wx.SpinCtrl(dlg, min=0, max=3600, initial=0)
+        media_timeout = AccessibleSpinCtrl(
+            dlg, min=0, max=3600, inc=1, initial=int(opts.get("media_timeout_sec", 0) or 0),
+        )
+        media_timeout.SetName("Max. Mediendauer (Sek., 0=aus)")
         audio_adv_form.AddSpacer(0)
         audio_adv_form.Add(fixed_vol_check, 0)
-        audio_adv_form.Add(wx.StaticText(dlg, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(lbl_fixed_vol, 0, wx.ALIGN_CENTER_VERTICAL)
         audio_adv_form.Add(fixed_vol_spin, 1, wx.EXPAND)
+        audio_adv_form.Add(lbl_queue_delay, 0, wx.ALIGN_CENTER_VERTICAL)
+        audio_adv_form.Add(queue_delay, 1, wx.EXPAND)
         audio_adv_form.Add(lbl_voice_timeout, 0, wx.ALIGN_CENTER_VERTICAL)
         audio_adv_form.Add(voice_timeout, 1, wx.EXPAND)
         audio_adv_form.Add(lbl_media_timeout, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3008,6 +3042,8 @@ class MainFrame(wx.Frame):
             op_ctrl.Disable()
             for cb, _flag in flags:
                 cb.Disable()
+            for ctrl in (fixed_vol_check, fixed_vol_spin, queue_delay, voice_timeout, media_timeout):
+                ctrl.Enable(False)
             if not audio_codec_locked:
                 codec_choice.Disable()
             rights_note = wx.StaticText(dlg, label="Hinweis: Einige Optionen erfordern Serverrechte (Kanaleigenschaften).")
@@ -3049,10 +3085,14 @@ class MainFrame(wx.Frame):
             "speex_vbr": bool(spx_vbr.GetValue()),
             "speex_max_bitrate": int(spx_maxbr.GetValue()),
             "speex_dtx": bool(spx_dtx.GetValue()),
-            "fixed_volume": int(fixed_vol_spin.GetValue()) if fixed_vol_check.GetValue() else 0,
-            "voice_timeout_sec": int(voice_timeout.GetValue()),
-            "media_timeout_sec": int(media_timeout.GetValue()),
         }
+        if can_modify:
+            result.update({
+                "fixed_volume": int(fixed_vol_spin.GetValue()) if fixed_vol_check.GetValue() else 0,
+                "queue_delay_ms": int(queue_delay.GetValue()),
+                "voice_timeout_sec": int(voice_timeout.GetValue()),
+                "media_timeout_sec": int(media_timeout.GetValue()),
+            })
         if allow_password and pw_check and pw_ctrl:
             result["set_password"] = bool(pw_check.GetValue())
             result["password"] = pw_ctrl.GetValue()
@@ -3489,49 +3529,7 @@ class MainFrame(wx.Frame):
         channel_type = int(data.get("channel_type", 0) or 0)
         if data.get("permanent") and can_modify:
             channel_type |= int(self.client.tt.ChannelType.CHANNEL_PERMANENT)
-        audio_codec = None
-        codec_mode = data.get("audio_codec_mode")
-        if codec_mode == "inherit" and parent_channel is not None:
-            audio_codec = parent_channel.audiocodec
-        elif codec_mode == "opus":
-            audio_codec = self.client.build_default_opus_codec()
-            try:
-                tt_mod = self.client.tt
-                audio_codec.opus.nSampleRate = int(data.get("opus_samplerate", 48000))
-                audio_codec.opus.nChannels = int(data.get("opus_channels", 1))
-                audio_codec.opus.nBitRate = int(data.get("opus_bitrate", 64)) * 1000
-                audio_codec.opus.bVBR = bool(data.get("opus_vbr", True))
-                audio_codec.opus.bDTX = bool(data.get("opus_dtx", False))
-                audio_codec.opus.nTxIntervalMSec = int(data.get("opus_tx_interval", 40))
-                audio_codec.opus.nFrameSizeMSec = int(data.get("opus_frame_size", 0))
-                opus_app_idx = int(data.get("opus_app", 0))
-                audio_codec.opus.nApplication = int(
-                    tt_mod.OPUS_APPLICATION_VOIP if opus_app_idx == 0 else tt_mod.OPUS_APPLICATION_MUSIC
-                )
-            except Exception:
-                pass
-        elif codec_mode == "speex":
-            audio_codec = self.client.build_default_speex_codec()
-            try:
-                sr = int(data.get("speex_samplerate", 16000))
-                audio_codec.speex.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
-                audio_codec.speex.nQuality = int(data.get("speex_quality", 4))
-                audio_codec.speex.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
-            except Exception:
-                pass
-        elif codec_mode == "speex_vbr":
-            audio_codec = self.client.build_default_speex_vbr_codec()
-            try:
-                sr = int(data.get("speex_samplerate", 16000))
-                audio_codec.speex_vbr.nBandmode = {8000: 0, 16000: 1, 32000: 2}.get(sr, 1)
-                audio_codec.speex_vbr.nQuality = int(data.get("speex_quality", 4))
-                audio_codec.speex_vbr.nTxIntervalMSec = int(data.get("speex_tx_interval", 40))
-                audio_codec.speex_vbr.nMaxBitRate = int(data.get("speex_max_bitrate", 0))
-                audio_codec.speex_vbr.bDTX = bool(data.get("speex_dtx", True))
-            except Exception:
-                pass
-        elif codec_mode == "none":
-            audio_codec = self.client.build_no_audio_codec()
+        audio_codec = build_audio_codec_from_data(self.client, data, parent_channel)
         if can_modify:
             result = self.client.make_channel(
                 name=data["name"],
@@ -3544,6 +3542,7 @@ class MainFrame(wx.Frame):
                 disk_quota=int(data.get("disk_quota_mb", 0)) * 1024 * 1024,
                 max_users=int(data.get("max_users", 0)),
                 op_password=str(data.get("op_password", "")),
+                options=data,
             )
         else:
             result = self.client.make_temporary_channel(
@@ -3591,6 +3590,7 @@ class MainFrame(wx.Frame):
             op_password=self.tt_str(getattr(channel, "szOpPassword", "")),
             audio_codec_mode="keep",
             audio_codec_locked=bool(users_in_channel),
+            options=channel_options_from_channel(channel),
         )
         if not data or not data["name"]:
             self.set_status("Kanalname fehlt")
@@ -3611,16 +3611,13 @@ class MainFrame(wx.Frame):
             op_password = str(data.get("op_password", "")).strip()
             if op_password:
                 channel.szOpPassword = self.client.tt.ttstr(op_password)
-            codec_mode = data.get("audio_codec_mode")
-            if not users_in_channel and codec_mode:
-                if codec_mode == "opus":
-                    channel.audiocodec = self.client.build_default_opus_codec()
-                elif codec_mode == "speex":
-                    channel.audiocodec = self.client.build_default_speex_codec()
-                elif codec_mode == "speex_vbr":
-                    channel.audiocodec = self.client.build_default_speex_vbr_codec()
-                elif codec_mode == "none":
-                    channel.audiocodec = self.client.build_no_audio_codec()
+            apply_channel_options(channel, data)
+            # Codec nur bei ausdrücklicher Auswahl ersetzen ("keep" = None);
+            # sonst bleibt der bestehende (auch Speex/kein Codec) unverändert.
+            if not users_in_channel:
+                new_codec = build_audio_codec_from_data(self.client, data, None)
+                if new_codec is not None:
+                    channel.audiocodec = new_codec
         result = self.client.update_channel(channel)
         self.set_status(result.message)
         if result.ok:
@@ -9463,7 +9460,10 @@ class MainFrame(wx.Frame):
                         self.client.start_event_loop(self.handle_tt_message)
                         wx.CallAfter(self.set_status, "Bereits im Zielkanal")
                         return
-                    result_join = self._join_by_path_or_lookup(parsed.channel_path, parsed.channel_password or "")
+                    result_join = self._join_by_path_or_lookup(
+                        parsed.channel_path, parsed.channel_password or "",
+                        channel_type=int(getattr(parsed, "channel_type", 0) or 0),
+                    )
                 else:
                     result_join = self.client.join_channel_by_id(self.client.get_root_channel_id(), timeout_ms=8000)
 
@@ -9514,8 +9514,10 @@ class MainFrame(wx.Frame):
         key = " ".join(key.split())
         return key.casefold()
 
-    def _join_by_path_or_lookup(self, path: str, password: str) -> ConnectResult:
-        result = self.client.join_channel_by_path(path, password or "", timeout_ms=8000)
+    def _join_by_path_or_lookup(self, path: str, password: str, channel_type: int = 0) -> ConnectResult:
+        result = self.client.join_channel_by_path(
+            path, password or "", timeout_ms=8000, channel_type=channel_type,
+        )
         if result.ok:
             return result
         channels = list(self.client.get_server_channels())

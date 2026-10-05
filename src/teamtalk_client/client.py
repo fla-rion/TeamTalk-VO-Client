@@ -9,6 +9,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Tuple
 
+from .channel_options import apply_channel_options
 from .tt import load_teamtalk_module
 
 TTMessage = Any
@@ -439,7 +440,14 @@ class TeamTalkClient:
             return ConnectResult(False, "Kanalbeitritt fehlgeschlagen")
         return ConnectResult(True, "Kanalbeitritt erfolgreich")
 
-    def join_channel_by_path(self, path: str, password: str = "", timeout_ms: int = 4000) -> ConnectResult:
+    def join_channel_by_path(
+        self, path: str, password: str = "", timeout_ms: int = 4000, channel_type: int = 0,
+    ) -> ConnectResult:
+        """Tritt dem Kanal ``path`` bei; fehlende Kanäle werden angelegt.
+
+        ``channel_type`` (ChannelType-Bits, z. B. aus einer .tt-Datei) gilt nur
+        für den Zielkanal und nur, wenn er dabei neu angelegt wird.
+        """
         normalized = path.strip()
         normalized = normalized.strip()
         if not normalized.startswith("/"):
@@ -476,9 +484,19 @@ class TeamTalkClient:
             ch = self.tt.Channel()
             ch.nParentID = parent_id
             ch.szName = self.tt.ttstr(segment)
+            # Codec des Elternkanals übernehmen – ein genullter AudioCodec
+            # wäre "kein Codec", der neue Kanal hätte dann keine Sprache.
+            try:
+                parent = self.get_channel(parent_id)
+                if parent is not None:
+                    ch.audiocodec = parent.audiocodec
+            except Exception:
+                pass
             if is_last and password:
                 ch.szPassword = self.tt.ttstr(password)
                 ch.bPassword = True
+            if is_last and channel_type:
+                ch.uChannelType = int(channel_type)
 
             cmdid = self.client.doJoinChannel(ch)
             ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
@@ -509,6 +527,7 @@ class TeamTalkClient:
         disk_quota: Optional[int] = None,
         max_users: Optional[int] = None,
         op_password: str = "",
+        options: Optional[dict] = None,
         timeout_ms: int = 4000,
     ) -> ConnectResult:
         ch = self.tt.Channel()
@@ -533,6 +552,7 @@ class TeamTalkClient:
             ch.nMaxUsers = int(max_users)
         if op_password:
             ch.szOpPassword = self.tt.ttstr(op_password)
+        apply_channel_options(ch, options)
         cmdid = self.client.doMakeChannel(ch)
         ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
         if not ok:
@@ -603,6 +623,7 @@ class TeamTalkClient:
         password: str = "",
         channel_type: Optional[int] = None,
         audio_codec: Optional[Any] = None,
+        options: Optional[dict] = None,
         timeout_ms: int = 4000,
     ) -> ConnectResult:
         ch = self.tt.Channel()
@@ -617,6 +638,7 @@ class TeamTalkClient:
             ch.uChannelType = int(channel_type)
         if audio_codec is not None:
             ch.audiocodec = audio_codec
+        apply_channel_options(ch, options)
         cmdid = self.client.doJoinChannel(ch)
         ok, msg = self._wait_for_cmd_result(cmdid, timeout_ms)
         if not ok:

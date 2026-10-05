@@ -260,6 +260,8 @@ class ConnectDialog(QDialog):
             self.client_name_field.setText(getattr(p, "client_name", "") or "")
             self.channel_field.setText(getattr(p, "channel", "") or "")
             self.ch_pass_field.setText(getattr(p, "channel_password", "") or "")
+            # Kanaltyp hat (noch) kein eigenes Feld – beim Speichern erhalten
+            self._form_channel_type = int(getattr(p, "channel_type", 0) or 0)
             self.encrypted_check.setChecked(bool(getattr(p, "encrypted", False)))
 
     def _profile_from_form(self):
@@ -276,6 +278,7 @@ class ConnectDialog(QDialog):
             client_name=self.client_name_field.text().strip() or "TeamTalk VO Client",
             channel=self.channel_field.text().strip(),
             channel_password=self.ch_pass_field.text(),
+            channel_type=int(getattr(self, "_form_channel_type", 0) or 0) if self.channel_field.text().strip() else 0,
             encrypted=self.encrypted_check.isChecked(),
         )
 
@@ -283,6 +286,7 @@ class ConnectDialog(QDialog):
 
     def _on_new(self) -> None:
         self.server_list.clearSelection()
+        self._form_channel_type = 0
         for field in (self.name_field, self.host_field, self.nick_field,
                       self.user_field, self.pass_field, self.client_name_field,
                       self.channel_field, self.ch_pass_field):
@@ -342,11 +346,16 @@ class ConnectDialog(QDialog):
             return
         try:
             from ui.tt_file_parser import parse_teamtalk_file
-            result = parse_teamtalk_file(path)
+            result = parse_teamtalk_file(Path(path))
             if result:
                 profile = result.profile if hasattr(result, "profile") else result
                 if not profile.name:
                     profile.name = Path(path).stem
+                if getattr(result, "channel_path", None):
+                    profile.channel = result.channel_path
+                    if result.channel_password:
+                        profile.channel_password = result.channel_password
+                    profile.channel_type = int(getattr(result, "channel_type", 0) or 0)
                 self.window.store.add(profile)
                 self._load_profiles()
                 self.window.set_status(f"Importiert: {Path(path).name}")
