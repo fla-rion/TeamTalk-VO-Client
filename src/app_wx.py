@@ -3787,7 +3787,7 @@ class MainFrame(wx.Frame):
             voice_active = bool(state & tt.UserState.USERSTATE_VOICE)
             media_active = bool(state & tt.UserState.USERSTATE_MEDIAFILE_AUDIO) if hasattr(tt.UserState, "USERSTATE_MEDIAFILE_AUDIO") else False
             if voice_active or media_active:
-                nick = self.tt_str(getattr(u, "szNickname", "")) or self.tt_str(getattr(u, "szUsername", "")) or f"Benutzer {u.nUserID}"
+                nick = self.user_display_name(u, f"Benutzer {u.nUserID}")
                 suffix = ""
                 if voice_active and media_active:
                     suffix = " (Sprache + Medien)"
@@ -4126,7 +4126,7 @@ class MainFrame(wx.Frame):
         if not user:
             self.set_status("Kein Benutzer ausgewählt")
             return
-        nickname = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
+        nickname = self.user_display_name(user, "Benutzer")
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
         channel_name = ""
         if channel_id:
@@ -4174,7 +4174,7 @@ class MainFrame(wx.Frame):
         tt = self.client.tt
         muted = bool(int(getattr(user, "uUserState", 0) or 0) & int(tt.UserState.USERSTATE_MUTE_MEDIAFILE))
         self.client.set_user_mute(int(user.nUserID), int(tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO), not muted)
-        name = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or "Benutzer"
+        name = self.user_display_name(user, "Benutzer")
         status = "stummgeschaltet" if not muted else "entstummt"
         self.set_status(f"Mediendatei {name}: {status}")
         self.tts.speak(f"Mediendatei {name} {status}", kind="system")
@@ -5034,6 +5034,44 @@ class MainFrame(wx.Frame):
             self.client.set_voice_activation_stop_delay(int(self.audio_tab.va_delay.GetValue()))
         self.client.enable_voice_activation(enabled)
         self.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+
+    def _force_mic_off_on_connect(self) -> None:
+        """Option "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten":
+        weder Sprachaktivierung noch laufendes Senden werden nach Login/
+        Wiederverbinden übernommen. Kanalwechsel sind davon nicht betroffen."""
+        self._ptt_active = False
+        try:
+            self.client.enable_voice_activation(False)
+            self.client.enable_voice_transmission(False)
+        except Exception:
+            pass
+        for ctrl in (getattr(self.audio_tab, "voice_activation", None), getattr(self, "tb_va", None)):
+            try:
+                if ctrl is not None:
+                    ctrl.SetValue(False)
+            except Exception:
+                pass
+        self.set_status(_("Mikrofon beim Verbinden ausgeschaltet"))
+
+    def user_display_name(self, user, fallback: str = "") -> str:
+        """Nutzername für die Anzeige gemäß Einstellung "Nutzer anzeigen als"."""
+        from ui.user_names import format_user_name
+        return format_user_name(
+            self.tt_str(getattr(user, "szNickname", "")) if user is not None else "",
+            self.tt_str(getattr(user, "szUsername", "")) if user is not None else "",
+            getattr(self.settings_store.settings, "user_name_display", "nickname"),
+            fallback,
+        )
+
+    def user_display_name_for_id(self, user_id: int, fallback: str = "") -> str:
+        """Wie user_display_name(), aber per User-ID (Nutzer nicht gefunden → fallback)."""
+        try:
+            user = self.client.get_user(int(user_id)) if user_id else None
+        except Exception:
+            user = None
+        if user is None or not int(getattr(user, "nUserID", 0) or 0):
+            return fallback
+        return self.user_display_name(user, fallback)
 
     def on_menu_audio_apply(self, _event):
         self.audio_tab.on_apply_audio(None)
@@ -8782,7 +8820,9 @@ class MainFrame(wx.Frame):
             # v2.3.0 – Auto-Kanal nach Name beitreten
             elif getattr(self.settings_store.settings, "auto_join_channel_per_server", None):
                 wx.CallLater(900, self._auto_join_channel_by_name)
-            if self.audio_tab.voice_activation.GetValue():
+            if getattr(self.settings_store.settings, "connect_with_mic_off", False):
+                self._force_mic_off_on_connect()
+            elif self.audio_tab.voice_activation.GetValue():
                 self.client.set_voice_activation_level(int(self.audio_tab.voice_level.GetValue()))
                 self.client.set_voice_activation_stop_delay(int(self.audio_tab.va_delay.GetValue()))
                 self.client.enable_voice_activation(True)
@@ -10436,7 +10476,7 @@ class MainFrame(wx.Frame):
             if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
                 _speaking_flags = int(getattr(_user, "uUserState", 0) or 0)
                 _is_talking = bool(_speaking_flags & 2)  # USERSTATE_TALKING = 2
-                _uname = self.tt_str(getattr(_user, "szNickname", "")) or self.tt_str(getattr(_user, "szUsername", "")) or f"id{_user_id}"
+                _uname = self.user_display_name(_user, f"id{_user_id}")
                 wx.CallAfter(self._track_speaking_log, _user_id, _uname, _is_talking)
             # TeamTalk 5.23-Parität: Medienstream-Start ansagen (Status-Flag
             # des offiziellen Clients)
@@ -10514,7 +10554,7 @@ class MainFrame(wx.Frame):
             self.sound_manager.play("desktop_session", self.settings_store.settings.sound_events.get("desktop_session"))
             if self.desktop_tab is not None:
                 try:
-                    username = self.tt_str(msg.user.szNickname) or self.tt_str(msg.user.szUsername) or "Benutzer"
+                    username = self.user_display_name(msg.user, "Benutzer")
                 except Exception:
                     username = "Benutzer"
                 wx.CallAfter(self.desktop_tab.on_desktop_window, username)
@@ -10557,7 +10597,10 @@ class MainFrame(wx.Frame):
         if getattr(user, "nUserID", None) == me:
             return
 
+        # name = Schlüssel (Notizen, Stereo, Beobachtung, Regeln) – unverändert;
+        # display = Anzeige gemäß "Nutzer anzeigen als"
         name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
+        display = self.user_display_name(user, name)
         channel_name = ""
         channel_id = 0
 
@@ -10572,15 +10615,15 @@ class MainFrame(wx.Frame):
                 channel_name = self.tt_str(ch.szName)
 
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN:
-            text = f"* {name} hat sich angemeldet"
+            text = f"* {display} hat sich angemeldet"
             tts_kind = "user_login"
-            self._session_history.log("user_login", f"{name} hat sich angemeldet", server=self._current_server_key, user=name)
+            self._session_history.log("user_login", f"{display} hat sich angemeldet", server=self._current_server_key, user=name)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
-            text = f"* {name} hat sich abgemeldet"
+            text = f"* {display} hat sich abgemeldet"
             tts_kind = "user_login"
-            self._session_history.log("user_logout", f"{name} hat sich abgemeldet", server=self._current_server_key, user=name)
+            self._session_history.log("user_logout", f"{display} hat sich abgemeldet", server=self._current_server_key, user=name)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
-            text = f"* {name} hat Kanal {channel_name or channel_id} betreten"
+            text = f"* {display} hat Kanal {channel_name or channel_id} betreten"
             # v2.8.0 – Nutzer-Notiz anhängen
             _note = self._get_user_note(name)
             if _note:
@@ -10606,11 +10649,11 @@ class MainFrame(wx.Frame):
             # v6.5.0 – Nutzerwatcher
             _watched = list(getattr(self.settings_store.settings, "watched_users", []) or [])
             if name in _watched:
-                _watch_text = f"Beobachteter Nutzer anwesend: {name} in {channel_name or channel_id}"
+                _watch_text = f"Beobachteter Nutzer anwesend: {display} in {channel_name or channel_id}"
                 self.tts.speak(_watch_text, kind="system")
                 wx.CallAfter(self._send_notification, "Nutzerwatcher", _watch_text)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
-            text = f"* {name} hat Kanal {channel_name or channel_id} verlassen"
+            text = f"* {display} hat Kanal {channel_name or channel_id} verlassen"
             tts_kind = "user_leave"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_left", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
@@ -10626,9 +10669,9 @@ class MainFrame(wx.Frame):
             is_away = bool(new_mode & 1)
             was_away = bool(old_mode & 1)
             if is_away and not was_away:
-                self.tts.speak(f"{name} ist jetzt abwesend", kind="user_away")
+                self.tts.speak(f"{display} ist jetzt abwesend", kind="user_away")
             elif not is_away and was_away:
-                self.tts.speak(f"{name} ist wieder verfügbar", kind="user_away")
+                self.tts.speak(f"{display} ist wieder verfügbar", kind="user_away")
             return
         else:
             return
@@ -10663,7 +10706,7 @@ class MainFrame(wx.Frame):
         if event == tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED:
             my_ch = int(self.client.get_my_channel_id() or 0)
             if my_ch and channel_id == my_ch:
-                self._send_notification("Benutzer betreten", f"{name} → {channel_name or str(channel_id)}")
+                self._send_notification("Benutzer betreten", f"{display} → {channel_name or str(channel_id)}")
                 try:
                     from ui_wx.a11y import post_voiceover_announcement
                     _vo = self.braille.strip_for_braille(text)
@@ -10673,7 +10716,7 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT:
             my_ch = int(self.client.get_my_channel_id() or 0)
             if my_ch and channel_id == my_ch:
-                self._send_notification("Benutzer verlassen", f"{name} ← {channel_name or str(channel_id)}")
+                self._send_notification("Benutzer verlassen", f"{display} ← {channel_name or str(channel_id)}")
                 try:
                     from ui_wx.a11y import post_voiceover_announcement
                     _vo = self.braille.strip_for_braille(text)
@@ -10800,6 +10843,9 @@ class MainFrame(wx.Frame):
             from_user = self.tt_str(msg.textmessage.szFromUsername)
             msg_type = int(msg.textmessage.nMsgType)
             from_id = int(msg.textmessage.nFromUserID)
+            # Anzeige-Name gemäß "Nutzer anzeigen als"; from_user (Benutzername)
+            # bleibt Schlüssel für Benachrichtigungsregeln, Makros und Plugins.
+            from_display = self.user_display_name_for_id(from_id, from_user) or from_user
             my_id = int(self.client.get_my_user_id() or 0)
             is_own = bool(from_id and my_id and from_id == my_id)
             # Custom-Nachrichten (z. B. Tipp-Anzeige "typing\r\n1" des offiziellen
@@ -10833,9 +10879,9 @@ class MainFrame(wx.Frame):
                 except Exception:
                     channel_name = ""
                 if channel_name:
-                    entry = f"[{timestamp}] {channel_name} {from_user}: {content}"
+                    entry = f"[{timestamp}] {channel_name} {from_display}: {content}"
                 else:
-                    entry = f"[{timestamp}] {from_user}: {content}"
+                    entry = f"[{timestamp}] {from_display}: {content}"
                 self._channel_message_log.append(entry)
                 if len(self._channel_message_log) > 200:
                     self._channel_message_log = self._channel_message_log[-200:]
@@ -10850,13 +10896,15 @@ class MainFrame(wx.Frame):
             # Rundnachrichten (broadcast) haben kein lokales Echo, daher hier nicht sperren.
             if not (is_own and kind in ("chat", "private")):
                 _reply_meta = {
-                    "sender": from_user,
+                    "sender": from_display,
                     "sender_id": from_id,
                     "content": str(content or ""),
                     "private": kind == "private",
                     "reply_user_id": from_id if kind == "private" else 0,
                 }
-                wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak, _reply_meta)
+                # Stummgeschaltete Absender werden weiterhin auch per Benutzername erkannt
+                if from_display == from_user or not self.chat_tab._is_muted_sender(f"{from_user}: "):
+                    wx.CallAfter(self.chat_tab.append_chat, f"{from_display}: {content}", kind, speak, _reply_meta)
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 # Nachricht ist da – "schreibt …" sofort beenden
                 wx.CallAfter(self._on_remote_typing, from_id, False)
@@ -10876,7 +10924,7 @@ class MainFrame(wx.Frame):
             # v3.3.0 – VoiceOver-Ankündigung + Makro-Trigger für eingehende Privatnachrichten
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own:
                 from ui_wx.a11y import post_voiceover_announcement
-                wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_user}: {content}")
+                wx.CallAfter(post_voiceover_announcement, f"Privatnachricht von {from_display}: {content}")
                 self._macros.fire_event("private_msg", user=from_user or "", text=content or "")
             # v3.9.0 – Echtzeit-Übersetzung (Hintergrundthread, nur fremde Nachrichten)
             if not is_own and self._translator.is_enabled():

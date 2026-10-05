@@ -542,6 +542,21 @@ class SettingsTab(QWidget):
         self.auto_join_last.setChecked(bool(getattr(s, "auto_join_last_channel", False)))
         self.auto_join_last.stateChanged.connect(lambda v: self._save_bool("auto_join_last_channel", v))
         chat_form.addRow("", self.auto_join_last)
+
+        self.connect_with_mic_off = QCheckBox(_("Beim Verbinden immer mit ausgeschaltetem &Mikrofon starten"))
+        self.connect_with_mic_off.setAccessibleName(_("Beim Verbinden immer mit ausgeschaltetem Mikrofon starten"))
+        self.connect_with_mic_off.setChecked(bool(getattr(s, "connect_with_mic_off", False)))
+        self.connect_with_mic_off.stateChanged.connect(lambda v: self._save_bool("connect_with_mic_off", v))
+        chat_form.addRow("", self.connect_with_mic_off)
+
+        self.user_name_display = QComboBox()
+        self._name_modes = ("nickname", "username", "both")
+        self.user_name_display.addItems([_("Nickname"), _("Benutzername"), _("Nickname und Benutzername")])
+        self.user_name_display.setAccessibleName(_("Nutzer anzeigen als"))
+        _cur_mode = getattr(s, "user_name_display", "nickname") or "nickname"
+        self.user_name_display.setCurrentIndex(self._name_modes.index(_cur_mode) if _cur_mode in self._name_modes else 0)
+        self.user_name_display.currentIndexChanged.connect(self._on_user_name_display)
+        chat_form.addRow(_("Nutzer anzeigen als:"), self.user_name_display)
         layout.addWidget(chat_group)
 
         trans_group = QGroupBox(_("Chat-Übersetzung"))
@@ -1622,6 +1637,15 @@ class SettingsTab(QWidget):
         try:
             setattr(self.window.settings_store.settings, key, bool(value))
             self.window.settings_store.save()
+        except Exception:
+            pass
+
+    def _on_user_name_display(self, idx: int) -> None:
+        mode = self._name_modes[idx] if 0 <= idx < len(self._name_modes) else "nickname"
+        self._save_str("user_name_display", mode)
+        # wirkt sofort – Kanal-/Nutzerliste neu aufbauen
+        try:
+            self.window._refresh_channels()
         except Exception:
             pass
 

@@ -281,9 +281,9 @@ class ChannelsTab(QWidget):
         items.append((_NODE_CHANNEL, root_id))
 
         for u in sorted(users_by_channel.get(root_id, []),
-                        key=lambda u: (tt_str(u.szNickname) or "").lower()):
+                        key=lambda u: self.window.user_display_name(u).lower()):
             try:
-                uname = tt_str(u.szNickname) or tt_str(u.szUsername) or f"User#{u.nUserID}"
+                uname = self.window.user_display_name(u, f"User#{u.nUserID}")
                 line = f"{indent}  {uname}"
                 if not compact:
                     status_txt = tt_str(u.szStatusMsg)
@@ -370,7 +370,7 @@ class ChannelsTab(QWidget):
     def _format_user_label(self, user) -> str:
         tt_str = self.window.tt_str
         try:
-            name = tt_str(user.szNickname) or tt_str(user.szUsername) or _("Benutzer")
+            name = self.window.user_display_name(user, _("Benutzer"))
         except Exception:
             name = _("Benutzer")
         flags = []
@@ -414,7 +414,7 @@ class ChannelsTab(QWidget):
 
     def _build_user_info_text(self, user) -> str:
         tt_str = self.window.tt_str
-        name = tt_str(user.szNickname) or tt_str(user.szUsername) or _("Unbekannt")
+        name = self.window.user_display_name(user, _("Unbekannt"))
         parts = [name]
         try:
             tt = self.window.client.tt

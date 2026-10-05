@@ -7405,6 +7405,32 @@ _TRANSLATIONS_ES.update({
     "Jemand schreibt eine Privatnachricht": "Alguien está escribiendo un mensaje privado",
 })
 
+# Verbindungs- und Anzeigeoptionen (Mikrofon beim Verbinden aus, Nutzer anzeigen als)
+_TRANSLATIONS.update({
+    "Beim Verbinden immer mit ausgeschaltetem &Mikrofon starten": "Always start with the &microphone off when connecting",
+    "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten": "Always start with the microphone off when connecting",
+    "Mikrofon beim Verbinden ausgeschaltet": "Microphone off after connecting",
+    "Nutzer anzeigen als:": "Show users as:",
+    "Nutzer anzeigen als": "Show users as",
+    "Nickname und Benutzername": "Nickname and username",
+})
+_TRANSLATIONS_FR.update({
+    "Beim Verbinden immer mit ausgeschaltetem &Mikrofon starten": "Toujours démarrer avec le &microphone coupé à la connexion",
+    "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten": "Toujours démarrer avec le microphone coupé à la connexion",
+    "Mikrofon beim Verbinden ausgeschaltet": "Microphone coupé après la connexion",
+    "Nutzer anzeigen als:": "Afficher les utilisateurs par :",
+    "Nutzer anzeigen als": "Afficher les utilisateurs par",
+    "Nickname und Benutzername": "Pseudo et nom d'utilisateur",
+})
+_TRANSLATIONS_ES.update({
+    "Beim Verbinden immer mit ausgeschaltetem &Mikrofon starten": "Iniciar siempre con el &micrófono desactivado al conectar",
+    "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten": "Iniciar siempre con el micrófono desactivado al conectar",
+    "Mikrofon beim Verbinden ausgeschaltet": "Micrófono desactivado tras conectar",
+    "Nutzer anzeigen als:": "Mostrar usuarios como:",
+    "Nutzer anzeigen als": "Mostrar usuarios como",
+    "Nickname und Benutzername": "Apodo y nombre de usuario",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

@@ -1004,7 +1004,9 @@ class MainWindow(QMainWindow):
             # v10.5.0 – Sprachaktivierung nach (Re-)Connect sofort wieder scharf
             # schalten; der SDK-Client wird beim Verbinden neu erzeugt.
             try:
-                if (bool(getattr(self.settings_store.settings, "voice_activation", False))
+                if getattr(self.settings_store.settings, "connect_with_mic_off", False):
+                    self._force_mic_off_on_connect()
+                elif (bool(getattr(self.settings_store.settings, "voice_activation", False))
                         or self.audio_tab.voice_activation.isChecked()):
                     self.client.set_voice_activation_level(self.audio_tab.voice_level.value())
                     self.client.enable_voice_activation(True)
@@ -1060,7 +1062,7 @@ class MainWindow(QMainWindow):
             if ch_id == my_ch:
                 _srv = str(self._current_server_key or "")
                 _ch = str(self._current_channel_name or "")
-                _join_text = f"{name} hat den Kanal betreten"
+                _join_text = f"{self.user_display_name(user, name)} hat den Kanal betreten"
                 if (self.tts.settings.speak_user_join and not _tts_muted
                         and self._notifications.allow_tts("user_join", user=name, server=_srv, channel=_ch)):
                     self.tts.speak(_join_text, kind="user_join")
@@ -1074,7 +1076,7 @@ class MainWindow(QMainWindow):
             # v10.0.0 – Nutzerwatcher (Parität zu app_wx.py): serverweit, unabhängig vom eigenen Kanal
             _watched = list(getattr(self.settings_store.settings, "watched_users", []) or [])
             if name in _watched:
-                _watch_text = _("Beobachteter Nutzer anwesend: {} in {}").format(name, self._current_channel_name or ch_id)
+                _watch_text = _("Beobachteter Nutzer anwesend: {} in {}").format(self.user_display_name(user, name), self._current_channel_name or ch_id)
                 self.tts.speak(_watch_text, kind="system")
         except Exception:
             pass
@@ -1093,7 +1095,7 @@ class MainWindow(QMainWindow):
             _muted_list = [u.strip().lower() for u in _muted_raw.split(",") if u.strip()]
             _tts_muted = name.lower() in _muted_list if _muted_list else False
             _srv = str(self._current_server_key or "")
-            _leave_text = f"{name} hat den Kanal verlassen"
+            _leave_text = f"{self.user_display_name(user, name)} hat den Kanal verlassen"
             if (self.tts.settings.speak_user_leave and not _tts_muted
                     and self._notifications.allow_tts("user_leave", user=name, server=_srv)):
                 self.tts.speak(_leave_text, kind="user_leave")
@@ -1140,7 +1142,7 @@ class MainWindow(QMainWindow):
             tt = self.client.tt
             user = msg.user
             uid = int(user.nUserID)
-            nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
+            nick = self.user_display_name(user, f"User#{uid}")
             ustate = int(user.uUserState)
             voice_flag = int(tt.UserState.USERSTATE_VOICE)
             is_talking = bool(ustate & voice_flag)
@@ -1265,6 +1267,9 @@ class MainWindow(QMainWindow):
                             from_user = nick
                 except Exception:
                     pass
+                # Anzeige gemäß "Nutzer anzeigen als"; from_user bleibt Schlüssel
+                # für Benachrichtigungsregeln.
+                from_display = self.user_display_name_for_id(from_id, from_user) or from_user
                 my_id = int(self.client.get_my_user_id() or 0)
                 is_own = bool(from_id and my_id and from_id == my_id)
 
@@ -1292,7 +1297,7 @@ class MainWindow(QMainWindow):
                 else:
                     _partner = 0
                 self.chat_tab.append_message(
-                    from_user, content,
+                    from_display, content,
                     private=(kind == "private"),
                     own=is_own,
                     kind=kind,
@@ -1308,16 +1313,16 @@ class MainWindow(QMainWindow):
                     try:
                         from ui_qt.private_chat_dialog import _open_dialogs
                         if from_id in _open_dialogs:
-                            _open_dialogs[from_id].append_message(from_user, content, own=False)
+                            _open_dialogs[from_id].append_message(from_display, content, own=False)
                     except Exception:
                         pass
 
                 if not is_own:
-                    speak_text = f"{from_user}: {content}"
+                    speak_text = f"{from_display}: {content}"
                     _notif_kind = "private_msg" if kind == "private" else "chat_message"
                     _srv = str(self._current_server_key or "")
                     if kind == "private":
-                        speak_text = f"Privat von {from_user}: {content}"
+                        speak_text = f"Privat von {from_display}: {content}"
                         self._last_private_sender_id = from_id
                         self._last_private_message_text = str(content or "")
                         if self._notifications.allow_sound("private_msg", user=from_user, server=_srv, message=str(content or "")):
@@ -1339,12 +1344,12 @@ class MainWindow(QMainWindow):
                     try:
                         if kind == "private":
                             # Privacy: only announce sender, not the message text
-                            self._sr_announce(f"Privatnachricht von {from_user}"[:100])
+                            self._sr_announce(f"Privatnachricht von {from_display}"[:100])
                         else:
                             # Channel chat: only announce when not in the Kanäle+Chat tab (index 0)
                             _cur_tab = self.notebook.currentIndex()
                             if _cur_tab != 0:
-                                _chat_sr = f"Kanal-Chat von {from_user}: {str(content or '')[:80]}"
+                                _chat_sr = f"Kanal-Chat von {from_display}: {str(content or '')[:80]}"
                                 if len(_chat_sr) > 100:
                                     _chat_sr = _chat_sr[:99] + "…"
                                 self._sr_announce(_chat_sr)
@@ -1358,7 +1363,7 @@ class MainWindow(QMainWindow):
 
                 if kind == "chat":
                     ts = time.strftime("%H:%M:%S")
-                    self._channel_message_log.append(f"[{ts}] {from_user}: {content}")
+                    self._channel_message_log.append(f"[{ts}] {from_display}: {content}")
                     if len(self._channel_message_log) > 200:
                         self._channel_message_log = self._channel_message_log[-200:]
 
@@ -1964,6 +1969,45 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def _force_mic_off_on_connect(self) -> None:
+        """Option "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten":
+        weder Sprachaktivierung noch laufendes Senden werden nach Login/
+        Wiederverbinden übernommen. Kanalwechsel sind davon nicht betroffen."""
+        self._ptt_active = False
+        try:
+            self.client.enable_voice_activation(False)
+            self.client.enable_voice_transmission(False)
+        except Exception:
+            pass
+        try:
+            cb = self.audio_tab.voice_activation
+            cb.blockSignals(True)
+            cb.setChecked(False)
+            cb.blockSignals(False)
+        except Exception:
+            pass
+        self.set_status(_("Mikrofon beim Verbinden ausgeschaltet"))
+
+    def user_display_name(self, user, fallback: str = "") -> str:
+        """Nutzername für die Anzeige gemäß Einstellung "Nutzer anzeigen als"."""
+        from ui.user_names import format_user_name
+        return format_user_name(
+            self.tt_str(getattr(user, "szNickname", "")) if user is not None else "",
+            self.tt_str(getattr(user, "szUsername", "")) if user is not None else "",
+            getattr(self.settings_store.settings, "user_name_display", "nickname"),
+            fallback,
+        )
+
+    def user_display_name_for_id(self, user_id: int, fallback: str = "") -> str:
+        """Wie user_display_name(), aber per User-ID (Nutzer nicht gefunden → fallback)."""
+        try:
+            user = self.client.get_user(int(user_id)) if user_id else None
+        except Exception:
+            user = None
+        if user is None or not int(getattr(user, "nUserID", 0) or 0):
+            return fallback
+        return self.user_display_name(user, fallback)
+
     def set_voice_activation_level(self, level: int) -> None:
         try:
             self.client.set_voice_activation_level(level)
@@ -2326,7 +2370,7 @@ class MainWindow(QMainWindow):
         try:
             u = self.client.get_user(user_id)
             if u:
-                nick = self.tt_str(u.szNickname) or self.tt_str(u.szUsername)
+                nick = self.user_display_name(u)
         except Exception:
             pass
         _open(self, user_id, nick)
@@ -2891,7 +2935,7 @@ class MainWindow(QMainWindow):
             for user in users:
                 ustate = int(user.uUserState)
                 if ustate & voice_flag or (media_flag and ustate & media_flag):
-                    nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{int(user.nUserID)}"
+                    nick = self.user_display_name(user, f"User#{int(user.nUserID)}")
                     transmitting.append(nick)
             text = ("Spricht: " + ", ".join(transmitting)) if transmitting else "Niemand spricht"
             self.tts.speak(text, kind="system")
@@ -3073,7 +3117,7 @@ class MainWindow(QMainWindow):
         try:
             user = self.client.get_user(uid)
             if user:
-                nick = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or "Benutzer"
+                nick = self.user_display_name(user, "Benutzer")
                 ch_id = int(getattr(user, "nChannelID", 0) or 0)
                 channel_name = ""
                 if ch_id:
@@ -4314,7 +4358,7 @@ class MainWindow(QMainWindow):
 
     def on_menu_online_users(self) -> None:
         from ui_qt.dialogs import OnlineUsersDialog
-        dlg = OnlineUsersDialog(self, self.client, self.tt_str)
+        dlg = OnlineUsersDialog(self, self.client, self.tt_str, tts=self.tts, window=self)
         dlg.exec()
         self._refocus_channel_list()
 
