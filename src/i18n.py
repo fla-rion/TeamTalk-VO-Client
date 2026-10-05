@@ -7301,6 +7301,56 @@ _TRANSLATIONS_ES.update({
     "Du bist Nummer {n} in der Warteschlange": "Eres el número {n} en la cola de turnos",
 })
 
+# TeamTalk 5.23-Parität – Medienstream-Anzeige/-Ansage, Geschlecht, Spulen
+_TRANSLATIONS.update({
+    "Streamt Medien": "Streaming media",
+    "Medien pausiert": "Media paused",
+    "neutral": "neutral",
+    "weiblich": "female",
+    "männlich": "male",
+    "hat eine Frage": "has a question",
+    "{} streamt eine Mediendatei": "{} is streaming a media file",
+    "&Medienstream anderer": "Others' &media streams",
+    "Ansagen, wenn jemand eine Mediendatei streamt": "Announce when someone streams a media file",
+    "10 Sekunden vorspulen": "Forward 10 seconds",
+    "10 Sekunden zurückspulen": "Rewind 10 seconds",
+    "Kein spulbarer Medienstream aktiv": "No seekable media stream active",
+    "Position {pos} von {dur}": "Position {pos} of {dur}",
+    "Medien-Stream (fest)": "Media stream (fixed)",
+})
+_TRANSLATIONS_FR.update({
+    "Streamt Medien": "Diffuse un média",
+    "Medien pausiert": "Média en pause",
+    "neutral": "neutre",
+    "weiblich": "féminin",
+    "männlich": "masculin",
+    "hat eine Frage": "a une question",
+    "{} streamt eine Mediendatei": "{} diffuse un fichier média",
+    "&Medienstream anderer": "&Diffusions média des autres",
+    "Ansagen, wenn jemand eine Mediendatei streamt": "Annoncer quand quelqu'un diffuse un fichier média",
+    "10 Sekunden vorspulen": "Avancer de 10 secondes",
+    "10 Sekunden zurückspulen": "Reculer de 10 secondes",
+    "Kein spulbarer Medienstream aktiv": "Aucune diffusion média navigable active",
+    "Position {pos} von {dur}": "Position {pos} sur {dur}",
+    "Medien-Stream (fest)": "Diffusion média (fixe)",
+})
+_TRANSLATIONS_ES.update({
+    "Streamt Medien": "Transmitiendo multimedia",
+    "Medien pausiert": "Multimedia en pausa",
+    "neutral": "neutro",
+    "weiblich": "femenino",
+    "männlich": "masculino",
+    "hat eine Frage": "tiene una pregunta",
+    "{} streamt eine Mediendatei": "{} está transmitiendo un archivo multimedia",
+    "&Medienstream anderer": "Transmisiones &multimedia de otros",
+    "Ansagen, wenn jemand eine Mediendatei streamt": "Anunciar cuando alguien transmite un archivo multimedia",
+    "10 Sekunden vorspulen": "Avanzar 10 segundos",
+    "10 Sekunden zurückspulen": "Retroceder 10 segundos",
+    "Kein spulbarer Medienstream aktiv": "No hay ninguna transmisión multimedia desplazable activa",
+    "Position {pos} von {dur}": "Posición {pos} de {dur}",
+    "Medien-Stream (fest)": "Transmisión multimedia (fija)",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

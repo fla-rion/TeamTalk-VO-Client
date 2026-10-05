@@ -95,6 +95,7 @@ _SYNCABLE_FIELDS = {
     "tts_backend",
     "tts_speak_user_login",
     "tts_speak_file_event",
+    "tts_speak_media_stream",
     "tts_speak_file_transfer",
     "tts_speak_channel_topic_on_join",
     "pronunciation_dict",

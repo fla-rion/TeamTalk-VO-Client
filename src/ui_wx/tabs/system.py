@@ -209,6 +209,8 @@ class SystemTab(wx.Panel):
         self.tts_file_event.SetName("Kanal-Datei-Ereignis ansagen")
         self.tts_transmit_queue = wx.CheckBox(self, label="Sprech-&Warteschlange")
         self.tts_transmit_queue.SetName("Sprech-Warteschlange ansagen (Ton und Sprache)")
+        self.tts_media_stream = wx.CheckBox(self, label=_("&Medienstream anderer"))
+        self.tts_media_stream.SetName(_("Ansagen, wenn jemand eine Mediendatei streamt"))
         row3.Add(self.tts_user_join, 0, wx.RIGHT, 12)
         row3.Add(self.tts_user_leave, 0, wx.RIGHT, 12)
         row3.Add(self.tts_file_transfer, 0, wx.RIGHT, 12)
@@ -220,6 +222,7 @@ class SystemTab(wx.Panel):
         row3.Add(self.tts_user_login, 0, wx.RIGHT, 12)
         row3.Add(self.tts_file_event, 0, wx.RIGHT, 12)
         row3.Add(self.tts_transmit_queue, 0)
+        row3.Add(self.tts_media_stream, 0)
         tts_sizer.Add(row3, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         grid = wx.FlexGridSizer(cols=2, vgap=6, hgap=8)
@@ -309,6 +312,7 @@ class SystemTab(wx.Panel):
         self.tts_user_login.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_file_event.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_transmit_queue.Bind(wx.EVT_CHECKBOX, self._apply_settings)
+        self.tts_media_stream.Bind(wx.EVT_CHECKBOX, self._apply_settings)
         self.tts_backend.Bind(wx.EVT_CHOICE, self._on_backend_changed)
         self.tts_evv_voice.Bind(wx.EVT_SPINCTRL, self._apply_settings)
         self.tts_evv_lang.Bind(wx.EVT_CHOICE, self._apply_settings)
@@ -344,6 +348,7 @@ class SystemTab(wx.Panel):
         self.tts_user_login.SetValue(s.speak_user_login)
         self.tts_file_event.SetValue(s.speak_file_event)
         self.tts_transmit_queue.SetValue(s.speak_transmit_queue)
+        self.tts_media_stream.SetValue(s.speak_media_stream)
         import sys as _sys2
         if _sys2.platform == "darwin":
             idx = {"voiceover": 1, "macos_say": 2, "macos_avs": 3, "openevv": 4}.get(s.backend, 0)
@@ -398,6 +403,7 @@ class SystemTab(wx.Panel):
         s.speak_user_login = self.tts_user_login.GetValue()
         s.speak_file_event = self.tts_file_event.GetValue()
         s.speak_transmit_queue = self.tts_transmit_queue.GetValue()
+        s.speak_media_stream = self.tts_media_stream.GetValue()
         import sys as _sys3
         sel = self.tts_backend.GetSelection()
         if _sys3.platform == "darwin":
@@ -446,6 +452,7 @@ class SystemTab(wx.Panel):
         app.tts_speak_user_login = s.speak_user_login
         app.tts_speak_file_event = s.speak_file_event
         app.tts_speak_transmit_queue = s.speak_transmit_queue
+        app.tts_speak_media_stream = s.speak_media_stream
         app.tts_macos_voice = s.macos_voice
         app.tts_macos_rate = s.macos_rate
         app.tts_macos_volume = s.macos_volume

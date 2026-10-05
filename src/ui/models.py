@@ -325,6 +325,8 @@ class AppSettings:
     tts_speak_file_event: bool = True
     # Sprech-Warteschlange in Solo-Kanälen ansagen (Ton und Sprache)
     tts_speak_transmit_queue: bool = True
+    # TeamTalk 5.23-Parität: Ansage, wenn jemand im Kanal eine Mediendatei streamt
+    tts_speak_media_stream: bool = True
     tts_macos_voice: str = ""
     recording_mode: str = "muxed"  # "muxed" | "separate" | "both"
     # v6.10.3 (ttaccessible-inspired)
@@ -576,6 +578,7 @@ class SettingsStore:
             self.settings.tts_speak_user_login = bool(data.get("tts_speak_user_login", True))
             self.settings.tts_speak_file_event = bool(data.get("tts_speak_file_event", True))
             self.settings.tts_speak_transmit_queue = bool(data.get("tts_speak_transmit_queue", True))
+            self.settings.tts_speak_media_stream = bool(data.get("tts_speak_media_stream", True))
             self.settings.tts_macos_voice = str(data.get("tts_macos_voice", "") or "")
             self.settings.recording_mode = str(data.get("recording_mode", "muxed") or "muxed")
             # v6.10.3
@@ -807,6 +810,7 @@ class SettingsStore:
             "tts_speak_user_login": bool(self.settings.tts_speak_user_login),
             "tts_speak_file_event": bool(self.settings.tts_speak_file_event),
             "tts_speak_transmit_queue": bool(self.settings.tts_speak_transmit_queue),
+            "tts_speak_media_stream": bool(self.settings.tts_speak_media_stream),
             "tts_macos_voice": str(self.settings.tts_macos_voice or ""),
             "recording_mode": str(self.settings.recording_mode or "muxed"),
             # v6.10.3

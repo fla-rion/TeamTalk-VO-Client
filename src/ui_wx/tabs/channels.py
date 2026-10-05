@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 import wx
 
 from i18n import _
+from ui.user_flags import gender_label, media_stream_label, status_mode_label
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -297,6 +298,12 @@ class ChannelsTab(wx.Panel):
                 flags.append(_("Stumm"))
         except Exception:
             pass
+        try:
+            _media = media_stream_label(user, self.frame.client.tt)
+            if _media:
+                flags.append(_media)
+        except Exception:
+            pass
         braille = getattr(self.frame, "braille", None)
         if braille and braille.verbosity == "compact":
             return f"{name}, {flags[0]}" if flags else name
@@ -473,8 +480,16 @@ class ChannelsTab(wx.Panel):
         except Exception:
             pass
         try:
-            if user.nStatusMode != 0:
-                parts.append(_("abwesend"))
+            _media = media_stream_label(user, self.frame.client.tt)
+            if _media:
+                parts.append(_media)
+        except Exception:
+            pass
+        try:
+            _mode = status_mode_label(user)
+            if _mode:
+                parts.append(_mode)
+            parts.append(gender_label(user))
         except Exception:
             pass
         self.frame.tts.speak(", ".join(parts), kind="system")

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 from i18n import _
+from ui.user_flags import gender_label, media_stream_label, status_mode_label
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
@@ -387,6 +388,12 @@ class ChannelsTab(QWidget):
                 flags.append(_("Stumm"))
         except Exception:
             pass
+        try:
+            _media = media_stream_label(user, self.window.client.tt)
+            if _media:
+                flags.append(_media)
+        except Exception:
+            pass
         if flags:
             return f"{name}, {', '.join(flags)}"
         return name
@@ -426,8 +433,16 @@ class ChannelsTab(QWidget):
         except Exception:
             pass
         try:
-            if user.nStatusMode != 0:
-                parts.append(_("abwesend"))
+            _media = media_stream_label(user, self.window.client.tt)
+            if _media:
+                parts.append(_media)
+        except Exception:
+            pass
+        try:
+            _mode = status_mode_label(user)
+            if _mode:
+                parts.append(_mode)
+            parts.append(gender_label(user))
         except Exception:
             pass
         return ", ".join(parts)

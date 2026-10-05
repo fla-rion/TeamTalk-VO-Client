@@ -63,6 +63,7 @@ class TTSSettings:
     speak_file_event: bool = True
     # Sprech-Warteschlange in Solo-Kanälen (dran / vorbei / Position)
     speak_transmit_queue: bool = True
+    speak_media_stream: bool = True
     # v2.2.0 per-context overrides (0 / "" = use global)
     chat_rate: int = 0
     system_rate: int = 0
@@ -409,6 +410,8 @@ class TTSManager:
         if kind == "file_event" and not self.settings.speak_file_event:
             return
         if kind == "transmit_queue" and not self.settings.speak_transmit_queue:
+            return
+        if kind == "media_stream" and not self.settings.speak_media_stream:
             return
 
         if self.settings.interrupt:

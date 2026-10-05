@@ -126,9 +126,12 @@ class SystemTab(QWidget):
         self.tts_connect_announce = QCheckBox(_("&Verbindung"))
         self.tts_transmit_queue = QCheckBox(_("Sprech-&Warteschlange"))
         self.tts_transmit_queue.setAccessibleName(_("Sprech-Warteschlange ansagen (Ton und Sprache)"))
+        self.tts_media_stream = QCheckBox(_("&Medienstream anderer"))
+        self.tts_media_stream.setAccessibleName(_("Ansagen, wenn jemand eine Mediendatei streamt"))
         for cb in (self.tts_user_join, self.tts_user_leave,
                    self.tts_file_transfer, self.tts_channel_topic,
-                   self.tts_connect_announce, self.tts_transmit_queue):
+                   self.tts_connect_announce, self.tts_transmit_queue,
+                   self.tts_media_stream):
             row3.addWidget(cb)
         row3.addStretch()
         tts_layout.addLayout(row3)
@@ -250,6 +253,7 @@ class SystemTab(QWidget):
         self.tts_channel_topic.stateChanged.connect(self._apply_settings)
         self.tts_connect_announce.stateChanged.connect(self._apply_settings)
         self.tts_transmit_queue.stateChanged.connect(self._apply_settings)
+        self.tts_media_stream.stateChanged.connect(self._apply_settings)
         self.tts_language.currentIndexChanged.connect(self._refresh_voices)
         self.tts_voice_filter.textChanged.connect(self._refresh_voices)
         self.tts_voice.currentRowChanged.connect(self._apply_settings)
@@ -303,6 +307,7 @@ class SystemTab(QWidget):
         self.tts_channel_topic.setChecked(s.speak_channel_topic)
         self.tts_connect_announce.setChecked(s.connect_announce)
         self.tts_transmit_queue.setChecked(s.speak_transmit_queue)
+        self.tts_media_stream.setChecked(s.speak_media_stream)
         if s.enabled:
             self._refresh_languages(force=True)
             self._set_language_value(s.language)
@@ -351,6 +356,7 @@ class SystemTab(QWidget):
         s.speak_channel_topic = self.tts_channel_topic.isChecked()
         s.connect_announce = self.tts_connect_announce.isChecked()
         s.speak_transmit_queue = self.tts_transmit_queue.isChecked()
+        s.speak_media_stream = self.tts_media_stream.isChecked()
         s.language = self._get_language_value() or "de"
         s.voice = self._get_voice_value()
         s.rate = self.tts_rate.value()
@@ -384,6 +390,7 @@ class SystemTab(QWidget):
         app.tts_speak_channel_topic = s.speak_channel_topic
         app.tts_connect_announce = s.connect_announce
         app.tts_speak_transmit_queue = s.speak_transmit_queue
+        app.tts_speak_media_stream = s.speak_media_stream
         s.chat_rate = self.tts_chat_rate.value()
         s.system_rate = self.tts_system_rate.value()
         s.channel_rate = self.tts_channel_rate.value()
