@@ -5,6 +5,7 @@ import ipaddress
 import socket
 import time
 import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -35,6 +36,11 @@ class TeamTalkClient:
         self._connect_lock = threading.Lock()
         self._event_thread: Optional[threading.Thread] = None
         self._event_stop = threading.Event()
+        # Ergebnis-Rückrufe für einzelne Befehle (cmdid -> callback(ok, err)),
+        # ausgewertet im Event-Loop bei CMD_SUCCESS/CMD_ERROR.
+        self._cmd_lock = threading.Lock()
+        self._cmd_callbacks: dict = {}
+        self._cmd_unclaimed: "OrderedDict[int, Tuple[bool, str]]" = OrderedDict()
         self._last_connect: Optional[Tuple[str, int, int, str, str, str, str, bool, Optional[bool], bool]] = None
         self._last_transport_encrypted: Optional[bool] = None
         self._connected = False
@@ -1345,10 +1351,65 @@ class TeamTalkClient:
                 msg = self.client.getMessage(min(poll_ms, 100))
                 if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                     continue
+                if self._resolve_cmd_result(msg):
+                    continue
                 handler(msg)
 
         self._event_thread = threading.Thread(target=loop, daemon=True)
         self._event_thread.start()
+
+    def on_cmd_result(self, cmdid: int, callback: Callable[[bool, str], None]) -> None:
+        """Ruft `callback(ok, fehlertext)` auf, sobald der Server den Befehl
+        `cmdid` bestätigt (CMD_SUCCESS) oder abgelehnt (CMD_ERROR) hat.
+
+        Ein `doXxx()`-Rückgabewert > 0 heißt nur "Befehl abgeschickt", nicht
+        "Server hat zugestimmt". Läuft im Event-Loop-Thread – UI-Code muss
+        selbst per CallAfter in den UI-Thread wechseln. Kam die Antwort schon
+        vor der Registrierung, wird der Rückruf sofort ausgeführt.
+        """
+        if cmdid <= 0:
+            return
+        with self._cmd_lock:
+            done = self._cmd_unclaimed.pop(int(cmdid), None)
+            if done is None:
+                self._cmd_callbacks[int(cmdid)] = callback
+                return
+        callback(*done)
+
+    def _resolve_cmd_result(self, msg) -> bool:
+        """Leitet CMD_SUCCESS/CMD_ERROR an einen registrierten Rückruf weiter.
+
+        Gibt True zurück, wenn ein CMD_ERROR von einem Rückruf übernommen
+        wurde (die allgemeine Fehlermeldung des Handlers entfällt dann).
+        """
+        ev = msg.nClientEvent
+        if ev == self.tt.ClientEvent.CLIENTEVENT_CMD_SUCCESS:
+            ok, err = True, ""
+        elif ev == self.tt.ClientEvent.CLIENTEVENT_CMD_ERROR:
+            ok = False
+            try:
+                err = self.tt.ttstr(msg.clienterrormsg.szErrorMsg)
+                if isinstance(err, bytes):
+                    err = err.decode("utf-8", errors="replace")
+            except Exception:
+                err = ""
+        else:
+            return False
+        cmdid = int(getattr(msg, "nSource", 0) or 0)
+        if cmdid <= 0:
+            return False
+        with self._cmd_lock:
+            callback = self._cmd_callbacks.pop(cmdid, None)
+            if callback is None:
+                self._cmd_unclaimed[cmdid] = (ok, err)
+                while len(self._cmd_unclaimed) > 64:
+                    self._cmd_unclaimed.popitem(last=False)
+                return False
+        try:
+            callback(ok, err)
+        except Exception:
+            pass
+        return not ok
 
     def stop_event_loop(self) -> None:
         self._event_stop.set()

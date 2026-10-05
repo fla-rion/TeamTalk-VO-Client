@@ -5,6 +5,8 @@ from typing import List, TYPE_CHECKING
 
 import wx
 
+from i18n import _
+from ui.account_format import format_last_login, last_login_sort_key
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -32,9 +34,19 @@ class AdminTab(wx.Panel):
         acc_box = wx.StaticBox(self, label="Benutzerkonten")
         acc_sizer = wx.StaticBoxSizer(acc_box, wx.VERTICAL)
 
-        acc_header = wx.StaticText(acc_box, label="Benutzername, Typ, Notiz")
+        acc_header = wx.StaticText(acc_box, label="Benutzername, Typ, Letzte Anmeldung, Notiz")
         acc_header.SetName("Benutzerkonten Kopfzeile")
         acc_sizer.Add(acc_header, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
+
+        sort_row = wx.BoxSizer(wx.HORIZONTAL)
+        sort_label = wx.StaticText(self, label="Konten sortieren nach:")
+        self.account_sort = wx.Choice(self, choices=["Benutzername", "Letzte Anmeldung"])
+        self.account_sort.SetName("Konten sortieren nach")
+        self.account_sort.SetSelection(0)
+        self.account_sort.Bind(wx.EVT_CHOICE, lambda _e: self._render_accounts())
+        sort_row.Add(sort_label, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        sort_row.Add(self.account_sort, 0)
+        acc_sizer.Add(sort_row, 0, wx.LEFT | wx.RIGHT | wx.TOP, 4)
         self.account_list = wx.ListBox(self)
         self.account_list.SetName("Benutzerkonten")
         setup_list_accessible(self.account_list)
@@ -132,13 +144,32 @@ class AdminTab(wx.Panel):
         return ctrl
 
     def check_admin_visibility(self):
+        """Bereiche nach den tatsächlich vom Server erteilten Rechten freischalten.
+
+        Konten auflisten/bearbeiten und Konfiguration speichern sind laut SDK
+        Admin-only; Sperren brauchen nur USERRIGHT_BAN_USERS, Servereigenschaften
+        nur USERRIGHT_UPDATE_SERVERPROPERTIES – ein Moderator mit diesen Rechten
+        soll sie nutzen können, ohne Administrator zu sein.
+        """
         try:
             tt = self.frame.client.tt
             user_type = self.frame.client.get_my_user_type()
             is_admin = bool(user_type & tt.UserType.USERTYPE_ADMIN)
+            rights = int(self.frame.client.get_my_user_rights() or 0)
+            can_ban = is_admin or bool(rights & int(tt.UserRight.USERRIGHT_BAN_USERS))
+            can_props = is_admin or bool(rights & int(tt.UserRight.USERRIGHT_UPDATE_SERVERPROPERTIES))
         except Exception:
-            is_admin = False
-        self.Enable(is_admin)
+            is_admin = can_ban = can_props = False
+        self.Enable(is_admin or can_ban or can_props)
+        for ctrl in (self.account_list, self.account_sort, self.load_accounts_btn,
+                     self.add_account_btn, self.edit_account_btn, self.del_account_btn,
+                     self.save_config_btn):
+            ctrl.Enable(is_admin)
+        for ctrl in (self.ban_list, self.load_bans_btn, self.unban_btn, self.ban_ip_btn):
+            ctrl.Enable(can_ban)
+        for ctrl in (self.srv_name, self.srv_motd, self.srv_maxusers,
+                     self.load_props_btn, self.save_props_btn):
+            ctrl.Enable(can_props)
 
     # --- Accounts ---
 
@@ -179,15 +210,40 @@ class AdminTab(wx.Panel):
                 "prüfe ob du Admin-Rechte und 'Nutzerkonten anzeigen'-Berechtigung hast."
             )
         else:
+            self._render_accounts()
             self.frame.set_status(f"{count} Benutzerkonto(en) geladen")
 
-    def add_account_to_list(self, account):
+    def _account_label(self, account) -> str:
         tt_str = self.frame.tt_str
-        self._accounts.append(account)
         tt = self.frame.client.tt
-        utype = "Administrator" if account.uUserType & tt.UserType.USERTYPE_ADMIN else "Standard"
-        label = f"{tt_str(account.szUsername)}, {utype}, {tt_str(account.szNote)}"
-        self.account_list.Append(label)
+        utype = _("Administrator") if account.uUserType & tt.UserType.USERTYPE_ADMIN else _("Standard")
+        last_login = format_last_login(tt_str(account.szLastLoginTime))
+        label = f"{tt_str(account.szUsername)}, {utype}, {_('Letzte Anmeldung')}: {last_login}"
+        note = tt_str(account.szNote)
+        return f"{label}, {note}" if note else label
+
+    def add_account_to_list(self, account):
+        self._accounts.append(account)
+        self.account_list.Append(self._account_label(account))
+
+    def _render_accounts(self) -> None:
+        """Kontoliste neu sortiert aufbauen; `_accounts` bleibt parallel zur ListBox."""
+        tt_str = self.frame.tt_str
+        selected = None
+        sel = self.account_list.GetSelection()
+        if sel != wx.NOT_FOUND and sel < len(self._accounts):
+            selected = tt_str(self._accounts[sel].szUsername)
+        if self.account_sort.GetSelection() == 1:
+            key = lambda a: (last_login_sort_key(tt_str(a.szLastLoginTime)), tt_str(a.szUsername).lower())
+        else:
+            key = lambda a: tt_str(a.szUsername).lower()
+        self._accounts.sort(key=key)
+        self.account_list.Set([self._account_label(a) for a in self._accounts])
+        if selected is not None:
+            for idx, acc in enumerate(self._accounts):
+                if tt_str(acc.szUsername) == selected:
+                    self.account_list.SetSelection(idx)
+                    break
 
     def on_add_account(self, _event):
         dlg = _AccountDialog(self, self.frame)
@@ -209,15 +265,18 @@ class AdminTab(wx.Panel):
                 try:
                     tt = self.frame.client.tt
                     utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
-                    success = self.frame.client.do_new_user_account(
+                    cmdid = self.frame.client.do_new_user_account(
                         vals["username"], vals["password"], utype,
                         user_rights=vals["rights"], note=vals["note"],
                     )
-                    if success > 0:
-                        wx.CallAfter(self.frame.set_status, f"Konto erstellt: {vals['username']}")
-                        wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                    if cmdid > 0:
+                        self._await_account_result(
+                            cmdid,
+                            _("Konto erstellt: {}").format(vals["username"]),
+                            _("Konto konnte nicht erstellt werden: {}").format(vals["username"]),
+                        )
                     else:
-                        wx.CallAfter(self.frame.set_status, f"Konto konnte nicht erstellt werden: {vals['username']}")
+                        wx.CallAfter(self.frame.set_status, _("Konto konnte nicht erstellt werden: {}").format(vals["username"]))
                 except Exception as e:
                     wx.CallAfter(self.frame.set_status, f"Fehler beim Erstellen des Kontos: {e}")
                 finally:
@@ -254,15 +313,18 @@ class AdminTab(wx.Panel):
             try:
                 tt = self.frame.client.tt
                 utype = int(tt.UserType.USERTYPE_ADMIN) if vals["admin"] else int(tt.UserType.USERTYPE_DEFAULT)
-                success = self.frame.client.do_update_user_account(
+                cmdid = self.frame.client.do_update_user_account(
                     account, vals["username"], vals["password"], user_type=utype,
                     user_rights=vals["rights"], note=vals["note"],
                 )
-                if success > 0:
-                    wx.CallAfter(self.frame.set_status, f"Konto gespeichert: {vals['username']}")
-                    wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                if cmdid > 0:
+                    self._await_account_result(
+                        cmdid,
+                        _("Konto gespeichert: {}").format(vals["username"]),
+                        _("Konto konnte nicht gespeichert werden: {}").format(vals["username"]),
+                    )
                 else:
-                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht gespeichert werden: {vals['username']}")
+                    wx.CallAfter(self.frame.set_status, _("Konto konnte nicht gespeichert werden: {}").format(vals["username"]))
             except Exception as e:
                 wx.CallAfter(self.frame.set_status, f"Fehler beim Speichern des Kontos: {e}")
             finally:
@@ -291,18 +353,36 @@ class AdminTab(wx.Panel):
 
         def worker():
             try:
-                success = self.frame.client.do_delete_user_account(username)
-                if success > 0:
-                    wx.CallAfter(self.frame.set_status, f"Konto gelöscht: {username}")
-                    wx.CallAfter(self.on_load_accounts, None) # Refresh list
+                cmdid = self.frame.client.do_delete_user_account(username)
+                if cmdid > 0:
+                    self._await_account_result(
+                        cmdid,
+                        _("Konto gelöscht: {}").format(username),
+                        _("Konto konnte nicht gelöscht werden: {}").format(username),
+                    )
                 else:
-                    wx.CallAfter(self.frame.set_status, f"Konto konnte nicht gelöscht werden: {username}")
+                    wx.CallAfter(self.frame.set_status, _("Konto konnte nicht gelöscht werden: {}").format(username))
             except Exception as e:
                 wx.CallAfter(self.frame.set_status, f"Fehler beim Löschen des Kontos: {e}")
             finally:
                 wx.CallAfter(self.del_account_btn.Enable)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _await_account_result(self, cmdid: int, ok_text: str, fail_text: str) -> None:
+        """Erfolg erst melden, wenn der Server den Kontobefehl bestätigt hat.
+
+        Ein positiver Befehls-Rückgabewert heißt nur "abgeschickt"; eine
+        Ablehnung kommt später als CMD_ERROR mit der Begründung des Servers.
+        """
+        def done(ok: bool, err: str) -> None:
+            if ok:
+                wx.CallAfter(self.frame.set_status, ok_text)
+                wx.CallAfter(self.on_load_accounts, None)  # Liste neu laden
+            else:
+                wx.CallAfter(self.frame.set_status, f"{fail_text}: {err}" if err else fail_text)
+
+        self.frame.client.on_cmd_result(cmdid, done)
 
     # --- Bans ---
 

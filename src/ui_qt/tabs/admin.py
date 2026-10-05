@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from ui_qt.call_after import call_after
+from ui.account_format import format_last_login, last_login_sort_key
 from i18n import _
 
 if TYPE_CHECKING:
@@ -57,7 +58,18 @@ class AdminTab(QWidget):
         acc_group = QGroupBox(_("Benutzerkonten"))
         acc_layout = QVBoxLayout(acc_group)
 
-        acc_layout.addWidget(QLabel(_("Benutzername, Typ")))
+        acc_layout.addWidget(QLabel(_("Benutzername, Typ, Letzte Anmeldung, Notiz")))
+        sort_row = QHBoxLayout()
+        sort_label = QLabel(_("Konten sortieren nach:"))
+        self.account_sort = QComboBox()
+        self.account_sort.addItems([_("Benutzername"), _("Letzte Anmeldung")])
+        self.account_sort.setAccessibleName(_("Konten sortieren nach"))
+        sort_label.setBuddy(self.account_sort)
+        self.account_sort.currentIndexChanged.connect(lambda _i: self._render_accounts())
+        sort_row.addWidget(sort_label)
+        sort_row.addWidget(self.account_sort)
+        sort_row.addStretch()
+        acc_layout.addLayout(sort_row)
         self.account_list = QListWidget()
         self.account_list.setAccessibleName(_("Benutzerkonten"))
         self.account_list.currentRowChanged.connect(self._on_account_selected)
@@ -239,45 +251,65 @@ class AdminTab(QWidget):
                 )
             )
         else:
+            self._render_accounts()
             self._set_status(_("{} Benutzerkonto(en) geladen").format(count))
+
+    def _account_label(self, account) -> str:
+        name = self._tt_str(account.szUsername)
+        utype_val = int(getattr(account, "uUserType", 0))
+        if utype_val & _USERTYPE_ADMIN:
+            utype = _("Administrator")
+        elif utype_val == _USERTYPE_NONE:
+            utype = _("Gesperrt")
+        else:
+            utype = _("Standard")
+        last_login = format_last_login(self._tt_str(getattr(account, "szLastLoginTime", "")))
+        label = f"{name}, {utype}, {_('Letzte Anmeldung')}: {last_login}"
+        note = self._tt_str(account.szNote) if hasattr(account, "szNote") else ""
+        return f"{label}, {note}" if note else label
 
     def add_account_to_list(self, account) -> None:
         """Called by MainWindow when a CMD_USERACCOUNT event arrives."""
-        self._accounts.append(account)
         try:
-            name  = self._tt_str(account.szUsername)
-            utype_val = int(getattr(account, "uUserType", 0))
-            if utype_val & _USERTYPE_ADMIN:
-                utype = _("Administrator")
-            elif utype_val == _USERTYPE_NONE:
-                utype = _("Gesperrt")
-            else:
-                utype = _("Standard")
-            note = self._tt_str(account.szNote) if hasattr(account, "szNote") else ""
-            label = f"{name}, {utype}" + (f", {note}" if note else "")
-            self.account_list.addItem(label)
+            label = self._account_label(account)
         except Exception:
-            pass
+            return
+        self._accounts.append(account)
+        self.account_list.addItem(label)
 
     def update_accounts(self, accounts, tt_str) -> None:
         """Batch-update called from MainWindow (fallback)."""
         self._accounts = list(accounts)
-        self.account_list.clear()
-        for acc in accounts:
+        self._render_accounts()
+
+    def _render_accounts(self) -> None:
+        """Kontoliste neu sortiert aufbauen; `_accounts` bleibt parallel zur Liste."""
+        tt_str = self._tt_str
+        selected = None
+        row = self.account_list.currentRow()
+        if 0 <= row < len(self._accounts):
+            selected = tt_str(self._accounts[row].szUsername)
+        if self.account_sort.currentIndex() == 1:
+            key = lambda a: (last_login_sort_key(tt_str(getattr(a, "szLastLoginTime", ""))),
+                             tt_str(a.szUsername).lower())
+        else:
+            key = lambda a: tt_str(a.szUsername).lower()
+        accounts = []
+        labels = []
+        for acc in sorted(self._accounts, key=key):
             try:
-                name = tt_str(acc.szUsername)
-                utype_val = int(getattr(acc, "uUserType", 0))
-                if utype_val & _USERTYPE_ADMIN:
-                    utype = _("Administrator")
-                elif utype_val == _USERTYPE_NONE:
-                    utype = _("Gesperrt")
-                else:
-                    utype = _("Standard")
-                note = tt_str(acc.szNote) if hasattr(acc, "szNote") else ""
-                label = f"{name}, {utype}" + (f", {note}" if note else "")
-                self.account_list.addItem(label)
+                labels.append(self._account_label(acc))
             except Exception:
-                pass
+                continue
+            accounts.append(acc)
+        self._accounts = accounts
+        self.account_list.clear()
+        self.account_list.addItems(labels)
+        if selected is not None:
+            for idx, acc in enumerate(self._accounts):
+                if tt_str(acc.szUsername) == selected:
+                    self.account_list.setCurrentRow(idx)
+                    break
 
     def on_new_account(self) -> None:
         self._selected_account_index = -1
@@ -359,9 +391,14 @@ class AdminTab(QWidget):
                         username, password, utype, user_rights=rights
                     )
                 if cmd_id > 0:
-                    call_after(self._set_status, _("Konto gespeichert: {}").format(username))
-                    call_after(self._account_form_group.setVisible, False)
-                    call_after(self.on_load_accounts)
+                    def on_saved() -> None:
+                        self._account_form_group.setVisible(False)
+                    self._await_account_result(
+                        cmd_id,
+                        _("Konto gespeichert: {}").format(username),
+                        _("Konto konnte nicht gespeichert werden: {}").format(username),
+                        on_saved,
+                    )
                 else:
                     call_after(self._set_status, _("Fehler: Konto konnte nicht gespeichert werden"))
             except Exception as exc:
@@ -396,8 +433,11 @@ class AdminTab(QWidget):
             try:
                 cmd_id = self.window.client.do_delete_user_account(username)
                 if cmd_id > 0:
-                    call_after(self._set_status, _("Konto gelöscht: {}").format(username))
-                    call_after(self.on_load_accounts)
+                    self._await_account_result(
+                        cmd_id,
+                        _("Konto gelöscht: {}").format(username),
+                        _("Konto konnte nicht gelöscht werden: {}").format(username),
+                    )
                 else:
                     call_after(self._set_status, _("Löschen fehlgeschlagen für: {}").format(username))
             except Exception as exc:
@@ -406,6 +446,23 @@ class AdminTab(QWidget):
                 call_after(self.del_account_btn.setEnabled, True)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _await_account_result(self, cmd_id: int, ok_text: str, fail_text: str, on_ok=None) -> None:
+        """Erfolg erst melden, wenn der Server den Kontobefehl bestätigt hat.
+
+        Ein positiver Befehls-Rückgabewert heißt nur "abgeschickt"; eine
+        Ablehnung kommt später als CMD_ERROR mit der Begründung des Servers.
+        """
+        def done(ok: bool, err: str) -> None:
+            if ok:
+                call_after(self._set_status, ok_text)
+                if on_ok is not None:
+                    call_after(on_ok)
+                call_after(self.on_load_accounts)
+            else:
+                call_after(self._set_status, f"{fail_text}: {err}" if err else fail_text)
+
+        self.window.client.on_cmd_result(cmd_id, done)
 
     # ------------------------------------------------------------------
     # Bans

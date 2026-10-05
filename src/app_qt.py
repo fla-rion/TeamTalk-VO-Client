@@ -908,6 +908,10 @@ class MainWindow(QMainWindow):
             call_after(self._on_text_message, msg)
         elif hasattr(tt.ClientEvent, "CLIENTEVENT_STREAM_MEDIAFILE") and mtype == int(tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE):
             call_after(self._on_stream_mediafile, msg)
+        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USERACCOUNT):
+            call_after(self.admin_tab.add_account_to_list, msg.useraccount)
+        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_BANNEDUSER):
+            call_after(self.admin_tab.add_ban_to_list, msg.banneduser)
 
     # ------------------------------------------------------------------
     # Connection Events
