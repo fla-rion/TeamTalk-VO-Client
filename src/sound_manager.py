@@ -35,6 +35,17 @@ DEFAULT_SOUNDS: dict[str, str] = {
     "desktop_access":    "desktopaccessreq.wav",
     "user_login":        "logged_on.wav",
     "user_logout":       "logged_off.wav",
+    # Sprech-Warteschlange (Solo-Kanal): Namen wie im offiziellen TeamTalk-
+    # Sound-Pack; ohne eigene Datei greift FALLBACK_SOUNDS.
+    "txqueue_start":     "txqueue_start.wav",
+    "txqueue_stop":      "txqueue_stop.wav",
+}
+
+# Mitgelieferter Ersatz, wenn der Standard-Dateiname weder im Sound-Pack-Ordner
+# noch im eingebetteten Pack liegt
+FALLBACK_SOUNDS: dict[str, str] = {
+    "txqueue_start":     "voiceact_on.wav",
+    "txqueue_stop":      "voiceact_off.wav",
 }
 
 # Lesefreundliche Bezeichnungen für die UI
@@ -58,6 +69,8 @@ SOUND_EVENT_LABELS: dict[str, str] = {
     "desktop_access":    "Desktop-Zugriffsanfrage",
     "user_login":        "Nutzer eingeloggt",
     "user_logout":       "Nutzer ausgeloggt",
+    "txqueue_start":     "Sprechrunde beginnt (Warteschlange)",
+    "txqueue_stop":      "Sprechrunde endet (Warteschlange)",
 }
 
 
@@ -127,6 +140,16 @@ class SoundManager:
 
             # 3. Eingebettetes Standard-Sound-Pack
             bundled = _sounds_dir() / filename
+            if bundled.is_file():
+                return str(bundled)
+
+        fallback = FALLBACK_SOUNDS.get(event_key)
+        if fallback:
+            if self._pack_dir:
+                pack_file = self._pack_dir / fallback
+                if pack_file.is_file():
+                    return str(pack_file)
+            bundled = _sounds_dir() / fallback
             if bundled.is_file():
                 return str(bundled)
 

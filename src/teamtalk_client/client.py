@@ -46,6 +46,11 @@ class TeamTalkClient:
         self._last_transport_encrypted: Optional[bool] = None
         self._connected = False
         self._last_encryption_context_info = "ctx=none"
+        # Audio-Input-Sitzung (TT_InsertAudioBlock), siehe insert_audio_block_bytes()
+        self._audio_input_lock = threading.Lock()
+        self._audio_input_stream_id = 0
+        self._audio_input_last_insert = 0.0
+        self._audio_input_active = False
 
     def _timestamp_ms(self) -> int:
         return int(round(time.time() * 1000))
@@ -1229,11 +1234,37 @@ class TeamTalkClient:
     # Audio injection (app audio)
     # ------------------------------------------------------------------
 
+    # Pause, nach der eingespeistes Audio als neue "Sprechrunde" mit neuer
+    # Stream-ID weitergeht. Muss unter der Sprecherwechsel-Verzögerung des
+    # Servers liegen (Standard 500 ms, ServerChannel::SetTransmitSwitchDelay).
+    _AUDIO_INPUT_TURN_GAP_S = 0.4
+
     def insert_audio_block_bytes(self, pcm: bytes, sample_rate: int, channels: int) -> bool:
+        """Speist PCM-Audio über TT_InsertAudioBlock ein.
+
+        Das SDK sendet eingespeistes Audio immer als STREAMTYPE_VOICE
+        (``uStreamTypes`` wird ignoriert) und vergibt nur dann eine neue
+        Stream-ID auf dem Netz, wenn sich ``nStreamID`` ändert oder die
+        vorige Sitzung beendet wurde. In Kanälen mit "Nur ein Sprecher
+        gleichzeitig" sperrt der Server nach Ende einer Sprechrunde die
+        bisherige Stream-ID (ServerChannel::BlockAudioStream) – mit einer
+        festen ID wäre jede weitere Runde stumm abgewiesen worden. Daher:
+        neue ID pro Sitzung und nach jeder Pause (eine Runde = durchgehender
+        Audiofluss), Sitzungsende über end_audio_input().
+        """
         if not pcm:
             return False
+        now = time.monotonic()
+        with self._audio_input_lock:
+            if (not self._audio_input_active
+                    or now - self._audio_input_last_insert > self._AUDIO_INPUT_TURN_GAP_S):
+                # 1..32767, nie 0
+                self._audio_input_stream_id = self._audio_input_stream_id % 0x7FFF + 1
+            self._audio_input_active = True
+            self._audio_input_last_insert = now
+            stream_id = self._audio_input_stream_id
         block = self.tt.AudioBlock()
-        block.nStreamID = 0
+        block.nStreamID = stream_id
         block.nSampleRate = int(sample_rate)
         block.nChannels = int(channels)
         block.nSamples = int(len(pcm) // (2 * max(1, channels)))
@@ -1242,6 +1273,22 @@ class TeamTalkClient:
         buf = ctypes.create_string_buffer(pcm)
         block.lpRawAudio = ctypes.cast(buf, ctypes.c_void_p)
         return bool(self.tt._InsertAudioBlock(self.client._tt, ctypes.byref(block)))
+
+    def end_audio_input(self) -> bool:
+        """Beendet die laufende Audio-Input-Sitzung (leerer Block = NULL).
+
+        Ohne dieses Ende bleibt die Sitzung im SDK dauerhaft offen: Solange
+        sie besteht, verwirft das SDK das eigene Mikrofon und
+        TT_EnableVoiceTransmission()/TT_EnableVoiceActivation() schlagen fehl.
+        """
+        with self._audio_input_lock:
+            if not self._audio_input_active:
+                return True
+            self._audio_input_active = False
+        try:
+            return bool(self.tt._InsertAudioBlock(self.client._tt, None))
+        except Exception:
+            return False
 
     def stop_streaming_media(self) -> bool:
         return self.tt._StopStreamingMediaFileToChannel(self.client._tt)

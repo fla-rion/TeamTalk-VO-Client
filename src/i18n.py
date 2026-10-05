@@ -7272,6 +7272,35 @@ _TRANSLATIONS_ES.update({
     "Wartezeit bis zum nächsten Sprecher (ms)": "Espera hasta el siguiente orador de la cola (ms)",
 })
 
+# Sprech-Warteschlange in Solo-Kanälen (transmit_queue.py)
+_TRANSLATIONS.update({
+    "Sprech-&Warteschlange": "Speaking &queue",
+    "Sprech-Warteschlange ansagen (Ton und Sprache)": "Announce speaking queue (sound and speech)",
+    "Sprechrunde beginnt (Warteschlange)": "Speaking turn begins (queue)",
+    "Sprechrunde endet (Warteschlange)": "Speaking turn ends (queue)",
+    "Du bist jetzt dran": "It's your turn to speak",
+    "Deine Sprechrunde ist vorbei": "Your turn to speak has ended",
+    "Du bist Nummer {n} in der Warteschlange": "You are number {n} in the speaking queue",
+})
+_TRANSLATIONS_FR.update({
+    "Sprech-&Warteschlange": "&File de parole",
+    "Sprech-Warteschlange ansagen (Ton und Sprache)": "Annoncer la file de parole (son et voix)",
+    "Sprechrunde beginnt (Warteschlange)": "Début du tour de parole (file)",
+    "Sprechrunde endet (Warteschlange)": "Fin du tour de parole (file)",
+    "Du bist jetzt dran": "C'est à vous de parler",
+    "Deine Sprechrunde ist vorbei": "Votre tour de parole est terminé",
+    "Du bist Nummer {n} in der Warteschlange": "Vous êtes numéro {n} dans la file de parole",
+})
+_TRANSLATIONS_ES.update({
+    "Sprech-&Warteschlange": "Cola de &turnos",
+    "Sprech-Warteschlange ansagen (Ton und Sprache)": "Anunciar la cola de turnos de palabra (sonido y voz)",
+    "Sprechrunde beginnt (Warteschlange)": "Comienza el turno de palabra (cola)",
+    "Sprechrunde endet (Warteschlange)": "Termina el turno de palabra (cola)",
+    "Du bist jetzt dran": "Es tu turno de hablar",
+    "Deine Sprechrunde ist vorbei": "Tu turno de hablar ha terminado",
+    "Du bist Nummer {n} in der Warteschlange": "Eres el número {n} en la cola de turnos",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

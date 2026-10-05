@@ -715,6 +715,15 @@ class AppAudioMixer:
                     logger.warning("insert_audio_block_bytes failed: %s", e)
         except Exception as e:
             logger.exception("Mixer pump crashed: %s", e)
+        finally:
+            # Audio-Input-Sitzung beenden, sonst bleibt das Mikrofon im SDK
+            # blockiert (siehe TeamTalkClient.end_audio_input).
+            end = getattr(self._client, "end_audio_input", None)
+            if end is not None:
+                try:
+                    end()
+                except Exception as e:
+                    logger.warning("end_audio_input failed: %s", e)
 
     def _mix_frames(self, frames: List[bytes], zero: bytes) -> bytes:
         # Pad/trim each frame to expected size, then sum with saturation.

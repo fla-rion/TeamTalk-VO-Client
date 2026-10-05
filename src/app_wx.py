@@ -49,6 +49,7 @@ from ui_wx.user_status import ChangeStatusDialog
 from ui_wx.client_stats import ClientStatisticsDialog
 from tts import TTSManager
 from sound_manager import SoundManager
+from transmit_queue import TransmitQueueTracker, queue_user_ids
 from platform_paths import log_dir as _log_dir # Moved this import up
 from chat_history import ChatHistoryManager
 from session_history import SessionHistoryStore
@@ -655,6 +656,7 @@ class MainFrame(wx.Frame):
         self.tts.settings.backend = str(getattr(_ts, "tts_backend", "espeak") or "espeak")
         self.tts.settings.speak_user_login = bool(getattr(_ts, "tts_speak_user_login", True))
         self.tts.settings.speak_file_event = bool(getattr(_ts, "tts_speak_file_event", True))
+        self.tts.settings.speak_transmit_queue = bool(getattr(_ts, "tts_speak_transmit_queue", True))
         self.tts.settings.macos_voice = str(getattr(_ts, "tts_macos_voice", "") or "")
         self.tts.settings.macos_rate = float(getattr(_ts, "tts_macos_rate", 0.5) or 0.5)
         self.tts.settings.macos_volume = float(getattr(_ts, "tts_macos_volume", 1.0) or 1.0)
@@ -693,6 +695,11 @@ class MainFrame(wx.Frame):
         # v7.1.0 – Benachrichtigungs-Regeln
         _notif_rules = list(getattr(_ts, "notification_rules", []) or [])
         self._notifications = NotificationManager(_notif_rules)
+        # Sprech-Warteschlange (Solo-Kanäle) + zuletzt angesagtes Kanal-Thema;
+        # beides nur bei echten Änderungen ansagen, CHANNEL_UPDATE kommt in
+        # Solo-Kanälen bei jedem Sprecherwechsel.
+        self._tx_queue = TransmitQueueTracker()
+        self._last_topic: tuple = (0, "")
         self._sound_name_hint: Dict[int, str] = {}
         self._sound_channel_hint: Dict[int, str] = {}
         # v2.5.0 – Auto-Antwort
@@ -9204,8 +9211,9 @@ class MainFrame(wx.Frame):
                         wx.CallAfter(self._add_to_recent_channels, channel_id, ch_name or str(channel_id))
                         self._session_history.log("channel_join", f"Kanal betreten: {ch_name or channel_id}", server=self._current_server_key, channel=ch_name or str(channel_id))
                         # v3.0.0 – Kanal-Thema beim Betreten vorlesen
+                        topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
+                        self._last_topic = (int(channel_id), topic)
                         if getattr(self.settings_store.settings, "tts_speak_channel_topic_on_join", True):
-                            topic = self.tt_str(getattr(ch, "szTopic", "") or "") if ch else ""
                             if topic:
                                 wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
                         # VoiceOver: Kanalname ankündigen (verbositäts-abhängig)
@@ -10339,10 +10347,22 @@ class MainFrame(wx.Frame):
                     ch = getattr(msg, "channel", None)
                     if ch is not None:
                         my_ch = self.client.get_my_channel_id()
-                        if my_ch and int(getattr(ch, "nChannelID", 0) or 0) == int(my_ch):
+                        ch_id = int(getattr(ch, "nChannelID", 0) or 0)
+                        if my_ch and ch_id == int(my_ch):
                             topic = self.tt_str(getattr(ch, "szTopic", "") or "")
-                            if topic:
-                                wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
+                            if (ch_id, topic) != self._last_topic:
+                                self._last_topic = (ch_id, topic)
+                                if topic:
+                                    wx.CallAfter(self.tts.speak, f"Kanal-Thema: {topic}", kind="channel_topic")
+                        # Werte sofort kopieren, der SDK-Puffer wird überschrieben
+                        wx.CallAfter(
+                            self._on_transmit_queue_update,
+                            ch_id,
+                            int(getattr(ch, "uChannelType", 0) or 0),
+                            queue_user_ids(ch),
+                            int(self.client.get_my_user_id() or 0),
+                            int(my_ch or 0),
+                        )
                 except Exception:
                     pass
             wx.CallAfter(self.channels_tab.refresh_channels_and_users)
@@ -10574,6 +10594,16 @@ class MainFrame(wx.Frame):
                     wx.CallAfter(post_voiceover_announcement, _vo)
                 except Exception:
                     pass
+
+    def _on_transmit_queue_update(self, ch_id: int, ch_type: int, queue: list,
+                                  my_user_id: int, my_ch_id: int) -> None:
+        """Sprech-Warteschlange im Solo-Kanal: dran / vorbei / Position ansagen."""
+        ev = self._tx_queue.update(ch_id, ch_type, queue, my_user_id, my_ch_id)
+        if ev is None or not self.tts.settings.speak_transmit_queue:
+            return
+        if ev.sound_key:
+            self.sound_manager.play(ev.sound_key, self.settings_store.settings.sound_events.get(ev.sound_key))
+        self.tts.speak(ev.text, kind="transmit_queue")
 
     def _play_user_event_sound(self, event, user_id: int, user_ch: int, source_ch: int, tt) -> None:
         """Wird auf dem Haupt-Thread ausgeführt; Werte wurden im Event-Thread erfasst."""
