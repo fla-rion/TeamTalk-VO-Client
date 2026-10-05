@@ -7226,6 +7226,41 @@ _TRANSLATIONS_ES.update({
         "Introduzca una ubicación en los ajustes, en 'Apariencia y comportamiento'.",
 })
 
+# Administration: letzte Anmeldung, Sortierung, Server-Rückmeldung bei Konten
+_TRANSLATIONS.update({
+    "Nie": "Never",
+    "Letzte Anmeldung": "Last login",
+    "Benutzername, Typ, Letzte Anmeldung, Notiz": "Username, type, last login, note",
+    "Konten sortieren nach:": "Sort accounts by:",
+    "Konten sortieren nach": "Sort accounts by",
+    "Konto erstellt: {}": "Account created: {}",
+    "Konto konnte nicht erstellt werden: {}": "Could not create account: {}",
+    "Konto konnte nicht gespeichert werden: {}": "Could not save account: {}",
+    "Konto konnte nicht gelöscht werden: {}": "Could not delete account: {}",
+})
+_TRANSLATIONS_FR.update({
+    "Nie": "Jamais",
+    "Letzte Anmeldung": "Dernière connexion",
+    "Benutzername, Typ, Letzte Anmeldung, Notiz": "Nom d'utilisateur, type, dernière connexion, note",
+    "Konten sortieren nach:": "Trier les comptes par :",
+    "Konten sortieren nach": "Trier les comptes par",
+    "Konto erstellt: {}": "Compte créé : {}",
+    "Konto konnte nicht erstellt werden: {}": "Impossible de créer le compte : {}",
+    "Konto konnte nicht gespeichert werden: {}": "Impossible d'enregistrer le compte : {}",
+    "Konto konnte nicht gelöscht werden: {}": "Impossible de supprimer le compte : {}",
+})
+_TRANSLATIONS_ES.update({
+    "Nie": "Nunca",
+    "Letzte Anmeldung": "Último inicio de sesión",
+    "Benutzername, Typ, Letzte Anmeldung, Notiz": "Nombre de usuario, tipo, último inicio de sesión, nota",
+    "Konten sortieren nach:": "Ordenar cuentas por:",
+    "Konten sortieren nach": "Ordenar cuentas por",
+    "Konto erstellt: {}": "Cuenta creada: {}",
+    "Konto konnte nicht erstellt werden: {}": "No se pudo crear la cuenta: {}",
+    "Konto konnte nicht gespeichert werden: {}": "No se pudo guardar la cuenta: {}",
+    "Konto konnte nicht gelöscht werden: {}": "No se pudo eliminar la cuenta: {}",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
