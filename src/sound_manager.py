@@ -39,6 +39,7 @@ DEFAULT_SOUNDS: dict[str, str] = {
     # Sound-Pack; ohne eigene Datei greift FALLBACK_SOUNDS.
     "txqueue_start":     "txqueue_start.wav",
     "txqueue_stop":      "txqueue_stop.wav",
+    "user_typing":       "typing.wav",
 }
 
 # Mitgelieferter Ersatz, wenn der Standard-Dateiname weder im Sound-Pack-Ordner
@@ -71,6 +72,7 @@ SOUND_EVENT_LABELS: dict[str, str] = {
     "user_logout":       "Nutzer ausgeloggt",
     "txqueue_start":     "Sprechrunde beginnt (Warteschlange)",
     "txqueue_stop":      "Sprechrunde endet (Warteschlange)",
+    "user_typing":       "Jemand schreibt eine Privatnachricht",
 }
 
 

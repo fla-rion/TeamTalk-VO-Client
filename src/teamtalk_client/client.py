@@ -928,6 +928,14 @@ class TeamTalkClient:
             ok = ok and (self.client.doTextMessage(msg) >= 0)
         return ok
 
+    def send_custom_message(self, user_id: int, message: str) -> bool:
+        """MSGTYPE_CUSTOM an einen Nutzer (z. B. Tipp-Anzeige "typing\\r\\n1")."""
+        msgs = self.tt.buildTextMessage(message, self.tt.TextMsgType.MSGTYPE_CUSTOM, nToUserID=user_id)
+        ok = True
+        for msg in msgs:
+            ok = ok and (self.client.doTextMessage(msg) >= 0)
+        return ok
+
     def send_broadcast_message(self, message: str) -> bool:
         msgs = self.tt.buildTextMessage(message, self.tt.TextMsgType.MSGTYPE_BROADCAST)
         ok = True

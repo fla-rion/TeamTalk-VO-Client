@@ -29,6 +29,7 @@ from ui.models import (
     SettingsStore,
 )
 from settings_db import SettingsDB, SQLiteSettingsStore, SQLiteServerStore, migrate_from_json
+from ui.chat_helpers import TypingSender, TypingTracker, parse_typing_message, REMOTE_TYPING_TIMEOUT
 from server_session import ServerManager
 from braille_output import BrailleOutputManager
 from ai_summary import ChatSummaryManager
@@ -163,6 +164,12 @@ class MainWindow(QMainWindow):
         self._mute_all = False
         self._move_target_channel_id: int = 0
         self._last_private_sender_id: Optional[int] = None
+        # Tipp-Anzeige bei Privatnachrichten (protokollkompatibel zu TeamTalk 5)
+        self._typing_sender = TypingSender(
+            send_fn=self._send_typing_message,
+            enabled_fn=lambda: bool(getattr(self.settings_store.settings, "typing_indicator_send", True)),
+        )
+        self._typing_tracker = TypingTracker()
         self._last_private_message_text: str = ""
         self._status_message = ""
         self._status_mode: int = 0
@@ -951,6 +958,7 @@ class MainWindow(QMainWindow):
 
     def _on_connection_lost(self) -> None:
         self._media_stream_users.clear()
+        self._reset_typing_state()
         self._away_timer.stop()
         self._away_active = False
         self._update_conn_bar("Verbindung verloren")
@@ -1260,6 +1268,16 @@ class MainWindow(QMainWindow):
                 my_id = int(self.client.get_my_user_id() or 0)
                 is_own = bool(from_id and my_id and from_id == my_id)
 
+                # Custom-Nachrichten (z. B. Tipp-Anzeige "typing\r\n1" des
+                # offiziellen Clients) sind Steuerbefehle, nie Chatzeilen.
+                if msg_type == int(tt.TextMsgType.MSGTYPE_CUSTOM):
+                    self._message_buffers.pop(key, None)
+                    if not is_own and from_id:
+                        typing_active = parse_typing_message(content)
+                        if typing_active is not None:
+                            self._on_remote_typing(from_id, typing_active)
+                    return
+
                 if msg_type == int(tt.TextMsgType.MSGTYPE_USER):
                     kind = "private"
                 elif msg_type == int(tt.TextMsgType.MSGTYPE_CHANNEL):
@@ -1269,12 +1287,21 @@ class MainWindow(QMainWindow):
                 else:
                     kind = "chat"
 
+                if kind == "private":
+                    _partner = int(tmsg.nToUserID) if is_own else from_id
+                else:
+                    _partner = 0
                 self.chat_tab.append_message(
                     from_user, content,
                     private=(kind == "private"),
                     own=is_own,
                     kind=kind,
+                    sender_id=from_id,
+                    reply_user_id=_partner,
                 )
+                if kind == "private" and not is_own and from_id:
+                    # Nachricht ist da – "schreibt …" sofort beenden
+                    self._on_remote_typing(from_id, False)
 
                 # Route private messages to the dedicated dialog if open
                 if kind == "private" and not is_own:
@@ -1798,6 +1825,71 @@ class MainWindow(QMainWindow):
                 self.sound_manager.play("msg_channel_tx", self.settings_store.settings.sound_events.get("msg_channel_tx"))
         except Exception as exc:
             self.set_status(f"Senden fehlgeschlagen: {exc}")
+
+    # ------------------------------------------------------------------
+    # Tipp-Anzeige bei Privatnachrichten
+    # ------------------------------------------------------------------
+
+    def _send_typing_message(self, user_id: int, text: str) -> None:
+        if self.client.is_connected():
+            self.client.send_custom_message(int(user_id), text)
+
+    def _reset_typing_state(self) -> None:
+        self._typing_sender.reset()
+        self._typing_tracker.reset()
+        try:
+            self.chat_tab.clear_remote_typing()
+        except Exception:
+            pass
+        try:
+            from ui_qt.private_chat_dialog import _open_dialogs
+            for dlg in list(_open_dialogs.values()):
+                dlg.set_remote_typing(False)
+        except Exception:
+            pass
+
+    def _typing_display_name(self, user_id: int) -> str:
+        try:
+            u = self.client.get_user(int(user_id))
+            if u:
+                return self.tt_str(u.szNickname) or self.tt_str(u.szUsername) or f"User#{user_id}"
+        except Exception:
+            pass
+        return f"User#{user_id}"
+
+    def _on_remote_typing(self, user_id: int, active: bool) -> None:
+        """Gesprächspartner tippt (nicht mehr) eine Privatnachricht."""
+        started = self._typing_tracker.update(user_id, active)
+        self._apply_remote_typing_ui(user_id, active)
+        if active:
+            QTimer.singleShot(int(REMOTE_TYPING_TIMEOUT * 1000) + 200,
+                              lambda uid=user_id: self._expire_remote_typing(uid))
+        if not started or not getattr(self.settings_store.settings, "typing_indicator_announce", True):
+            return
+        name = self._typing_display_name(user_id)
+        text = _("{} schreibt eine Privatnachricht …").format(name)
+        srv = str(self._current_server_key or "")
+        if self._notifications.allow_sound("private_msg", user=name, server=srv):
+            self.sound_manager.play("user_typing", self.settings_store.settings.sound_events.get("user_typing"))
+        if self._notifications.allow_tts("private_msg", user=name, server=srv):
+            self.tts.speak(text, kind="private")
+
+    def _expire_remote_typing(self, user_id: int) -> None:
+        if not self._typing_tracker.is_typing(user_id):
+            self._apply_remote_typing_ui(user_id, False)
+
+    def _apply_remote_typing_ui(self, user_id: int, active: bool) -> None:
+        try:
+            self.chat_tab.set_remote_typing(user_id, active)
+        except Exception:
+            pass
+        try:
+            from ui_qt.private_chat_dialog import _open_dialogs
+            dlg = _open_dialogs.get(user_id)
+            if dlg is not None:
+                dlg.set_remote_typing(active)
+        except Exception:
+            pass
 
     def save_message(self, text: str) -> None:
         try:
@@ -4427,6 +4519,7 @@ class MainWindow(QMainWindow):
                 ("Chat-Log exportieren",           "(Menü Chat)"),
                 ("Letzte TTS-Ansage wiederholen",  "Ctrl+Shift+S"),
                 ("Chat-Suche",                     "Ctrl+F"),
+                ("Auf Nachricht antworten (im Chatverlauf)", "Ctrl+R"),
             ]),
             ("SERVER", [
                 ("Online-Nutzer",                  "Ctrl+U"),

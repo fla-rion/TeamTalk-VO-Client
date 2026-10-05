@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Dict
 
 import wx
 
+from i18n import _
 from ui_wx.a11y import post_voiceover_announcement
 
 if TYPE_CHECKING:
@@ -55,6 +56,7 @@ class PrivateChatDialog(wx.Frame):
         self.frame = frame
         self.user_id = user_id
         self._nick = nick or f"User#{user_id}"
+        self._remote_typing = False
 
         self.SetName(f"Privater Chat mit {self._nick}")
         self.SetSize(520, 420)
@@ -91,6 +93,7 @@ class PrivateChatDialog(wx.Frame):
         self._input = wx.TextCtrl(panel, style=wx.TE_PROCESS_ENTER)
         self._input.SetName(f"Nachricht an {self._nick}")
         self._input.Bind(wx.EVT_TEXT_ENTER, self._on_send)
+        self._input.Bind(wx.EVT_TEXT, self._on_input_text)
         self._send_btn = wx.Button(panel, label="&Senden")
         self._send_btn.SetName("Nachricht senden")
         self._send_btn.Bind(wx.EVT_BUTTON, self._on_send)
@@ -111,6 +114,25 @@ class PrivateChatDialog(wx.Frame):
         sizer.Add(btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
 
         panel.SetSizer(sizer)
+
+    def _on_input_text(self, event) -> None:
+        event.Skip()
+        sender = getattr(self.frame, "_typing_sender", None)
+        if sender is not None and self.frame.client.is_connected():
+            sender.text_changed(self.user_id, self._input.GetValue())
+
+    def set_remote_typing(self, active: bool) -> None:
+        """Statuszeile: "Chat mit X – schreibt …" (Tipp-Anzeige des Partners)."""
+        if active == self._remote_typing:
+            return
+        self._remote_typing = active
+        self._update_status_label()
+
+    def _update_status_label(self) -> None:
+        label = f"Chat mit {self._nick}"
+        if self._remote_typing:
+            label += _(" – schreibt …")
+        self._status_label.SetLabel(label)
 
     def _get_partner_name(self) -> str:
         """Returns the partner name as stored in chat_history (usually nickname or id string)."""
@@ -202,11 +224,14 @@ class PrivateChatDialog(wx.Frame):
                 if nick != self._nick:
                     self._nick = nick
                     wx.CallAfter(self.SetTitle, f"Privat: {nick}")
-                    wx.CallAfter(self._status_label.SetLabel, f"Chat mit {nick}")
+                    wx.CallAfter(self._update_status_label)
         except Exception:
             pass
 
     def _on_close(self, event) -> None:
         self._nick_timer.Stop()
+        sender = getattr(self.frame, "_typing_sender", None)
+        if sender is not None:
+            sender.stop(self.user_id)
         _open_dialogs.pop(self.user_id, None)
         event.Skip()

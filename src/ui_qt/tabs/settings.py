@@ -42,6 +42,7 @@ _SOUND_EVENTS = [
     ("Benutzer abgemeldet", "user_logout"),
     ("Sprechrunde beginnt (Warteschlange)", "txqueue_start"),
     ("Sprechrunde endet (Warteschlange)", "txqueue_stop"),
+    ("Jemand schreibt eine Privatnachricht", "user_typing"),
 ]
 
 _SUBSCRIPTIONS = [
@@ -127,6 +128,16 @@ class SettingsTab(QWidget):
         self.relative_timestamps.setChecked(bool(getattr(s, "chat_relative_timestamps", False)))
         self.relative_timestamps.stateChanged.connect(lambda v: self._save_bool("chat_relative_timestamps", v))
         disp_form.addRow("", self.relative_timestamps)
+
+        self.typing_announce = QCheckBox(_("Ansagen, wenn jemand mir eine Privatnachricht schreibt"))
+        self.typing_announce.setChecked(bool(getattr(s, "typing_indicator_announce", True)))
+        self.typing_announce.stateChanged.connect(lambda v: self._save_bool("typing_indicator_announce", v))
+        disp_form.addRow("", self.typing_announce)
+
+        self.typing_send = QCheckBox(_("Anderen anzeigen, dass ich eine Privatnachricht schreibe"))
+        self.typing_send.setChecked(bool(getattr(s, "typing_indicator_send", True)))
+        self.typing_send.stateChanged.connect(lambda v: self._save_bool("typing_indicator_send", v))
+        disp_form.addRow("", self.typing_send)
 
         self.desktop_notifications = QCheckBox(_("Desktop-Benachrichtigungen"))
         self.desktop_notifications.setChecked(bool(getattr(s, "desktop_notifications", True)))

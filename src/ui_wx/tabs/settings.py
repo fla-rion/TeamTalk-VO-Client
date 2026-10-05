@@ -49,6 +49,7 @@ _SOUND_EVENTS = [
     ("Benutzer abgemeldet", "user_logout"),
     ("Sprechrunde beginnt (Warteschlange)", "txqueue_start"),
     ("Sprechrunde endet (Warteschlange)", "txqueue_stop"),
+    ("Jemand schreibt eine Privatnachricht", "user_typing"),
 ]
 
 _SUBSCRIPTION_FLAGS = [
@@ -266,6 +267,16 @@ class SettingsTab(wx.Panel):
         self._chat_relative_timestamps.SetName("Relative Zeitstempel")
         self._chat_relative_timestamps.SetValue(bool(getattr(s, "chat_relative_timestamps", False)))
         gen_sizer.Add(self._chat_relative_timestamps, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._typing_announce = wx.CheckBox(panel, label="Ansagen, wenn jemand mir eine Privatnachricht schreibt")
+        self._typing_announce.SetName("Ansagen, wenn jemand mir eine Privatnachricht schreibt")
+        self._typing_announce.SetValue(bool(getattr(s, "typing_indicator_announce", True)))
+        gen_sizer.Add(self._typing_announce, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
+        self._typing_send = wx.CheckBox(panel, label="Anderen anzeigen, dass ich eine Privatnachricht schreibe")
+        self._typing_send.SetName("Anderen anzeigen, dass ich eine Privatnachricht schreibe")
+        self._typing_send.SetValue(bool(getattr(s, "typing_indicator_send", True)))
+        gen_sizer.Add(self._typing_send, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
         self._braille_compact = wx.CheckBox(panel, label="&Braillezeilen-Kompaktmodus (kürzere Labels)")
         self._braille_compact.SetName("Braillezeilen-Kompaktmodus")
@@ -1675,6 +1686,8 @@ class SettingsTab(wx.Panel):
         s.update_check_on_start = self._update_check.GetValue()
         s.chat_show_timestamps = self._chat_show_timestamps.GetValue()
         s.chat_relative_timestamps = self._chat_relative_timestamps.GetValue()
+        s.typing_indicator_announce = self._typing_announce.GetValue()
+        s.typing_indicator_send = self._typing_send.GetValue()
         s.braille_compact_mode = self._braille_compact.GetValue()
         s.save_channel_passwords = self._save_channel_passwords.GetValue()
         s.chat_highlight_keywords = self._highlight_keywords.GetValue().strip()
