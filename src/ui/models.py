@@ -358,6 +358,9 @@ class AppSettings:
     weather_city: str = ""
     weather_announce_times: List[str] = field(default_factory=list)  # ["HH:MM", ...]
     weather_announce_on_connect: bool = False
+    # Tipp-Anzeige bei Privatnachrichten (kompatibel zum offiziellen Client)
+    typing_indicator_announce: bool = True
+    typing_indicator_send: bool = True
 
 
 class SettingsStore:

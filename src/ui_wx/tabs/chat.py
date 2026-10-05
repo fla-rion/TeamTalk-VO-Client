@@ -4,12 +4,13 @@ import html
 import re
 import threading
 import time
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional, Set
 
 import wx
 
 from i18n import _, current_language
 from ui_wx.a11y import post_voiceover_announcement, setup_list_accessible
+from ui.chat_helpers import ChatEntry, ChatEntryIndex, apply_reply_prefix, make_reply_prefix
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -55,6 +56,12 @@ class ChatTab(wx.Panel):
         self.frame = frame
         self.SetName("Chat")
         self._search_positions: List[int] = []
+        # Parallele Metadaten zu den Zeilen im Chatverlauf (für "Antworten")
+        self._entries = ChatEntryIndex()
+        self._reply_prefix = ""
+        # Tipp-Anzeige: an wen ich gerade tippe / wer mir gerade tippt
+        self._typing_target: int = 0
+        self._remote_typing_ids: Set[int] = set()
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -72,6 +79,7 @@ class ChatTab(wx.Panel):
         lbl_private = wx.StaticText(target_box, label="Privat an:")
         self.private_user = wx.Choice(target_box)
         self.private_user.SetName("Privat an")
+        self.private_user.Bind(wx.EVT_CHOICE, lambda e: self.update_chat_target())
         target_row.Add(self.private_chat, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 8)
         target_row.Add(lbl_private, 0, wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, 4)
         target_row.Add(self.private_user, 1, wx.EXPAND)
@@ -82,6 +90,7 @@ class ChatTab(wx.Panel):
         sizer.Add(lbl_log, 0, wx.LEFT | wx.RIGHT, 8)
         self.chat_log = wx.TextCtrl(self, style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_RICH2)
         self.chat_log.SetName("Chatverlauf")
+        self.chat_log.Bind(wx.EVT_CONTEXT_MENU, self._on_log_context_menu)
         sizer.Add(self.chat_log, 1, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Chat history action buttons
@@ -95,6 +104,9 @@ class ChatTab(wx.Panel):
         self.clear_btn = wx.Button(self, label="Verlauf &leeren")
         self.clear_btn.SetName("Verlauf leeren")
         self.clear_btn.Bind(wx.EVT_BUTTON, self._on_clear_history)
+        self.reply_btn = wx.Button(self, label="&Antworten")
+        self.reply_btn.SetName("Auf Nachricht antworten")
+        self.reply_btn.Bind(wx.EVT_BUTTON, lambda e: self._on_reply())
         self.quote_btn = wx.Button(self, label="&Zitieren")
         self.quote_btn.SetName("Ausgewählten Text zitieren")
         self.quote_btn.Bind(wx.EVT_BUTTON, self._on_quote)
@@ -104,6 +116,7 @@ class ChatTab(wx.Panel):
         history_row.Add(self.export_btn, 0, wx.RIGHT, 8)
         history_row.Add(self.export_html_btn, 0, wx.RIGHT, 8)
         history_row.Add(self.clear_btn, 0, wx.RIGHT, 8)
+        history_row.Add(self.reply_btn, 0, wx.RIGHT, 8)
         history_row.Add(self.quote_btn, 0, wx.RIGHT, 8)
         history_row.Add(self.save_msg_btn, 0)
         sizer.Add(history_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -137,6 +150,7 @@ class ChatTab(wx.Panel):
         self.chat_input = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
         self.chat_input.SetName("Nachricht")
         self.chat_input.Bind(wx.EVT_TEXT_ENTER, self.on_chat_send)
+        self.chat_input.Bind(wx.EVT_TEXT, self._on_input_text)
         self.chat_send = wx.Button(self, label="&Senden")
         self.chat_send.SetName("Nachricht senden")
         self.chat_send.Bind(wx.EVT_BUTTON, self.on_chat_send)
@@ -151,12 +165,15 @@ class ChatTab(wx.Panel):
 
         self.SetSizer(sizer)
 
-        # Ctrl+F / Cmd+F → Suche fokussieren
+        # Ctrl+F / Cmd+F → Suche fokussieren; Cmd+R → auf Nachricht antworten
         search_id = wx.NewIdRef()
+        reply_id = wx.NewIdRef()
         self.SetAcceleratorTable(wx.AcceleratorTable([
             (wx.ACCEL_CMD, ord("F"), search_id),
+            (wx.ACCEL_CMD, ord("R"), reply_id),
         ]))
         self.Bind(wx.EVT_MENU, self._on_focus_search, id=search_id)
+        self.Bind(wx.EVT_MENU, lambda e: self._on_reply(), id=reply_id)
 
         # Drag & Drop: Datei auf Chat-Tab ziehen startet Upload
         self.SetDropTarget(_ChatFileDropTarget(self))
@@ -187,7 +204,13 @@ class ChatTab(wx.Panel):
         lower = text.lower()
         return any(k in lower for k in keywords)
 
-    def append_chat(self, text: str, kind: str = "chat", speak: bool = True) -> None:
+    def append_chat(self, text: str, kind: str = "chat", speak: bool = True,
+                    meta: Optional[dict] = None) -> None:
+        """Hängt eine Zeile an den Verlauf an.
+
+        ``meta`` (optional) beschreibt eine echte Nachricht – Absender, Inhalt,
+        Privat-Partner – und macht die Zeile per "Antworten" (Cmd+R) nutzbar.
+        """
         if not text:
             return
         # Muted users filter (system/own messages are never filtered)
@@ -216,7 +239,19 @@ class ChatTab(wx.Panel):
             self.chat_log.SetDefaultStyle(wx.TextAttr(wx.Colour(0, 128, 0)))  # Green
         else:
             self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK))  # Black
+        start = self.chat_log.GetLastPosition()
         self.chat_log.AppendText(text)
+        if meta:
+            self._entries.add(ChatEntry(
+                start=start,
+                end=self.chat_log.GetLastPosition(),
+                kind=kind,
+                sender=str(meta.get("sender") or ""),
+                content=str(meta.get("content") or ""),
+                reply_user_id=int(meta.get("reply_user_id") or 0),
+                private=bool(meta.get("private")),
+                sender_id=int(meta.get("sender_id") or 0),
+            ))
         self.chat_log.SetDefaultStyle(wx.TextAttr(wx.BLACK))  # Reset for next messages
         self.chat_log.ShowPosition(self.chat_log.GetLastPosition())  # Scroll to bottom
         if speak:
@@ -322,6 +357,7 @@ h1{{font-size:1.1em;color:#555}}
         if result != wx.ID_YES:
             return
         self.chat_log.Clear()
+        self._entries.clear()
         # Also clear the persisted file if chat history saving is enabled
         if self.frame.settings_store.settings.save_chat_history:
             try:
@@ -432,7 +468,10 @@ h1{{font-size:1.1em;color:#555}}
                 self.frame.set_status(_("Benutzer-ID nicht verfügbar"))
                 return
             if client.send_user_message(target_user_id, msg):
-                self.append_chat(f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own")
+                self.append_chat(
+                    f"An {self.private_user.GetString(user_idx)}: {msg}", kind="own",
+                    meta=self._own_meta(msg, private=True, partner_id=int(target_user_id)),
+                )
                 self.frame._analytics.on_message_sent()
             else:
                 self.frame.set_status(_("Nachricht konnte nicht gesendet werden"))
@@ -442,20 +481,168 @@ h1{{font-size:1.1em;color:#555}}
                 self.frame.set_status(_("Kanal-Chat: Nicht in einem Kanal"))
                 return
             if client.send_channel_message(channel_id, msg):
-                self.append_chat(f"Ich: {msg}", kind="own")
+                self.append_chat(f"Ich: {msg}", kind="own", meta=self._own_meta(msg))
                 self.frame._analytics.on_message_sent()
             else:
                 self.frame.set_status(_("Nachricht konnte nicht gesendet werden"))
 
+        self._reply_prefix = ""
         self.chat_input.Clear()
 
+    def _own_meta(self, msg: str, private: bool = False, partner_id: int = 0) -> dict:
+        client = self.frame.client
+        my_id = int(client.get_my_user_id() or 0)
+        my_name = _("Ich")
+        try:
+            u = client.get_user(my_id) if my_id else None
+            if u:
+                my_name = self.frame.tt_str(u.szNickname) or self.frame.tt_str(u.szUsername) or my_name
+        except Exception:
+            pass
+        return {
+            "sender": my_name,
+            "sender_id": my_id,
+            "content": msg,
+            "private": private,
+            "reply_user_id": partner_id,
+        }
+
+    # ------------------------------------------------------------------
+    # Antworten auf eine Nachricht aus dem Verlauf (Cmd+R)
+    # ------------------------------------------------------------------
+
+    def _on_log_context_menu(self, event) -> None:
+        pos = self.chat_log.GetInsertionPoint()
+        screen_pt = event.GetPosition()
+        if screen_pt != wx.DefaultPosition:
+            try:
+                res, hit = self.chat_log.HitTestPos(self.chat_log.ScreenToClient(screen_pt))
+                if res != wx.TE_HT_UNKNOWN and hit >= 0:
+                    pos = hit
+                    self.chat_log.SetInsertionPoint(hit)
+            except Exception:
+                pass
+        menu = wx.Menu()
+        reply_item = menu.Append(wx.ID_ANY, _("Antworten") + "\tCtrl+R")
+        quote_item = menu.Append(wx.ID_ANY, _("Zitieren"))
+        save_item = menu.Append(wx.ID_ANY, _("Nachricht speichern"))
+        reply_item.Enable(len(self._entries) > 0)
+        self.Bind(wx.EVT_MENU, lambda e, p=pos: self._on_reply(p), reply_item)
+        self.Bind(wx.EVT_MENU, self._on_quote, quote_item)
+        self.Bind(wx.EVT_MENU, self._on_save_message, save_item)
+        self.chat_log.PopupMenu(menu)
+        menu.Destroy()
+
+    def _entry_display_name(self, entry: ChatEntry) -> str:
+        if entry.sender_id:
+            try:
+                u = self.frame.client.get_user(entry.sender_id)
+                if u:
+                    nick = self.frame.tt_str(u.szNickname)
+                    if nick:
+                        return nick
+            except Exception:
+                pass
+        return entry.sender or _("Unbekannt")
+
+    def _on_reply(self, pos: Optional[int] = None) -> None:
+        """Antwortet auf die Nachricht an der Cursorposition im Verlauf.
+
+        Kanal-/Rundnachricht → Kanal-Chat mit Präfix "> Absender: Inhalt | "
+        (Format des offiziellen Clients); Privatnachricht → Privat-Chat mit dem
+        Gesprächspartner. Steht der Cursor auf keiner Nachricht, gilt die neueste.
+        """
+        if pos is None:
+            pos = self.chat_log.GetInsertionPoint()
+        entry = self._entries.at(pos) or self._entries.last()
+        if entry is None:
+            self.frame.set_status(_("Keine Nachricht zum Antworten"))
+            post_voiceover_announcement(_("Keine Nachricht zum Antworten"))
+            return
+        sender = self._entry_display_name(entry)
+        if entry.private and entry.reply_user_id:
+            if not self._select_private_target(entry.reply_user_id):
+                msg = _("Privat-Antwort nicht möglich: Benutzer ist nicht mehr online")
+                self.frame.set_status(msg)
+                post_voiceover_announcement(msg)
+                return
+            announce = _("Privat-Antwort an {}").format(self.private_user.GetString(self.private_user.GetSelection()))
+        else:
+            if self.private_chat.GetValue():
+                self.private_chat.SetValue(False)
+                self.update_chat_target()
+            announce = _("Antwort an {}").format(sender)
+        prefix = make_reply_prefix(sender, entry.content)
+        new_text = apply_reply_prefix(self.chat_input.GetValue(), self._reply_prefix, prefix)
+        self._reply_prefix = prefix
+        self.chat_input.SetValue(new_text)
+        self.chat_input.SetFocus()
+        self.chat_input.SetInsertionPointEnd()
+        post_voiceover_announcement(announce)
+
+    def _select_private_target(self, user_id: int) -> bool:
+        for i in range(self.private_user.GetCount()):
+            if self.private_user.GetClientData(i) == user_id:
+                self.private_chat.SetValue(True)
+                self.private_user.Enable(True)
+                self.private_user.SetSelection(i)
+                self.update_chat_target()
+                return True
+        return False
+
+    # ------------------------------------------------------------------
+    # Tipp-Anzeige bei Privatnachrichten
+    # ------------------------------------------------------------------
+
+    def _current_private_target(self) -> int:
+        if not self.private_chat.GetValue():
+            return 0
+        idx = self.private_user.GetSelection()
+        if idx == wx.NOT_FOUND:
+            return 0
+        return int(self.private_user.GetClientData(idx) or 0)
+
+    def _sync_typing_target(self) -> int:
+        """Beendet das Tipp-Signal an ein altes Ziel, wenn das Ziel wechselt."""
+        target = self._current_private_target()
+        if self._typing_target and self._typing_target != target:
+            self.frame._typing_sender.stop(self._typing_target)
+        self._typing_target = target
+        return target
+
+    def _on_input_text(self, event) -> None:
+        event.Skip()
+        if not self.frame.client.is_connected():
+            return
+        target = self._sync_typing_target()
+        if target:
+            self.frame._typing_sender.text_changed(target, self.chat_input.GetValue())
+
+    def set_remote_typing(self, user_id: int, active: bool) -> None:
+        if active:
+            self._remote_typing_ids.add(user_id)
+        else:
+            self._remote_typing_ids.discard(user_id)
+        if user_id == self._current_private_target():
+            self.update_chat_target()
+
+    def clear_remote_typing(self) -> None:
+        self._remote_typing_ids.clear()
+        self._typing_target = 0
+        self.update_chat_target()
+
     def update_chat_target(self):
+        if hasattr(self.frame, "_typing_sender"):
+            self._sync_typing_target()
         is_private = self.private_chat.GetValue()
         self.private_user.Enable(is_private)
         if is_private:
             user_idx = self.private_user.GetSelection()
             if user_idx != wx.NOT_FOUND:
-                self.chat_target.SetLabel(_("Ziel: Privat an {}").format(self.private_user.GetString(user_idx)))
+                label = _("Ziel: Privat an {}").format(self.private_user.GetString(user_idx))
+                if self._current_private_target() in self._remote_typing_ids:
+                    label += _(" – schreibt …")
+                self.chat_target.SetLabel(label)
             else:
                 self.chat_target.SetLabel(_("Ziel: Privat an (keinen Benutzer)"))
         else:

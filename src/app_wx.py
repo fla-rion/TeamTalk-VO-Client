@@ -54,6 +54,7 @@ from auto_reply import AutoReplyManager
 from webhook_manager import WebhookManager
 from http_api import HttpApiServer
 from i18n import _, set_language, current_language, ensure_language
+from ui.chat_helpers import TypingSender, TypingTracker, parse_typing_message, REMOTE_TYPING_TIMEOUT
 from saved_messages import SavedMessageManager
 from channel_notes import ChannelNotesManager
 from chat_translator import ChatTranslatorManager
@@ -472,6 +473,12 @@ class MainFrame(wx.Frame):
         self._mute_all = False
         self._move_target_channel_id: Optional[int] = None
         self._last_private_sender_id: Optional[int] = None
+        # Tipp-Anzeige bei Privatnachrichten (protokollkompatibel zu TeamTalk 5)
+        self._typing_sender = TypingSender(
+            send_fn=self._send_typing_message,
+            enabled_fn=lambda: bool(getattr(self.settings_store.settings, "typing_indicator_send", True)),
+        )
+        self._typing_tracker = TypingTracker()
         self._status_mode = 0
         self._status_message = ""
         self._capture_hotkey_target: Optional[str] = None
@@ -10289,6 +10296,7 @@ class MainFrame(wx.Frame):
             self.bus.emit("connection_state_changed", connected=False, reason="failed")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
             self._away_set_by_timer = False
+            wx.CallAfter(self._reset_typing_state)
             self._status_mode = 0
             wx.CallAfter(self.set_status, "Verbindung verloren")
             self._analytics.on_error()
@@ -10684,6 +10692,15 @@ class MainFrame(wx.Frame):
             from_id = int(msg.textmessage.nFromUserID)
             my_id = int(self.client.get_my_user_id() or 0)
             is_own = bool(from_id and my_id and from_id == my_id)
+            # Custom-Nachrichten (z. B. Tipp-Anzeige "typing\r\n1" des offiziellen
+            # Clients) sind Steuerbefehle und gehören nie in den Chatverlauf.
+            if msg_type == int(tt.TextMsgType.MSGTYPE_CUSTOM):
+                self._message_buffers.pop(key, None)
+                if not is_own and from_id:
+                    typing_active = parse_typing_message(content)
+                    if typing_active is not None:
+                        wx.CallAfter(self._on_remote_typing, from_id, typing_active)
+                return
             speak = True
             if is_own:
                 # Avoid double TTS for own messages (server echo)
@@ -10722,7 +10739,17 @@ class MainFrame(wx.Frame):
             # den Absender zurück. Ohne diese Sperre erschien die eigene Nachricht doppelt.
             # Rundnachrichten (broadcast) haben kein lokales Echo, daher hier nicht sperren.
             if not (is_own and kind in ("chat", "private")):
-                wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak)
+                _reply_meta = {
+                    "sender": from_user,
+                    "sender_id": from_id,
+                    "content": str(content or ""),
+                    "private": kind == "private",
+                    "reply_user_id": from_id if kind == "private" else 0,
+                }
+                wx.CallAfter(self.chat_tab.append_chat, f"{from_user}: {content}", kind, speak, _reply_meta)
+            if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
+                # Nachricht ist da – "schreibt …" sofort beenden
+                wx.CallAfter(self._on_remote_typing, from_id, False)
             if not is_own:
                 self._analytics.on_message_received()
             self._message_buffers.pop(key, None)
@@ -10805,6 +10832,68 @@ class MainFrame(wx.Frame):
             }.get(msg_type)
             if wh_event:
                 self._webhook.emit(wh_event, {"from_user": from_user, "text": content})
+
+    # ------------------------------------------------------------------
+    # Tipp-Anzeige bei Privatnachrichten
+    # ------------------------------------------------------------------
+
+    def _send_typing_message(self, user_id: int, text: str) -> None:
+        if self.client.is_connected():
+            self.client.send_custom_message(int(user_id), text)
+
+    def _reset_typing_state(self) -> None:
+        self._typing_sender.reset()
+        self._typing_tracker.reset()
+        if self.chat_tab:
+            self.chat_tab.clear_remote_typing()
+        try:
+            from ui_wx.private_chat_dialog import _open_dialogs
+            for dlg in list(_open_dialogs.values()):
+                if dlg and not dlg.IsBeingDeleted():
+                    dlg.set_remote_typing(False)
+        except Exception:
+            pass
+
+    def _typing_display_name(self, user_id: int) -> str:
+        try:
+            u = self.client.get_user(int(user_id))
+            if u:
+                return self.tt_str(u.szNickname) or self.tt_str(u.szUsername) or f"User#{user_id}"
+        except Exception:
+            pass
+        return f"User#{user_id}"
+
+    def _on_remote_typing(self, user_id: int, active: bool) -> None:
+        """Main-Thread: Gesprächspartner tippt (nicht mehr) eine Privatnachricht."""
+        started = self._typing_tracker.update(user_id, active)
+        self._apply_remote_typing_ui(user_id, active)
+        if active:
+            wx.CallLater(int(REMOTE_TYPING_TIMEOUT * 1000) + 200, self._expire_remote_typing, user_id)
+        if not started or not getattr(self.settings_store.settings, "typing_indicator_announce", True):
+            return
+        name = self._typing_display_name(user_id)
+        text = _("{} schreibt eine Privatnachricht …").format(name)
+        srv = str(self._current_server_key or "")
+        if self._notifications.allow_sound("private_msg", user=name, server=srv):
+            se = self.settings_store.settings.sound_events
+            self.sound_manager.play("user_typing", se.get("user_typing"))
+        if self._notifications.allow_tts("private_msg", user=name, server=srv):
+            self.tts.speak(text, kind="private")
+
+    def _expire_remote_typing(self, user_id: int) -> None:
+        if not self._typing_tracker.is_typing(user_id):
+            self._apply_remote_typing_ui(user_id, False)
+
+    def _apply_remote_typing_ui(self, user_id: int, active: bool) -> None:
+        if self.chat_tab:
+            self.chat_tab.set_remote_typing(user_id, active)
+        try:
+            from ui_wx.private_chat_dialog import _open_dialogs
+            dlg = _open_dialogs.get(user_id)
+            if dlg and not dlg.IsBeingDeleted():
+                dlg.set_remote_typing(active)
+        except Exception:
+            pass
 
     def emit_system_message(self, text: str, speak: bool = False) -> None:
         self.system_tab.append_system(text)

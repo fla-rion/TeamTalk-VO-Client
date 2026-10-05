@@ -35,6 +35,7 @@ DEFAULT_SOUNDS: dict[str, str] = {
     "desktop_access":    "desktopaccessreq.wav",
     "user_login":        "logged_on.wav",
     "user_logout":       "logged_off.wav",
+    "user_typing":       "typing.wav",
 }
 
 # Lesefreundliche Bezeichnungen für die UI
@@ -58,6 +59,7 @@ SOUND_EVENT_LABELS: dict[str, str] = {
     "desktop_access":    "Desktop-Zugriffsanfrage",
     "user_login":        "Nutzer eingeloggt",
     "user_logout":       "Nutzer ausgeloggt",
+    "user_typing":       "Jemand schreibt eine Privatnachricht",
 }
 
 

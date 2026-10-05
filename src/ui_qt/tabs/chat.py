@@ -4,7 +4,7 @@ import html
 import re
 import threading
 import time
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional, Set
 
 from i18n import _, current_language
 
@@ -13,8 +13,10 @@ from PySide6.QtWidgets import (
     QLabel, QCheckBox, QComboBox, QTextEdit, QLineEdit,
     QPushButton, QFileDialog, QMessageBox,
 )
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QKeySequence, QShortcut
+from PySide6.QtCore import Qt, QTimer, QEvent, QObject
+from PySide6.QtGui import QAction, QKeySequence, QShortcut
+
+from ui.chat_helpers import ChatEntry, ChatEntryIndex, apply_reply_prefix, make_reply_prefix
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -55,6 +57,12 @@ class ChatTab(QWidget):
         self.window = window
         self._search_positions: List[int] = []
         self._private_user_ids: List[int] = []
+        # Parallele Metadaten zu den Zeilen im Chatverlauf (für "Antworten")
+        self._entries = ChatEntryIndex()
+        self._reply_prefix = ""
+        # Tipp-Anzeige: an wen ich gerade tippe / wer mir gerade tippt
+        self._typing_target: int = 0
+        self._remote_typing_ids: Set[int] = set()
 
         root = QVBoxLayout(self)
         root.setContentsMargins(8, 8, 8, 8)
@@ -107,6 +115,10 @@ class ChatTab(QWidget):
                 "F6 wechselt zur Eingabe."
             )
         )
+        self.chat_log.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.chat_log.customContextMenuRequested.connect(self._on_log_context_menu)
+        # Strg+R im Verlauf = Antworten (hat dort Vorrang vor "Nickname ändern")
+        self.chat_log.installEventFilter(self)
         root.addWidget(self.chat_log, 1)
 
         # --- History action buttons ---
@@ -117,6 +129,9 @@ class ChatTab(QWidget):
         self.export_html_btn.clicked.connect(self._on_export_html)
         self.clear_btn = QPushButton(_("Verlauf &leeren"))
         self.clear_btn.clicked.connect(self._on_clear_history)
+        self.reply_btn = QPushButton(_("&Antworten"))
+        self.reply_btn.setAccessibleName(_("Auf Nachricht antworten"))
+        self.reply_btn.clicked.connect(lambda: self._on_reply())
         self.quote_btn = QPushButton(_("&Zitieren"))
         self.quote_btn.clicked.connect(self._on_quote)
         self.copy_btn = QPushButton(_("&Kopieren"))
@@ -124,7 +139,7 @@ class ChatTab(QWidget):
         self.save_msg_btn = QPushButton(_("&Speichern"))
         self.save_msg_btn.clicked.connect(self._on_save_msg)
         for btn in (self.export_btn, self.export_html_btn, self.clear_btn,
-                    self.quote_btn, self.copy_btn, self.save_msg_btn):
+                    self.reply_btn, self.quote_btn, self.copy_btn, self.save_msg_btn):
             history_row.addWidget(btn)
         history_row.addStretch()
         root.addLayout(history_row)
@@ -179,6 +194,25 @@ class ChatTab(QWidget):
 
     def _on_input_changed(self, text: str) -> None:
         self.char_count_label.setText(_("{} Zeichen").format(len(text)))
+        try:
+            if not self.window.client.is_connected():
+                return
+        except Exception:
+            return
+        target = self._sync_typing_target()
+        if target:
+            self.window._typing_sender.text_changed(target, text)
+
+    def eventFilter(self, obj: QObject, event: QEvent) -> bool:
+        if obj is self.chat_log and event.type() in (QEvent.Type.ShortcutOverride, QEvent.Type.KeyPress):
+            if (event.key() == Qt.Key.Key_R
+                    and event.modifiers() == Qt.KeyboardModifier.ControlModifier):
+                if event.type() == QEvent.Type.ShortcutOverride:
+                    event.accept()
+                    return True
+                self._on_reply()
+                return True
+        return super().eventFilter(obj, event)
 
     # ------------------------------------------------------------------
     # Chat target
@@ -188,12 +222,17 @@ class ChatTab(QWidget):
         self.update_chat_target()
 
     def update_chat_target(self) -> None:
+        if hasattr(self.window, "_typing_sender"):
+            self._sync_typing_target()
         is_private = self.private_chat.isChecked()
         if is_private:
             idx = self.private_user.currentIndex()
             if idx >= 0 and idx < len(self._private_user_ids):
                 name = self.private_user.currentText()
-                self.chat_target.setText(_("Ziel: {} (privat)").format(name))
+                label = _("Ziel: {} (privat)").format(name)
+                if self._private_user_ids[idx] in self._remote_typing_ids:
+                    label += _(" – schreibt …")
+                self.chat_target.setText(label)
             else:
                 self.chat_target.setText(_("Ziel: (kein Nutzer)"))
         else:
@@ -242,11 +281,132 @@ class ChatTab(QWidget):
             self.update_chat_target()
 
     # ------------------------------------------------------------------
+    # Tipp-Anzeige bei Privatnachrichten
+    # ------------------------------------------------------------------
+
+    def _current_private_target(self) -> int:
+        if not self.private_chat.isChecked():
+            return 0
+        idx = self.private_user.currentIndex()
+        if 0 <= idx < len(self._private_user_ids):
+            return int(self._private_user_ids[idx])
+        return 0
+
+    def _sync_typing_target(self) -> int:
+        """Beendet das Tipp-Signal an ein altes Ziel, wenn das Ziel wechselt."""
+        target = self._current_private_target()
+        if self._typing_target and self._typing_target != target:
+            self.window._typing_sender.stop(self._typing_target)
+        self._typing_target = target
+        return target
+
+    def set_remote_typing(self, user_id: int, active: bool) -> None:
+        if active:
+            self._remote_typing_ids.add(user_id)
+        else:
+            self._remote_typing_ids.discard(user_id)
+        if user_id == self._current_private_target():
+            self.update_chat_target()
+
+    def clear_remote_typing(self) -> None:
+        self._remote_typing_ids.clear()
+        self._typing_target = 0
+        self.update_chat_target()
+
+    # ------------------------------------------------------------------
+    # Antworten auf eine Nachricht aus dem Verlauf (Strg+R)
+    # ------------------------------------------------------------------
+
+    def _record_entry(self, kind: str, sender: str, content: str, private: bool,
+                      sender_id: int, reply_user_id: int) -> None:
+        block = self.chat_log.document().lastBlock()
+        start = block.position()
+        self._entries.add(ChatEntry(
+            start=start,
+            end=start + max(0, block.length() - 1),
+            kind=kind,
+            sender=sender,
+            content=content,
+            reply_user_id=reply_user_id,
+            private=private,
+            sender_id=sender_id,
+        ))
+
+    def _on_log_context_menu(self, pos) -> None:
+        self.chat_log.setTextCursor(self.chat_log.cursorForPosition(pos))
+        menu = self.chat_log.createStandardContextMenu(pos)
+        first = menu.actions()[0] if menu.actions() else None
+        reply_act = QAction(_("&Antworten") + "\tCtrl+R", menu)
+        reply_act.setEnabled(len(self._entries) > 0)
+        reply_act.triggered.connect(lambda: self._on_reply())
+        if first is not None:
+            menu.insertAction(first, reply_act)
+            menu.insertSeparator(first)
+        else:
+            menu.addAction(reply_act)
+        menu.exec(self.chat_log.viewport().mapToGlobal(pos))
+        menu.deleteLater()
+
+    def _entry_display_name(self, entry: ChatEntry) -> str:
+        if entry.sender_id:
+            try:
+                u = self.window.client.get_user(entry.sender_id)
+                if u:
+                    nick = self.window.tt_str(u.szNickname)
+                    if nick:
+                        return nick
+            except Exception:
+                pass
+        return entry.sender or _("Unbekannt")
+
+    def _announce(self, text: str) -> None:
+        try:
+            self.window._sr_announce(text)
+        except Exception:
+            pass
+
+    def _on_reply(self, pos: Optional[int] = None) -> None:
+        """Antwortet auf die Nachricht an der Cursorposition im Verlauf.
+
+        Kanal-/Rundnachricht → Kanal-Chat mit Präfix "> Absender: Inhalt | "
+        (Format des offiziellen Clients); Privatnachricht → Privat-Chat mit dem
+        Gesprächspartner. Steht der Cursor auf keiner Nachricht, gilt die neueste.
+        """
+        if pos is None:
+            pos = self.chat_log.textCursor().position()
+        entry = self._entries.at(pos) or self._entries.last()
+        if entry is None:
+            self.window.set_status(_("Keine Nachricht zum Antworten"))
+            self._announce(_("Keine Nachricht zum Antworten"))
+            return
+        sender = self._entry_display_name(entry)
+        if entry.private and entry.reply_user_id:
+            if entry.reply_user_id not in self._private_user_ids:
+                msg = _("Privat-Antwort nicht möglich: Benutzer ist nicht mehr online")
+                self.window.set_status(msg)
+                self._announce(msg)
+                return
+            self.select_private_recipient(entry.reply_user_id)
+            announce = _("Privat-Antwort an {}").format(self.private_user.currentText())
+        else:
+            if self.private_chat.isChecked():
+                self.private_chat.setChecked(False)
+            announce = _("Antwort an {}").format(sender)
+        prefix = make_reply_prefix(sender, entry.content)
+        new_text = apply_reply_prefix(self.chat_input.text(), self._reply_prefix, prefix)
+        self._reply_prefix = prefix
+        self.chat_input.setText(new_text)
+        self.chat_input.setFocus()
+        self.chat_input.setCursorPosition(len(new_text))
+        self._announce(announce)
+
+    # ------------------------------------------------------------------
     # Message display
     # ------------------------------------------------------------------
 
     def append_message(self, sender: str, text: str, ts: str = "", private: bool = False,
-                       own: bool = False, kind: str = "channel") -> None:
+                       own: bool = False, kind: str = "channel", sender_id: int = 0,
+                       reply_user_id: int = 0) -> None:
         """Append a formatted chat message with timestamp to the log."""
         text = expand_emoji_shortcodes(_strip_markdown(text))
         ts_str = ts or time.strftime("%H:%M:%S")
@@ -266,6 +426,8 @@ class ChatTab(QWidget):
         self.chat_log.append(
             f'<span style="color:{color}">{html.escape(line)}</span>'
         )
+        if kind != "system":
+            self._record_entry(kind, sender, str(text or ""), private, sender_id, reply_user_id)
 
         # Persist to chat history if available
         try:
@@ -361,6 +523,7 @@ class ChatTab(QWidget):
             if 0 <= idx < len(self._private_user_ids):
                 target_id = self._private_user_ids[idx]
         self.window.send_chat_message(text, private=is_private, target_id=target_id)
+        self._reply_prefix = ""
         self.chat_input.clear()
 
     # ------------------------------------------------------------------
@@ -482,6 +645,7 @@ class ChatTab(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             self.chat_log.clear()
+            self._entries.clear()
             # Also clear persisted history if available
             try:
                 key = getattr(self.window, "_current_server_key", "")

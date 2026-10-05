@@ -60,6 +60,7 @@ class PrivateChatDialog(QDialog):
         self.window = window
         self.user_id = user_id
         self._nick = nick or f"User#{user_id}"
+        self._remote_typing = False
         self.setWindowTitle(f"Privat: {self._nick}")
         self.resize(520, 420)
         self.setModal(False)
@@ -105,6 +106,7 @@ class PrivateChatDialog(QDialog):
             f"Nachricht an {self._nick}. Enter zum Senden, F6 für Verlauf."
         )
         self._input.returnPressed.connect(self._on_send)
+        self._input.textChanged.connect(self._on_input_changed)
         self._send_btn = QPushButton(_("&Senden"))
         self._send_btn.setAccessibleName(_("Nachricht senden"))
         self._send_btn.clicked.connect(self._on_send)
@@ -211,6 +213,32 @@ class PrivateChatDialog(QDialog):
             self.window.set_status(f"Senden fehlgeschlagen: {exc}")
 
     # ------------------------------------------------------------------
+    # Tipp-Anzeige
+    # ------------------------------------------------------------------
+
+    def _on_input_changed(self, text: str) -> None:
+        sender = getattr(self.window, "_typing_sender", None)
+        try:
+            connected = self.window.client.is_connected()
+        except Exception:
+            connected = False
+        if sender is not None and connected:
+            sender.text_changed(self.user_id, text)
+
+    def set_remote_typing(self, active: bool) -> None:
+        """Statuszeile: "Chat mit X – schreibt …" (Tipp-Anzeige des Partners)."""
+        if active == self._remote_typing:
+            return
+        self._remote_typing = active
+        self._update_status_label()
+
+    def _update_status_label(self) -> None:
+        label = f"Chat mit {self._nick}"
+        if self._remote_typing:
+            label += _(" – schreibt …")
+        self._status_label.setText(label)
+
+    # ------------------------------------------------------------------
     # Focus toggle (F6)
     # ------------------------------------------------------------------
 
@@ -262,7 +290,7 @@ class PrivateChatDialog(QDialog):
                 if nick != self._nick:
                     self._nick = nick
                     self.setWindowTitle(f"Privat: {nick}")
-                    self._status_label.setText(f"Chat mit {nick}")
+                    self._update_status_label()
         except Exception:
             pass
 
@@ -270,5 +298,8 @@ class PrivateChatDialog(QDialog):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self._nick_timer.stop()
+        sender = getattr(self.window, "_typing_sender", None)
+        if sender is not None:
+            sender.stop(self.user_id)
         _open_dialogs.pop(self.user_id, None)
         super().closeEvent(event)

@@ -7226,6 +7226,60 @@ _TRANSLATIONS_ES.update({
         "Introduzca una ubicación en los ajustes, en 'Apariencia y comportamiento'.",
 })
 
+
+# Chat: Antworten aus dem Verlauf + Tipp-Anzeige bei Privatnachrichten
+_TRANSLATIONS.update({
+    "Antworten": "Reply",
+    "Auf Nachricht antworten": "Reply to message",
+    "Keine Nachricht zum Antworten": "No message to reply to",
+    "Privat-Antwort nicht möglich: Benutzer ist nicht mehr online":
+        "Cannot reply privately: user is no longer online",
+    "Privat-Antwort an {}": "Private reply to {}",
+    "Antwort an {}": "Reply to {}",
+    "Ich": "Me",
+    " – schreibt …": " – typing …",
+    "{} schreibt eine Privatnachricht …": "{} is typing a private message …",
+    "Ansagen, wenn jemand mir eine Privatnachricht schreibt":
+        "Announce when someone is typing a private message to me",
+    "Anderen anzeigen, dass ich eine Privatnachricht schreibe":
+        "Let others see when I am typing a private message",
+    "Jemand schreibt eine Privatnachricht": "Someone is typing a private message",
+})
+_TRANSLATIONS_FR.update({
+    "Antworten": "Répondre",
+    "Auf Nachricht antworten": "Répondre au message",
+    "Keine Nachricht zum Antworten": "Aucun message auquel répondre",
+    "Privat-Antwort nicht möglich: Benutzer ist nicht mehr online":
+        "Réponse privée impossible : l'utilisateur n'est plus en ligne",
+    "Privat-Antwort an {}": "Réponse privée à {}",
+    "Antwort an {}": "Réponse à {}",
+    "Ich": "Moi",
+    " – schreibt …": " – en train d'écrire …",
+    "{} schreibt eine Privatnachricht …": "{} est en train d'écrire un message privé …",
+    "Ansagen, wenn jemand mir eine Privatnachricht schreibt":
+        "Annoncer quand quelqu'un m'écrit un message privé",
+    "Anderen anzeigen, dass ich eine Privatnachricht schreibe":
+        "Montrer aux autres quand j'écris un message privé",
+    "Jemand schreibt eine Privatnachricht": "Quelqu'un écrit un message privé",
+})
+_TRANSLATIONS_ES.update({
+    "Antworten": "Responder",
+    "Auf Nachricht antworten": "Responder al mensaje",
+    "Keine Nachricht zum Antworten": "No hay ningún mensaje al que responder",
+    "Privat-Antwort nicht möglich: Benutzer ist nicht mehr online":
+        "No se puede responder en privado: el usuario ya no está en línea",
+    "Privat-Antwort an {}": "Respuesta privada a {}",
+    "Antwort an {}": "Respuesta a {}",
+    "Ich": "Yo",
+    " – schreibt …": " – escribiendo …",
+    "{} schreibt eine Privatnachricht …": "{} está escribiendo un mensaje privado …",
+    "Ansagen, wenn jemand mir eine Privatnachricht schreibt":
+        "Anunciar cuando alguien me está escribiendo un mensaje privado",
+    "Anderen anzeigen, dass ich eine Privatnachricht schreibe":
+        "Mostrar a los demás cuando escribo un mensaje privado",
+    "Jemand schreibt eine Privatnachricht": "Alguien está escribiendo un mensaje privado",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
