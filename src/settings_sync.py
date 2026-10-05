@@ -57,6 +57,8 @@ _SYNCABLE_FIELDS = {
     "hotkey_mic_boost_down",
     "hotkey_volume_up",
     "hotkey_volume_down",
+    "hotkey_media_volume_up",
+    "hotkey_media_volume_down",
     "hotkey_status_template_1",
     "hotkey_status_template_2",
     "hotkey_status_template_3",

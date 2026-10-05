@@ -812,7 +812,7 @@ class ChannelsTab(QWidget):
         except Exception:
             self.window.set_status(_("Medien-Lautstärke: SDK nicht verfügbar"))
             return
-        current = self.window._user_media_volumes.get(user_id, 16384)
+        current = self.window.client.get_user_media_volume(user_id)
         vol, ok = QInputDialog.getInt(
             self, _("Medienstream-Lautstärke"), _("Lautstärke (0–32000):"), current, 0, 32000, 500
         )

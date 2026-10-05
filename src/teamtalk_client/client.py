@@ -6,7 +6,7 @@ import socket
 import time
 import threading
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .tt import load_teamtalk_module
 
@@ -39,6 +39,9 @@ class TeamTalkClient:
         self._last_transport_encrypted: Optional[bool] = None
         self._connected = False
         self._last_encryption_context_info = "ctx=none"
+        # Medien-Gesamtlautstärke: Basis pro Nutzer (SDK-Werte) + Faktor in %
+        self._user_media_base: Dict[int, int] = {}
+        self._media_master_pct = 100
 
     def _timestamp_ms(self) -> int:
         return int(round(time.time() * 1000))
@@ -110,6 +113,8 @@ class TeamTalkClient:
         except Exception:
             pass
         self._connected = False
+        # Nutzer-IDs gelten nur pro Sitzung – pro-Nutzer-Basiswerte verwerfen.
+        self._user_media_base.clear()
         self._drain_message_queue()
 
     def _recreate_client(self) -> None:
@@ -993,7 +998,71 @@ class TeamTalkClient:
     # ------------------------------------------------------------------
 
     def set_user_volume(self, user_id: int, stream_type: int, volume: int) -> bool:
+        media_bit = int(self.tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO)
+        if int(stream_type) & media_bit:
+            # Medien-Gesamtlautstärke: der pro Nutzer gewählte Wert ist die
+            # Basis, die SDK bekommt Basis × Gesamtfaktor. Stimme (falls im
+            # selben stream_type-Bitfeld mitgesetzt) bleibt unverändert.
+            self._user_media_base[int(user_id)] = int(volume)
+            ok = bool(self.tt._SetUserVolume(
+                self.client._tt, user_id, media_bit, self._effective_media_volume(int(user_id))
+            ))
+            rest = int(stream_type) & ~media_bit
+            if rest:
+                ok = bool(self.tt._SetUserVolume(self.client._tt, user_id, rest, volume)) and ok
+            return ok
         return self.tt._SetUserVolume(self.client._tt, user_id, stream_type, volume)
+
+    # ------------------------------------------------------------------
+    # Medien-Gesamtlautstärke (alle eingehenden Medien-Streams zusammen)
+    # ------------------------------------------------------------------
+
+    # SoundLevel-Grenzen aus TeamTalk.h (linear, 1000 = Faktor 1)
+    _SOUND_VOLUME_MIN = 0
+    _SOUND_VOLUME_DEFAULT = 1000
+    _SOUND_VOLUME_MAX = 32000
+
+    def _effective_media_volume(self, user_id: int) -> int:
+        base = self._user_media_base.get(int(user_id), self._SOUND_VOLUME_DEFAULT)
+        level = int(round(base * self._media_master_pct / 100.0))
+        return max(self._SOUND_VOLUME_MIN, min(self._SOUND_VOLUME_MAX, level))
+
+    def get_media_master_volume(self) -> int:
+        return int(self._media_master_pct)
+
+    def set_media_master_volume(self, percent: int) -> int:
+        """Setzt die Lautstärke aller eingehenden Medien-Streams in Prozent
+        (100 = unverändert) und wendet sie auf alle bekannten Nutzer an.
+        Später hinzukommende Nutzer werden über
+        :meth:`apply_media_master_to_user` nachgezogen."""
+        self._media_master_pct = max(0, min(300, int(percent)))
+        if self._connected:
+            try:
+                users = list(self.client.getServerUsers() or [])
+            except Exception:
+                users = []
+            for u in users:
+                self.apply_media_master_to_user(int(u.nUserID))
+        return self._media_master_pct
+
+    def apply_media_master_to_user(self, user_id: int) -> None:
+        user_id = int(user_id)
+        if not user_id:
+            return
+        if self._media_master_pct == 100 and user_id not in self._user_media_base:
+            return  # SDK-Standard gilt bereits, kein Aufruf nötig
+        try:
+            self.tt._SetUserVolume(
+                self.client._tt, user_id,
+                int(self.tt.StreamType.STREAMTYPE_MEDIAFILE_AUDIO),
+                self._effective_media_volume(user_id),
+            )
+        except Exception:
+            pass
+
+    def get_user_media_volume(self, user_id: int) -> int:
+        """Pro Nutzer gewählte Medien-Lautstärke (ohne Gesamtfaktor)."""
+        return self._user_media_base.get(int(user_id), self._SOUND_VOLUME_DEFAULT)
 
     def set_user_stereo(self, user_id: int, stream_type: int, left: bool, right: bool) -> bool:
         try:
@@ -1364,6 +1433,10 @@ class TeamTalkClient:
         if not self._last_connect:
             return ConnectResult(False, "Keine gespeicherten Verbindungsdaten")
         return self.connect_and_login(*self._last_connect, timeout_ms=timeout_ms)
+
+    def get_flags(self) -> int:
+        """ClientFlags-Bitmaske (TT_GetFlags)."""
+        return int(self.client.getFlags())
 
     def is_connected(self) -> bool:
         return self._connected

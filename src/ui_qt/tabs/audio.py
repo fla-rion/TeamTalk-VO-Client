@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 
 import system_audio as sa
+import audio_device_memory as adm
 
 if TYPE_CHECKING:
     from app_qt import MainWindow
@@ -32,6 +33,12 @@ class AudioTab(QWidget):
         self._lp_session_id: Optional[int] = None
         self._lp_paused = False
         self._devices_applied = False
+        # Vom Nutzer gewähltes Gerät als (szDeviceID, Name) – bleibt erhalten,
+        # auch wenn es ausgesteckt ist (Anzeige "nicht verbunden").
+        self._wanted_in: Optional[adm.DeviceIdentity] = None
+        self._wanted_out: Optional[adm.DeviceIdentity] = None
+        self._in_missing = False
+        self._out_missing = False
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -50,6 +57,8 @@ class AudioTab(QWidget):
         self.input_device.setAccessibleName("Eingabegerät")
         self.output_device = QComboBox()
         self.output_device.setAccessibleName("Ausgabegerät")
+        self.input_device.activated.connect(lambda _i: self._on_device_choice(True))
+        self.output_device.activated.connect(lambda _i: self._on_device_choice(False))
         dev_form.addRow(QLabel(_("Eingabegerät")), self.input_device)
         dev_form.addRow(QLabel(_("Ausgabegerät")), self.output_device)
         root.addWidget(dev_group)
@@ -259,6 +268,18 @@ class AudioTab(QWidget):
         )
         self.auto_apply_device_change.stateChanged.connect(self._on_pref_auto_apply_device_change)
         prefs_v.addWidget(self.auto_apply_device_change)
+
+        self.mic_watchdog_check = QCheckBox(
+            _("Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt")
+        )
+        self.mic_watchdog_check.setAccessibleName(
+            _("Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt")
+        )
+        self.mic_watchdog_check.setChecked(
+            bool(getattr(window.settings_store.settings, "mic_watchdog_enabled", True))
+        )
+        self.mic_watchdog_check.stateChanged.connect(self._on_pref_mic_watchdog)
+        prefs_v.addWidget(self.mic_watchdog_check)
         prefs_btn_row = QHBoxLayout()
         self.save_prefs_btn = QPushButton(_("Aktuelle Einstellungen s&peichern"))
         self.save_prefs_btn.clicked.connect(self._on_pref_save)
@@ -394,69 +415,145 @@ class AudioTab(QWidget):
         old_in_ids = tuple(int(d.nDeviceID) for d in self._input_devices)
         old_out_ids = tuple(int(d.nDeviceID) for d in self._output_devices)
 
-        self._input_devices = [d for d in devices if getattr(d, "nMaxInputChannels", 0) > 0]
-        self._output_devices = [d for d in devices if getattr(d, "nMaxOutputChannels", 0) > 0]
+        new_inputs = [d for d in devices if getattr(d, "nMaxInputChannels", 0) > 0]
+        new_outputs = [d for d in devices if getattr(d, "nMaxOutputChannels", 0) > 0]
 
-        new_in_ids = tuple(int(d.nDeviceID) for d in self._input_devices)
-        new_out_ids = tuple(int(d.nDeviceID) for d in self._output_devices)
+        new_in_ids = tuple(int(d.nDeviceID) for d in new_inputs)
+        new_out_ids = tuple(int(d.nDeviceID) for d in new_outputs)
         changed = (old_in_ids != new_in_ids) or (old_out_ids != new_out_ids)
 
-        tt_str = self.window.tt_str
-        prev_in = self.input_device.currentIndex()
-        prev_out = self.output_device.currentIndex()
+        was_in_missing, was_out_missing = self._in_missing, self._out_missing
+        self._resync_device_choices(announce=True, new_inputs=new_inputs, new_outputs=new_outputs)
 
-        self.input_device.blockSignals(True)
-        self.output_device.blockSignals(True)
-        self.input_device.clear()
-        self.output_device.clear()
-
-        for d in self._input_devices:
-            name = tt_str(d.szDeviceName)
-            from system_audio import _is_loopback_name
-            label = f"[Systemton] {name}" if _is_loopback_name(name) else name
-            self.input_device.addItem(label)
-        for d in self._output_devices:
-            self.output_device.addItem(tt_str(d.szDeviceName))
-
-        if 0 <= prev_in < self.input_device.count():
-            self.input_device.setCurrentIndex(prev_in)
-        if 0 <= prev_out < self.output_device.count():
-            self.output_device.setCurrentIndex(prev_out)
-
-        self.input_device.blockSignals(False)
-        self.output_device.blockSignals(False)
-
-        if self._devices_applied and restart_sound and (reapply or (auto_apply and changed)):
+        if self._devices_applied and restart_sound:
             # Der Restart-Zyklus hat oben die zuvor aktiven Geräte geschlossen
-            # (SDK-Vorgabe) -- sie müssen jetzt wieder geöffnet werden, sonst
-            # bleiben Mikrofon/Ausgabe nach einem Refresh stumm.
-            self.on_apply()
+            # (SDK-Vorgabe) -- sie müssen jetzt IMMER wieder geöffnet werden,
+            # sonst bleiben Mikrofon/Ausgabe nach einem Refresh stumm.
+            self.on_apply(announce=False)
+        elif self._devices_applied and changed and (
+            auto_apply or was_in_missing != self._in_missing or was_out_missing != self._out_missing
+        ):
+            self.on_apply(announce=False)
+
+    def _sync_device_choice(self, combo, old_devices, devices, wanted) -> bool:
+        is_input = combo is self.input_device
+        try:
+            indev, outdev = self.window.client.get_default_sound_devices()
+            default = indev if is_input else outdev
+            default_id = getattr(default, "value", default)
+        except Exception:
+            default_id = None
+        prev_idx = combo.currentIndex()
+        prev_id = int(old_devices[prev_idx].nDeviceID) if 0 <= prev_idx < len(old_devices) else None
+        labels = [e.label for e in sa.classify_devices(devices, self.window.tt_str)]
+        labels, idx, missing = adm.plan_selection(
+            devices, labels, wanted, (prev_id, default_id),
+            self.window.tt_str, _("nicht verbunden"),
+        )
+        combo.blockSignals(True)
+        if [combo.itemText(i) for i in range(combo.count())] != labels:
+            combo.clear()
+            combo.addItems(labels)
+        if idx >= 0:
+            combo.setCurrentIndex(idx)
+        combo.blockSignals(False)
+        return missing
+
+    def _resync_device_choices(self, announce: bool = True, new_inputs=None, new_outputs=None) -> None:
+        """Auswahl gegen die Geräteliste abgleichen; ein fehlendes gewähltes
+        Gerät bleibt als "(nicht verbunden)" stehen."""
+        old_in, old_out = self._input_devices, self._output_devices
+        if new_inputs is not None:
+            self._input_devices = new_inputs
+        if new_outputs is not None:
+            self._output_devices = new_outputs
+        was_in, was_out = self._in_missing, self._out_missing
+        self._in_missing = self._sync_device_choice(
+            self.input_device, old_in, self._input_devices, self._wanted_in)
+        self._out_missing = self._sync_device_choice(
+            self.output_device, old_out, self._output_devices, self._wanted_out)
+        if not announce:
+            return
+        msgs = []
+        for kind, was, now, wanted in (
+            (_("Eingabegerät"), was_in, self._in_missing, self._wanted_in),
+            (_("Ausgabegerät"), was_out, self._out_missing, self._wanted_out),
+        ):
+            if was == now or not wanted:
+                continue
+            name = wanted[1] or wanted[0]
+            if now:
+                msgs.append(_("{} {} nicht verbunden, Standardgerät wird verwendet").format(kind, name))
+            else:
+                msgs.append(_("{} {} wieder verbunden").format(kind, name))
+        if msgs:
+            text = ". ".join(msgs)
+            self.window.set_status(text)
+            try:
+                self.window.tts.speak(text, kind="system")
+            except Exception:
+                pass
+
+    def _on_device_choice(self, is_input: bool) -> None:
+        combo = self.input_device if is_input else self.output_device
+        devices = self._input_devices if is_input else self._output_devices
+        idx = combo.currentIndex()
+        if 0 <= idx < len(devices):
+            ident = adm.device_identity(devices[idx], self.window.tt_str)
+            if is_input:
+                self._wanted_in = ident
+            else:
+                self._wanted_out = ident
+
+    def _open_devices(self):
+        """Tatsächlich zu öffnende Geräte (Platzhalter → System-Standard)."""
+        try:
+            indev_def, outdev_def = self.window.client.get_default_sound_devices()
+        except Exception:
+            indev_def = outdev_def = None
+        indev = adm.resolve_open_device(
+            self._input_devices, self.input_device.currentIndex(), getattr(indev_def, "value", indev_def)
+        )
+        outdev = adm.resolve_open_device(
+            self._output_devices, self.output_device.currentIndex(), getattr(outdev_def, "value", outdev_def)
+        )
+        return indev, outdev
 
     # ── Apply ─────────────────────────────────────────────────────────────
 
-    def on_apply(self) -> None:
+    def on_apply(self, announce: bool = True) -> None:
         try:
-            in_idx = self.input_device.currentIndex()
-            out_idx = self.output_device.currentIndex()
             client = self.window.client
+            indev, outdev = self._open_devices()
+            # Eine echte (nicht Platzhalter-)Auswahl wird zum gemerkten Gerät.
+            tt_str = self.window.tt_str
+            picked = False
+            if indev is not None and 0 <= self.input_device.currentIndex() < len(self._input_devices):
+                self._wanted_in = adm.device_identity(indev, tt_str)
+                picked = picked or self._in_missing
+            if outdev is not None and 0 <= self.output_device.currentIndex() < len(self._output_devices):
+                self._wanted_out = adm.device_identity(outdev, tt_str)
+                picked = picked or self._out_missing
+            if picked:
+                self._resync_device_choices(announce=False)
 
             client.close_sound_input_device()
             client.close_sound_output_device()
             client.close_sound_duplex_devices()
 
             use_duplex = self.duplex_mode.isChecked()
-            if use_duplex and self._input_devices and self._output_devices:
-                in_id = int(self._input_devices[in_idx].nDeviceID)
-                out_id = int(self._output_devices[out_idx].nDeviceID)
+            if use_duplex and indev is not None and outdev is not None:
+                in_id = int(indev.nDeviceID)
+                out_id = int(outdev.nDeviceID)
                 ok = client.init_sound_duplex_devices(in_id, out_id)
                 if not ok:
                     use_duplex = False
 
             if not use_duplex:
-                if self._input_devices and 0 <= in_idx < len(self._input_devices):
-                    client.init_sound_input_device(int(self._input_devices[in_idx].nDeviceID))
-                if self._output_devices and 0 <= out_idx < len(self._output_devices):
-                    client.init_sound_output_device(int(self._output_devices[out_idx].nDeviceID))
+                if indev is not None:
+                    client.init_sound_input_device(int(indev.nDeviceID))
+                if outdev is not None:
+                    client.init_sound_output_device(int(outdev.nDeviceID))
 
             try:
                 client.set_sound_input_gain(self.mic_gain_slider.value() * 160)
@@ -472,7 +569,8 @@ class AudioTab(QWidget):
                 pass
 
             self._devices_applied = True
-            self.window.set_status("Audio-Einstellungen übernommen")
+            if announce:
+                self.window.set_status("Audio-Einstellungen übernommen")
         except Exception as exc:
             self.window.set_status(f"Audio-Fehler: {exc}")
 
@@ -623,18 +721,14 @@ class AudioTab(QWidget):
             self.mgp_preview_btn.setText("&Vorschau starten")
             self.window.set_status("Mikrofon-Vorschau beendet")
         else:
-            in_idx = self.input_device.currentIndex()
-            out_idx = self.output_device.currentIndex()
-            if (
-                not self._input_devices or not (0 <= in_idx < len(self._input_devices))
-                or not self._output_devices or not (0 <= out_idx < len(self._output_devices))
-            ):
+            _in_dev, _out_dev = self._open_devices()
+            if _in_dev is None or _out_dev is None:
                 self.window.set_status("Bitte zuerst Geräte wählen")
                 return
             try:
                 handle = self.window.client.start_sound_loopback_test(
-                    int(self._input_devices[in_idx].nDeviceID),
-                    int(self._output_devices[out_idx].nDeviceID),
+                    int(_in_dev.nDeviceID),
+                    int(_out_dev.nDeviceID),
                 )
                 if handle:
                     self._loopback_handle = handle
@@ -670,12 +764,8 @@ class AudioTab(QWidget):
     def _on_loopback_toggle(self, state: int) -> None:
         enabled = bool(state)
         if enabled:
-            in_idx = self.input_device.currentIndex()
-            out_idx = self.output_device.currentIndex()
-            if (
-                not self._input_devices or not (0 <= in_idx < len(self._input_devices))
-                or not self._output_devices or not (0 <= out_idx < len(self._output_devices))
-            ):
+            _in_dev, _out_dev = self._open_devices()
+            if _in_dev is None or _out_dev is None:
                 self.window.set_status("Bitte zuerst Geräte wählen und anwenden")
                 self.loopback_check.blockSignals(True)
                 self.loopback_check.setChecked(False)
@@ -683,8 +773,8 @@ class AudioTab(QWidget):
                 return
             try:
                 handle = self.window.client.start_sound_loopback_test(
-                    int(self._input_devices[in_idx].nDeviceID),
-                    int(self._output_devices[out_idx].nDeviceID),
+                    int(_in_dev.nDeviceID),
+                    int(_out_dev.nDeviceID),
                 )
                 if handle:
                     self._loopback_handle = handle
@@ -753,6 +843,11 @@ class AudioTab(QWidget):
         return {
             "input_device_id": in_id,
             "output_device_id": out_id,
+            # Stabile Identität (nDeviceID ändert sich bei USB-Hotplug)
+            "input_device_uid": (self._wanted_in or ("", ""))[0],
+            "input_device_name": (self._wanted_in or ("", ""))[1],
+            "output_device_uid": (self._wanted_out or ("", ""))[0],
+            "output_device_name": (self._wanted_out or ("", ""))[1],
             "use_duplex": self.duplex_mode.isChecked(),
             "voice_activation": self.voice_activation.isChecked(),
             "voice_level": self.voice_level.value(),
@@ -777,16 +872,21 @@ class AudioTab(QWidget):
 
         in_id = prefs.get("input_device_id")
         out_id = prefs.get("output_device_id")
-        if in_id is not None:
-            for idx, d in enumerate(self._input_devices):
-                if int(d.nDeviceID) == in_id:
-                    self.input_device.setCurrentIndex(idx)
-                    break
-        if out_id is not None:
-            for idx, d in enumerate(self._output_devices):
-                if int(d.nDeviceID) == out_id:
-                    self.output_device.setCurrentIndex(idx)
-                    break
+        tt_str = self.window.tt_str
+        if prefs.get("input_device_uid") or prefs.get("input_device_name"):
+            self._wanted_in = (str(prefs.get("input_device_uid") or ""), str(prefs.get("input_device_name") or ""))
+        elif in_id is not None:
+            # Ältere gespeicherte Einstellungen ohne stabile Identität
+            idx = adm.find_device_id_index(self._input_devices, in_id)
+            if idx >= 0:
+                self._wanted_in = adm.device_identity(self._input_devices[idx], tt_str)
+        if prefs.get("output_device_uid") or prefs.get("output_device_name"):
+            self._wanted_out = (str(prefs.get("output_device_uid") or ""), str(prefs.get("output_device_name") or ""))
+        elif out_id is not None:
+            idx = adm.find_device_id_index(self._output_devices, out_id)
+            if idx >= 0:
+                self._wanted_out = adm.device_identity(self._output_devices[idx], tt_str)
+        self._resync_device_choices(announce=True)
 
         if "use_duplex" in prefs:
             self.duplex_mode.setChecked(bool(prefs["use_duplex"]))
@@ -842,6 +942,14 @@ class AudioTab(QWidget):
         setattr(self.window.settings_store.settings, "auto_apply_audio_on_device_change", val)
         self.window.settings_store.save()
         self.window.set_status("Auto-Anwenden bei Gerätewechsel " + ("aktiviert" if val else "deaktiviert"))
+
+    def _on_pref_mic_watchdog(self, state: int) -> None:
+        val = bool(state)
+        self.window.settings_store.settings.mic_watchdog_enabled = val
+        self.window.settings_store.save()
+        self.window.set_status(
+            _("Mikrofon-Überwachung aktiviert") if val else _("Mikrofon-Überwachung deaktiviert")
+        )
 
     def _on_pref_save(self) -> None:
         prefs = self.get_audio_prefs()

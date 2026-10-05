@@ -64,6 +64,8 @@ from eq_presets import EqPresetsManager
 from audit_log import AuditLog, A_SERVER_CONNECT, A_SERVER_DISCONNECT, A_API_KEY_SAVED, A_API_KEY_DELETED, A_SAVED_MSG_EXPIRED
 from offline_queue import OfflineMessageQueue
 import system_audio as sa
+import audio_device_memory as adm
+from mic_watchdog import MicWatchdog, ACTION_RESTART, ACTION_GIVE_UP, sample_from_client
 from coreaudio_watch import CoreAudioDeviceWatcher
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
@@ -810,6 +812,17 @@ class MainFrame(wx.Frame):
         self.master_volume_slider.SetMinSize((70, -1))
         qa_sizer.Add(self.master_volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
 
+        # Medien-Gesamtlautstärke: alle eingehenden Medien-Streams zusammen,
+        # unabhängig von Stimmen (auch für später startende Streams).
+        qa_sizer.Add(wx.StaticText(qa_panel, label=_("Medien:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
+        self.media_volume_spin = wx.SpinCtrl(
+            qa_panel, min=0, max=200,
+            initial=max(0, min(200, int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0))),
+        )
+        self.media_volume_spin.SetName(_("Medien-Gesamtlautstärke in Prozent"))
+        self.media_volume_spin.SetMinSize((70, -1))
+        qa_sizer.Add(self.media_volume_spin, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
+
         # Mic gain spin
         qa_sizer.Add(wx.StaticText(qa_panel, label="Mikrofon:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
         self.mic_gain_slider = wx.SpinCtrl(qa_panel, value="100", min=0, max=200)
@@ -992,11 +1005,17 @@ class MainFrame(wx.Frame):
         self.tb_record.Bind(wx.EVT_CHECKBOX, self._on_tb_record)
         self.tb_question.Bind(wx.EVT_CHECKBOX, self._on_tb_question)
         self.master_volume_slider.Bind(wx.EVT_SPINCTRL, self._on_master_volume_slider)
+        self.media_volume_spin.Bind(wx.EVT_SPINCTRL, self._on_media_volume_spin)
         self.mic_gain_slider.Bind(wx.EVT_SPINCTRL, self._on_mic_gain_slider)
         # VU meter timer
         self._vu_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_vu_timer, self._vu_timer)
         self._vu_timer.Start(100)
+        # Mikrofon-Watchdog: Senden aktiv, aber es geht keine Sprache raus
+        self._mic_watchdog = MicWatchdog()
+        self._mic_watchdog_timer = wx.Timer(self)
+        self.Bind(wx.EVT_TIMER, self._on_mic_watchdog_timer, self._mic_watchdog_timer)
+        self._mic_watchdog_timer.Start(1000)
 
         # Geplante Aufnahmen: alle 30 Sekunden prüfen
         self._scheduled_rec_timer = wx.Timer(self)
@@ -1131,6 +1150,59 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
+    def _on_mic_watchdog_timer(self, _event) -> None:
+        if not getattr(self.settings_store.settings, "mic_watchdog_enabled", True):
+            self._mic_watchdog.reset()
+            return
+        action = self._mic_watchdog.tick(time.monotonic(), sample_from_client(self.client))
+        if action == ACTION_RESTART:
+            self.logger.write("Mikrofon-Watchdog: Senden aktiv, aber keine Sprachdaten – Soundsystem-Neustart")
+            at = self.audio_tab
+            try:
+                at.refresh_audio_devices(
+                    announce=False, prefer_previous=True, auto_apply=False,
+                    restart_sound=True, reapply=True,
+                )
+                if not at._devices_applied:
+                    at.on_apply_audio(None, announce=False)
+            except Exception as exc:
+                self.logger.write(f"Mikrofon-Watchdog: Neustart fehlgeschlagen: {exc}")
+            text = _("Mikrofon sendete nicht und wurde neu gestartet")
+            self.set_status(text)
+            self.tts.speak(text, kind="system")
+        elif action == ACTION_GIVE_UP:
+            text = _("Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.")
+            self.logger.write("Mikrofon-Watchdog: auch nach Neustart keine Sprachdaten")
+            self.set_status(text)
+            self.tts.speak(text, kind="system")
+
+    def _on_media_volume_spin(self, _event):
+        self.set_media_master_volume(int(self.media_volume_spin.GetValue()), announce=False)
+
+    def set_media_master_volume(self, percent: int, announce: bool = True) -> None:
+        """Setzt die Lautstärke aller eingehenden Medien-Streams (0–200 %)."""
+        percent = max(0, min(200, int(percent)))
+        self.client.set_media_master_volume(percent)
+        if self.media_volume_spin.GetValue() != percent:
+            self.media_volume_spin.SetValue(percent)
+        self.settings_store.settings.media_master_volume = percent
+        self.settings_store.save()
+        text = _("Medien-Lautstärke: {} %").format(percent)
+        self.set_status(text)
+        if announce:
+            self.tts.speak(text, kind="system")
+
+    def _reapply_media_master_volume(self) -> None:
+        self.client.set_media_master_volume(
+            int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0)
+        )
+
+    def on_menu_media_volume_up(self, _event=None):
+        self.set_media_master_volume(int(self.client.get_media_master_volume()) + 10)
+
+    def on_menu_media_volume_down(self, _event=None):
+        self.set_media_master_volume(int(self.client.get_media_master_volume()) - 10)
+
     def _on_mic_gain_slider(self, event):
         level = event.GetEventObject().GetValue()
         sdk_level = int(level * 160)
@@ -1164,6 +1236,9 @@ class MainFrame(wx.Frame):
         """Wird aufgerufen wenn die aktive Session wechselt."""
         try:
             self.client = session.client
+            self.client.set_media_master_volume(
+                int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0)
+            )
             label = session.profile.name
             wx.CallAfter(self.set_status, f"Server: {label}")
             wx.CallAfter(self._refresh_server_choice)
@@ -2243,6 +2318,8 @@ class MainFrame(wx.Frame):
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, _("Mikrofontest"))
         audio_menu.AppendSeparator()
         audio_mute_all = audio_menu.AppendCheckItem(wx.ID_ANY, _("Alles stummschalten"))
+        audio_media_up = audio_menu.Append(wx.ID_ANY, _("Medien lauter") + "\tCtrl+Alt+Shift+Up")
+        audio_media_down = audio_menu.Append(wx.ID_ANY, _("Medien leiser") + "\tCtrl+Alt+Shift+Down")
         audio_menu.AppendSeparator()
         audio_eq_presets = audio_menu.Append(wx.ID_ANY, _("Equalizer-Voreinstellungen..."))
         menubar.Append(audio_menu, _("Audio"))
@@ -2445,6 +2522,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_audio_refresh, audio_refresh)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_loopback, audio_loopback)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_mute_all, audio_mute_all)
+        self.Bind(wx.EVT_MENU, self.on_menu_media_volume_up, audio_media_up)
+        self.Bind(wx.EVT_MENU, self.on_menu_media_volume_down, audio_media_down)
         self.Bind(wx.EVT_MENU, self.on_menu_eq_presets, audio_eq_presets)
 
         self.Bind(wx.EVT_MENU, self.on_menu_video_toggle, video_tx)
@@ -9331,24 +9410,26 @@ class MainFrame(wx.Frame):
                 self._speak_tab_added = False
 
     def _auto_init_sound_devices(self):
-        """Initialize sound devices after successful login; prefers built-in hardware for input."""
+        """Initialize sound devices after successful login; prefers built-in hardware for input.
+
+        Läuft über den Audio-Tab, damit dieser weiß, welche Geräte offen sind:
+        nur dann kann er sie nach einem Hotplug-Neustart wieder öffnen und ein
+        ausgestecktes Gerät als "nicht verbunden" merken. Bereits angewendete
+        Geräte (z. B. gespeicherte Audioeinstellungen) bleiben unangetastet.
+        """
         try:
-            devices = list(self.client.get_sound_devices() or [])
-            raw_inputs = [d for d in devices if getattr(d, "nMaxInputChannels", 0) > 0]
-            best_in = sa.preferred_input_device(raw_inputs, self.tt_str)
-            _, outdev = self.client.get_default_sound_devices()
-            if best_in is not None:
-                indev_id = int(getattr(best_in, "nDeviceID", getattr(best_in, "value", best_in)))
-            else:
-                _def_in, _ = self.client.get_default_sound_devices()
-                indev_id = int(getattr(_def_in, "value", _def_in))
-            outdev_id = int(getattr(outdev, "value", outdev))
-            input_ok = self.client.init_sound_input_device(indev_id)
-            output_ok = self.client.init_sound_output_device(outdev_id)
-            if input_ok and output_ok:
-                self.logger.write(f"Auto-initialized sound devices: in={indev_id} out={outdev_id}")
-            else:
-                self.logger.write(f"Auto-init sound devices partial: input={input_ok} output={output_ok}")
+            at = self.audio_tab
+            if at._devices_applied:
+                return
+            if at._wanted_in is None:
+                best_in = sa.preferred_input_device(list(at._input_devices), self.tt_str)
+                if best_in is not None:
+                    at._wanted_in = adm.device_identity(best_in, self.tt_str)
+                    at._resync_device_choices(announce=False)
+            at.on_apply_audio(None, announce=False)
+            self.logger.write(
+                f"Auto-initialized sound devices: applied={at._devices_applied}"
+            )
         except Exception as exc:
             self.logger.write(f"Auto-init sound devices failed: {exc}")
 
@@ -9815,6 +9896,15 @@ class MainFrame(wx.Frame):
                 self._on_master_volume_slider(None)
                 self.set_status(f"Lautstärke: {new_vol}%")
                 return
+            # Medien-Gesamtlautstärke
+            hk_media_up = int(getattr(settings, "hotkey_media_volume_up", 0) or 0)
+            hk_media_down = int(getattr(settings, "hotkey_media_volume_down", 0) or 0)
+            if key and key == hk_media_up:
+                self.on_menu_media_volume_up()
+                return
+            if key and key == hk_media_down:
+                self.on_menu_media_volume_down()
+                return
             # v3.1.0 – TTS abbrechen
             hk_tts_cancel = int(getattr(settings, "hotkey_tts_cancel", 0) or 0)
             if key and key == hk_tts_cancel:
@@ -9898,6 +9988,9 @@ class MainFrame(wx.Frame):
                     self.settings_store.settings.hotkey_tts_cancel = int(key)
                 elif target == "hotkey_announce_status":
                     self.settings_store.settings.hotkey_announce_status = int(key)
+                elif hasattr(self.settings_store.settings, target):
+                    # Alle übrigen Kürzel (u. a. Ausgabe-/Medienlautstärke)
+                    setattr(self.settings_store.settings, target, int(key))
                 self.settings_store.save()
                 self.shortcuts_tab.set_capture_label(target, False)
                 self._capture_hotkey_target = None
@@ -10361,6 +10454,12 @@ class MainFrame(wx.Frame):
             # skip the full list refresh to avoid O(n) SDK calls at audio rate.
             if _ev != tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
                 wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+            if _user_id and _ev in (
+                tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN,
+                tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED,
+            ):
+                # Medien-Gesamtlautstärke auch für neu hinzukommende Nutzer
+                wx.CallAfter(self.client.apply_media_master_to_user, _user_id)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
             wx.CallAfter(self._play_user_event_sound, _ev, _user_id, _user_ch, _source, tt)
             # v3.0.0 – Wer-spricht-Protokoll
@@ -10373,6 +10472,7 @@ class MainFrame(wx.Frame):
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+            wx.CallAfter(self._reapply_media_master_volume)
             if getattr(self.settings_store.settings, "auto_join_root_channel", False):
                 wx.CallAfter(self.connection_tab.on_join_root, None)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_TEXTMSG:
@@ -10852,7 +10952,7 @@ class MainFrame(wx.Frame):
         # Stop all timers first so no callbacks fire during teardown
         for _attr in (
             '_vu_timer', '_scheduled_rec_timer', '_recording_seg_timer',
-            '_silence_check_timer', '_scheduled_macro_timer',
+            '_silence_check_timer', '_scheduled_macro_timer', '_mic_watchdog_timer',
         ):
             if hasattr(self, _attr):
                 getattr(self, _attr).Stop()

@@ -347,6 +347,14 @@ class MainWindow(QMainWindow):
         self._audio_hotplug_timer.setInterval(5000)
         self._audio_hotplug_timer.timeout.connect(self._check_audio_hotplug)
         self._audio_hotplug_timer.start()
+
+        # Mikrofon-Watchdog: Senden aktiv, aber es geht keine Sprache raus
+        from mic_watchdog import MicWatchdog
+        self._mic_watchdog = MicWatchdog()
+        self._mic_watchdog_timer = QTimer(self)
+        self._mic_watchdog_timer.setInterval(1000)
+        self._mic_watchdog_timer.timeout.connect(self._on_mic_watchdog_timer)
+        self._mic_watchdog_timer.start()
         self._known_audio_devices = self._get_audio_device_names()
 
         # Accessible name for main window (NVDA announces this)
@@ -443,6 +451,26 @@ class MainWindow(QMainWindow):
         self._vol_slider.setAccessibleDescription("Ausgabelautstärke, 0 bis 200 Prozent")
         self._vol_slider.valueChanged.connect(self._on_master_volume)
         tb_layout.addWidget(self._vol_slider)
+
+        media_lbl = QLabel(_("Medien:"))
+        tb_layout.addWidget(media_lbl)
+        self._media_vol_slider = QSlider(Qt.Orientation.Horizontal)
+        self._media_vol_slider.setRange(0, 200)
+        self._media_vol_slider.setSingleStep(5)
+        self._media_vol_slider.setPageStep(10)
+        self._media_vol_slider.setValue(
+            max(0, min(200, int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0)))
+        )
+        self._media_vol_slider.setFixedWidth(80)
+        self._media_vol_slider.setAccessibleName(_("Medien-Gesamtlautstärke in Prozent"))
+        self._media_vol_slider.setAccessibleDescription(
+            _("Lautstärke aller eingehenden Medien-Streams, 0 bis 200 Prozent")
+        )
+        media_lbl.setBuddy(self._media_vol_slider)
+        self._media_vol_slider.valueChanged.connect(
+            lambda v: self.set_media_master_volume(int(v), announce=False)
+        )
+        tb_layout.addWidget(self._media_vol_slider)
 
         mic_lbl = QLabel(_("Mic:"))
         mic_lbl.setAccessibleName("Mikrofon")
@@ -687,6 +715,9 @@ class MainWindow(QMainWindow):
         self._add_action(audio_m, _("Geräte a&ktualisieren"), self.on_menu_audio_refresh)
         self._add_action(audio_m, _("Effekte &anwenden"), self.on_menu_audio_effects)
         audio_m.addSeparator()
+        self._add_action(audio_m, _("Medien lauter"), self.on_menu_media_volume_up, "Ctrl+Alt+Shift+Up")
+        self._add_action(audio_m, _("Medien leiser"), self.on_menu_media_volume_down, "Ctrl+Alt+Shift+Down")
+        audio_m.addSeparator()
         self._add_action(audio_m, _("&Equalizer-Voreinstellungen..."), self.on_menu_equalizer)
         self._add_action(audio_m, _("&Per-Server-Soundprofile..."), self.on_menu_server_audio_profiles)
         if sys.platform == "win32":
@@ -879,10 +910,12 @@ class MainWindow(QMainWindow):
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_REMOVE):
             call_after(self._on_channel_update)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN):
+            call_after(self.client.apply_media_master_to_user, int(msg.user.nUserID))
             call_after(self._on_user_loggedin, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT):
             call_after(self._on_user_loggedout, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED):
+            call_after(self.client.apply_media_master_to_user, int(msg.user.nUserID))
             call_after(self._on_user_joined, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT):
             call_after(self._on_user_left, msg)
@@ -955,6 +988,13 @@ class MainWindow(QMainWindow):
                 self.sound_manager.play("server_connect", self.settings_store.settings.sound_events.get("server_connect"))
             self._audit_log.log(A_SERVER_CONNECT)
             self._drain_offline_queue()
+            # Medien-Gesamtlautstärke auf alle schon angemeldeten Nutzer anwenden
+            try:
+                self.client.set_media_master_volume(
+                    int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0)
+                )
+            except Exception:
+                pass
             self._refresh_channels()
             _away_min = int(getattr(self.settings_store.settings, "away_timer_min", 0) or 0)
             if _away_min > 0:
@@ -1664,6 +1704,12 @@ class MainWindow(QMainWindow):
                 self.tts.clear_queue()
                 self.set_status("TTS abgebrochen")
                 return
+            if key and key == int(getattr(settings, "hotkey_media_volume_up", 0) or 0):
+                self.on_menu_media_volume_up()
+                return
+            if key and key == int(getattr(settings, "hotkey_media_volume_down", 0) or 0):
+                self.on_menu_media_volume_down()
+                return
             if key and key == int(getattr(settings, "hotkey_volume_up", 0) or 0):
                 new_vol = min(200, self._vol_slider.value() + 5)
                 self._vol_slider.setValue(new_vol)
@@ -1758,18 +1804,10 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def apply_audio_prefs(self) -> None:
+        # Über den Audio-Tab, damit er die offenen Geräte kennt (Wiederöffnen
+        # nach Hotplug, ausgestecktes Gerät → Standardgerät).
         try:
-            in_idx = self.audio_tab.input_device.currentIndex()
-            out_idx = self.audio_tab.output_device.currentIndex()
-            in_devs = self.audio_tab._input_devices
-            out_devs = self.audio_tab._output_devices
-            if in_devs and 0 <= in_idx < len(in_devs):
-                self.client.close_sound_input_device()
-                self.client.init_sound_input_device(int(in_devs[in_idx].nDeviceID))
-            if out_devs and 0 <= out_idx < len(out_devs):
-                self.client.close_sound_output_device()
-                self.client.init_sound_output_device(int(out_devs[out_idx].nDeviceID))
-            self.set_status("Audio-Einstellungen übernommen")
+            self.audio_tab.on_apply()
         except Exception as exc:
             self.set_status(f"Audio-Fehler: {exc}")
 
@@ -3032,7 +3070,7 @@ class MainWindow(QMainWindow):
         if not uid:
             self.set_status("Bitte Benutzer auswählen")
             return
-        current = self._user_media_volumes.get(uid, 16384)
+        current = self.client.get_user_media_volume(uid)
         new_level = max(0, min(32000, current + 1000))
         try:
             tt = self.client.tt
@@ -3047,7 +3085,7 @@ class MainWindow(QMainWindow):
         if not uid:
             self.set_status("Bitte Benutzer auswählen")
             return
-        current = self._user_media_volumes.get(uid, 16384)
+        current = self.client.get_user_media_volume(uid)
         new_level = max(0, min(32000, current - 1000))
         try:
             tt = self.client.tt
@@ -3725,6 +3763,34 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+    def set_media_master_volume(self, percent: int, announce: bool = True) -> None:
+        """Setzt die Lautstärke aller eingehenden Medien-Streams (0–200 %)."""
+        percent = max(0, min(200, int(percent)))
+        try:
+            self.client.set_media_master_volume(percent)
+        except Exception:
+            pass
+        slider = getattr(self, "_media_vol_slider", None)
+        if slider is not None and slider.value() != percent:
+            slider.blockSignals(True)
+            slider.setValue(percent)
+            slider.blockSignals(False)
+        self.settings_store.settings.media_master_volume = percent
+        try:
+            self.settings_store.save()
+        except Exception:
+            pass
+        text = _("Medien-Lautstärke: {} %").format(percent)
+        self.set_status(text)
+        if announce:
+            self.tts.speak(text, kind="system")
+
+    def on_menu_media_volume_up(self) -> None:
+        self.set_media_master_volume(int(self.client.get_media_master_volume()) + 10)
+
+    def on_menu_media_volume_down(self) -> None:
+        self.set_media_master_volume(int(self.client.get_media_master_volume()) - 10)
+
     def _on_mic_gain(self, value: int) -> None:
         try:
             self.client.set_sound_input_gain(value)
@@ -3778,6 +3844,28 @@ class MainWindow(QMainWindow):
             return [str(getattr(d, "szDeviceName", "")) for d in devs]
         except Exception:
             return []
+
+    def _on_mic_watchdog_timer(self) -> None:
+        import time as _time
+        from mic_watchdog import ACTION_RESTART, ACTION_GIVE_UP, sample_from_client
+        if not getattr(self.settings_store.settings, "mic_watchdog_enabled", True):
+            self._mic_watchdog.reset()
+            return
+        action = self._mic_watchdog.tick(_time.monotonic(), sample_from_client(self.client))
+        if action == ACTION_RESTART:
+            try:
+                self.audio_tab.refresh_devices(restart_sound=True, reapply=True)
+                if not self.audio_tab._devices_applied:
+                    self.audio_tab.on_apply(announce=False)
+            except Exception:
+                pass
+            text = _("Mikrofon sendete nicht und wurde neu gestartet")
+            self.set_status(text)
+            self.tts.speak(text, kind="system")
+        elif action == ACTION_GIVE_UP:
+            text = _("Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.")
+            self.set_status(text)
+            self.tts.speak(text, kind="system")
 
     def _check_audio_hotplug(self) -> None:
         current = self._get_audio_device_names()
