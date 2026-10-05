@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from i18n import _
+from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
@@ -165,6 +166,23 @@ class SettingsTab(QWidget):
         disp_form.addRow(_("Sprache"), lang_combo)
 
         layout.addWidget(disp_group)
+
+        # --- Geschlecht ---
+        # Wird als Status-Bit an den Server gesendet (wie im
+        # offiziellen Client), andere sehen es in der Nutzerinfo
+        gender_group = QGroupBox(_("Geschlecht"))
+        gender_form = QFormLayout(gender_group)
+        self.gender_combo = QComboBox()
+        for _g in GENDER_CHOICES:
+            self.gender_combo.addItem(_(_g), _g)
+        _cur_gender = str(getattr(s, "gender", "") or "Keine Angabe")
+        if _cur_gender not in GENDER_CHOICES:
+            _cur_gender = "Keine Angabe"
+        self.gender_combo.setCurrentIndex(GENDER_CHOICES.index(_cur_gender))
+        self.gender_combo.setAccessibleName(_("Geschlecht"))
+        self.gender_combo.currentIndexChanged.connect(self._on_gender_changed)
+        gender_form.addRow(_("Geschlecht"), self.gender_combo)
+        layout.addWidget(gender_group)
 
         # --- Abwesenheits-Timer ---
         away_group = QGroupBox(_("Abwesenheit"))
@@ -1576,6 +1594,14 @@ class SettingsTab(QWidget):
         try:
             self.window.settings_store.settings.weather_announce_times = times
             self.window.settings_store.save()
+        except Exception:
+            pass
+
+    def _on_gender_changed(self, _index: int) -> None:
+        gender = str(self.gender_combo.currentData() or "Keine Angabe")
+        self._save_str("gender", gender)
+        try:
+            self.window.client.set_status_flags(gender_status_flags(gender))
         except Exception:
             pass
 

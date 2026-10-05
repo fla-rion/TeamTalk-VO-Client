@@ -61,6 +61,7 @@ class TTSSettings:
     macos_volume: float = 1.0  # 0.0–1.0; only applied for macos_avs
     speak_user_login: bool = True
     speak_file_event: bool = True
+    speak_media_stream: bool = True
     # v2.2.0 per-context overrides (0 / "" = use global)
     chat_rate: int = 0
     system_rate: int = 0
@@ -405,6 +406,8 @@ class TTSManager:
         if kind == "user_login" and not self.settings.speak_user_login:
             return
         if kind == "file_event" and not self.settings.speak_file_event:
+            return
+        if kind == "media_stream" and not self.settings.speak_media_stream:
             return
 
         if self.settings.interrupt:

@@ -20,7 +20,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QTimer, Qt, Signal, QObject, QTime
 from PySide6.QtGui import QAction, QKeySequence, QFont, QCloseEvent, QShortcut
 
-from teamtalk_client.client import TeamTalkClient, ConnectResult
+from teamtalk_client.client import TeamTalkClient, ConnectResult, gender_status_flags
+from ui.user_flags import media_stream_state
 from ui.models import (
     FileLogger,
     ParsedTeamTalkFile,
@@ -172,6 +173,7 @@ class MainWindow(QMainWindow):
         self._known_audio_devices: List[str] = []
         self._speaking_log: List[dict] = []  # {"nick": ..., "ts": ..., "seconds": ...}
         self._speaking_start: Dict[int, float] = {}  # user_id -> start_time
+        self._media_stream_users: Dict[int, bool] = {}  # user_id -> streamt Medien
         self._channel_message_log: List[str] = []
         self._current_channel_name: str = ""
         self._server_session_ids: List[str] = []
@@ -190,6 +192,8 @@ class MainWindow(QMainWindow):
         self.settings_store = SQLiteSettingsStore(self._settings_db)
         self.store = SQLiteServerStore(self._settings_db)
         ensure_language(self.settings_store)
+        # Geschlecht als Status-Bit bei jedem Login/Statuswechsel mitsenden
+        self.client.status_flags = gender_status_flags(str(getattr(self.settings_store.settings, "gender", "") or ""))
 
         _log_path = _log_dir()
         _log_path.mkdir(parents=True, exist_ok=True)
@@ -249,6 +253,7 @@ class MainWindow(QMainWindow):
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
         self.tts.settings.connect_announce = _ts.tts_connect_announce
+        self.tts.settings.speak_media_stream = bool(getattr(_ts, "tts_speak_media_stream", True))
         self.tts.settings.chat_rate = getattr(_ts, "tts_chat_rate", 0) or 0
         self.tts.settings.system_rate = getattr(_ts, "tts_system_rate", 0) or 0
         self.tts.settings.channel_rate = getattr(_ts, "tts_channel_rate", 0) or 0
@@ -587,6 +592,12 @@ class MainWindow(QMainWindow):
                 lambda checked=False, m=_mode: self._on_channel_stream_mode(m))
         stream_m.addSeparator()
         self._add_action(stream_m, _("Audio-&Datei direkt streamen..."), self.on_menu_stream_audio_file)
+        stream_m.addSeparator()
+        # TeamTalk 5.23-Parität: Medien-Stream per Tastatur spulen
+        self._add_action(stream_m, _("10 Sekunden vorspulen"),
+                         lambda checked=False: self._media_seek_relative(10), "Ctrl+Alt+Right")
+        self._add_action(stream_m, _("10 Sekunden zurückspulen"),
+                         lambda checked=False: self._media_seek_relative(-10), "Ctrl+Alt+Left")
 
         # --- Benutzer ---
         benutzer = mb.addMenu(_("&Benutzer"))
@@ -918,6 +929,7 @@ class MainWindow(QMainWindow):
         self._srv_disconnect_btn.setEnabled(connected)
 
     def _on_connection_lost(self) -> None:
+        self._media_stream_users.clear()
         self._away_timer.stop()
         self._away_active = False
         self._update_conn_bar("Verbindung verloren")
@@ -1069,9 +1081,32 @@ class MainWindow(QMainWindow):
 
     def _on_user_update(self, msg) -> None:
         # USER_UPDATE fires on every voice state change — no channel refresh here (too expensive).
-        pass
+        self._check_media_stream(getattr(msg, "user", None))
+
+    def _check_media_stream(self, user) -> None:
+        """TeamTalk 5.23-Parität: ansagen, wenn jemand im eigenen Kanal
+        beginnt, eine Mediendatei zu streamen."""
+        if user is None:
+            return
+        try:
+            uid = int(user.nUserID)
+            streaming = bool(media_stream_state(user, self.client.tt))
+            was_streaming = self._media_stream_users.get(uid, False)
+            self._media_stream_users[uid] = streaming
+            if not streaming or was_streaming:
+                return
+            if uid == int(self.client.get_my_user_id() or 0):
+                return
+            my_ch = int(self.client.get_my_channel_id() or 0)
+            if not my_ch or int(getattr(user, "nChannelID", 0) or 0) != my_ch:
+                return
+            name = self.tt_str(user.szNickname) or self.tt_str(user.szUsername) or f"User#{uid}"
+            self.tts.speak(_("{} streamt eine Mediendatei").format(name), kind="media_stream")
+        except Exception:
+            pass
 
     def _on_user_statechange(self, msg) -> None:
+        self._check_media_stream(getattr(msg, "user", None))
         try:
             tt = self.client.tt
             user = msg.user
@@ -1297,6 +1332,23 @@ class MainWindow(QMainWindow):
                     self.tts.speak(f"Dateitransfer abgeschlossen: {name}", kind="system")
         except Exception:
             pass
+
+    def _media_seek_relative(self, seconds: int) -> None:
+        """Spult den eigenen Medien-Stream um ``seconds`` vor/zurück und sagt
+        die neue Position an."""
+        result = self.client.seek_streaming_media_relative(int(seconds) * 1000)
+        if result is None:
+            text = _("Kein spulbarer Medienstream aktiv")
+        else:
+            pos_ms, dur_ms = result
+
+            def _fmt(ms: int) -> str:
+                secs = ms // 1000
+                return f"{secs // 60}:{secs % 60:02d}"
+
+            text = _("Position {pos} von {dur}").format(pos=_fmt(pos_ms), dur=_fmt(dur_ms))
+        self.set_status(text)
+        self.tts.speak(text, kind="system")
 
     def _on_stream_mediafile(self, msg) -> None:
         """Handle CLIENTEVENT_STREAM_MEDIAFILE — announce stream start/stop via screen reader."""

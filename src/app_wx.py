@@ -13,7 +13,7 @@ import wx
 import wx.adv
 import wx.dataview as dv
 
-from teamtalk_client.client import TeamTalkClient, ConnectResult
+from teamtalk_client.client import TeamTalkClient, ConnectResult, gender_status_flags
 from ui_wx.models import (
     FileLogger,
     ParsedTeamTalkFile,
@@ -31,6 +31,7 @@ from ui_wx.accessible_controls import AccessibleSpinCtrl
 from ui_wx.tabs.connection import ConnectionTab
 from ui_wx.tabs.channels_chat import ChannelsChatTab
 from ui_wx.tabs.media import MediaTab
+from ui.user_flags import media_stream_state
 from ui_wx.tabs.files import FilesTab
 from ui_wx.tabs.admin import AdminTab
 from ui_wx.tabs.speak import SpeakTab
@@ -478,6 +479,8 @@ class MainFrame(wx.Frame):
         self._user_volume_levels: Dict[int, int] = {}
         self._user_media_volume_levels: Dict[int, int] = {}
         self._user_status_cache: Dict[int, int] = {}
+        # user_id -> streamt gerade Medien (für Ansage beim Start)
+        self._media_stream_users: Dict[int, bool] = {}
         self._channel_message_log: List[str] = []
         self._offline_event_log: List[Tuple[str, str, str]] = []  # (ts, text, kind)
         self._offline_buffering = False
@@ -514,6 +517,8 @@ class MainFrame(wx.Frame):
             print("[v2.0.0] Einstellungen aus JSON nach SQLite migriert.")
         self.settings_store = SQLiteSettingsStore(self._settings_db)
         self.store = SQLiteServerStore(self._settings_db)
+        # Geschlecht als Status-Bit bei jedem Login/Statuswechsel mitsenden
+        self.client.status_flags = gender_status_flags(str(getattr(self.settings_store.settings, "gender", "") or ""))
         # v3.6.0 – Sprache initialisieren (mit Auto-Detect beim ersten Start)
         resolved_lang = ensure_language(self.settings_store)
         # v10.4.9 – Kein wx.Locale mehr (in v10.4.5 eingeführt): Es setzt die
@@ -647,6 +652,7 @@ class MainFrame(wx.Frame):
         self.tts.settings.backend = str(getattr(_ts, "tts_backend", "espeak") or "espeak")
         self.tts.settings.speak_user_login = bool(getattr(_ts, "tts_speak_user_login", True))
         self.tts.settings.speak_file_event = bool(getattr(_ts, "tts_speak_file_event", True))
+        self.tts.settings.speak_media_stream = bool(getattr(_ts, "tts_speak_media_stream", True))
         self.tts.settings.macos_voice = str(getattr(_ts, "tts_macos_voice", "") or "")
         self.tts.settings.macos_rate = float(getattr(_ts, "tts_macos_rate", 0.5) or 0.5)
         self.tts.settings.macos_volume = float(getattr(_ts, "tts_macos_volume", 1.0) or 1.0)
@@ -1672,6 +1678,29 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     # v2.9.0 – Audio-Datei streamen
+    def _media_seek_relative(self, seconds: int) -> None:
+        """Spult den eigenen Medien-Stream um ``seconds`` vor/zurück und sagt
+        die neue Position an."""
+        result = self.client.seek_streaming_media_relative(int(seconds) * 1000)
+        if result is None:
+            text = _("Kein spulbarer Medienstream aktiv")
+        else:
+            pos_ms, dur_ms = result
+
+            def _fmt(ms: int) -> str:
+                secs = ms // 1000
+                return f"{secs // 60}:{secs % 60:02d}"
+
+            text = _("Position {pos} von {dur}").format(pos=_fmt(pos_ms), dur=_fmt(dur_ms))
+            try:
+                if self.media_tab is not None:
+                    slider = self.media_tab.seek_slider
+                    slider.SetValue(min(pos_ms // 1000, slider.GetMax()))
+            except Exception:
+                pass
+        self.set_status(text)
+        self.tts.speak(text, kind="system")
+
     def on_menu_stream_audio_file(self, _event) -> None:
         if not self._require_connected("Audio-Datei streamen"):
             return
@@ -2121,6 +2150,10 @@ class MainFrame(wx.Frame):
         chan_stream_radio = chan_stream_menu.Append(wx.ID_ANY, _("Webradio streamen..."))
         chan_stream_podcast = chan_stream_menu.Append(wx.ID_ANY, _("Podcast streamen..."))
         chan_stream_playlist = chan_stream_menu.Append(wx.ID_ANY, _("Playlist streamen..."))
+        chan_stream_menu.AppendSeparator()
+        # TeamTalk 5.23-Parität: Medien-Stream per Tastatur spulen
+        chan_stream_fwd = chan_stream_menu.Append(wx.ID_ANY, _("10 Sekunden vorspulen") + "\tCtrl+Alt+Right")
+        chan_stream_back = chan_stream_menu.Append(wx.ID_ANY, _("10 Sekunden zurückspulen") + "\tCtrl+Alt+Left")
         chan_menu.AppendSubMenu(chan_stream_menu, "Streaming")
         chan_menu.AppendSeparator()
         self._recent_channels_menu = wx.Menu()
@@ -2365,6 +2398,8 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(7, e), chan_stream_radio)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(8, e), chan_stream_podcast)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_channel_stream_mode(9, e), chan_stream_playlist)
+        self.Bind(wx.EVT_MENU, lambda _e: self._media_seek_relative(10), chan_stream_fwd)
+        self.Bind(wx.EVT_MENU, lambda _e: self._media_seek_relative(-10), chan_stream_back)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_view_messages, chan_view_msgs)
         self.Bind(wx.EVT_MENU, self.on_menu_channel_recent_dialog, chan_recent_dialog)
         self.Bind(wx.EVT_MENU, self.on_menu_stream_audio_file, chan_stream_audio)
@@ -8275,6 +8310,10 @@ class MainFrame(wx.Frame):
         lines = ["App-Hotkeys (nur innerhalb der App)\n" + "=" * 50]
         for label, key in rows:
             lines.append(f"  {label:<{col_w}}{key}")
+        _mod = "Cmd+Option" if sys.platform == "darwin" else "Ctrl+Alt"
+        lines.append("\n" + _("Medien-Stream (fest)") + "\n" + "=" * 50)
+        lines.append(f"  {_('10 Sekunden vorspulen'):<{col_w}}{_mod}+→")
+        lines.append(f"  {_('10 Sekunden zurückspulen'):<{col_w}}{_mod}+←")
         if sys.platform == "darwin" and getattr(s, "global_hotkeys_enabled", False):
             lines.append("\nGlobale Hotkeys (systemweit)\n" + "=" * 50)
             try:
@@ -10369,9 +10408,19 @@ class MainFrame(wx.Frame):
                 _is_talking = bool(_speaking_flags & 2)  # USERSTATE_TALKING = 2
                 _uname = self.tt_str(getattr(_user, "szNickname", "")) or self.tt_str(getattr(_user, "szUsername", "")) or f"id{_user_id}"
                 wx.CallAfter(self._track_speaking_log, _user_id, _uname, _is_talking)
+            # TeamTalk 5.23-Parität: Medienstream-Start ansagen (Status-Flag
+            # des offiziellen Clients)
+            if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
+                self._queue_media_stream_check(_user, tt)
             if self._user_recording_enabled:
                 self._handle_user_recording_event(msg, tt)
+        elif event == tt.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
+            # Nur leichtgewichtig auswerten (feuert bei jedem Sprechbeginn/-ende)
+            _user = getattr(msg, "user", None)
+            if _user is not None:
+                self._queue_media_stream_check(_user, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
+            wx.CallAfter(self._media_stream_users.clear)
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             if getattr(self.settings_store.settings, "auto_join_root_channel", False):
                 wx.CallAfter(self.connection_tab.on_join_root, None)
@@ -10439,6 +10488,35 @@ class MainFrame(wx.Frame):
                 except Exception:
                     username = "Benutzer"
                 wx.CallAfter(self.desktop_tab.on_desktop_window, username)
+
+    def _queue_media_stream_check(self, user, tt) -> None:
+        """Liest Werte im Event-Thread aus (SDK-Puffer wird überschrieben)
+        und reicht sie an den Main-Thread weiter."""
+        try:
+            uid = int(getattr(user, "nUserID", 0) or 0)
+            if not uid:
+                return
+            ch_id = int(getattr(user, "nChannelID", 0) or 0)
+            streaming = bool(media_stream_state(user, tt))
+            name = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"id{uid}"
+        except Exception:
+            return
+        wx.CallAfter(self._on_media_stream_state, uid, name, ch_id, streaming)
+
+    def _on_media_stream_state(self, uid: int, name: str, ch_id: int, streaming: bool) -> None:
+        was_streaming = self._media_stream_users.get(uid, False)
+        self._media_stream_users[uid] = streaming
+        if not streaming or was_streaming:
+            return
+        try:
+            if uid == int(self.client.get_my_user_id() or 0):
+                return
+            my_ch = int(self.client.get_my_channel_id() or 0)
+        except Exception:
+            return
+        if not my_ch or ch_id != my_ch:
+            return
+        self.tts.speak(_("{} streamt eine Mediendatei").format(name), kind="media_stream")
 
     def _emit_user_presence_event(self, msg, tt):
         event = msg.nClientEvent

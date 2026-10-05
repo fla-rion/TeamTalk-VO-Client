@@ -10,6 +10,26 @@ from typing import Any, Callable, List, Optional, Tuple
 
 from .tt import load_teamtalk_module
 
+# Client-Konventionen für nStatusMode (nicht im SDK-Header definiert, sondern
+# im offiziellen BearWare-Client, Client/qtTeamTalk/common.h):
+STATUSMODE_MODE_MASK = 0x000000FF       # verfügbar / abwesend / Frage
+STATUSMODE_FEMALE = 0x00000100
+STATUSMODE_NEUTRAL = 0x00001000          # seit TeamTalk 5.23
+STATUSMODE_STREAM_MEDIAFILE = 0x00000800
+STATUSMODE_STREAM_MEDIAFILE_PAUSED = 0x00002000
+# Werte der Einstellung AppSettings.gender (historisch als deutsche Texte
+# gespeichert) -> Status-Bits. "Keine Angabe" entspricht im offiziellen Client
+# GENDER_NONE und sendet – wie männlich – kein Bit.
+GENDER_CHOICES = ("Männlich", "Weiblich", "Neutral", "Keine Angabe")
+
+
+def gender_status_flags(gender: str) -> int:
+    if gender == "Weiblich":
+        return STATUSMODE_FEMALE
+    if gender == "Neutral":
+        return STATUSMODE_NEUTRAL
+    return 0
+
 TTMessage = Any
 
 
@@ -39,6 +59,17 @@ class TeamTalkClient:
         self._last_transport_encrypted: Optional[bool] = None
         self._connected = False
         self._last_encryption_context_info = "ctx=none"
+        # Zusätzliche Bits für nStatusMode (z. B. Geschlecht, siehe
+        # STATUSMODE_FEMALE/NEUTRAL) – werden bei jedem change_status mitgesendet.
+        self.status_flags = 0
+        self._last_status_mode = 0
+        self._last_status_message = ""
+        # Zustand des eigenen Medien-Streams (für relatives Spulen per Tastatur)
+        self._media_elapsed_ms = 0
+        self._media_duration_ms = 0
+        self._media_active = False
+        self._media_paused = False
+        self._media_preamp = 1.0
 
     def _timestamp_ms(self) -> int:
         return int(round(time.time() * 1000))
@@ -411,6 +442,13 @@ class TeamTalkClient:
             # We already have CMD_SUCCESS for login; MYSELF_LOGGEDIN may arrive slightly later.
             self._wait_for_event(self.tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN, min(3000, timeout_ms))
             self._connected = True
+            self._last_status_mode = 0
+            self._last_status_message = ""
+            if self.status_flags:
+                try:
+                    self.client.doChangeStatus(int(self.status_flags), self.tt.ttstr(""))
+                except Exception:
+                    pass
             return ConnectResult(True, f"Eingeloggt in Kanal: {self.tt.ttstr(msg.channel.szName)}")
 
     def join_root_channel(self, timeout_ms: int = 2000) -> ConnectResult:
@@ -868,7 +906,24 @@ class TeamTalkClient:
         return self.client.doChangeNickname(self.tt.ttstr(nickname))
 
     def change_status(self, mode: int, message: str) -> int:
-        return self.client.doChangeStatus(int(mode), self.tt.ttstr(message))
+        # Nur die Modus-Bits (verfügbar/abwesend/Frage) kommen vom Aufrufer,
+        # Flag-Bits wie das Geschlecht aus status_flags.
+        mode = int(mode) & STATUSMODE_MODE_MASK
+        self._last_status_mode = mode
+        self._last_status_message = message or ""
+        return self.client.doChangeStatus(mode | int(self.status_flags), self.tt.ttstr(message))
+
+    def set_status_flags(self, flags: int) -> None:
+        """Setzt die Flag-Bits und sendet den Status neu, falls verbunden."""
+        flags = int(flags) & ~STATUSMODE_MODE_MASK
+        if flags == self.status_flags:
+            return
+        self.status_flags = flags
+        if self._connected:
+            try:
+                self.change_status(self._last_status_mode, self._last_status_message)
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------
     # Error & Statistics
@@ -1089,6 +1144,10 @@ class TeamTalkClient:
         playback.bPaused = False
         playback.audioPreprocessor = self._build_stream_preprocessor(preamp_gain)
         codec = self.tt.VideoCodec()
+        self._media_preamp = float(preamp_gain)
+        self._media_paused = False
+        self._media_elapsed_ms = int(offset_ms or 0)
+        self._media_duration_ms = 0
         return self.tt._StartStreamingMediaFileToChannelEx(
             self.client._tt, self.tt.ttstr(filepath), ctypes.byref(playback), ctypes.byref(codec)
         )
@@ -1102,9 +1161,48 @@ class TeamTalkClient:
         playback.bPaused = paused
         playback.audioPreprocessor = self._build_stream_preprocessor(preamp_gain)
         codec = self.tt.VideoCodec()
+        self._media_paused = bool(paused)
+        self._media_preamp = float(preamp_gain)
+        if offset_ms is not None:
+            self._media_elapsed_ms = int(offset_ms)
         return self.tt._UpdateStreamingMediaFileToChannel(
             self.client._tt, ctypes.byref(playback), ctypes.byref(codec)
         )
+
+    def note_media_stream_event(self, msg) -> None:
+        """Merkt sich Position/Dauer/Status des eigenen Medien-Streams
+        (CLIENTEVENT_STREAM_MEDIAFILE), damit relativ gespult werden kann."""
+        mfi = getattr(msg, "mediafileinfo", None)
+        if mfi is None:
+            return
+        status = int(getattr(mfi, "nStatus", -1))
+        mfs = self.tt.MediaFileStatus
+        self._media_active = status in (int(mfs.MFS_STARTED), int(mfs.MFS_PLAYING), int(mfs.MFS_PAUSED))
+        if status == int(mfs.MFS_PAUSED):
+            self._media_paused = True
+        elif status in (int(mfs.MFS_STARTED), int(mfs.MFS_PLAYING)):
+            self._media_paused = False
+        self._media_elapsed_ms = int(getattr(mfi, "uElapsedMSec", 0) or 0)
+        self._media_duration_ms = int(getattr(mfi, "uDurationMSec", 0) or 0)
+
+    def seek_streaming_media_relative(self, delta_ms: int) -> Optional[Tuple[int, int]]:
+        """Spult den laufenden Medien-Stream um delta_ms vor/zurück.
+
+        Gibt (neue Position, Dauer) in ms zurück, oder None, wenn kein
+        spulbarer Stream läuft (kein Stream, Live-Stream ohne Dauer).
+        Pause-Zustand und Verstärkung bleiben erhalten.
+        """
+        if not self._media_active or self._media_duration_ms <= 0:
+            return None
+        duration = self._media_duration_ms
+        target = max(0, min(duration - 1000, self._media_elapsed_ms + int(delta_ms)))
+        target = max(0, target)
+        ok = self.update_streaming_media(
+            paused=self._media_paused, offset_ms=target, preamp_gain=self._media_preamp
+        )
+        if not ok:
+            return None
+        return target, duration
 
     def init_local_playback(self, filepath: str, offset_ms: int = 0) -> int:
         playback = self.tt.MediaFilePlayback()
@@ -1216,6 +1314,7 @@ class TeamTalkClient:
         return bool(self.tt._InsertAudioBlock(self.client._tt, ctypes.byref(block)))
 
     def stop_streaming_media(self) -> bool:
+        self._media_active = False
         return self.tt._StopStreamingMediaFileToChannel(self.client._tt)
 
     # ------------------------------------------------------------------
@@ -1345,6 +1444,11 @@ class TeamTalkClient:
                 msg = self.client.getMessage(min(poll_ms, 100))
                 if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_NONE:
                     continue
+                if msg.nClientEvent == self.tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:
+                    try:
+                        self.note_media_stream_event(msg)
+                    except Exception:
+                        pass
                 handler(msg)
 
         self._event_thread = threading.Thread(target=loop, daemon=True)

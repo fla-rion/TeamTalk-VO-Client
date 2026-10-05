@@ -22,6 +22,7 @@ from .system import SystemTab
 from platform_paths import app_data_dir, log_dir
 from macos_integration import set_spotlight_comment
 from i18n import _
+from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -181,14 +182,15 @@ class SettingsTab(wx.Panel):
         gen_sizer.Add(lang_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
         # Gender
-        gender_choices = ["Männlich", "Weiblich", "Keine Angabe"]
-        self._gender_radio = wx.RadioBox(panel, label="Geschlecht", choices=gender_choices, majorDimension=1, style=wx.RA_SPECIFY_ROWS)
-        self._gender_radio.SetName("Geschlecht")
+        # Wird als Status-Bit an den Server gesendet (wie im offiziellen Client)
+        gender_choices = list(GENDER_CHOICES)
+        self._gender_radio = wx.RadioBox(panel, label=_("Geschlecht"), choices=[_(g) for g in gender_choices], majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self._gender_radio.SetName(_("Geschlecht"))
         current_gender = s.gender or "Keine Angabe"
         if current_gender in gender_choices:
             self._gender_radio.SetSelection(gender_choices.index(current_gender))
         else:
-            self._gender_radio.SetSelection(2)
+            self._gender_radio.SetSelection(gender_choices.index("Keine Angabe"))
         gen_sizer.Add(self._gender_radio, 0, wx.ALL | wx.EXPAND, 8)
 
         # Away timer + custom message
@@ -1652,9 +1654,13 @@ class SettingsTab(wx.Panel):
 
     def _on_save_general(self, _event):
         s = self.frame.settings_store.settings
-        gender_choices = ["Männlich", "Weiblich", "Keine Angabe"]
+        gender_choices = list(GENDER_CHOICES)
         sel = self._gender_radio.GetSelection()
         s.gender = gender_choices[sel] if 0 <= sel < len(gender_choices) else ""
+        try:
+            self.frame.client.set_status_flags(gender_status_flags(s.gender))
+        except Exception:
+            pass
         s.away_timer_min = int(self._away_timer.GetValue())
         s.away_status_message = self._away_status_message.GetValue().strip()
         s.bearware_username = self._bearware_user.GetValue().strip()
