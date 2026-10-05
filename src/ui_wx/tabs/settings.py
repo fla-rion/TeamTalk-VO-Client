@@ -46,6 +46,8 @@ _SOUND_EVENTS = [
     ("Desktop-Zugriff angefragt", "desktop_access"),
     ("Benutzer angemeldet", "user_login"),
     ("Benutzer abgemeldet", "user_logout"),
+    ("Sprechrunde beginnt (Warteschlange)", "txqueue_start"),
+    ("Sprechrunde endet (Warteschlange)", "txqueue_stop"),
 ]
 
 _SUBSCRIPTION_FLAGS = [

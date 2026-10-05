@@ -45,6 +45,7 @@ from ui_qt.tabs.desktop import DesktopTab
 from ui_qt.tabs.video import VideoTab
 from tts import TTSManager
 from sound_manager import SoundManager
+from transmit_queue import TransmitQueueTracker, queue_user_ids
 from platform_paths import log_dir as _log_dir, app_data_dir
 from chat_history import ChatHistoryManager
 from pronunciation import PronunciationManager
@@ -248,6 +249,7 @@ class MainWindow(QMainWindow):
         self.tts.settings.speak_user_leave = _ts.tts_speak_user_leave
         self.tts.settings.speak_file_transfer = _ts.tts_speak_file_transfer
         self.tts.settings.speak_channel_topic = _ts.tts_speak_channel_topic
+        self.tts.settings.speak_transmit_queue = bool(getattr(_ts, "tts_speak_transmit_queue", True))
         self.tts.settings.connect_announce = _ts.tts_connect_announce
         self.tts.settings.chat_rate = getattr(_ts, "tts_chat_rate", 0) or 0
         self.tts.settings.system_rate = getattr(_ts, "tts_system_rate", 0) or 0
@@ -260,6 +262,8 @@ class MainWindow(QMainWindow):
         self.tts.on_speaking = lambda active: call_after(lambda: self._on_tts_speaking(active))
 
         self.sound_manager = SoundManager()
+        # Sprech-Warteschlange in Solo-Kanälen (nur Änderungen ansagen)
+        self._tx_queue = TransmitQueueTracker()
         self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
         self._user_stereo = dict(getattr(_ts, "user_stereo_settings", {}) or {})
         _pron_rules = list(getattr(_ts, "pronunciation_rules", []) or [])
@@ -876,6 +880,19 @@ class MainWindow(QMainWindow):
             call_after(self._on_channel_update)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_UPDATE):
             call_after(self._on_channel_update)
+            try:
+                # Werte sofort kopieren, der SDK-Puffer wird überschrieben
+                ch = msg.channel
+                call_after(
+                    self._on_transmit_queue_update,
+                    int(ch.nChannelID),
+                    int(ch.uChannelType),
+                    queue_user_ids(ch),
+                    int(self.client.get_my_user_id() or 0),
+                    int(self.client.get_my_channel_id() or 0),
+                )
+            except Exception:
+                pass
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_REMOVE):
             call_after(self._on_channel_update)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN):
@@ -1099,6 +1116,16 @@ class MainWindow(QMainWindow):
 
     def _on_channel_update(self) -> None:
         self._refresh_channels()
+
+    def _on_transmit_queue_update(self, ch_id: int, ch_type: int, queue: list,
+                                  my_user_id: int, my_ch_id: int) -> None:
+        """Sprech-Warteschlange im Solo-Kanal: dran / vorbei / Position ansagen."""
+        ev = self._tx_queue.update(ch_id, ch_type, queue, my_user_id, my_ch_id)
+        if ev is None or not self.tts.settings.speak_transmit_queue:
+            return
+        if ev.sound_key:
+            self.sound_manager.play(ev.sound_key, self.settings_store.settings.sound_events.get(ev.sound_key))
+        self.tts.speak(ev.text, kind="transmit_queue")
 
     def _on_myself_joined(self, msg) -> None:
         try:

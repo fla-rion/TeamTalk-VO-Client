@@ -231,6 +231,12 @@ class SpotifyStreamer:
                 self._emit_error(f"Spotify-Stream unterbrochen: {exc}")
         finally:
             self._running = False
+            # Audio-Input-Sitzung beenden, sonst bleibt das Mikrofon im SDK
+            # blockiert (siehe TeamTalkClient.end_audio_input).
+            try:
+                self._client.end_audio_input()
+            except Exception as exc:
+                logger.warning("end_audio_input: %s", exc)
 
     def _pump_posix(self) -> None:
         with open(self._pipe_path, "rb") as f:
