@@ -265,9 +265,14 @@ class ConnectDialog(QDialog):
             self.encrypted_check.setChecked(bool(getattr(p, "encrypted", False)))
 
     def _profile_from_form(self):
-        from ui.models import ServerProfile
+        from ui.profile_form import merge_form_into_profile
         host = self.host_field.text().strip()
-        return ServerProfile(
+        # Felder ohne Formularelement (Beitrittscode, API-Schlüssel, …) des
+        # ausgewählten Profils behalten, statt sie beim Speichern zu verlieren.
+        real = self._real_index(self.server_list.currentRow())
+        base = self._profiles[real] if real is not None and real < len(self._profiles) else None
+        return merge_form_into_profile(
+            base,
             name=self.name_field.text().strip() or host,
             host=host,
             tcp_port=self.tcp_field.value(),

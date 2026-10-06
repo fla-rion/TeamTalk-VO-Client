@@ -131,6 +131,8 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
             verify_peer = _to_optional_bool(payload.get(key))
             break
 
+    joincode = pick("joincode", "join_code")
+
     if not host:
         return None
     try:
@@ -144,9 +146,10 @@ def _profile_from_mapping(payload: dict, path: Path) -> Optional[ParsedTeamTalkF
         nickname=nickname, username=username, password=password, client_name=client_name,
         encrypted=encrypted_flag,
     )
+    profile.joincode = joincode
     return ParsedTeamTalkFile(
         profile=profile, channel_path=channel_path, channel_id=channel_id_int, encrypted=encrypted_flag,
-        verify_peer=verify_peer, channel_type=channel_type,
+        verify_peer=verify_peer, channel_type=channel_type, joincode=joincode,
     )
 
 
@@ -193,12 +196,14 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
         nickname = "VoiceOverUser"
 
     encrypted_flag = _to_bool(text_of(host_node.find("encrypted"), "false"), default=False)
+    joincode = text_of(host_node.find("joincode"), "")
 
     profile = ServerProfile(
         name=name or host, host=host, tcp_port=tcp_port, udp_port=udp_port,
         nickname=nickname, username=username, password=password, client_name="TeamTalk VO",
         encrypted=encrypted_flag,
     )
+    profile.joincode = joincode
     return ParsedTeamTalkFile(
         profile=profile, channel_path=channel_path, channel_id=None,
         channel_password=channel_password, encrypted=encrypted_flag,
@@ -207,6 +212,56 @@ def _parse_teamtalk_xml(root: ET.Element, path: Path) -> Optional[ParsedTeamTalk
         ca_certificate_pem=ca_certificate_pem,
         client_certificate_pem=client_certificate_pem,
         client_private_key_pem=client_private_key_pem,
+        joincode=joincode,
+    )
+
+
+def parse_teamtalk_xml_text(text: str, fallback_name: str = "TeamTalk") -> Optional[ParsedTeamTalkFile]:
+    """Liest ein .tt-XML aus einem String (z. B. Antwort des BearWare-Webdienstes).
+
+    Gibt None zurück, wenn kein <host> mit Adresse enthalten ist – so meldet
+    der Join-Code-Dienst einen unbekannten Code (leeres <teamtalk/>).
+    """
+    try:
+        root = ET.fromstring(text.strip())
+    except (ET.ParseError, AttributeError):
+        return None
+    return _parse_teamtalk_xml(root, Path(fallback_name or "TeamTalk"))
+
+
+def parse_teamtalk_url(url: str, nickname: str = "VoiceOverUser") -> Optional[ParsedTeamTalkFile]:
+    """Liest eine tt://-URL (Gegenstück zu build_teamtalk_url)."""
+    from urllib.parse import urlparse, parse_qs
+
+    text = (url or "").strip()
+    if not text.lower().startswith("tt://"):
+        return None
+    pr = urlparse(text)
+    qs = parse_qs(pr.query)
+
+    def first(key: str) -> str:
+        return qs.get(key, [""])[0]
+
+    host = pr.hostname or ""
+    if not host:
+        return None
+    try:
+        tcp_port = int(first("tcpport") or 10333)
+        udp_port = int(first("udpport") or tcp_port)
+    except ValueError:
+        return None
+    channel_path = first("channel") or None
+    channel_password = first("chanpasswd") or None
+    encrypted = _to_bool(first("encrypted"), default=False)
+    profile = ServerProfile(
+        name=host, host=host, tcp_port=tcp_port, udp_port=udp_port,
+        nickname=nickname, username=first("username"), password=first("password"),
+        client_name="TeamTalk VO", encrypted=encrypted,
+        channel=channel_path or "", channel_password=channel_password or "",
+    )
+    return ParsedTeamTalkFile(
+        profile=profile, channel_path=channel_path,
+        channel_password=channel_password, encrypted=encrypted,
     )
 
 
@@ -255,6 +310,8 @@ def build_teamtalk_xml(
     channel_type = int(channel_type or 0) & CHANNEL_TYPE_MASK
     root = ET.Element("teamtalk", {"version": "5.0"})
     host = ET.SubElement(root, "host")
+    if getattr(profile, "joincode", ""):
+        ET.SubElement(host, "joincode").text = profile.joincode
     ET.SubElement(host, "name").text = profile.name or profile.host
     ET.SubElement(host, "address").text = profile.host
     ET.SubElement(host, "tcpport").text = str(profile.tcp_port)

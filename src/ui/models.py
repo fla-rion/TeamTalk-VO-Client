@@ -26,6 +26,9 @@ class ServerProfile:
     # Kanaltyp (ChannelType-Bits), mit dem ``channel`` angelegt wird, falls er
     # beim Beitritt noch nicht existiert (.tt <join><channel-type>, TeamTalk 5.23)
     channel_type: int = 0
+    # BearWare-Beitrittscode (TeamTalk 5.22+), falls der Server über einen
+    # Code veröffentlicht wurde; wird in .tt-Dateien als <joincode> geschrieben.
+    joincode: str = ""
 
 
 @dataclass
@@ -41,6 +44,7 @@ class ParsedTeamTalkFile:
     ca_certificate_pem: str = ""
     client_certificate_pem: str = ""
     client_private_key_pem: str = ""
+    joincode: str = ""
 
 
 class FileLogger:

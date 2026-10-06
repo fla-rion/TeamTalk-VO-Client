@@ -6,8 +6,9 @@ from typing import List, Optional, TYPE_CHECKING, Dict
 import wx
 
 from i18n import _
-from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file
+from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamtalk_file, parse_teamtalk_url
 from ..models import ServerProfile
+from ui.profile_form import merge_form_into_profile
 from ..a11y import setup_list_accessible
 from ..server_browser import ServerBrowserDialog
 from tls_verify import get_cert_fingerprint
@@ -215,6 +216,10 @@ class ConnectionTab(wx.Panel):
         return ctrl
 
     def fill_form(self, profile: ServerProfile) -> None:
+        # Felder ohne eigenes Formularelement (Kanal, Kanalpasswort,
+        # Beitrittscode, API-Schlüssel …) merken, damit sie beim Speichern
+        # nicht verloren gehen – siehe profile_from_form().
+        self._form_base_profile = profile
         self.display_name.SetValue(profile.display_name or profile.name or "")
         self.host.SetValue(profile.host)
         self.tcp_port.SetValue(str(profile.tcp_port))
@@ -243,7 +248,8 @@ class ConnectionTab(wx.Panel):
         encrypted = self.encrypted.GetValue()
         display_name = self.display_name.GetValue().strip()
         name = display_name or host
-        return ServerProfile(
+        return merge_form_into_profile(
+            getattr(self, "_form_base_profile", None),
             name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
             nickname=nickname, username=username, password=password,
             client_name=client_name, encrypted=encrypted,
@@ -687,6 +693,10 @@ class ConnectionTab(wx.Panel):
             profile = parsed.profile
             if not profile.name:
                 profile.name = path.stem
+            if parsed.channel_path:
+                profile.channel = parsed.channel_path
+            if parsed.channel_password:
+                profile.channel_password = parsed.channel_password
             self.frame.store.add(profile)
             self.reload_server_list()
             self.fill_form(profile)
@@ -864,7 +874,12 @@ class ConnectionTab(wx.Panel):
             self.frame.set_status(_("TT-Datei speichern fehlgeschlagen: {}").format(exc))
 
     def on_enter_join_code(self, _event):
-        dlg = wx.TextEntryDialog(self, _("tt:// URL oder TT-Dateipfad eingeben:"), _("Beitrittscode eingeben"), "")
+        dlg = wx.TextEntryDialog(
+            self,
+            _("Beitrittscode, tt:// URL oder TT-Dateipfad eingeben:"),
+            _("Beitrittscode eingeben"),
+            "",
+        )
         if dlg.ShowModal() != wx.ID_OK:
             dlg.Destroy()
             return
@@ -873,36 +888,18 @@ class ConnectionTab(wx.Panel):
         if not raw:
             return
 
+        from pathlib import Path
+        from ui.join_code import looks_like_join_code
+
         parsed = None
-        if raw.startswith("tt://"):
-            try:
-                from urllib.parse import urlparse, parse_qs
-                pr = urlparse(raw)
-                qs = parse_qs(pr.query)
-                def _first(k):
-                    return qs.get(k, [""])[0]
-                host = pr.hostname or ""
-                tcp_port = int(_first("tcpport") or 10333)
-                udp_port = int(_first("udpport") or tcp_port)
-                name = host
-                username = _first("username")
-                password = _first("password")
-                channel_path = _first("channel") or None
-                encrypted = _first("encrypted").lower() in ("1", "true")
-                profile = ServerProfile(
-                    name=name, host=host, tcp_port=tcp_port, udp_port=udp_port,
-                    nickname="VoiceOverUser", username=username, password=password,
-                    client_name="TeamTalk VO", encrypted=encrypted,
-                )
-                from ..models import ParsedTeamTalkFile
-                parsed = ParsedTeamTalkFile(profile=profile, channel_path=channel_path)
-            except Exception as exc:
-                self.frame.set_status(_("URL konnte nicht geparst werden: {}").format(exc))
-                return
+        if raw.lower().startswith("tt://"):
+            parsed = parse_teamtalk_url(raw)
+        elif looks_like_join_code(raw) and not Path(raw).expanduser().exists():
+            self._resolve_join_code_async(raw)
+            return
         else:
-            from pathlib import Path
             try:
-                parsed = parse_teamtalk_file(Path(raw))
+                parsed = parse_teamtalk_file(Path(raw).expanduser())
             except Exception as exc:
                 self.frame.set_status(_("Datei konnte nicht geparst werden: {}").format(exc))
                 return
@@ -910,18 +907,68 @@ class ConnectionTab(wx.Panel):
         if parsed is None:
             self.frame.set_status(_("Beitrittscode konnte nicht verarbeitet werden"))
             return
+        self._offer_connect_parsed(parsed)
 
-        self.fill_form(parsed.profile)
+    def _resolve_join_code_async(self, code: str) -> None:
+        """BearWare-Beitrittscode im Hintergrund auflösen (Netzwerk)."""
+        from ui.join_code import JoinCodeError, resolve_join_code
+
+        self.join_code_btn.Disable()
+        self.frame.set_status(_("Beitrittscode wird abgefragt …"))
+        app_version = str(getattr(self.frame, "_app_version", "") or "")
+
+        def worker():
+            parsed = None
+            error = None
+            try:
+                parsed = resolve_join_code(code, app_version=app_version)
+            except JoinCodeError as exc:
+                error = str(exc)
+            except Exception as exc:  # defensiv: nie den Thread sterben lassen
+                error = str(exc)
+            wx.CallAfter(self._on_join_code_resolved, parsed, error)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_join_code_resolved(self, parsed, error) -> None:
+        try:
+            self.join_code_btn.Enable()
+        except RuntimeError:
+            return  # Tab bereits zerstört
+        if error is not None:
+            self.frame.set_status(_("Serverinformationen konnten nicht abgerufen werden: {}").format(error))
+            return
+        if parsed is None:
+            self.frame.set_status(_("Beitrittscode ist ungültig"))
+            return
+        self._offer_connect_parsed(parsed)
+
+    def _offer_connect_parsed(self, parsed) -> None:
+        """Trägt den Server ins Formular ein und bietet an, sofort zu verbinden."""
+        profile = parsed.profile
+        # Der Webdienst/tt:// liefert meist keinen Nickname – dann den
+        # bisherigen aus dem Formular behalten statt "VoiceOverUser".
+        current_nick = self.nickname.GetValue().strip()
+        if current_nick and profile.nickname in ("", "VoiceOverUser"):
+            profile.nickname = current_nick
+        if parsed.channel_path and not profile.channel:
+            profile.channel = parsed.channel_path
+        if parsed.channel_password and not profile.channel_password:
+            profile.channel_password = parsed.channel_password
+        self.fill_form(profile)
         confirm = wx.MessageDialog(
             self,
-            _("Server '{}' wurde eingetragen.\nJetzt verbinden?").format(parsed.profile.name),
+            _("Server '{}' wurde eingetragen.\nJetzt verbinden?").format(profile.name),
             _("Verbinden?"),
             wx.YES_NO | wx.YES_DEFAULT | wx.ICON_QUESTION,
         )
         confirm.SetYesNoLabels(_("Ja"), _("Nein"))
-        if confirm.ShowModal() == wx.ID_YES:
-            self.on_connect(None)
+        answer = confirm.ShowModal()
         confirm.Destroy()
+        if answer == wx.ID_YES:
+            # Über den .tt-Verbindungsweg, damit Zielkanal + Kanalpasswort
+            # (und TLS-Angaben) direkt nach dem Login angewendet werden.
+            self.frame._connect_from_profile(parsed)
 
     def on_open_server_browser(self, _event):
         dlg = ServerBrowserDialog(self, self.frame)

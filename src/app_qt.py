@@ -571,6 +571,7 @@ class MainWindow(QMainWindow):
         self._rebuild_favorites_menu()
         datei.addSeparator()
         self._add_action(datei, _("&TT-Datei öffnen..."), self.on_menu_open_tt_file)
+        self._add_action(datei, _("&Beitrittscode eingeben..."), self.enter_join_code)
         self._add_action(datei, _("TT-&URL kopieren"), self.copy_tt_url)
         datei.addSeparator()
         self._add_action(datei, _("Neuen Client &starten"), self.on_menu_new_client)
@@ -2341,9 +2342,75 @@ class MainWindow(QMainWindow):
             pass  # ConnectDialog reloads from store on open
 
     def enter_join_code(self) -> None:
-        code, ok = QInputDialog.getText(self, "Beitrittscode", "Code eingeben:")
-        if ok and code:
-            self.set_status(f"Beitrittscode: {code}")
+        """BearWare-Beitrittscode (TeamTalk 5.22+), tt://-URL oder .tt-Pfad."""
+        raw, ok = QInputDialog.getText(
+            self, _("Beitrittscode eingeben"),
+            _("Beitrittscode, tt:// URL oder TT-Dateipfad eingeben:"),
+        )
+        raw = (raw or "").strip()
+        if not ok or not raw:
+            return
+        from ui.join_code import looks_like_join_code
+        from ui.tt_file_parser import parse_teamtalk_file, parse_teamtalk_url
+
+        if raw.lower().startswith("tt://"):
+            parsed = parse_teamtalk_url(raw)
+        elif looks_like_join_code(raw) and not Path(raw).expanduser().exists():
+            self._resolve_join_code_async(raw)
+            return
+        else:
+            try:
+                parsed = parse_teamtalk_file(Path(raw).expanduser())
+            except Exception as exc:
+                self.set_status(_("Datei konnte nicht geparst werden: {}").format(exc))
+                return
+        if parsed is None:
+            self.set_status(_("Beitrittscode konnte nicht verarbeitet werden"))
+            return
+        self._offer_connect_parsed(parsed)
+
+    def _resolve_join_code_async(self, code: str) -> None:
+        from ui.join_code import JoinCodeError, resolve_join_code
+
+        self.set_status(_("Beitrittscode wird abgefragt …"))
+
+        def worker():
+            parsed = None
+            error = None
+            try:
+                parsed = resolve_join_code(code, app_version=APP_VERSION)
+            except JoinCodeError as exc:
+                error = str(exc)
+            except Exception as exc:  # defensiv: nie den Thread sterben lassen
+                error = str(exc)
+            call_after(self._on_join_code_resolved, parsed, error)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_join_code_resolved(self, parsed, error) -> None:
+        if error is not None:
+            self.set_status(_("Serverinformationen konnten nicht abgerufen werden: {}").format(error))
+            return
+        if parsed is None:
+            self.set_status(_("Beitrittscode ist ungültig"))
+            return
+        self._offer_connect_parsed(parsed)
+
+    def _offer_connect_parsed(self, parsed) -> None:
+        profile = parsed.profile
+        if profile.nickname in ("", "VoiceOverUser"):
+            last = getattr(self, "_last_profile", None)
+            profile.nickname = (getattr(last, "nickname", "") or "") or profile.nickname
+        if parsed.channel_path and not profile.channel:
+            profile.channel = parsed.channel_path
+        if parsed.channel_password and not profile.channel_password:
+            profile.channel_password = parsed.channel_password
+        answer = QMessageBox.question(
+            self, _("Verbinden?"),
+            _("Server '{}' wurde eingetragen.\nJetzt verbinden?").format(profile.name),
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self.connect_to_server(profile)
 
     def open_server_browser(self) -> None:
         from ui_qt.server_browser import ServerBrowserDialog

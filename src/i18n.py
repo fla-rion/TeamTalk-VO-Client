@@ -7487,6 +7487,29 @@ _TRANSLATIONS_ES.update({
     'Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.': 'El micrófono sigue sin transmitir. Compruebe el dispositivo de entrada.',
 })
 
+# Beitrittscodes (BearWare Join Code, TeamTalk 5.22+) – ui_wx/tabs/connection.py, app_qt.py
+_TRANSLATIONS.update({
+    "Beitrittscode, tt:// URL oder TT-Dateipfad eingeben:": "Enter join code, tt:// URL or TT file path:",
+    "Beitrittscode wird abgefragt …": "Looking up join code …",
+    "Serverinformationen konnten nicht abgerufen werden: {}": "Failed to get server information: {}",
+    "Beitrittscode ist ungültig": "Join code incorrect",
+    "&Beitrittscode eingeben...": "Enter &join code...",
+})
+_TRANSLATIONS_FR.update({
+    "Beitrittscode, tt:// URL oder TT-Dateipfad eingeben:": "Saisir le code d'accès, l'URL tt:// ou le chemin du fichier TT :",
+    "Beitrittscode wird abgefragt …": "Recherche du code d'accès …",
+    "Serverinformationen konnten nicht abgerufen werden: {}": "Impossible d'obtenir les informations du serveur : {}",
+    "Beitrittscode ist ungültig": "Code d'accès incorrect",
+    "&Beitrittscode eingeben...": "Saisir le code d'&accès...",
+})
+_TRANSLATIONS_ES.update({
+    "Beitrittscode, tt:// URL oder TT-Dateipfad eingeben:": "Introduzca el código de acceso, la URL tt:// o la ruta del archivo TT:",
+    "Beitrittscode wird abgefragt …": "Consultando el código de acceso …",
+    "Serverinformationen konnten nicht abgerufen werden: {}": "No se pudo obtener la información del servidor: {}",
+    "Beitrittscode ist ungültig": "Código de acceso incorrecto",
+    "&Beitrittscode eingeben...": "Introducir código de &acceso...",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

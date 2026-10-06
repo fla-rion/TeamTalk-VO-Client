@@ -8828,6 +8828,20 @@ class MainFrame(wx.Frame):
         tab = self.connection_tab
         tab.connect_btn.Disable()
         self.set_status("Verbinde...")
+        # Im gespeicherten Profil hinterlegter Kanal (z. B. aus .tt-Import oder
+        # Beitrittscode) – wie unter Windows/Linux nach dem Login betreten.
+        base = getattr(tab, "_form_base_profile", None)
+        join_target = None
+        if (
+            base is not None
+            and (base.channel or "").strip()
+            and (base.host or "").strip().lower() == tab.host.GetValue().strip().lower()
+        ):
+            join_target = ParsedTeamTalkFile(
+                profile=base,
+                channel_path=base.channel.strip(),
+                channel_password=base.channel_password or None,
+            )
 
         def worker():
             try:
@@ -8857,6 +8871,8 @@ class MainFrame(wx.Frame):
                     timeout_ms=8000,
                     on_login_confirmed=lambda: self.sound_manager.play("server_connect", _se.get("server_connect")) if self._notifications.allow_sound("connected", server=str(getattr(self, "_current_server_key", "") or "")) else None,
                 )
+                if result.ok and join_target is not None and self._pending_join is None:
+                    self._pending_join = join_target
                 wx.CallAfter(self.handle_connect_result, result)
             except Exception as exc:
                 wx.CallAfter(self.set_status, f"Fehler: {exc}")

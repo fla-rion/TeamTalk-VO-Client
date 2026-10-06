@@ -6,4 +6,6 @@ from ui.tt_file_parser import (  # noqa: F401
     build_teamtalk_url,
     build_teamtalk_xml,
     parse_teamtalk_file,
+    parse_teamtalk_url,
+    parse_teamtalk_xml_text,
 )
