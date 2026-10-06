@@ -1650,6 +1650,34 @@ class TeamTalkClient:
                 return
         callback(*done)
 
+    def on_cmds_result(self, cmdids, callback: Callable[[bool, str], None]) -> None:
+        """Wie `on_cmd_result`, aber für mehrere Befehle (z. B. Bannen + Kicken):
+        `callback(True, "")` erst, wenn der Server alle bestätigt hat, sonst
+        einmalig `callback(False, fehlertext)` beim ersten abgelehnten Befehl.
+        Befehls-IDs <= 0 (nicht abgeschickt) zählen als Fehlschlag."""
+        ids = [int(c) for c in cmdids]
+        if not ids or any(c <= 0 for c in ids):
+            callback(False, "")
+            return
+        state = {"pending": len(ids), "done": False}
+        lock = threading.Lock()
+
+        def one(ok: bool, err: str) -> None:
+            with lock:
+                if state["done"]:
+                    return
+                if not ok:
+                    state["done"] = True
+                else:
+                    state["pending"] -= 1
+                    if state["pending"] > 0:
+                        return
+                    state["done"] = True
+            callback(ok, err)
+
+        for c in ids:
+            self.on_cmd_result(c, one)
+
     def _resolve_cmd_result(self, msg) -> bool:
         """Leitet CMD_SUCCESS/CMD_ERROR an einen registrierten Rückruf weiter.
 

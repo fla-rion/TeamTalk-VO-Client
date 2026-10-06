@@ -4479,18 +4479,42 @@ class MainFrame(wx.Frame):
             "",
         )
         reason_dlg.SetName("Kick-Begründung")
+        reason = ""
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
-            if reason:
-                self.client.send_channel_message(int(my_ch), f"[Admin] {username} wurde gekickt: {reason}")
         reason_dlg.Destroy()
-        self.client.do_kick_user(int(user.nUserID), int(my_ch))
-        self.set_status(f"{username} wurde gekickt")
-        try:
-            from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(f"{username} wurde gekickt")
-        except Exception:
-            pass
+        # Begründung vor dem Kick senden, damit der Betroffene sie noch sieht
+        if reason:
+            self.client.send_channel_message(int(my_ch), f"[Admin] {username} wurde gekickt: {reason}")
+        cmd = self.client.do_kick_user(int(user.nUserID), int(my_ch))
+        self._announce_moderation(
+            [cmd], f"{username} wurde gekickt", "Kick",
+        )
+
+    def _announce_moderation(self, cmdids, success_text: str, action_label: str, on_success=None) -> None:
+        """Kick/Bann erst ansagen, wenn der Server alle Befehle bestätigt hat –
+        bei Ablehnung stattdessen den Grund des Servers ansagen."""
+        def done(ok: bool, err: str) -> None:
+            def ui():
+                if ok:
+                    if on_success is not None:
+                        try:
+                            on_success()
+                        except Exception:
+                            pass
+                    text = success_text
+                else:
+                    text = f"{action_label}: " + _("vom Server abgelehnt")
+                    if err:
+                        text += f" ({err})"
+                self.set_status(text)
+                try:
+                    from ui_wx.a11y import post_voiceover_announcement
+                    post_voiceover_announcement(text)
+                except Exception:
+                    pass
+            wx.CallAfter(ui)
+        self.client.on_cmds_result(cmdids, done)
 
     def on_menu_user_ban(self, _event):
         if not self._require_connected("Benutzer bannen"):
@@ -4502,8 +4526,9 @@ class MainFrame(wx.Frame):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
-        self.set_status("Benutzer gebannt")
+        username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
+        cmd = self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
+        self._announce_moderation([cmd], f"{username} wurde gebannt", "Bann")
 
     def on_menu_user_kick_ban(self, _event):
         if not self._require_connected("Kicken + Bannen (Kanal)"):
@@ -4530,20 +4555,19 @@ class MainFrame(wx.Frame):
             "",
         )
         reason_dlg.SetName("Kick-Begründung")
+        reason = ""
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
-            if reason and channel_id:
-                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
         reason_dlg.Destroy()
-        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
+        # Begründung vor dem Kick senden, damit der Betroffene sie noch sieht
+        if reason and channel_id:
+            self.client.send_channel_message(channel_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
+        cmds = [self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))]
         if channel_id:
-            self.client.do_kick_user(int(user.nUserID), channel_id)
-        self.set_status(f"{username} wurde gekickt und gebannt")
-        try:
-            from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(f"{username} wurde gekickt und gebannt")
-        except Exception:
-            pass
+            cmds.append(self.client.do_kick_user(int(user.nUserID), channel_id))
+        self._announce_moderation(
+            cmds, f"{username} wurde gekickt und gebannt", "Kicken + Bannen",
+        )
 
     def on_menu_user_kick_server(self, _event):
         if not self._require_connected("Vom Server kicken"):
@@ -4567,19 +4591,18 @@ class MainFrame(wx.Frame):
             "",
         )
         reason_dlg.SetName("Kick-Begründung")
+        reason = ""
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
-            if reason and channel_id:
-                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt: {reason}")
         reason_dlg.Destroy()
+        # Begründung vor dem Kick senden, damit der Betroffene sie noch sieht
+        if reason and channel_id:
+            self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt: {reason}")
         # channel_id=0 bedeutet Server-Kick laut TeamTalk SDK
-        self.client.do_kick_user(int(user.nUserID), 0)
-        self.set_status(f"{username} wurde vom Server gekickt")
-        try:
-            from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(f"{username} wurde vom Server gekickt")
-        except Exception:
-            pass
+        cmd = self.client.do_kick_user(int(user.nUserID), 0)
+        self._announce_moderation(
+            [cmd], f"{username} wurde vom Server gekickt", "Vom Server kicken",
+        )
 
     def on_menu_user_kick_ban_server(self, _event):
         if not self._require_connected("Vom Server kicken + Bannen"):
@@ -4606,19 +4629,20 @@ class MainFrame(wx.Frame):
             "",
         )
         reason_dlg.SetName("Kick-Begründung")
+        reason = ""
         if reason_dlg.ShowModal() == wx.ID_OK:
             reason = reason_dlg.GetValue().strip()
-            if reason and channel_id:
-                self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt und gebannt: {reason}")
         reason_dlg.Destroy()
-        self.client.do_ban_user_ex(int(user.nUserID), int(ban_types))
-        self.client.do_kick_user(int(user.nUserID), 0)
-        self.set_status(f"{username} wurde vom Server gekickt und gebannt")
-        try:
-            from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(f"{username} wurde vom Server gekickt und gebannt")
-        except Exception:
-            pass
+        # Begründung vor dem Kick senden, damit der Betroffene sie noch sieht
+        if reason and channel_id:
+            self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt und gebannt: {reason}")
+        cmds = [
+            self.client.do_ban_user_ex(int(user.nUserID), int(ban_types)),
+            self.client.do_kick_user(int(user.nUserID), 0),
+        ]
+        self._announce_moderation(
+            cmds, f"{username} wurde vom Server gekickt und gebannt", "Vom Server kicken + Bannen",
+        )
 
     def on_menu_user_tx_toggle(self, kind: str, _event):
         if not self._require_connected("Sendekontrolle"):

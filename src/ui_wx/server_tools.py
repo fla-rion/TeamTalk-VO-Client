@@ -289,7 +289,8 @@ class OnlineUsersDialog(wx.Dialog):
         )
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() == wx.ID_YES:
-            self.frame.client.do_kick_user(int(user.nUserID), ch_id)
+            cmd = self.frame.client.do_kick_user(int(user.nUserID), ch_id)
+            self._announce(cmd, "{} wurde gekickt", "Kick", int(user.nUserID))
         dlg.Destroy()
 
     def _do_kick_server(self, user_id: int):
@@ -299,23 +300,37 @@ class OnlineUsersDialog(wx.Dialog):
         )
         dlg.SetYesNoLabels("Ja", "Nein")
         if dlg.ShowModal() == wx.ID_YES:
-            self.frame.client.do_kick_user(user_id, 0)
+            cmd = self.frame.client.do_kick_user(user_id, 0)
+            self._announce(cmd, "{} wurde vom Server gekickt", "Vom Server kicken", user_id)
         dlg.Destroy()
 
     def _do_ban(self, user):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)
+        cmd = self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)
+        self._announce(cmd, "{} wurde gebannt", "Bann", int(user.nUserID))
 
     def _do_kick_ban(self, user):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)
+        cmds = [self.frame.client.do_ban_user_ex(int(user.nUserID), ban_types)]
         ch_id = int(getattr(user, "nChannelID", 0) or 0)
         if ch_id:
-            self.frame.client.do_kick_user(int(user.nUserID), ch_id)
+            cmds.append(self.frame.client.do_kick_user(int(user.nUserID), ch_id))
+        self._announce(cmds, "{} wurde gekickt und gebannt" if ch_id else "{} wurde gebannt",
+                       "Kicken + Bannen", int(user.nUserID))
+
+    def _announce(self, cmds, success_fmt: str, action_label: str, user_id: int) -> None:
+        """Rückmeldung erst nach Bestätigung durch den Server (siehe App._announce_moderation)."""
+        if not isinstance(cmds, list):
+            cmds = [cmds]
+        try:
+            name = self.frame.user_display_name_for_id(user_id, "") or f"Benutzer {user_id}"
+        except Exception:
+            name = f"Benutzer {user_id}"
+        self.frame._announce_moderation(cmds, success_fmt.format(name), action_label)
 
     def _ask_ban_types(self, user):
         tt = self.frame.client.tt

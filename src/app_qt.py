@@ -2196,8 +2196,8 @@ class MainWindow(QMainWindow):
         ip, ok = QInputDialog.getText(self, "IP-Adresse bannen", "IP-Adresse:")
         if ok and ip:
             try:
-                self.client.do_ban_ip_address(ip)
-                self.set_status(f"IP gebannt: {ip}")
+                cmd = self.client.do_ban_ip_address(ip)
+                self._announce_moderation([cmd], f"IP gebannt: {ip}", "IP-Adresse bannen")
             except Exception as exc:
                 self.set_status(f"Bannen fehlgeschlagen: {exc}")
 
@@ -2487,9 +2487,32 @@ class MainWindow(QMainWindow):
     def kick_user(self, user_id: int) -> None:
         try:
             ch_id = int(self.client.get_my_channel_id() or 0)
-            self.client.do_kick_user(user_id, ch_id)
+            cmd = self.client.do_kick_user(user_id, ch_id)
+            name = self.user_display_name_for_id(user_id, "") or f"User#{user_id}"
+            self._announce_moderation([cmd], f"{name} wurde gekickt", "Kick")
         except Exception as exc:
             self.set_status(f"Kick fehlgeschlagen: {exc}")
+
+    def _announce_moderation(self, cmdids, success_text: str, action_label: str) -> None:
+        """Kick/Bann erst ansagen, wenn der Server alle Befehle bestätigt hat –
+        bei Ablehnung stattdessen den Grund des Servers ansagen."""
+        from ui_qt.call_after import call_after
+
+        def done(ok: bool, err: str) -> None:
+            def ui():
+                if ok:
+                    text = success_text
+                else:
+                    text = f"{action_label}: " + _("vom Server abgelehnt")
+                    if err:
+                        text += f" ({err})"
+                self.set_status(text)
+                try:
+                    self._sr_announce(text)
+                except Exception:
+                    pass
+            call_after(ui)
+        self.client.on_cmds_result(cmdids, done)
 
     def mute_user(self, user_id: int) -> None:
         try:
@@ -3400,12 +3423,8 @@ class MainWindow(QMainWindow):
                 reason = reason.strip()
                 if reason and ch_id:
                     self.client.send_channel_message(ch_id, f"[Admin] {username} wurde gekickt: {reason}")
-            self.client.do_kick_user(uid, ch_id)
-            self.set_status(f"{username} wurde gekickt")
-            try:
-                self._sr_announce(f"{username} wurde gekickt")
-            except Exception:
-                pass
+            cmd = self.client.do_kick_user(uid, ch_id)
+            self._announce_moderation([cmd], f"{username} wurde gekickt", "Kick")
         except Exception as exc:
             self.set_status(f"Kick Fehler: {exc}")
 
@@ -3428,14 +3447,10 @@ class MainWindow(QMainWindow):
                 reason = reason.strip()
                 if reason and ch_id:
                     self.client.send_channel_message(ch_id, f"[Admin] {username} wurde gekickt und gebannt: {reason}")
-            self.client.do_ban_user_ex(uid, ban_types)
+            cmds = [self.client.do_ban_user_ex(uid, ban_types)]
             if ch_id:
-                self.client.do_kick_user(uid, ch_id)
-            self.set_status(f"{username} wurde gekickt und gesperrt")
-            try:
-                self._sr_announce(f"{username} wurde gekickt und gesperrt")
-            except Exception:
-                pass
+                cmds.append(self.client.do_kick_user(uid, ch_id))
+            self._announce_moderation(cmds, f"{username} wurde gekickt und gesperrt", "Kicken + Bannen")
         except Exception as exc:
             self.set_status(f"Kick+Ban Fehler: {exc}")
 
@@ -3457,12 +3472,8 @@ class MainWindow(QMainWindow):
                 reason = reason.strip()
                 if reason and channel_id:
                     self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt: {reason}")
-            self.client.do_kick_user(uid, 0)
-            self.set_status(f"{username} wurde vom Server gekickt")
-            try:
-                self._sr_announce(f"{username} wurde vom Server gekickt")
-            except Exception:
-                pass
+            cmd = self.client.do_kick_user(uid, 0)
+            self._announce_moderation([cmd], f"{username} wurde vom Server gekickt", "Vom Server kicken")
         except Exception as exc:
             self.set_status(f"Kick Fehler: {exc}")
 
@@ -3492,13 +3503,8 @@ class MainWindow(QMainWindow):
                 reason = reason.strip()
                 if reason and channel_id:
                     self.client.send_channel_message(channel_id, f"[Admin] {username} wurde vom Server gekickt und gebannt: {reason}")
-            self.client.do_ban_user_ex(uid, ban_types)
-            self.client.do_kick_user(uid, 0)
-            self.set_status(f"{username} wurde vom Server gekickt und gebannt")
-            try:
-                self._sr_announce(f"{username} wurde vom Server gekickt und gebannt")
-            except Exception:
-                pass
+            cmds = [self.client.do_ban_user_ex(uid, ban_types), self.client.do_kick_user(uid, 0)]
+            self._announce_moderation(cmds, f"{username} wurde vom Server gekickt und gebannt", "Vom Server kicken + Bannen")
         except Exception as exc:
             self.set_status(f"Kick+Ban Server Fehler: {exc}")
 

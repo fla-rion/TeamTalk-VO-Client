@@ -840,13 +840,8 @@ class ChannelsTab(wx.Panel):
             if reason:
                 self.frame.client.send_channel_message(int(my_ch), _("[Admin] {} wurde gekickt: {}").format(username, reason))
         reason_dlg.Destroy()
-        self.frame.client.do_kick_user(user_id, int(my_ch))
-        self.frame.set_status(_("{} wurde gekickt").format(username))
-        try:
-            from ui_wx.a11y import post_voiceover_announcement
-            post_voiceover_announcement(_("{} wurde gekickt").format(username))
-        except Exception:
-            pass
+        cmd = self.frame.client.do_kick_user(user_id, int(my_ch))
+        self.frame._announce_moderation([cmd], _("{} wurde gekickt").format(username), _("Kick"))
 
     def _on_user_kick_ban(self, user_id: int) -> None:
         user = self._find_user(user_id)
@@ -879,17 +874,13 @@ class ChannelsTab(wx.Panel):
             if reason and channel_id:
                 self.frame.client.send_channel_message(channel_id, _("[Admin] {} wurde gekickt und gebannt: {}").format(username, reason))
         reason_dlg.Destroy()
-        self.frame.client.do_ban_user_ex(user_id, ban_types)
+        cmds = [self.frame.client.do_ban_user_ex(user_id, ban_types)]
         if channel_id > 0:
-            self.frame.client.do_kick_user(user_id, channel_id)
-            self.frame.set_status(_("{} wurde gekickt und gebannt").format(username))
-            try:
-                from ui_wx.a11y import post_voiceover_announcement
-                post_voiceover_announcement(_("{} wurde gekickt und gebannt").format(username))
-            except Exception:
-                pass
+            cmds.append(self.frame.client.do_kick_user(user_id, channel_id))
+            done_text = _("{} wurde gekickt und gebannt").format(username)
         else:
-            self.frame.set_status(_("{} wurde gebannt").format(username))
+            done_text = _("{} wurde gebannt").format(username)
+        self.frame._announce_moderation(cmds, done_text, _("Kicken + Bannen"))
 
     def _on_user_subscribe_toggle(self, user_id: int, flag: int, checked: bool) -> None:
         if checked:
@@ -907,8 +898,9 @@ class ChannelsTab(wx.Panel):
         ban_types = self._ask_ban_types(user)
         if ban_types is None:
             return
-        self.frame.client.do_ban_user_ex(user_id, ban_types)
-        self.frame.set_status(_("Benutzer gebannt"))
+        username = self.frame.tt_str(user.szNickname) or self.frame.tt_str(user.szUsername) or _("Benutzer {}").format(user_id)
+        cmd = self.frame.client.do_ban_user_ex(user_id, ban_types)
+        self.frame._announce_moderation([cmd], _("{} wurde gebannt").format(username), _("Bann"))
 
     def _ask_ban_types(self, user) -> Optional[int]:
         tt = self.frame.client.tt
