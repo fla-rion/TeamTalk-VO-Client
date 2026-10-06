@@ -82,6 +82,8 @@ class TeamTalkClient:
         self._media_active = False
         self._media_paused = False
         self._media_preamp = 1.0
+        # Zuletzt gesendete Medienstream-Statusbits (STATUSMODE_STREAM_MEDIAFILE[_PAUSED])
+        self._media_status_bits = 0
         # Medien-Gesamtlautstärke: Basis pro Nutzer (SDK-Werte) + Faktor in %
         self._user_media_base: Dict[int, int] = {}
         self._media_master_pct = 100
@@ -461,6 +463,7 @@ class TeamTalkClient:
             self._connected = True
             self._last_status_mode = 0
             self._last_status_message = ""
+            self._media_status_bits = 0
             if self.status_flags:
                 try:
                     self.client.doChangeStatus(int(self.status_flags), self.tt.ttstr(""))
@@ -957,7 +960,28 @@ class TeamTalkClient:
         mode = int(mode) & STATUSMODE_MODE_MASK
         self._last_status_mode = mode
         self._last_status_message = message or ""
-        return self.client.doChangeStatus(mode | int(self.status_flags), self.tt.ttstr(message))
+        return self.client.doChangeStatus(
+            mode | int(self.status_flags) | int(self._media_status_bits), self.tt.ttstr(message)
+        )
+
+    def sync_media_status(self) -> None:
+        """Meldet den eigenen Medien-Stream im Status wie der offizielle Client
+        (STATUSMODE_STREAM_MEDIAFILE bzw. _PAUSED), damit andere sehen, dass wir
+        streamen. Aus dem UI-Thread nach CLIENTEVENT_STREAM_MEDIAFILE aufrufen."""
+        if not self._media_active:
+            bits = 0
+        elif self._media_paused:
+            bits = STATUSMODE_STREAM_MEDIAFILE_PAUSED
+        else:
+            bits = STATUSMODE_STREAM_MEDIAFILE
+        if bits == self._media_status_bits:
+            return
+        self._media_status_bits = bits
+        if self._connected:
+            try:
+                self.change_status(self._last_status_mode, self._last_status_message)
+            except Exception:
+                pass
 
     def set_status_flags(self, flags: int) -> None:
         """Setzt die Flag-Bits und sendet den Status neu, falls verbunden."""

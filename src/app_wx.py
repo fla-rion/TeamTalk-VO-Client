@@ -10615,6 +10615,7 @@ class MainFrame(wx.Frame):
         elif event == tt.ClientEvent.CLIENTEVENT_STREAM_MEDIAFILE:
             if self.media_tab is not None:
                 wx.CallAfter(self.media_tab.on_stream_update, msg.mediafileinfo)
+            wx.CallAfter(self.client.sync_media_status)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_FILE_NEW:
             if self.files_tab is not None:
                 wx.CallAfter(self.files_tab.refresh_file_list)

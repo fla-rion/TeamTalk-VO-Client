@@ -118,3 +118,34 @@ def test_seek_after_finished_returns_none():
     c = _fake_client()
     c.note_media_stream_event(_event(3, 60000, 60000))
     assert c.seek_streaming_media_relative(-10000) is None
+
+
+def test_own_media_stream_status_bits():
+    # Eigener Stream wird wie im offiziellen Client im Status gemeldet:
+    # spielt -> STREAM_MEDIAFILE, pausiert -> nur _PAUSED, beendet -> keins.
+    c = _fake_client()
+    c._connected = True
+    c._media_status_bits = 0
+    c.status_flags = STATUSMODE_FEMALE
+    c._last_status_mode = 1
+    c._last_status_message = "bin gleich da"
+    sent = []
+    c.client = SimpleNamespace(doChangeStatus=lambda mode, msg: sent.append((mode, msg)) or 1)
+    c.tt = SimpleNamespace(**vars(_TT), ttstr=lambda s: s)
+    mfs = _TT.MediaFileStatus
+
+    c.note_media_stream_event(_event(mfs.MFS_STARTED, 0, 60000))
+    c.sync_media_status()
+    assert sent[-1] == (1 | STATUSMODE_FEMALE | STATUSMODE_STREAM_MEDIAFILE, "bin gleich da")
+
+    c.note_media_stream_event(_event(mfs.MFS_PLAYING, 1000, 60000))
+    c.sync_media_status()
+    assert len(sent) == 1  # unverändert -> nichts erneut senden
+
+    c.note_media_stream_event(_event(mfs.MFS_PAUSED, 2000, 60000))
+    c.sync_media_status()
+    assert sent[-1][0] == 1 | STATUSMODE_FEMALE | STATUSMODE_STREAM_MEDIAFILE_PAUSED
+
+    c.note_media_stream_event(_event(mfs.MFS_FINISHED, 60000, 60000))
+    c.sync_media_status()
+    assert sent[-1][0] == 1 | STATUSMODE_FEMALE

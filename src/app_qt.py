@@ -1457,6 +1457,10 @@ class MainWindow(QMainWindow):
     def _on_stream_mediafile(self, msg) -> None:
         """Handle CLIENTEVENT_STREAM_MEDIAFILE — announce stream start/stop via screen reader."""
         try:
+            self.client.sync_media_status()
+        except Exception:
+            pass
+        try:
             mfi = getattr(msg, "mediafileinfo", None)
             if mfi is None:
                 return
