@@ -115,7 +115,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <ul>
   <li><strong>Sprech-Warteschlange</strong>: In Kanälen, in denen nur eine Person gleichzeitig sprechen kann, sagt die App mit Ton an, wann du dran bist, wann deine Runde endet und an welcher Position du wartest.</li>
   <li><strong>Kanaldialog vollständig</strong>: Wartezeit bis zum nächsten Sprecher, maximale Sprach-/Mediendauer und feste Lautstärke. Kanaltyp in .tt-Dateien.</li>
-  <li><strong>BearWare-Beitrittscodes</strong>: „Beitrittscode eingeben“ nimmt auch die kurzen Codes des offiziellen Clients an.</li>
+  <li><strong>BearWare-Beitrittscodes</strong>: „Beitrittscode eingeben“ nimmt auch die kurzen Codes an, die Serverbetreiber im offiziellen Client erzeugen; aufgelöst wird über bearware.dk, inklusive Zielkanal. Einen Code selbst erzeugen geht nur im offiziellen Client mit BearWare.dk-Konto. Details im Abschnitt „Verbindung über Beitrittscode“.</li>
   <li><strong>Chat</strong>: Auf Nachrichten antworten (Cmd/Strg+R) und Tipp-Anzeige bei Privatnachrichten, kompatibel zum offiziellen Client.</li>
   <li><strong>Anzeige</strong>: Nutzer als Nickname, Benutzername oder beides anzeigen; sichtbar, wer Medien streamt; Geschlecht „Neutral“ (wird jetzt auch tatsächlich übertragen).</li>
   <li><strong>Audio</strong>: Medien-Gesamtlautstärke, Medien per Tastatur spulen (Cmd+Option+Pfeil links/rechts), ausgestecktes Gerät bleibt gewählt, Mikrofon-Überwachung, Option „beim Verbinden mit ausgeschaltetem Mikrofon starten“.</li>
@@ -578,7 +578,7 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <tr><td>Neu</td><td>Alt+N</td><td>Speichert die aktuell eingegebenen Daten als neuen Server</td></tr>
 <tr><td>Bearbeiten</td><td>Alt+B</td><td>Aktualisiert den markierten Server mit den aktuellen Formulardaten</td></tr>
 <tr><td>Entfernen</td><td>Alt+E</td><td>Löscht den markierten Server (mit Bestätigung)</td></tr>
-<tr><td>Beitrittscode eingeben</td><td>Alt+T</td><td>Verbindet über eine tt://-URL oder eine .tt-Datei</td></tr>
+<tr><td>Beitrittscode eingeben</td><td>Alt+T</td><td>Verbindet über einen BearWare-Beitrittscode, eine tt://-URL oder eine .tt-Datei</td></tr>
 </table>
 <p>Doppelklick oder Enter auf einen Listeneintrag verbindet sich sofort. Rechtsklick öffnet ein Kontextmenü (Duplizieren, TT-Datei generieren).</p>
 
@@ -611,12 +611,21 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 </table>
 
 <h2>Verbindung über Beitrittscode</h2>
-<p>Mit "Beitrittscode eingeben" können Sie:</p>
+<p>Mit "Beitrittscode eingeben" (Alt+T im Verbindungs-Tab bzw. im Kontextmenü der Serverliste; unter Windows/Linux im Menü <em>Datei</em>) können Sie:</p>
 <ul>
+  <li>Einen <strong>BearWare-Beitrittscode</strong> eingeben (seit v10.6.0, kompatibel zu TeamTalk 5.22 und neuer), z.B. <code>abcdefgh</code></li>
   <li>Eine <strong>tt://-URL</strong> einfügen (z.B. <code>tt://server.example.com/?tcpport=10333&amp;udpport=10333</code>)</li>
   <li>Den Pfad zu einer <strong>.tt-Datei</strong> eingeben</li>
 </ul>
-<p>Nach der Eingabe fragt die App, ob sofort verbunden werden soll.</p>
+<p>Die App erkennt selbst, ob es sich um einen Code, eine URL oder einen Dateipfad handelt. Nach der Eingabe fragt sie, ob sofort verbunden werden soll.</p>
+<h3>So funktionieren Beitrittscodes</h3>
+<ul>
+  <li>Ein Serverbetreiber veröffentlicht seinen Server im <strong>offiziellen TeamTalk-Client</strong> privat bei bearware.dk und erhält dafür einen kurzen Code, den er weitergeben kann – statt Adresse, Ports, Zugangsdaten und Kanal einzeln mitzuteilen.</li>
+  <li>Beim Einlösen fragt die App den Code bei <strong>bearware.dk</strong> ab (Internetverbindung nötig). Groß-/Kleinschreibung spielt keine Rolle. Der Dienst liefert die vollständigen Verbindungsdaten inklusive Zielkanal. Die App fragt dann, ob sofort verbunden werden soll; auf macOS stehen die Daten zusätzlich im Verbindungsformular, wo Sie den Server mit <em>Speichern</em> in die Serverliste übernehmen können.</li>
+  <li>Ist der Code unbekannt oder abgelaufen, meldet die App das; es wird nichts gespeichert.</li>
+  <li>Ein gespeichertes Serverprofil behält den Code und schreibt ihn beim Export als <code>&lt;joincode&gt;</code> in .tt-Dateien mit.</li>
+  <li><strong>Einen Code selbst erzeugen</strong> kann TeamTalk VO Client nicht: Das geht nur im offiziellen TeamTalk-Client und erfordert ein BearWare.dk-Konto (WebLogin), weil dabei die Zugangsdaten des Servers bei BearWare hinterlegt werden.</li>
+</ul>
 
 <!-- ============================================================ -->
 <h1 id="kanaelechat">9 · Kanäle, Nutzerliste &amp; Chat</h1>

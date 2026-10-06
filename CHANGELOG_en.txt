@@ -20,8 +20,13 @@ Speaking and channels
   could be created without a codec and thus without voice.
 - **New: BearWare join codes (TeamTalk 5.22).** "Enter join code" now also
   accepts the short codes a server operator generates in the official
-  client. The code is resolved via bearware.dk, the server is added and
-  connected right away if you like, including the target channel.
+  client. The code is resolved via bearware.dk and connected right away
+  if you like, including the target channel. On Windows/Linux in the File
+  menu. A saved server profile keeps the code and writes it to .tt files
+  as <joincode>. Creating a code yourself is only
+  possible in the official TeamTalk client with a BearWare.dk account (the
+  server's credentials are stored at BearWare). See the manual:
+  "Connecting via Join Code".
 - **New: always start with the microphone off when connecting** (setting,
   off by default). Changing channels is not affected.
 

@@ -22,8 +22,13 @@ Parole et salons
 - **Nouveau : codes d'accès BearWare (TeamTalk 5.22).** « Saisir le code
   d'accès » accepte désormais aussi les codes courts qu'un administrateur de
   serveur génère dans le client officiel. Le code est résolu via
-  bearware.dk, le serveur est ajouté et connecté aussitôt si tu le
-  souhaites, salon cible compris.
+  bearware.dk et la connexion se fait aussitôt si tu le souhaites, salon
+  cible compris. Sous Windows/Linux dans le menu Fichier. Un profil de
+  serveur enregistré conserve le code et l'écrit dans les fichiers .tt sous
+  la forme <joincode>. Créer soi-même un code n'est
+  possible que dans le client TeamTalk officiel avec un compte BearWare.dk
+  (les identifiants du serveur sont déposés chez BearWare). Voir le
+  manuel : « Connexion via un code d'accès ».
 - **Nouveau : toujours démarrer avec le micro coupé à la connexion**
   (réglage, désactivé par défaut). Les changements de salon ne sont pas
   concernés.

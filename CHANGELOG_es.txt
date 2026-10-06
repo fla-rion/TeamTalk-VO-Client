@@ -21,8 +21,13 @@ Hablar y canales
 - **Nuevo: códigos de acceso de BearWare (TeamTalk 5.22).** «Introducir
   código de acceso» acepta ahora también los códigos cortos que un
   administrador de servidor genera en el cliente oficial. El código se
-  resuelve en bearware.dk, el servidor se añade y se conecta de inmediato
-  si lo deseas, incluido el canal de destino.
+  resuelve en bearware.dk y se conecta de inmediato si lo deseas, incluido
+  el canal de destino. En Windows/Linux en el menú Archivo. Un perfil de
+  servidor guardado conserva el código y lo escribe en los archivos .tt
+  como <joincode>. Crear un código propio solo es posible
+  en el cliente oficial de TeamTalk con una cuenta de BearWare.dk (las
+  credenciales del servidor se depositan en BearWare). Véase el manual:
+  «Conexión mediante código de acceso».
 - **Nuevo: conectar siempre con el micrófono apagado** (ajuste, desactivado
   por defecto). Los cambios de canal no se ven afectados.
 

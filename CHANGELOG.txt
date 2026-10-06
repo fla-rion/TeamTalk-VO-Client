@@ -21,8 +21,13 @@ Sprechen und Kanäle
   konnten sie ohne Codec und damit ohne Sprache entstehen.
 - **Neu: BearWare-Beitrittscodes (TeamTalk 5.22).** "Beitrittscode
   eingeben" nimmt jetzt auch die kurzen Codes an, die ein Serverbetreiber im
-  offiziellen Client erzeugt. Der Code wird bei bearware.dk aufgelöst, der
-  Server eingetragen und auf Wunsch sofort verbunden, inklusive Zielkanal.
+  offiziellen Client erzeugt. Der Code wird bei bearware.dk aufgelöst und auf
+  Wunsch sofort verbunden, inklusive Zielkanal. Unter Windows/Linux im Menü
+  Datei. Ein gespeichertes Serverprofil behält den Code und schreibt ihn in
+  .tt-Dateien als <joincode> mit. Einen Code selbst erzeugen geht nur im
+  offiziellen TeamTalk-Client mit BearWare.dk-Konto (die Zugangsdaten des
+  Servers werden dabei bei BearWare hinterlegt). Siehe Handbuch:
+  "Verbindung über Beitrittscode".
 - **Neu: Beim Verbinden immer mit ausgeschaltetem Mikrofon starten**
   (Einstellung, Standard aus). Kanalwechsel sind davon nicht betroffen.
 

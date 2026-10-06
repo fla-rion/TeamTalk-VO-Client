@@ -115,7 +115,7 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <ul>
   <li><strong>File de parole</strong> : dans les salons où une seule personne peut parler à la fois, l'application annonce avec un son quand c'est ton tour, quand il se termine et ta position dans la file.</li>
   <li><strong>Boîte de dialogue des salons complète</strong> : délai avant l'orateur suivant, durée maximale de voix/média et volume fixe. Type de salon dans les fichiers .tt.</li>
-  <li><strong>Codes d'accès BearWare</strong> : « Saisir le code d'accès » accepte aussi les codes courts du client officiel.</li>
+  <li><strong>Codes d'accès BearWare</strong> : « Saisir le code d'accès » accepte aussi les codes courts que les administrateurs de serveur créent dans le client officiel ; ils sont résolus via bearware.dk, canal cible compris. Créer soi-même un code n'est possible que dans le client officiel avec un compte BearWare.dk. Détails dans « Connexion via un code d'accès ».</li>
   <li><strong>Discussion</strong> : répondre aux messages (Cmd/Ctrl+R) et indicateur de saisie pour les messages privés, compatible avec le client officiel.</li>
   <li><strong>Affichage</strong> : afficher les utilisateurs par pseudo, nom d'utilisateur ou les deux ; voir qui diffuse un média ; genre « Neutre » (désormais réellement transmis).</li>
   <li><strong>Audio</strong> : volume global des médias, avancer/reculer au clavier (Cmd+Option+Flèche gauche/droite), un périphérique débranché reste sélectionné, surveillance du micro, option « démarrer avec le micro coupé à la connexion ».</li>
@@ -578,7 +578,7 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <tr><td>Nouveau</td><td>Alt+N</td><td>Enregistre les données actuellement saisies comme nouveau serveur</td></tr>
 <tr><td>Modifier</td><td>Alt+B</td><td>Met à jour le serveur sélectionné avec les données actuelles du formulaire</td></tr>
 <tr><td>Supprimer</td><td>Alt+E</td><td>Supprime le serveur sélectionné (avec confirmation)</td></tr>
-<tr><td>Saisir un code d'accès</td><td>Alt+T</td><td>Se connecte via une URL tt:// ou un fichier .tt</td></tr>
+<tr><td>Saisir le code d'accès</td><td>Alt+T</td><td>Se connecte via un code d'accès BearWare, une URL tt:// ou un fichier .tt</td></tr>
 </table>
 <p>Double-clic ou Entrée sur une entrée de la liste se connecte immédiatement. Un clic droit ouvre un menu contextuel (dupliquer, générer un fichier TT).</p>
 
@@ -611,12 +611,21 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 </table>
 
 <h2>Connexion via un code d'accès</h2>
-<p>Avec « Saisir un code d'accès », vous pouvez :</p>
+<p>Avec « Saisir le code d'accès » (Alt+T dans l'onglet Connexion ou dans le menu contextuel de la liste des serveurs ; sous Windows/Linux dans le menu <em>Fichier</em>), vous pouvez :</p>
 <ul>
+  <li>Saisir un <strong>code d'accès BearWare</strong> (depuis la v10.6.0, compatible avec TeamTalk 5.22 et ultérieur), par ex. <code>abcdefgh</code></li>
   <li>Coller une <strong>URL tt://</strong> (par ex. <code>tt://server.example.com/?tcpport=10333&amp;udpport=10333</code>)</li>
   <li>Saisir le chemin vers un <strong>fichier .tt</strong></li>
 </ul>
-<p>Après la saisie, l'application demande si vous souhaitez vous connecter immédiatement.</p>
+<p>L'application reconnaît d'elle-même s'il s'agit d'un code, d'une URL ou d'un chemin de fichier. Elle demande ensuite si vous souhaitez vous connecter immédiatement.</p>
+<h3>Fonctionnement des codes d'accès</h3>
+<ul>
+  <li>Un administrateur de serveur publie son serveur en privé sur bearware.dk avec le <strong>client TeamTalk officiel</strong> et obtient un code court à partager – au lieu de communiquer séparément l'adresse, les ports, les identifiants et le canal.</li>
+  <li>Lors de la saisie, l'application interroge <strong>bearware.dk</strong> (connexion Internet nécessaire). Majuscules et minuscules n'ont pas d'importance. Le service renvoie toutes les données de connexion, canal cible compris. L'application demande ensuite si vous souhaitez vous connecter immédiatement ; sur macOS, les données sont aussi reportées dans le formulaire de connexion, où <em>Enregistrer</em> ajoute le serveur à la liste.</li>
+  <li>Si le code est inconnu ou expiré, l'application le signale et rien n'est enregistré.</li>
+  <li>Un profil de serveur enregistré conserve le code et l'écrit dans les fichiers .tt sous la forme <code>&lt;joincode&gt;</code> lors de l'export.</li>
+  <li>TeamTalk VO Client <strong>ne peut pas créer de code lui-même</strong> : cela n'est possible que dans le client TeamTalk officiel et nécessite un compte BearWare.dk (WebLogin), car les identifiants du serveur sont alors déposés chez BearWare.</li>
+</ul>
 
 <!-- ============================================================ -->
 <h1 id="kanaelechat">9 · Canaux, liste des utilisateurs &amp; chat</h1>

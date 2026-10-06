@@ -115,7 +115,7 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <ul>
   <li><strong>Speaking queue</strong>: in channels where only one person can speak at a time, the app announces with a sound when it is your turn, when your turn ends and your position in the queue.</li>
   <li><strong>Complete channel dialog</strong>: delay before the next speaker, maximum voice/media duration and fixed volume. Channel type in .tt files.</li>
-  <li><strong>BearWare join codes</strong>: "Enter join code" also accepts the short codes of the official client.</li>
+  <li><strong>BearWare join codes</strong>: "Enter join code" also accepts the short codes server operators create in the official client; they are resolved via bearware.dk, including the target channel. Creating a code yourself is only possible in the official client with a BearWare.dk account. Details in "Connecting via Join Code".</li>
   <li><strong>Chat</strong>: reply to messages (Cmd/Ctrl+R) and typing indicator for private messages, compatible with the official client.</li>
   <li><strong>Display</strong>: show users as nickname, username or both; see who is streaming media; gender "Neutral" (now actually transmitted).</li>
   <li><strong>Audio</strong>: overall media volume, seek media with the keyboard (Cmd+Option+Left/Right), an unplugged device stays selected, microphone watchdog, option "start with the microphone off when connecting".</li>
@@ -578,7 +578,7 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <tr><td>New</td><td>Alt+N</td><td>Saves the currently entered data as a new server</td></tr>
 <tr><td>Edit</td><td>Alt+B</td><td>Updates the selected server with the current form data</td></tr>
 <tr><td>Remove</td><td>Alt+E</td><td>Deletes the selected server (with confirmation)</td></tr>
-<tr><td>Enter join code</td><td>Alt+T</td><td>Connects via a tt:// URL or a .tt file</td></tr>
+<tr><td>Enter join code</td><td>Alt+T</td><td>Connects via a BearWare join code, a tt:// URL or a .tt file</td></tr>
 </table>
 <p>Double-click or Enter on a list entry connects immediately. Right-click opens a context menu (duplicate, generate TT file).</p>
 
@@ -611,12 +611,21 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 </table>
 
 <h2>Connecting via Join Code</h2>
-<p>With "Enter join code" you can:</p>
+<p>With "Enter join code" (Alt+T in the Connection tab or in the server list's context menu; on Windows/Linux in the <em>File</em> menu) you can:</p>
 <ul>
+  <li>Enter a <strong>BearWare join code</strong> (since v10.6.0, compatible with TeamTalk 5.22 and later), e.g. <code>abcdefgh</code></li>
   <li>Paste a <strong>tt:// URL</strong> (e.g. <code>tt://server.example.com/?tcpport=10333&amp;udpport=10333</code>)</li>
   <li>Enter the path to a <strong>.tt file</strong></li>
 </ul>
-<p>After entering it, the app asks whether to connect right away.</p>
+<p>The app detects by itself whether you entered a code, a URL or a file path. Afterwards it asks whether to connect right away.</p>
+<h3>How join codes work</h3>
+<ul>
+  <li>A server operator publishes their server privately at bearware.dk using the <strong>official TeamTalk client</strong> and receives a short code to share – instead of handing out address, ports, credentials and channel separately.</li>
+  <li>When you redeem it, the app looks the code up at <strong>bearware.dk</strong> (internet connection required). Upper/lower case does not matter. The service returns the complete connection details including the target channel. The app then asks whether to connect right away; on macOS the details are also filled into the connection form, where <em>Save</em> adds the server to the server list.</li>
+  <li>If the code is unknown or expired, the app tells you so and nothing is saved.</li>
+  <li>A saved server profile keeps the code and writes it to .tt files as <code>&lt;joincode&gt;</code> when exporting.</li>
+  <li>TeamTalk VO Client <strong>cannot create codes itself</strong>: this is only possible in the official TeamTalk client and requires a BearWare.dk account (WebLogin), because the server's credentials are stored at BearWare.</li>
+</ul>
 
 <!-- ============================================================ -->
 <h1 id="kanaelechat">9 · Channels, User List &amp; Chat</h1>
