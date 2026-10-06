@@ -1,6 +1,105 @@
 Changelog
 =========
 
+2026-10-06 (v10.6.0)
+Neuerungen aus TeamTalk 5.22/5.23 und tt-Accessible, viele Fehlerbehebungen
+
+Sprechen und Kanäle
+- **Neu: Ansagen in Kanälen mit Sprech-Warteschlange.** In Kanälen, in
+  denen nur eine Person gleichzeitig sprechen kann, sagt die App mit Ton
+  "Du bist jetzt dran" und "Deine Sprechrunde ist vorbei" an; während du
+  wartest, hörst du deine Position ("Du bist Nummer 3 in der
+  Warteschlange"). Abschaltbar unter Sprachausgabe: "Sprech-Warteschlange".
+- **Neu: Kanaldialog vollständig.** Wartezeit bis zum nächsten Sprecher in
+  der Warteschlange, maximale Sprach- und Mediendauer und feste Lautstärke
+  lassen sich beim Erstellen und Bearbeiten einstellen. Die drei letzten
+  Felder gab es auf macOS schon, sie wurden aber nie angewendet.
+  "Aktueller Codec beibehalten" lässt den Codec unverändert, auch bei Speex
+  oder ohne Codec.
+- **Neu: Kanaltyp in .tt-Dateien (TeamTalk 5.23).** Neu angelegte
+  Zielkanäle übernehmen außerdem den Audio-Codec des Elternkanals – bisher
+  konnten sie ohne Codec und damit ohne Sprache entstehen.
+- **Neu: BearWare-Beitrittscodes (TeamTalk 5.22).** "Beitrittscode
+  eingeben" nimmt jetzt auch die kurzen Codes an, die ein Serverbetreiber im
+  offiziellen Client erzeugt. Der Code wird bei bearware.dk aufgelöst, der
+  Server eingetragen und auf Wunsch sofort verbunden, inklusive Zielkanal.
+- **Neu: Beim Verbinden immer mit ausgeschaltetem Mikrofon starten**
+  (Einstellung, Standard aus). Kanalwechsel sind davon nicht betroffen.
+
+Chat
+- **Neu: Auf Nachrichten antworten.** Im Chatverlauf antwortet Cmd+R
+  (Windows/Linux: Strg+R), das Kontextmenü oder die Taste "Antworten" auf
+  die Nachricht an der Cursorposition – wie im offiziellen TeamTalk 5.23.
+  Bei Privatnachrichten öffnet sich direkt der Privat-Chat mit dem Absender.
+- **Neu: Tipp-Anzeige bei Privatnachrichten,** kompatibel zum offiziellen
+  Client. Schreibt dir jemand, hörst du einen Ton und "X schreibt eine
+  Privatnachricht …"; umgekehrt sehen andere, wenn du ihnen schreibst.
+  Beides einzeln abschaltbar.
+
+Nutzer und Anzeige
+- **Neu: Nutzer anzeigen als Nickname, Benutzername oder beides.** Gilt für
+  Nutzerliste, Chat, Ansagen, Privat-Fenster und Online-Nutzer-Dialog, wirkt
+  sofort. Hinweis macOS: Der Chat zeigt Absender jetzt standardmäßig mit
+  Nickname statt Benutzername.
+- **Neu: Wer gerade eine Mediendatei streamt, ist sichtbar** ("Streamt
+  Medien" / "Medien pausiert") und wird im eigenen Kanal angesagt
+  (abschaltbar: "Medienstream anderer"). Umgekehrt sehen andere Clients
+  jetzt auch, wenn du selbst streamst.
+- **Neu: Geschlecht "Neutral" – und das Geschlecht wird jetzt tatsächlich
+  übertragen.** Die Einstellung wurde bisher nur gespeichert, aber nie an
+  den Server gesendet. Unter Windows/Linux ist die Auswahl neu.
+
+Audio und Medien
+- **Neu: Medien-Gesamtlautstärke.** Ein Regler ("Medien:" in der
+  Schnellzugriffsleiste, Audio-Menü "Medien lauter/leiser" mit
+  Cmd+Alt+Shift+Pfeil hoch/runter) regelt alle eingehenden Medien-Streams
+  zusammen, ohne die Stimmen zu verändern – auch später startende Streams.
+- **Neu: Medien-Stream per Tastatur spulen.** Kanal > Streaming > "10
+  Sekunden vorspulen/zurückspulen" (Cmd+Option+Pfeil rechts/links, unter
+  Windows/Linux Strg+Alt+Pfeil). Die neue Position wird angesagt.
+- **Neu: Ausgestecktes Audiogerät bleibt gewählt.** Es steht als "(nicht
+  verbunden)" in der Auswahl; die App nutzt übergangsweise das
+  Standardgerät und wechselt beim Wiedereinstecken automatisch zurück.
+- **Neu: Mikrofon-Überwachung.** Sendet man, aber beim Server kommt mehrere
+  Sekunden lang keine Sprache an, startet die App das Mikrofon neu und sagt
+  es an. Stille löst nichts aus. Abschaltbar im Audio-Tab.
+
+Administration
+- **Neu: Letzte Anmeldung in der Benutzerkontenliste,** sortierbar. Konten
+  ohne Anmeldung zeigen "Nie" statt eines Datums von 1970.
+- **Verbessert: Konto-Änderungen, Kick und Bann melden den Erfolg erst,
+  wenn der Server zugestimmt hat.** Bei einer Ablehnung hört man den Grund
+  des Servers. Der Online-Nutzer-Dialog gibt jetzt überhaupt eine
+  Rückmeldung.
+- **Verbessert (macOS): Moderatoren ohne Administrator-Status können
+  Sperren und Servereigenschaften im Administration-Tab nutzen,** wenn der
+  Server ihnen diese Rechte gegeben hat.
+
+Fehlerbehebungen
+- **Mikrofon blieb nach App-Audio- oder Spotify-Streaming bis zum Neustart
+  stumm.** Der Einspeise-Stream wird jetzt sauber beendet.
+- **App-Audio und Spotify wurden in Kanälen mit Sprech-Warteschlange nach
+  der ersten Runde vom Server stumm abgewiesen.** Jede Runde gilt jetzt als
+  neuer Stream.
+- **Nach dem Ein- oder Ausstecken eines Audiogeräts blieben Mikrofon und
+  Ausgabe stumm,** solange "Bei Gerätewechsel automatisch anwenden" aus war.
+- **Tipp-Signale des offiziellen Clients erschienen als unverständliche
+  Chatzeile** ("X: typing 1") und wurden vorgelesen.
+- **Nutzerinfo sagte fälschlich "abwesend"** bei Nutzern, die als weiblich
+  eingestellt sind oder Medien streamen.
+- **macOS: Kanal und Kanalpasswort eines gespeicherten Servers gingen beim
+  Bearbeiten verloren** (ebenso ein ElevenLabs-Schlüssel); ein im Profil
+  gespeicherter Kanal wird jetzt nach dem Verbinden betreten.
+- **macOS: Das Kanal-Thema wurde bei jedem Sprecherwechsel angesagt,** nicht
+  nur bei einer Änderung.
+- **macOS: Die Kürzel "Ausgabelautstärke hoch/runter" ließen sich nicht
+  belegen.**
+- **Windows/Linux: Benutzerkonten- und Sperrliste im Administration-Tab
+  blieben immer leer.**
+- **Windows/Linux: Import einer .tt-Datei im Verbindungsdialog schlug fehl;**
+  "Beitrittscode eingeben" war ohne Funktion.
+- **Windows/Linux: Die Medienlautstärke pro Nutzer startete viel zu laut.**
+
 2026-10-03 (v10.5.2)
 Bugfix: Tonaussetzer/"Stottern" bei installierten virtuellen Audiotreibern (z. B. Loopback)
 

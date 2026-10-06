@@ -1,6 +1,102 @@
 Changelog
 =========
 
+2026-10-06 (v10.6.0)
+New features from TeamTalk 5.22/5.23 and tt-Accessible, many bug fixes
+
+Speaking and channels
+- **New: announcements in channels with a speaking queue.** In channels
+  where only one person can speak at a time, the app plays a sound and
+  says "It's your turn now" and "Your speaking turn has ended"; while you
+  wait you hear your position ("You are number 3 in the queue"). Can be
+  turned off under Speech output: "Speaking queue".
+- **New: complete channel dialog.** The delay before the next speaker in
+  the queue, maximum voice and media duration and a fixed volume can be set
+  when creating and editing a channel. The last three fields already
+  existed on macOS but were never applied. "Keep current codec" leaves the
+  codec untouched, including Speex or no codec.
+- **New: channel type in .tt files (TeamTalk 5.23).** Newly created target
+  channels also inherit the parent channel's audio codec - previously they
+  could be created without a codec and thus without voice.
+- **New: BearWare join codes (TeamTalk 5.22).** "Enter join code" now also
+  accepts the short codes a server operator generates in the official
+  client. The code is resolved via bearware.dk, the server is added and
+  connected right away if you like, including the target channel.
+- **New: always start with the microphone off when connecting** (setting,
+  off by default). Changing channels is not affected.
+
+Chat
+- **New: reply to messages.** In the chat history, Cmd+R (Windows/Linux:
+  Ctrl+R), the context menu or the "Reply" button replies to the message at
+  the cursor - as in the official TeamTalk 5.23. For private messages the
+  private chat with the sender opens directly.
+- **New: typing indicator for private messages,** compatible with the
+  official client. When someone writes to you, you hear a sound and "X is
+  typing a private message …"; others likewise see when you write to them.
+  Both can be turned off separately.
+
+Users and display
+- **New: show users as nickname, username or both.** Applies to the user
+  list, chat, announcements, private windows and the online users dialog,
+  takes effect immediately. Note for macOS: chat now shows senders by
+  nickname instead of username by default.
+- **New: see who is streaming a media file** ("Streaming media" / "Media
+  paused"), announced in your own channel (can be turned off: "Others'
+  media streams"). Other clients now also see when you are streaming.
+- **New: gender "Neutral" - and gender is now actually transmitted.** The
+  setting used to be saved but never sent to the server. The selection is
+  new on Windows/Linux.
+
+Audio and media
+- **New: overall media volume.** One control ("Media:" in the quick access
+  bar, Audio menu "Media louder/quieter" with Cmd+Alt+Shift+Up/Down)
+  adjusts all incoming media streams together without changing voices -
+  including streams that start later.
+- **New: seek the media stream with the keyboard.** Channel > Streaming >
+  "Forward/Rewind 10 seconds" (Cmd+Option+Right/Left, on Windows/Linux
+  Ctrl+Alt+Arrow). The new position is announced.
+- **New: an unplugged audio device stays selected.** It is listed as "(not
+  connected)"; the app temporarily uses the default device and switches
+  back automatically when it is plugged in again.
+- **New: microphone watchdog.** If you are transmitting but no voice
+  reaches the server for several seconds, the app restarts the microphone
+  and announces it. Silence does not trigger it. Can be turned off in the
+  Audio tab.
+
+Administration
+- **New: last login in the user accounts list,** sortable. Accounts that
+  never logged in show "Never" instead of a date in 1970.
+- **Improved: account changes, kicks and bans only report success once the
+  server has agreed.** If it refuses, you hear the server's reason. The
+  online users dialog now gives feedback at all.
+- **Improved (macOS): moderators without administrator status can use
+  bans and server properties in the Administration tab** if the server
+  granted them those rights.
+
+Bug fixes
+- **The microphone stayed silent after app audio or Spotify streaming
+  until restart.** The injected stream is now ended properly.
+- **App audio and Spotify were silently rejected by the server after the
+  first turn in channels with a speaking queue.** Each turn now counts as a
+  new stream.
+- **After plugging or unplugging an audio device, microphone and output
+  stayed silent** while "Auto-apply on device change" was off.
+- **Typing signals from the official client showed up as an unreadable
+  chat line** ("X: typing 1") and were read aloud.
+- **User info wrongly said "away"** for users set to female or streaming
+  media.
+- **macOS: channel and channel password of a saved server were lost when
+  editing it** (as was an ElevenLabs key); a channel saved in the profile is
+  now joined after connecting.
+- **macOS: the channel topic was announced on every speaker change,** not
+  only when it changed.
+- **macOS: the "Output volume up/down" shortcuts could not be assigned.**
+- **Windows/Linux: the user accounts and ban lists in the Administration
+  tab were always empty.**
+- **Windows/Linux: importing a .tt file in the connect dialog failed;**
+  "Enter join code" did nothing.
+- **Windows/Linux: per-user media volume started far too loud.**
+
 2026-10-03 (v10.5.2)
 Bugfix: audio dropouts/"stuttering" with virtual audio drivers installed (e.g. Loopback)
 

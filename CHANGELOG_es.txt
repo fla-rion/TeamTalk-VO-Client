@@ -1,6 +1,111 @@
 Changelog
 =========
 
+2026-10-06 (v10.6.0)
+Novedades de TeamTalk 5.22/5.23 y tt-Accessible, muchas correcciones
+
+Hablar y canales
+- **Nuevo: avisos en canales con cola de turnos.** En los canales donde
+  solo una persona puede hablar a la vez, la aplicación reproduce un sonido
+  y anuncia «Ahora es tu turno» y «Tu turno ha terminado»; mientras
+  esperas oyes tu posición («Eres el número 3 de la cola»). Se puede
+  desactivar en Voz: «Cola de turnos».
+- **Nuevo: diálogo de canal completo.** El tiempo de espera hasta el
+  siguiente orador de la cola, la duración máxima de voz y de medios y un
+  volumen fijo se configuran al crear y editar un canal. Los tres últimos
+  campos ya existían en macOS pero nunca se aplicaban. «Mantener el códec
+  actual» deja el códec sin cambios, también con Speex o sin códec.
+- **Nuevo: tipo de canal en archivos .tt (TeamTalk 5.23).** Los canales de
+  destino recién creados heredan además el códec de audio del canal padre;
+  antes podían crearse sin códec y, por tanto, sin voz.
+- **Nuevo: códigos de acceso de BearWare (TeamTalk 5.22).** «Introducir
+  código de acceso» acepta ahora también los códigos cortos que un
+  administrador de servidor genera en el cliente oficial. El código se
+  resuelve en bearware.dk, el servidor se añade y se conecta de inmediato
+  si lo deseas, incluido el canal de destino.
+- **Nuevo: conectar siempre con el micrófono apagado** (ajuste, desactivado
+  por defecto). Los cambios de canal no se ven afectados.
+
+Chat
+- **Nuevo: responder a mensajes.** En el historial, Cmd+R (Windows/Linux:
+  Ctrl+R), el menú contextual o el botón «Responder» responde al mensaje en
+  la posición del cursor, como en TeamTalk 5.23 oficial. En los mensajes
+  privados se abre directamente el chat privado con el remitente.
+- **Nuevo: indicador de escritura en mensajes privados,** compatible con
+  el cliente oficial. Cuando alguien te escribe, oyes un sonido y «X está
+  escribiendo un mensaje privado …»; los demás también ven cuándo les
+  escribes. Ambos se pueden desactivar por separado.
+
+Usuarios y visualización
+- **Nuevo: mostrar usuarios por apodo, nombre de usuario o ambos.** Se
+  aplica a la lista de usuarios, el chat, los avisos, las ventanas privadas
+  y el diálogo de usuarios en línea, con efecto inmediato. Nota para macOS:
+  el chat muestra ahora por defecto el apodo del remitente en lugar del
+  nombre de usuario.
+- **Nuevo: se ve quién está transmitiendo un archivo multimedia**
+  («Transmitiendo multimedia» / «Multimedia en pausa») y se anuncia en tu canal
+  (desactivable: «Transmisiones multimedia de otros»). Los demás clientes
+  también ven ahora cuándo transmites tú.
+- **Nuevo: género «Neutro», y el género por fin se transmite.** El ajuste
+  se guardaba pero nunca se enviaba al servidor. La selección es nueva en
+  Windows/Linux.
+
+Audio y medios
+- **Nuevo: volumen global de medios.** Un control («Medios:» en la barra de
+  acceso rápido, menú Audio «Medios más alto/más bajo» con
+  Cmd+Alt+Mayús+Flecha arriba/abajo) ajusta juntas todas las transmisiones
+  de medios entrantes sin cambiar las voces, también las que empiezan más
+  tarde.
+- **Nuevo: avanzar/retroceder en la transmisión con el teclado.** Canal >
+  Transmisión > «Avanzar/Retroceder 10 segundos» (Cmd+Opción+Flecha
+  derecha/izquierda, en Windows/Linux Ctrl+Alt+Flecha). Se anuncia la
+  nueva posición.
+- **Nuevo: un dispositivo de audio desconectado sigue seleccionado.**
+  Aparece como «(no conectado)»; la aplicación usa temporalmente el
+  dispositivo predeterminado y vuelve automáticamente al reconectarlo.
+- **Nuevo: vigilancia del micrófono.** Si estás transmitiendo pero no llega
+  voz al servidor durante varios segundos, la aplicación reinicia el
+  micrófono y lo anuncia. El silencio no lo activa. Se puede desactivar en
+  la pestaña Audio.
+
+Administración
+- **Nuevo: último inicio de sesión en la lista de cuentas,** ordenable. Las
+  cuentas que nunca iniciaron sesión muestran «Nunca» en lugar de una fecha
+  de 1970.
+- **Mejorado: los cambios de cuenta, expulsiones y bloqueos solo informan
+  del éxito cuando el servidor lo ha aceptado.** Si lo rechaza, oyes el
+  motivo del servidor. El diálogo de usuarios en línea ahora da respuesta.
+- **Mejorado (macOS): los moderadores sin estado de administrador pueden
+  usar los bloqueos y las propiedades del servidor en la pestaña
+  Administración** si el servidor les concedió esos derechos.
+
+Correcciones
+- **El micrófono quedaba en silencio tras transmitir audio de aplicaciones
+  o Spotify hasta reiniciar.** La transmisión inyectada ahora se cierra
+  correctamente.
+- **El servidor rechazaba en silencio el audio de aplicaciones y Spotify
+  tras el primer turno en canales con cola de turnos.** Cada turno cuenta
+  ahora como una transmisión nueva.
+- **Tras conectar o desconectar un dispositivo de audio, micrófono y
+  salida quedaban en silencio** mientras «Aplicar automáticamente al
+  cambiar dispositivo» estaba desactivado.
+- **Las señales de escritura del cliente oficial aparecían como una línea
+  de chat incomprensible** («X: typing 1») y se leían en voz alta.
+- **La información de usuario decía por error «ausente»** en usuarias
+  configuradas como mujer o que transmitían medios.
+- **macOS: el canal y su contraseña de un servidor guardado se perdían al
+  editarlo** (al igual que una clave de ElevenLabs); un canal guardado en el
+  perfil se une ahora tras conectar.
+- **macOS: el tema del canal se anunciaba en cada cambio de orador,** no
+  solo cuando cambiaba.
+- **macOS: no se podían asignar los atajos «Volumen de salida más/menos».**
+- **Windows/Linux: las listas de cuentas y bloqueos de la pestaña
+  Administración estaban siempre vacías.**
+- **Windows/Linux: importar un archivo .tt en el diálogo de conexión
+  fallaba;** «Introducir código de acceso» no hacía nada.
+- **Windows/Linux: el volumen de medios por usuario empezaba demasiado
+  alto.**
+
 2026-10-03 (v10.5.2)
 Corrección: cortes/"tartamudeo" de audio con controladores de audio virtuales instalados (p. ej. Loopback)
 

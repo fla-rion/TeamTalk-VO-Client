@@ -7513,16 +7513,19 @@ _TRANSLATIONS_ES.update({
 # Moderation: Rückmeldung erst nach Server-Bestätigung
 _TRANSLATIONS.update({
     "vom Server abgelehnt": "rejected by the server",
+    "Aktueller Codec beibehalten": "Keep current codec",
     "Kick": "Kick",
     "Bann": "Ban",
 })
 _TRANSLATIONS_FR.update({
     "vom Server abgelehnt": "refusé par le serveur",
+    "Aktueller Codec beibehalten": "Conserver le codec actuel",
     "Kick": "Expulsion",
     "Bann": "Bannissement",
 })
 _TRANSLATIONS_ES.update({
     "vom Server abgelehnt": "rechazado por el servidor",
+    "Aktueller Codec beibehalten": "Mantener el códec actual",
     "Kick": "Expulsión",
     "Bann": "Bloqueo",
 })

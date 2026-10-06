@@ -121,7 +121,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 11. Redezeit-/Gesprächsanteil-Statistik – für v10.6.0 vorgesehen
+## 11. Redezeit-/Gesprächsanteil-Statistik – für v10.7.0 vorgesehen
 
 🟢–🟡 · Eigene Idee, Lückenprüfung gegen `src/analytics.py`.
 
@@ -129,7 +129,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.7.0 vorgesehen
+## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.8.0 vorgesehen
 
 🟡 · Eigene Idee, Lückenprüfung gegen `src/offline_queue.py`.
 
@@ -137,7 +137,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.8.0 vorgesehen
+## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.9.0 vorgesehen
 
 🟢 · Zwei kleine, verwandte Punkte, gebündelt in einer Version.
 
@@ -146,7 +146,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.9.0 vorgesehen
+## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.10.0 vorgesehen
 
 🟢 · Bewusste Aufräum-Minor vor dem Major-Release, kein neuer Feature-Block.
 
@@ -170,6 +170,14 @@ Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Informatio
 
 ---
 
+## 17. TeamTalk-5.22/5.23- und tt-Accessible-Parität – ✅ erledigt in v10.6.0
+
+🟢–🟡 · Recherchiert 2026-10-05 (BearWare-ChangeLog 5.20–5.23, math65/ttaccessible 1.11.1–1.13.0-beta.3), umgesetzt als Batch mit 8 Subagenten. Übernommen: Sprech-Warteschlangen-Ansagen, vollständiger Kanaldialog (Queue-Delay, Zeitlimits, feste Lautstärke), Kanaltyp in .tt-Dateien, BearWare-Beitrittscodes (nur Einlösen – Erzeugen braucht BearWare-WebLogin), Chat-Antworten + Tipp-Anzeige (`MSGTYPE_CUSTOM "typing\r\n0/1"`), Medienstream-/Geschlechts-Statusbits inkl. "Neutral", Medien-Spulen per Tastatur, Medien-Gesamtlautstärke, Geräte-Merker "(nicht verbunden)", Mikrofon-Watchdog, "mit Mikro aus verbinden", Namensanzeige Nick/User/beides, letzte Anmeldung, Kick/Bann/Konto-Rückmeldung erst nach Server-Bestätigung.
+
+Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie beendet → eigenes Mikrofon nach App-Audio/Spotify tot; feste Stream-ID 0 → Server sperrt eingespeistes Audio in Solo-Kanälen nach der ersten Runde (Ursache gefunden über ttaccessible-Commit 158d3ce1 + BearWare-Serverquellcode `BlockAudioStream`); Hotplug ließ Geräte geschlossen; Qt-Admin-Listen leer; macOS-Profilformular verlor Kanal/Kanalpasswort.
+
+**Bewusst nicht übernommen:** SDK-Update 5.19a → 5.23 (API praktisch unverändert, nur Bugfixes; separat entscheiden), Mehrquellen-Streaming per Core-Audio-Taps (Teil von Punkt 15).
+
 ## Priorisierungsempfehlung
 
 | Status | Punkt | Aufwand | Anmerkung |
@@ -187,10 +195,12 @@ Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Informatio
 | ✅ v10.2.0 | Geräte-Sync (7) | 🔴 | HMAC-Auth, mDNS, Keychain-Secrets, wx + Qt |
 | ✅ v10.4.0 | Wetter-Ansage (9) | 🟢 | Open-Meteo, plattformunabhängiger Scheduler, wx + Qt |
 | ✅ v10.5.0 | TTS-Ducking (10) | 🟢 | Aufsatz auf vorhandene Lautstärkeregelung, wx + Qt |
-| geplant v10.6.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
-| geplant v10.7.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
-| geplant v10.8.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
-| geplant v10.9.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
+| ✅ v10.6.0 | TeamTalk-5.23-/tt-Accessible-Parität (17) | 🟢–🟡 | 8-Agenten-Batch, mehrere echte Audio-Bugs als Nebenfund |
+| offen | SDK-Update 5.19a → 5.23 | 🟢 | Header-Diff: nur neue Server-Log-Events + 3D-Audio nicht mehr DirectSound-only |
+| geplant v10.7.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
+| geplant v10.8.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
+| geplant v10.9.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
+| geplant v10.10.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant v11.0.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
 | Kandidat v11.0/11.1 | KI-Bildschirmbeschreibung (16) | 🟡–🔴 | Vision-Erweiterung der bestehenden KI-Backend-Kette |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |

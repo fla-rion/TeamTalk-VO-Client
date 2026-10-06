@@ -91,7 +91,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.5.2"
+APP_VERSION = "10.6.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -3020,7 +3020,7 @@ class MainFrame(wx.Frame):
             ("Kein Audio", "none"),
         ]
         if audio_codec_mode == "keep":
-            codec_choices.insert(0, ("Aktueller Codec beibehalten", "keep"))
+            codec_choices.insert(0, (_("Aktueller Codec beibehalten"), "keep"))
         codec_choice = wx.Choice(dlg, choices=[c[0] for c in codec_choices])
         codec_choice.SetSelection(0)
         for idx, _ in enumerate(codec_choices):

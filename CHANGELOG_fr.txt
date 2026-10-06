@@ -1,6 +1,115 @@
 Changelog
 =========
 
+2026-10-06 (v10.6.0)
+Nouveautés de TeamTalk 5.22/5.23 et de tt-Accessible, nombreuses corrections
+
+Parole et salons
+- **Nouveau : annonces dans les salons avec file de parole.** Dans les
+  salons où une seule personne peut parler à la fois, l'application joue un
+  son et annonce « C'est ton tour » et « Ton tour de parole est terminé » ;
+  pendant l'attente, tu entends ta position (« Tu es numéro 3 dans la
+  file »). Désactivable dans Synthèse vocale : « File de parole ».
+- **Nouveau : boîte de dialogue des salons complète.** Le délai avant
+  l'orateur suivant de la file, la durée maximale de voix et de média et un
+  volume fixe se règlent à la création et à la modification d'un salon. Les
+  trois derniers champs existaient déjà sur macOS mais n'étaient jamais
+  appliqués. « Conserver le codec actuel » laisse le codec inchangé, même
+  Speex ou sans codec.
+- **Nouveau : type de salon dans les fichiers .tt (TeamTalk 5.23).** Les
+  salons cibles nouvellement créés reprennent aussi le codec audio du salon
+  parent – auparavant ils pouvaient être créés sans codec, donc sans voix.
+- **Nouveau : codes d'accès BearWare (TeamTalk 5.22).** « Saisir le code
+  d'accès » accepte désormais aussi les codes courts qu'un administrateur de
+  serveur génère dans le client officiel. Le code est résolu via
+  bearware.dk, le serveur est ajouté et connecté aussitôt si tu le
+  souhaites, salon cible compris.
+- **Nouveau : toujours démarrer avec le micro coupé à la connexion**
+  (réglage, désactivé par défaut). Les changements de salon ne sont pas
+  concernés.
+
+Discussion
+- **Nouveau : répondre aux messages.** Dans l'historique, Cmd+R
+  (Windows/Linux : Ctrl+R), le menu contextuel ou le bouton « Répondre »
+  répond au message sous le curseur – comme dans TeamTalk 5.23 officiel.
+  Pour un message privé, la discussion privée avec l'expéditeur s'ouvre
+  directement.
+- **Nouveau : indicateur de saisie pour les messages privés,** compatible
+  avec le client officiel. Quand quelqu'un t'écrit, tu entends un son et
+  « X écrit un message privé … » ; les autres voient aussi quand tu leur
+  écris. Les deux sont désactivables séparément.
+
+Utilisateurs et affichage
+- **Nouveau : afficher les utilisateurs par pseudo, nom d'utilisateur ou
+  les deux.** S'applique à la liste, à la discussion, aux annonces, aux
+  fenêtres privées et à la liste des utilisateurs en ligne, effet immédiat.
+  Remarque macOS : la discussion affiche désormais par défaut le pseudo de
+  l'expéditeur au lieu du nom d'utilisateur.
+- **Nouveau : voir qui diffuse un fichier média** (« Diffuse un média » /
+  « Média en pause »), annoncé dans ton salon (désactivable : « Diffusions
+  média des autres »). Les autres clients voient aussi désormais quand tu
+  diffuses.
+- **Nouveau : genre « Neutre » – et le genre est enfin transmis.** Le
+  réglage était enregistré mais jamais envoyé au serveur. Le choix est
+  nouveau sous Windows/Linux.
+
+Audio et médias
+- **Nouveau : volume global des médias.** Un réglage (« Médias : » dans la
+  barre d'accès rapide, menu Audio « Médias plus fort/moins fort » avec
+  Cmd+Alt+Maj+Flèche haut/bas) règle ensemble tous les flux média entrants
+  sans toucher aux voix – y compris ceux qui démarrent plus tard.
+- **Nouveau : avancer/reculer dans le flux média au clavier.** Salon >
+  Diffusion > « Avancer/Reculer de 10 secondes » (Cmd+Option+Flèche
+  droite/gauche, sous Windows/Linux Ctrl+Alt+Flèche). La nouvelle position
+  est annoncée.
+- **Nouveau : un périphérique audio débranché reste sélectionné.** Il
+  apparaît comme « (non connecté) » ; l'application utilise
+  provisoirement le périphérique par défaut et y revient automatiquement
+  au rebranchement.
+- **Nouveau : surveillance du micro.** Si tu émets mais qu'aucune voix
+  n'arrive au serveur pendant plusieurs secondes, l'application redémarre
+  le micro et l'annonce. Le silence ne déclenche rien. Désactivable dans
+  l'onglet Audio.
+
+Administration
+- **Nouveau : dernière connexion dans la liste des comptes,** triable. Les
+  comptes jamais connectés affichent « Jamais » au lieu d'une date de 1970.
+- **Amélioré : modifications de compte, expulsions et bannissements
+  n'annoncent le succès qu'après l'accord du serveur.** En cas de refus, tu
+  entends la raison donnée par le serveur. La liste des utilisateurs en
+  ligne donne désormais un retour.
+- **Amélioré (macOS) : les modérateurs sans statut d'administrateur
+  peuvent utiliser les bannissements et les propriétés du serveur dans
+  l'onglet Administration** si le serveur leur a accordé ces droits.
+
+Corrections
+- **Le micro restait muet après une diffusion audio d'application ou
+  Spotify jusqu'au redémarrage.** Le flux injecté est maintenant
+  correctement terminé.
+- **L'audio d'application et Spotify étaient rejetés en silence par le
+  serveur après le premier tour dans les salons avec file de parole.**
+  Chaque tour compte maintenant comme un nouveau flux.
+- **Après avoir branché ou débranché un périphérique audio, micro et sortie
+  restaient muets** tant que « Appliquer automatiquement au changement de
+  périphérique » était désactivé.
+- **Les signaux de saisie du client officiel apparaissaient comme une
+  ligne de discussion incompréhensible** (« X: typing 1 ») et étaient lus.
+- **Les infos utilisateur indiquaient à tort « absent »** pour les
+  utilisatrices réglées sur féminin ou en cours de diffusion.
+- **macOS : le salon et son mot de passe d'un serveur enregistré étaient
+  perdus à la modification** (ainsi qu'une clé ElevenLabs) ; un salon
+  enregistré dans le profil est maintenant rejoint après la connexion.
+- **macOS : le sujet du salon était annoncé à chaque changement
+  d'orateur,** pas seulement quand il changeait.
+- **macOS : les raccourcis « Volume de sortie plus/moins » ne pouvaient pas
+  être attribués.**
+- **Windows/Linux : les listes des comptes et des bannissements de l'onglet
+  Administration restaient toujours vides.**
+- **Windows/Linux : l'import d'un fichier .tt dans la fenêtre de connexion
+  échouait ;** « Saisir le code d'accès » était sans effet.
+- **Windows/Linux : le volume média par utilisateur démarrait beaucoup trop
+  fort.**
+
 2026-10-03 (v10.5.2)
 Correction : coupures/« bégaiement » audio avec des pilotes audio virtuels installés (ex. Loopback)
 
