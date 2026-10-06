@@ -269,6 +269,13 @@ class AppSettings:
     hotkey_mic_boost_down: int = 0
     hotkey_volume_up: int = 0
     hotkey_volume_down: int = 0
+    # Medien-Gesamtlautstärke (alle eingehenden Medien-Streams, in %)
+    media_master_volume: int = 100
+    hotkey_media_volume_up: int = 0
+    hotkey_media_volume_down: int = 0
+    # Mikrofon-Watchdog: Soundsystem neu starten, wenn beim Senden dauerhaft
+    # kein Audio vom Eingabegerät beim SDK ankommt
+    mic_watchdog_enabled: bool = True
     vu_alert_enabled: bool = False
     vu_alert_threshold: int = 90
     recording_max_size_mb: int = 0

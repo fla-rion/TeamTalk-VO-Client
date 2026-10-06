@@ -7431,6 +7431,62 @@ _TRANSLATIONS_ES.update({
     "Nickname und Benutzername": "Apodo y nombre de usuario",
 })
 
+# Audio-Robustheit: Medien-Gesamtlautstärke, ausgestecktes Gerät, Mikrofon-Watchdog
+_TRANSLATIONS.update({
+    'Medien:': 'Media:',
+    'Medien-Gesamtlautstärke in Prozent': 'Overall media volume in percent',
+    'Lautstärke aller eingehenden Medien-Streams, 0 bis 200 Prozent': 'Volume of all incoming media streams, 0 to 200 percent',
+    'Medien-Lautstärke: {} %': 'Media volume: {} %',
+    'Medien lauter': 'Media louder',
+    'Medien leiser': 'Media quieter',
+    'Medien-Gesamtlautstärke hoch': 'Overall media volume up',
+    'Medien-Gesamtlautstärke runter': 'Overall media volume down',
+    'nicht verbunden': 'not connected',
+    '{} {} nicht verbunden, Standardgerät wird verwendet': '{} {} not connected, using the default device',
+    '{} {} wieder verbunden': '{} {} connected again',
+    'Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt': 'Restart the microphone automatically if nothing is sent while transmitting',
+    'Mikrofon-Überwachung aktiviert': 'Microphone monitoring enabled',
+    'Mikrofon-Überwachung deaktiviert': 'Microphone monitoring disabled',
+    'Mikrofon sendete nicht und wurde neu gestartet': 'Microphone was not transmitting and has been restarted',
+    'Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.': 'Microphone is still not transmitting. Please check the input device.',
+})
+_TRANSLATIONS_FR.update({
+    'Medien:': 'Médias :',
+    'Medien-Gesamtlautstärke in Prozent': 'Volume global des médias en pourcentage',
+    'Lautstärke aller eingehenden Medien-Streams, 0 bis 200 Prozent': 'Volume de tous les flux média entrants, de 0 à 200 pour cent',
+    'Medien-Lautstärke: {} %': 'Volume des médias : {} %',
+    'Medien lauter': 'Médias plus fort',
+    'Medien leiser': 'Médias moins fort',
+    'Medien-Gesamtlautstärke hoch': 'Augmenter le volume global des médias',
+    'Medien-Gesamtlautstärke runter': 'Baisser le volume global des médias',
+    'nicht verbunden': 'non connecté',
+    '{} {} nicht verbunden, Standardgerät wird verwendet': '{} {} non connecté, utilisation du périphérique par défaut',
+    '{} {} wieder verbunden': '{} {} de nouveau connecté',
+    'Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt': "Redémarrer automatiquement le microphone si rien n'est envoyé pendant la transmission",
+    'Mikrofon-Überwachung aktiviert': 'Surveillance du microphone activée',
+    'Mikrofon-Überwachung deaktiviert': 'Surveillance du microphone désactivée',
+    'Mikrofon sendete nicht und wurde neu gestartet': 'Le microphone ne transmettait pas et a été redémarré',
+    'Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.': "Le microphone ne transmet toujours pas. Veuillez vérifier le périphérique d'entrée.",
+})
+_TRANSLATIONS_ES.update({
+    'Medien:': 'Medios:',
+    'Medien-Gesamtlautstärke in Prozent': 'Volumen general de medios en porcentaje',
+    'Lautstärke aller eingehenden Medien-Streams, 0 bis 200 Prozent': 'Volumen de todas las transmisiones de medios entrantes, de 0 a 200 por ciento',
+    'Medien-Lautstärke: {} %': 'Volumen de medios: {} %',
+    'Medien lauter': 'Medios más alto',
+    'Medien leiser': 'Medios más bajo',
+    'Medien-Gesamtlautstärke hoch': 'Subir volumen general de medios',
+    'Medien-Gesamtlautstärke runter': 'Bajar volumen general de medios',
+    'nicht verbunden': 'no conectado',
+    '{} {} nicht verbunden, Standardgerät wird verwendet': '{} {} no conectado, se usa el dispositivo predeterminado',
+    '{} {} wieder verbunden': '{} {} conectado de nuevo',
+    'Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt': 'Reiniciar el micrófono automáticamente si no se envía nada al transmitir',
+    'Mikrofon-Überwachung aktiviert': 'Supervisión del micrófono activada',
+    'Mikrofon-Überwachung deaktiviert': 'Supervisión del micrófono desactivada',
+    'Mikrofon sendete nicht und wurde neu gestartet': 'El micrófono no transmitía y se ha reiniciado',
+    'Mikrofon sendet weiterhin nicht. Bitte Eingabegerät prüfen.': 'El micrófono sigue sin transmitir. Compruebe el dispositivo de entrada.',
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

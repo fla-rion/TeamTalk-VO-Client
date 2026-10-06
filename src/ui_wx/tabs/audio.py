@@ -6,6 +6,8 @@ from typing import Optional, TYPE_CHECKING
 import wx
 
 import system_audio as sa
+import audio_device_memory as adm
+from i18n import _
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -28,6 +30,12 @@ class AudioTab(wx.Panel):
         self._lp_session_id: Optional[int] = None
         self._lp_paused = False
         self._devices_applied = False
+        # Vom Nutzer gewähltes Gerät als (szDeviceID, Name) – bleibt erhalten,
+        # auch wenn es ausgesteckt ist (Anzeige "nicht verbunden").
+        self._wanted_in: Optional[adm.DeviceIdentity] = None
+        self._wanted_out: Optional[adm.DeviceIdentity] = None
+        self._in_missing = False
+        self._out_missing = False
 
         sizer = wx.BoxSizer(wx.VERTICAL)
 
@@ -43,6 +51,8 @@ class AudioTab(wx.Panel):
         lbl_out = wx.StaticText(self, label="Ausgabegerät")
         self.output_device = wx.Choice(self)
         self.output_device.SetName("Ausgabegerät")
+        self.input_device.Bind(wx.EVT_CHOICE, self._on_device_choice)
+        self.output_device.Bind(wx.EVT_CHOICE, self._on_device_choice)
 
         dev_form.Add(lbl_in, 0, wx.ALIGN_CENTER_VERTICAL)
         dev_form.Add(self.input_device, 1, wx.EXPAND)
@@ -283,6 +293,16 @@ class AudioTab(wx.Panel):
         self.auto_apply_device_change.Bind(wx.EVT_CHECKBOX, self._on_pref_auto_apply_device_change)
         prefs_sizer.Add(self.auto_apply_device_change, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
+        self.mic_watchdog_check = wx.CheckBox(
+            self, label=_("Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt")
+        )
+        self.mic_watchdog_check.SetName(_("Mikrofon automatisch neu starten, wenn beim Senden nichts ankommt"))
+        self.mic_watchdog_check.SetValue(
+            bool(getattr(self.frame.settings_store.settings, "mic_watchdog_enabled", True))
+        )
+        self.mic_watchdog_check.Bind(wx.EVT_CHECKBOX, self._on_pref_mic_watchdog)
+        prefs_sizer.Add(self.mic_watchdog_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         prefs_btn_row = wx.BoxSizer(wx.HORIZONTAL)
         self.save_prefs_btn = wx.Button(self, label="Aktuel&le Audioeinstellungen speichern")
         self.save_prefs_btn.SetName("Audioeinstellungen speichern")
@@ -416,15 +436,14 @@ class AudioTab(wx.Panel):
     ):
         client = self.frame.client
         tt_str = self.frame.tt_str
-        prev_in_idx = self.input_device.GetSelection()
-        prev_out_idx = self.output_device.GetSelection()
         prev_in_id = None
         prev_out_id = None
+        prev_in_idx = self.input_device.GetSelection()
+        prev_out_idx = self.output_device.GetSelection()
         if 0 <= prev_in_idx < len(self._input_devices):
             prev_in_id = int(self._input_devices[prev_in_idx].nDeviceID)
         if 0 <= prev_out_idx < len(self._output_devices):
             prev_out_id = int(self._output_devices[prev_out_idx].nDeviceID)
-
         if restart_sound:
             # SDK-Vorgabe (TT_RestartSoundSystem-Doku): Geräte MÜSSEN vor dem
             # Neustart geschlossen werden, sonst erkennt der Neustart weder
@@ -467,44 +486,60 @@ class AudioTab(wx.Panel):
         input_ids  = tuple(int(d.nDeviceID) for d in inputs)
         output_ids = tuple(int(d.nDeviceID) for d in outputs)
 
-        input_list_changed = input_ids != tuple(int(d.nDeviceID) for d in self._input_devices)
-        output_list_changed = output_ids != tuple(int(d.nDeviceID) for d in self._output_devices)
-
         self._input_devices = inputs
         self._output_devices = outputs
-
-        if input_list_changed:
-            self.input_device.Set(input_labels)
-        if output_list_changed:
-            self.output_device.Set(output_labels)
 
         indev, outdev = client.get_default_sound_devices()
         indev_val = getattr(indev, "value", indev)
         outdev_val = getattr(outdev, "value", outdev)
+        defaults_changed = (int(indev_val), int(outdev_val)) != self._last_default_ids
+
+        if auto_apply and defaults_changed and self._last_default_ids != (None, None):
+            # "Bei Gerätewechsel automatisch anwenden": neuem System-Standard
+            # folgen – aber nicht, solange das gewählte Gerät nur ausgesteckt
+            # ist (dann soll es beim Wiedereinstecken zurückkommen).
+            if adm.find_device_index(inputs, self._wanted_in, tt_str) >= 0:
+                idx = adm.find_device_id_index(inputs, indev_val)
+                if idx >= 0:
+                    self._wanted_in = adm.device_identity(inputs[idx], tt_str)
+            if adm.find_device_index(outputs, self._wanted_out, tt_str) >= 0:
+                idx = adm.find_device_id_index(outputs, outdev_val)
+                if idx >= 0:
+                    self._wanted_out = adm.device_identity(outputs[idx], tt_str)
 
         if prefer_previous:
-            in_candidates = (prev_in_id, indev_val)
-            out_candidates = (prev_out_id, outdev_val)
+            in_fallback = (prev_in_id, indev_val)
+            out_fallback = (prev_out_id, outdev_val)
         else:
-            in_candidates = (indev_val, prev_in_id)
-            out_candidates = (outdev_val, prev_out_id)
-
-        self._select_device(self.input_device, inputs, in_candidates)
-        self._select_device(self.output_device, outputs, out_candidates)
+            in_fallback = (indev_val, prev_in_id)
+            out_fallback = (outdev_val, prev_out_id)
+        was_in_missing, was_out_missing = self._in_missing, self._out_missing
+        self._in_missing = self._sync_device_choice(
+            self.input_device, inputs, input_labels, self._wanted_in, in_fallback
+        )
+        self._out_missing = self._sync_device_choice(
+            self.output_device, outputs, output_labels, self._wanted_out, out_fallback
+        )
+        self._announce_missing_changes(was_in_missing, was_out_missing)
 
         snapshot = (input_ids, output_ids)
         changed = snapshot != self._last_device_snapshot
         self._last_device_snapshot = snapshot
-        defaults_changed = (int(indev_val), int(outdev_val)) != self._last_default_ids
         self._last_default_ids = (int(indev_val), int(outdev_val))
 
         status_ready = "status" in self.frame.__dict__
 
-        if self._devices_applied and restart_sound and (reapply or (auto_apply and (changed or defaults_changed))):
+        if self._devices_applied and restart_sound:
             # Der Restart-Zyklus hat oben die zuvor aktiven Geräte geschlossen
-            # (SDK-Vorgabe) -- sie müssen jetzt wieder geöffnet werden, sonst
-            # bleiben Mikrofon/Ausgabe nach einem Refresh stumm.
-            self.on_apply_audio(None)
+            # (SDK-Vorgabe) -- sie müssen jetzt IMMER wieder geöffnet werden,
+            # sonst bleiben Mikrofon/Ausgabe nach einem Hotplug stumm (bisher
+            # nur mit "Bei Gerätewechsel automatisch anwenden").
+            self.on_apply_audio(None, announce=False)
+        elif self._devices_applied and (changed or defaults_changed) and (
+            auto_apply or self._in_missing or self._out_missing
+            or was_in_missing != self._in_missing or was_out_missing != self._out_missing
+        ):
+            self.on_apply_audio(None, announce=False)
 
         if announce and status_ready:
             text = f"Geräteliste aktualisiert: {len(inputs)} Eingabe, {len(outputs)} Ausgabe"
@@ -515,6 +550,75 @@ class AudioTab(wx.Panel):
             self.frame.set_status(text)
         elif changed and status_ready:
             self.frame.set_status(f"Neue Audiogeräte erkannt: {len(inputs)} Eingabe, {len(outputs)} Ausgabe")
+
+    def _sync_device_choice(self, choice: wx.Choice, devices: list, labels: list,
+                            wanted, fallback_ids: tuple) -> bool:
+        """Füllt die Auswahl und wählt das gewünschte Gerät; fehlt es, wird es
+        als "(nicht verbunden)" angehängt und gewählt. Gibt ``missing`` zurück."""
+        final_labels, idx, missing = adm.plan_selection(
+            devices, labels, wanted, fallback_ids, self.frame.tt_str, _("nicht verbunden")
+        )
+        if list(choice.GetStrings()) != final_labels:
+            choice.Set(final_labels)
+        if idx >= 0 and choice.GetSelection() != idx:
+            choice.SetSelection(idx)
+        return missing
+
+    def _announce_missing_changes(self, was_in_missing: bool, was_out_missing: bool) -> None:
+        msgs = []
+        for kind, was, now, wanted in (
+            (_("Eingabegerät"), was_in_missing, self._in_missing, self._wanted_in),
+            (_("Ausgabegerät"), was_out_missing, self._out_missing, self._wanted_out),
+        ):
+            if was == now or not wanted:
+                continue
+            name = wanted[1] or wanted[0]
+            if now:
+                msgs.append(_("{} {} nicht verbunden, Standardgerät wird verwendet").format(kind, name))
+            else:
+                msgs.append(_("{} {} wieder verbunden").format(kind, name))
+        if not msgs:
+            return
+        text = ". ".join(msgs)
+        if "status" in self.frame.__dict__:
+            self.frame.set_status(text)
+        try:
+            self.frame.tts.speak(text, kind="system")
+        except Exception:
+            pass
+
+    def _on_device_choice(self, event) -> None:
+        # Neue Wahl des Nutzers merken (nicht der Platzhalter-Eintrag).
+        choice = event.GetEventObject()
+        idx = choice.GetSelection()
+        tt_str = self.frame.tt_str
+        if choice is self.input_device and 0 <= idx < len(self._input_devices):
+            self._wanted_in = adm.device_identity(self._input_devices[idx], tt_str)
+        elif choice is self.output_device and 0 <= idx < len(self._output_devices):
+            self._wanted_out = adm.device_identity(self._output_devices[idx], tt_str)
+        event.Skip()
+
+    def _open_devices(self):
+        """Tatsächlich zu öffnende Geräte (Platzhalter → System-Standard)."""
+        indev_def, outdev_def = self.frame.client.get_default_sound_devices()
+        indev = adm.resolve_open_device(
+            self._input_devices, self.input_device.GetSelection(), getattr(indev_def, "value", indev_def)
+        )
+        outdev = adm.resolve_open_device(
+            self._output_devices, self.output_device.GetSelection(), getattr(outdev_def, "value", outdev_def)
+        )
+        return indev, outdev
+
+    def _resync_device_choices(self, announce: bool = True) -> None:
+        """Auswahl gegen die aktuelle (unveränderte) Geräteliste neu abgleichen."""
+        tt_str = self.frame.tt_str
+        in_labels = [e.label for e in sa.classify_devices(self._input_devices, tt_str)]
+        out_labels = [e.label for e in sa.classify_devices(self._output_devices, tt_str)]
+        was_in, was_out = self._in_missing, self._out_missing
+        self._in_missing = self._sync_device_choice(self.input_device, self._input_devices, in_labels, self._wanted_in, ())
+        self._out_missing = self._sync_device_choice(self.output_device, self._output_devices, out_labels, self._wanted_out, ())
+        if announce:
+            self._announce_missing_changes(was_in, was_out)
 
     def _select_device(self, choice: wx.Choice, devices: list, targets: tuple) -> None:
         for target in targets:
@@ -529,16 +633,24 @@ class AudioTab(wx.Panel):
             if choice.GetSelection() != 0:
                 choice.SetSelection(0)
 
-    def on_apply_audio(self, _event):
+    def on_apply_audio(self, _event, announce: bool = True):
         client = self.frame.client
-        in_idx = self.input_device.GetSelection()
-        out_idx = self.output_device.GetSelection()
-        if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
-                or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
+        indev, outdev = self._open_devices()
+        if indev is None or outdev is None:
             self.frame.set_status("Bitte Ein- und Ausgabegerät wählen")
             return
-        indev = self._input_devices[in_idx]
-        outdev = self._output_devices[out_idx]
+        # Eine echte (nicht Platzhalter-)Auswahl wird zum gemerkten Gerät;
+        # ein verbliebener "nicht verbunden"-Eintrag verschwindet dann.
+        tt_str = self.frame.tt_str
+        user_picked = False
+        if 0 <= self.input_device.GetSelection() < len(self._input_devices):
+            self._wanted_in = adm.device_identity(indev, tt_str)
+            user_picked = user_picked or self._in_missing
+        if 0 <= self.output_device.GetSelection() < len(self._output_devices):
+            self._wanted_out = adm.device_identity(outdev, tt_str)
+            user_picked = user_picked or self._out_missing
+        if user_picked:
+            self._resync_device_choices(announce=False)
         indev_id = int(indev.nDeviceID)
         outdev_id = int(outdev.nDeviceID)
 
@@ -585,7 +697,8 @@ class AudioTab(wx.Panel):
         if self.voice_activation.GetValue():
             client.enable_voice_activation(True)
         self._devices_applied = True
-        self.frame.set_status("Audiogeräte aktiviert")
+        if announce:
+            self.frame.set_status("Audiogeräte aktiviert")
 
     # --- Voice controls ---
 
@@ -644,15 +757,13 @@ class AudioTab(wx.Panel):
 
     def on_loopback_toggle(self, _event):
         if self.loopback_toggle.GetValue():
-            in_idx = self.input_device.GetSelection()
-            out_idx = self.output_device.GetSelection()
-            if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
-                    or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
+            indev, outdev = self._open_devices()
+            if indev is None or outdev is None:
                 self.frame.set_status("Bitte zuerst Geräte wählen")
                 self.loopback_toggle.SetValue(False)
                 return
-            indev_id = int(self._input_devices[in_idx].nDeviceID)
-            outdev_id = int(self._output_devices[out_idx].nDeviceID)
+            indev_id = int(indev.nDeviceID)
+            outdev_id = int(outdev.nDeviceID)
             handle = self.frame.client.start_sound_loopback_test(indev_id, outdev_id)
             if handle:
                 self._loopback_handle = handle
@@ -719,14 +830,12 @@ class AudioTab(wx.Panel):
             self.mgp_preview_btn.SetName("Mikrofon-Vorschau starten")
             self.frame.set_status("Mikrofon-Vorschau beendet")
         else:
-            in_idx = self.input_device.GetSelection()
-            out_idx = self.output_device.GetSelection()
-            if (in_idx == wx.NOT_FOUND or in_idx >= len(self._input_devices)
-                    or out_idx == wx.NOT_FOUND or out_idx >= len(self._output_devices)):
+            indev, outdev = self._open_devices()
+            if indev is None or outdev is None:
                 self.frame.set_status("Bitte zuerst Geräte wählen")
                 return
-            indev_id = int(self._input_devices[in_idx].nDeviceID)
-            outdev_id = int(self._output_devices[out_idx].nDeviceID)
+            indev_id = int(indev.nDeviceID)
+            outdev_id = int(outdev.nDeviceID)
             handle = self.frame.client.start_sound_loopback_test(indev_id, outdev_id)
             if handle:
                 self._loopback_handle = handle
@@ -753,6 +862,11 @@ class AudioTab(wx.Panel):
         return {
             "input_device_id": in_id,
             "output_device_id": out_id,
+            # Stabile Identität (nDeviceID ändert sich bei USB-Hotplug)
+            "input_device_uid": (self._wanted_in or ("", ""))[0],
+            "input_device_name": (self._wanted_in or ("", ""))[1],
+            "output_device_uid": (self._wanted_out or ("", ""))[0],
+            "output_device_name": (self._wanted_out or ("", ""))[1],
             "use_duplex": bool(self.duplex_mode.GetValue()),
             "voice_activation": bool(self.voice_activation.GetValue()),
             "voice_level": int(self.voice_level.GetValue()),
@@ -778,10 +892,20 @@ class AudioTab(wx.Panel):
         # Select devices
         in_id = prefs.get("input_device_id")
         out_id = prefs.get("output_device_id")
-        if in_id is not None:
-            self._select_device(self.input_device, self._input_devices, (in_id, None))
-        if out_id is not None:
-            self._select_device(self.output_device, self._output_devices, (out_id, None))
+        if prefs.get("input_device_uid") or prefs.get("input_device_name"):
+            self._wanted_in = (str(prefs.get("input_device_uid") or ""), str(prefs.get("input_device_name") or ""))
+        elif in_id is not None:
+            # Ältere gespeicherte Einstellungen ohne stabile Identität
+            idx = adm.find_device_id_index(self._input_devices, in_id)
+            if idx >= 0:
+                self._wanted_in = adm.device_identity(self._input_devices[idx], self.frame.tt_str)
+        if prefs.get("output_device_uid") or prefs.get("output_device_name"):
+            self._wanted_out = (str(prefs.get("output_device_uid") or ""), str(prefs.get("output_device_name") or ""))
+        elif out_id is not None:
+            idx = adm.find_device_id_index(self._output_devices, out_id)
+            if idx >= 0:
+                self._wanted_out = adm.device_identity(self._output_devices[idx], self.frame.tt_str)
+        self._resync_device_choices()
 
         # Duplex
         if "use_duplex" in prefs:
@@ -874,6 +998,14 @@ class AudioTab(wx.Panel):
             "Auto-Anwenden bei Gerätewechsel aktiviert"
             if self.auto_apply_device_change.GetValue()
             else "Auto-Anwenden bei Gerätewechsel deaktiviert"
+        )
+
+    def _on_pref_mic_watchdog(self, _event) -> None:
+        enabled = bool(self.mic_watchdog_check.GetValue())
+        self.frame.settings_store.settings.mic_watchdog_enabled = enabled
+        self.frame.settings_store.save()
+        self.frame.set_status(
+            _("Mikrofon-Überwachung aktiviert") if enabled else _("Mikrofon-Überwachung deaktiviert")
         )
 
     def _on_pref_save(self, _event) -> None:

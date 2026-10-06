@@ -15,6 +15,8 @@ _INAPP_CATEGORIES: List[Tuple[str, List[Tuple[str, str]]]] = [
         ("Video senden umschalten", "hotkey_video_tx"),
         ("Ausgabelautstärke hoch", "hotkey_volume_up"),
         ("Ausgabelautstärke runter", "hotkey_volume_down"),
+        ("Medien-Gesamtlautstärke hoch", "hotkey_media_volume_up"),
+        ("Medien-Gesamtlautstärke runter", "hotkey_media_volume_down"),
         ("Mikrofon-Boost hoch", "hotkey_mic_boost_up"),
         ("Mikrofon-Boost runter", "hotkey_mic_boost_down"),
         ("Aufnahme umschalten", "hotkey_record_toggle"),
