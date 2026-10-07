@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-08 (v10.8.0)
+Neu: Einstellungen durchsuchen, Kategorien ein- und ausklappen
+
+- **Neu: Einzelne Einstellungen suchen.** Das Suchfeld oben im
+  Einstellungsfenster fand bisher nur Bereichsnamen. Jetzt findet es jede
+  Einstellung in allen Bereichen, zum Beispiel "Nachlauf", "Ausgabegerät"
+  oder "Sprache"; Groß-/Kleinschreibung und Umlaute spielen keine Rolle.
+  Ein Treffer öffnet den Bereich, klappt die Kategorie auf und setzt den
+  Fokus direkt auf die Einstellung. Pfeil nach unten führt in die
+  Trefferliste, Escape leert das Feld.
+- **Neu: Kategorien ein- und ausklappen.** Jeder Rahmen (etwa "Geräte",
+  "Sprachaktivierung", "Ausgabe") hat eine Kopfzeile zum Ein- und
+  Ausklappen; VoiceOver sagt "eingeklappt" bzw. "ausgeklappt". Beim ersten
+  Öffnen ist je Bereich nur die erste Kategorie offen, danach merkt sich die
+  App deine Auswahl. "Alle aufklappen" und "Alle zuklappen" wirken auf den
+  aktuellen Bereich.
+- **Audio-Bereich scrollt jetzt.** Vorher konnten unten Einstellungen
+  abgeschnitten sein (macOS).
+- Unter Windows und Linux stehen Suche und Kategorien ebenso zur Verfügung
+  (Suche über den Reitern).
+
 2026-10-08 (v10.7.0)
 Neu: Sprechbereit-Befehl, Abhör-Warnung, BearWare-Töne für Sprachaktivierung und Stummschaltung
 

@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-08 (v10.8.0)
+Novedades: buscar en la configuración, expandir y contraer categorías
+
+- **Nuevo: buscar ajustes concretos.** El campo de búsqueda de la parte
+  superior de la ventana de configuración solo encontraba nombres de
+  secciones. Ahora encuentra cada ajuste de todas las secciones, por ejemplo
+  "retardo", "dispositivo de salida" o "idioma"; no importan las mayúsculas
+  ni los acentos. Un resultado abre la sección, expande la categoría y pone
+  el foco directamente en el ajuste. Flecha abajo entra en la lista de
+  resultados, Escape vacía el campo.
+- **Nuevo: expandir y contraer categorías.** Cada marco (como
+  "Dispositivos", "Activación por voz", "Salida") tiene un encabezado para
+  expandirlo o contraerlo; VoiceOver anuncia "contraído" o "expandido". La
+  primera vez solo está expandida la primera categoría de cada sección;
+  después la aplicación recuerda tu elección. "Expandir todo" y "Contraer
+  todo" se aplican a la sección actual.
+- **La sección Audio ahora se desplaza.** Antes podían quedar cortados los
+  ajustes de la parte inferior (macOS).
+- La búsqueda y las categorías también están disponibles en Windows y Linux
+  (búsqueda encima de las pestañas).
+
 2026-10-08 (v10.7.0)
 Novedades: comando listo para hablar, aviso de interceptación, sonidos de BearWare para la activación por voz y el silencio
 

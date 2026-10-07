@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-08 (v10.8.0)
+Nouveau : rechercher dans les paramètres, déplier et replier les catégories
+
+- **Nouveau : rechercher un paramètre précis.** Le champ de recherche en
+  haut de la fenêtre des paramètres ne trouvait jusqu'ici que les noms de
+  sections. Il trouve désormais chaque paramètre de toutes les sections,
+  par ex. « temporisation », « périphérique de sortie » ou « langue » ; la
+  casse et les accents n'ont pas d'importance. Un résultat ouvre la section,
+  déplie la catégorie et place le focus directement sur le paramètre. Flèche
+  bas pour entrer dans la liste des résultats, Échap vide le champ.
+- **Nouveau : déplier et replier les catégories.** Chaque cadre (comme
+  « Périphériques », « Activation vocale », « Sortie ») a un en-tête pour le
+  déplier ou le replier ; VoiceOver annonce « replié » ou « déplié ». À la
+  première ouverture, seule la première catégorie de chaque section est
+  dépliée ; ensuite l'application mémorise votre choix. « Tout déplier » et
+  « Tout replier » s'appliquent à la section actuelle.
+- **La section Audio défile désormais.** Auparavant, des paramètres en bas
+  pouvaient être coupés (macOS).
+- La recherche et les catégories sont aussi disponibles sous Windows et
+  Linux (recherche au-dessus des onglets).
+
 2026-10-08 (v10.7.0)
 Nouveau : commande prêt à parler, alerte d'interception, sons BearWare pour l'activation vocale et la sourdine
 

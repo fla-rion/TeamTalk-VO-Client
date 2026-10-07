@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-08 (v10.8.0)
+New: search settings, expand and collapse categories
+
+- **New: search for individual settings.** The search field at the top of
+  the settings window used to find only section names. Now it finds every
+  setting in all sections, e.g. "hangover", "output device" or "language";
+  case and umlauts don't matter. A match opens the section, expands the
+  category and puts the focus directly on the setting. Down Arrow moves into
+  the result list, Escape clears the field.
+- **New: expand and collapse categories.** Every frame (such as "Devices",
+  "Voice activation", "Output") has a header to expand or collapse it;
+  VoiceOver announces "collapsed" or "expanded". When first opened only the
+  first category of each section is expanded; after that the app remembers
+  your choice. "Expand all" and "Collapse all" apply to the current section.
+- **The Audio section now scrolls.** Previously settings at the bottom could
+  be cut off (macOS).
+- Search and categories are available on Windows and Linux as well (search
+  above the tabs).
+
 2026-10-08 (v10.7.0)
 New: ready-to-talk command, interception warning, BearWare sounds for voice activation and muting
 
