@@ -121,7 +121,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 11. Redezeit-/Gesprächsanteil-Statistik – für v10.7.0 vorgesehen
+## 11. Redezeit-/Gesprächsanteil-Statistik – für v10.9.0 vorgesehen
 
 🟢–🟡 · Eigene Idee, Lückenprüfung gegen `src/analytics.py`.
 
@@ -129,7 +129,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.8.0 vorgesehen
+## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.10.0 vorgesehen
 
 🟡 · Eigene Idee, Lückenprüfung gegen `src/offline_queue.py`.
 
@@ -137,7 +137,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.9.0 vorgesehen
+## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.11.0 vorgesehen
 
 🟢 · Zwei kleine, verwandte Punkte, gebündelt in einer Version.
 
@@ -146,7 +146,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.10.0 vorgesehen
+## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.12.0 vorgesehen
 
 🟢 · Bewusste Aufräum-Minor vor dem Major-Release, kein neuer Feature-Block.
 
@@ -197,10 +197,14 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | ✅ v10.5.0 | TTS-Ducking (10) | 🟢 | Aufsatz auf vorhandene Lautstärkeregelung, wx + Qt |
 | ✅ v10.6.0 | TeamTalk-5.23-/tt-Accessible-Parität (17) | 🟢–🟡 | 8-Agenten-Batch, mehrere echte Audio-Bugs als Nebenfund |
 | offen | SDK-Update 5.19a → 5.23 | 🟢 | Header-Diff: nur neue Server-Log-Events + 3D-Audio nicht mehr DirectSound-only |
-| geplant v10.7.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
-| geplant v10.8.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
-| geplant v10.9.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
-| geplant v10.10.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
+| ✅ v10.6.2 | Audio-Fix: zerstückelte Stimme (VA-Nachlauf 0 ms), falsche Ausgabegeräte (Nebenfund) | 🟢 | Gemeldet von David Losse |
+| ✅ v10.7.0 | Sprechbereit-Befehl + globaler Hotkey, Abhör-Warnung, BearWare-Töne (Nutzerwunsch) | 🟢–🟡 | Abhör-Warnung gegen lokalen tt5srv verifiziert |
+| ✅ v10.8.0 | Einstellungen: Suche einzelner Einstellungen, einklappbare Kategorien (Nutzerwunsch) | 🟡 | wx + Qt |
+| — | ~~Suno-Links streamen (Nutzerwunsch)~~ | — | Suno-Audio ist verschlüsselt (2026-10), nur mit Schutzumgehung möglich – nicht umgesetzt |
+| geplant v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
+| geplant v10.10.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
+| geplant v10.11.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
+| geplant v10.12.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant v11.0.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
 | Kandidat v11.0/11.1 | KI-Bildschirmbeschreibung (16) | 🟡–🔴 | Vision-Erweiterung der bestehenden KI-Backend-Kette |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
