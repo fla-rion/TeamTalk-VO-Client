@@ -9,6 +9,15 @@ Sprach-Codec, aber der Zähler ``ClientStatistics.nVoiceBytesSent`` steigt
 über mehrere Sekunden nicht. Stille unter der Aktivierungsschwelle oder ein
 stummgeschaltetes Mikrofon lösen also nie etwas aus.
 
+Kanäle, in denen das SDK selbst absichtlich nichts sendet, zählen nicht als
+Sprachkanal (Nachbildung von ``Channel::CanTransmit`` und der
+``CHANNEL_NO_VOICEACTIVATION``-Prüfung in ``ClientNode.cpp``): Unterrichts-
+modus ohne Sprechrecht, vom Operator gesperrte Nutzer und Sprachaktivierung
+in Kanälen ohne Sprachaktivierung. Sonst hielt der Watchdog das für einen
+Defekt und startete alle paar Sekunden das Soundsystem neu – hörbar als
+zerstückelte Stimme, und beim Wiederöffnen konnte ein anderes Gerät
+gewählt werden.
+
 Dann wird das Soundsystem einmal neu gestartet. Hilft das nicht, folgt kein
 Neustart-Dauerfeuer: es gibt eine einmalige Meldung, und erst wenn wieder
 Sprache rausgeht (oder nicht mehr gesendet wird), ist der Watchdog wieder
@@ -27,6 +36,13 @@ CLIENT_SNDINPUT_READY = 0x00000001
 CLIENT_SNDINPUT_VOICEACTIVATED = 0x00000008
 CLIENT_SNDINPUT_VOICEACTIVE = 0x00000010
 CLIENT_TX_VOICE = 0x00000100
+
+# ChannelType / StreamType aus TeamTalk.h
+CHANNEL_CLASSROOM = 0x0004
+CHANNEL_NO_VOICEACTIVATION = 0x0010
+STREAMTYPE_VOICE = 0x0001
+TRANSMITUSERS_FREEFORALL = 0xFFF
+TRANSMITUSERS_MAX = 128
 
 STALL_SECONDS = 6.0      # so lange darf "senden, aber 0 Bytes" dauern
 RETRY_COOLDOWN = 30.0    # frühestens danach ein zweiter Neustart-Versuch
@@ -105,6 +121,41 @@ class MicWatchdog:
         return ACTION_RESTART
 
 
+def transmit_users(channel) -> dict:
+    """``Channel.transmitUsers`` als {user_id: stream_type_maske}."""
+    result: dict = {}
+    arr = getattr(channel, "transmitUsers", None)
+    if arr is None:
+        return result
+    for i in range(TRANSMITUSERS_MAX):
+        try:
+            uid, stype = int(arr[i][0]), int(arr[i][1])
+        except Exception:
+            try:
+                uid, stype = int(arr[i * 2]), int(arr[i * 2 + 1])
+            except Exception:
+                break
+        if uid == 0:
+            break
+        result[uid] = stype
+    return result
+
+
+def sdk_sends_voice(channel_type: int, tx_users: dict, my_user_id: int, flags: int) -> bool:
+    """Ob das SDK Sprachpakete in diesem Kanal überhaupt verschickt."""
+    voice_users = {uid for uid, st in tx_users.items() if st & STREAMTYPE_VOICE}
+    if channel_type & CHANNEL_CLASSROOM:
+        if my_user_id not in voice_users and TRANSMITUSERS_FREEFORALL not in voice_users:
+            return False
+    elif my_user_id in voice_users:
+        return False  # außerhalb des Unterrichtsmodus heißt die Liste: gesperrt
+    if (channel_type & CHANNEL_NO_VOICEACTIVATION) and (
+        flags & CLIENT_SNDINPUT_VOICEACTIVATED
+    ) and (flags & CLIENT_SNDINPUT_VOICEACTIVE):
+        return False
+    return True
+
+
 def sample_from_client(client) -> Optional[MicSample]:
     """Liest den aktuellen Zustand aus dem TeamTalkClient (UI-Thread)."""
     try:
@@ -120,6 +171,13 @@ def sample_from_client(client) -> Optional[MicSample]:
             ch = client.get_channel(ch_id)
             codec = getattr(getattr(ch, "audiocodec", None), "nCodec", 0) if ch is not None else 0
             in_voice = int(codec or 0) != 0  # NO_CODEC = 0 → Kanal ohne Sprache
+            if in_voice:
+                in_voice = sdk_sends_voice(
+                    int(getattr(ch, "uChannelType", 0) or 0),
+                    transmit_users(ch),
+                    int(client.get_my_user_id() or 0),
+                    flags,
+                )
         return MicSample(flags=flags, voice_bytes_sent=int(stats.nVoiceBytesSent), in_voice_channel=in_voice)
     except Exception:
         return None

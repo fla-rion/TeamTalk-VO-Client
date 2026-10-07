@@ -105,6 +105,26 @@ def preferred_input_device(devices: list, tt_str: Callable[[object], str]):
     return candidates[0]
 
 
+# Virtuelle Geräte anderer Programme, die kein Loopback sind, aber auch keine
+# echte Hardware: Konferenz-Apps setzen sie teils ungefragt als
+# System-Standard, und das TeamTalk-SDK listet sein eigenes virtuelles Gerät.
+_VIRTUAL_KEYWORDS = (
+    "teams audio",              # Microsoft Teams
+    "zoomaudiodevice",          # Zoom
+    "zoom audio",
+    "teamtalk virtual",         # SOUNDDEVICEID_TEAMTALK_VIRTUAL
+    "krisp",                    # Krisp-Rauschfilter
+    "webex",
+)
+
+
+def is_virtual_device_name(name: str) -> bool:
+    """True für Loopback- und andere virtuelle Geräte (keine echte Hardware).
+    Ihnen wird nie automatisch gefolgt; als Notauswahl kommen sie zuletzt."""
+    lower = (name or "").lower()
+    return _is_loopback_name(lower) or any(kw in lower for kw in _VIRTUAL_KEYWORDS)
+
+
 def _is_loopback_name(name: str) -> bool:
     lower = name.lower()
     return any(kw in lower for kw in _LOOPBACK_KEYWORDS)

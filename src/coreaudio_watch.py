@@ -52,6 +52,25 @@ _LISTENER_PROC = ctypes.CFUNCTYPE(
 )
 
 
+# Art einer Änderung (Argument des Callbacks)
+CHANGE_DEVICES = "devices"     # Gerät hinzugekommen/entfernt → SDK-Neustart nötig
+CHANGE_DEFAULTS = "defaults"   # nur System-Standardgerät gewechselt
+
+
+def classify_change(old_sig, new_sig) -> Optional[str]:
+    """Vergleicht zwei Signaturen ``(device_ids, default_in, default_out)``.
+
+    ``None`` = keine echte Änderung. Ist eine Signatur unbekannt, gilt das
+    vorsichtshalber als Geräteänderung (lieber ein Neustart zu viel)."""
+    if old_sig is None or new_sig is None:
+        return CHANGE_DEVICES
+    if old_sig == new_sig:
+        return None
+    if old_sig[0] != new_sig[0]:
+        return CHANGE_DEVICES
+    return CHANGE_DEFAULTS
+
+
 def _load_coreaudio() -> ctypes.CDLL:
     path = ctypes.util.find_library("CoreAudio") or (
         "/System/Library/Frameworks/CoreAudio.framework/CoreAudio"
@@ -162,7 +181,9 @@ class CoreAudioDeviceWatcher:
         except Exception:
             return None
 
-    def start(self, callback: Callable[[], None]) -> bool:
+    def start(self, callback: Callable[[str], None]) -> bool:
+        """``callback(kind)`` mit ``CHANGE_DEVICES`` oder ``CHANGE_DEFAULTS``;
+        läuft auf einem CoreAudio-Thread."""
         if not _IS_MAC:
             return False
         with self._lock:
@@ -183,13 +204,12 @@ class CoreAudioDeviceWatcher:
                     return 0
                 try:
                     sig = self._read_signature()
-                    changed = True
                     with self._sig_lock:
+                        kind = classify_change(self._last_signature, sig)
                         if sig is not None:
-                            changed = sig != self._last_signature
                             self._last_signature = sig
-                    if changed:
-                        cb()
+                    if kind is not None:
+                        cb(kind)
                 except Exception:
                     pass
                 return 0

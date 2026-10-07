@@ -5255,24 +5255,39 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
 
-    def _on_coreaudio_device_change(self) -> None:
+    def _on_coreaudio_device_change(self, kind: str = "devices") -> None:
         # Läuft auf einem CoreAudio-eigenen Thread – in den UI-Hauptthread
         # marshalen und dort entprellen (Hotplug-Events kommen oft im Burst).
-        wx.CallAfter(self._schedule_device_hotplug_refresh)
+        wx.CallAfter(self._schedule_device_hotplug_refresh, kind)
 
-    def _schedule_device_hotplug_refresh(self) -> None:
+    def _schedule_device_hotplug_refresh(self, kind: str = "devices") -> None:
+        self._device_hotplug_kinds = getattr(self, "_device_hotplug_kinds", set()) | {kind}
         if self._device_hotplug_refresh_pending:
             return
         self._device_hotplug_refresh_pending = True
-        wx.CallLater(400, self._run_device_hotplug_refresh)
+        # 1 s entprellen: Bluetooth-Headsets melden beim Profilwechsel
+        # (Musik ↔ Freisprechen) mehrere Änderungen kurz hintereinander.
+        wx.CallLater(1000, self._run_device_hotplug_refresh)
 
     def _run_device_hotplug_refresh(self) -> None:
         self._device_hotplug_refresh_pending = False
+        kinds = getattr(self, "_device_hotplug_kinds", set())
+        self._device_hotplug_kinds = set()
         try:
             auto_apply = bool(
                 getattr(self.settings_store.settings, "auto_apply_audio_on_device_change", False)
             )
-            self.audio_tab.refresh_audio_devices(
+            at = self.audio_tab
+            if "devices" not in kinds:
+                # Nur das macOS-Standardgerät hat gewechselt (z. B. Teams,
+                # Bluetooth-Headset meldet sich). Die App öffnet die gewählten
+                # Geräte gezielt – ein Soundsystem-Neustart würde sie nur
+                # schließen und neu öffnen (Aussetzer in der eigenen Stimme)
+                # und ist allein dann nötig, wenn dem Standardgerät gefolgt
+                # werden soll: Option aktiv oder gewähltes Gerät fehlt.
+                if not (auto_apply or at._in_missing or at._out_missing):
+                    return
+            at.refresh_audio_devices(
                 announce=True, prefer_previous=True, auto_apply=auto_apply, restart_sound=True
             )
         except Exception:
