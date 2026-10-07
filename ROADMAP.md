@@ -129,7 +129,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.10.0 vorgesehen
+## 12. Sprachnachrichten für die Offline-Warteschlange – für v10.9.1 vorgesehen
 
 🟡 · Eigene Idee, Lückenprüfung gegen `src/offline_queue.py`.
 
@@ -137,7 +137,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.11.0 vorgesehen
+## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v10.9.2 vorgesehen
 
 🟢 · Zwei kleine, verwandte Punkte, gebündelt in einer Version.
 
@@ -146,7 +146,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.12.0 vorgesehen
+## 14. Accessibility-Politur & Stabilisierung vor 11.0 – für v10.9.3 vorgesehen
 
 🟢 · Bewusste Aufräum-Minor vor dem Major-Release, kein neuer Feature-Block.
 
@@ -202,9 +202,9 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | ✅ v10.8.0 | Einstellungen: Suche einzelner Einstellungen, einklappbare Kategorien (Nutzerwunsch) | 🟡 | wx + Qt |
 | — | ~~Suno-Links streamen (Nutzerwunsch)~~ | — | Suno-Audio ist verschlüsselt (2026-10), nur mit Schutzumgehung möglich – nicht umgesetzt |
 | geplant v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
-| geplant v10.10.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
-| geplant v10.11.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
-| geplant v10.12.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
+| geplant v10.9.1 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
+| geplant v10.9.2 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
+| geplant v10.9.3 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant v11.0.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
 | Kandidat v11.0/11.1 | KI-Bildschirmbeschreibung (16) | 🟡–🔴 | Vision-Erweiterung der bestehenden KI-Backend-Kette |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
