@@ -90,7 +90,7 @@ class AudioTab(QWidget):
         va_form.addRow(QLabel(_("Sprachaktivierung")), self.voice_activation)
         self.voice_level = QSpinBox()
         self.voice_level.setRange(0, 100)
-        self.voice_level.setValue(30)
+        self.voice_level.setValue(0)
         self.voice_level.setAccessibleName("Aktivierungspegel")
         self.voice_level.valueChanged.connect(self.on_voice_level)
         va_form.addRow(QLabel(_("Aktivierungspegel (0–100)")), self.voice_level)

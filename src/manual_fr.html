@@ -111,6 +111,15 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Nouveautés</h2>
 <div class="new">
+<strong>v10.7.0 (2026-10-08) :</strong> Commande prêt à parler, alerte d'interception, sons BearWare
+<ul>
+  <li><strong>Basculer prêt à parler</strong> : une seule commande (menu Audio, raccourci, aussi en raccourci global) applique l'audio, rétablit le son et active ou désactive l'activation vocale. Détails au chapitre 11.</li>
+  <li><strong>Alerte d'interception</strong> : l'application annonce avec un son quand un administrateur du serveur intercepte votre voix ou vos messages. Détails au chapitre 10.</li>
+  <li><strong>Sons comme dans le client officiel</strong> pour l'activation vocale et « Tout mettre en sourdine » ; le niveau d'activation commence à 0 % sur les nouvelles installations.</li>
+  <li><strong>v10.6.2</strong> : voix hachée avec l'activation vocale (temporisation à 0 ms) et périphériques audio qui changeaient tout seuls corrigés.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v10.6.0 (2026-10-06) :</strong> Nouveautés de TeamTalk 5.22/5.23 et de tt-Accessible
 <ul>
   <li><strong>File de parole</strong> : dans les salons où une seule personne peut parler à la fois, l'application annonce avec un son quand c'est ton tour, quand il se termine et ta position dans la file.</li>
@@ -727,8 +736,8 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <table>
 <tr><th>Paramètre</th><th>Description</th></tr>
 <tr><td>Activation vocale (case à cocher)</td><td>Activer/désactiver (Alt+S)</td></tr>
-<tr><td>Niveau d'activation (0–100)</td><td>Seuil à partir duquel la transmission commence. Valeur plus basse = plus sensible. Par défaut : 30</td></tr>
-<tr><td>Temporisation en ms (0–5000)</td><td>Durée pendant laquelle la transmission continue après le silence. Par défaut : 0 ms</td></tr>
+<tr><td>Niveau d'activation (0–100)</td><td>Seuil à partir duquel la transmission commence. Valeur plus basse = plus sensible ; 0 = tout son est transmis. Par défaut : 0</td></tr>
+<tr><td>Temporisation en ms (0–5000)</td><td>Durée pendant laquelle la transmission continue après le silence. Par défaut : 1500 ms ; des valeurs très faibles coupent la voix pendant les pauses</td></tr>
 </table>
 
 <h2>Push-to-Talk (PTT)</h2>

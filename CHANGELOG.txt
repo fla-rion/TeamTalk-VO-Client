@@ -1,6 +1,40 @@
 Changelog
 =========
 
+2026-10-08 (v10.7.0)
+Neu: Sprechbereit-Befehl, Abhör-Warnung, BearWare-Töne für Sprachaktivierung und Stummschaltung
+
+Sprechen
+- **Neu: "Sprechbereit umschalten"** (Menü Audio, als Tastenkürzel
+  belegbar). Ein Befehl wendet Audio an, hebt "Alles stummschalten" auf und
+  schaltet die Sprachaktivierung ein; erneut ausgelöst schaltet er die
+  Sprachaktivierung wieder aus. Lässt sich ein Gerät nicht öffnen, ändert
+  sich nichts und die App meldet den Grund.
+- **Neu: Globaler Hotkey für "Sprechbereit umschalten"** (macOS und
+  Windows), wirkt auch, wenn die App im Hintergrund ist. Einzurichten unter
+  Tastaturkürzel → Globale Hotkeys.
+- **Neu: Töne wie im offiziellen Client.** Sprachaktivierung ein/aus und
+  "Alles stummschalten" ein/aus spielen jetzt die BearWare-Töne – egal ob
+  über Menü, Symbolleiste, Audio-Tab, Kürzel oder globalen Hotkey. Jeder Ton
+  ist unter Sound-Ereignisse änderbar.
+- **Aktivierungspegel startet bei neuen Installationen bei 0 %**, die
+  Sprachaktivierung überträgt also jedes Geräusch, bis du den Pegel
+  anhebst. Gespeicherte Werte bleiben unverändert.
+
+Sicherheit
+- **Neu: Abhör-Warnung.** Fängt ein Server-Administrator deine Stimme,
+  Privat- oder Kanalnachrichten, Mediendateien, Video oder Desktop ab, sagt
+  die App das mit Ton an ("Admin hört jetzt mit: Stimme") und meldet auch
+  das Ende. Ein beim Anmelden bereits laufendes Abhören wird ebenfalls
+  gemeldet. Siehe Handbuch: "Abhör-Warnung".
+
+Fehlerbehebungen
+- Der Symbolleisten-Schalter "Sprachaktivierung" (macOS) und die
+  Menü-Haken für Sprachaktivierung und Stummschaltung zeigten nach
+  Tastenkürzeln teils den falschen Zustand.
+- Ein gehaltener globaler Hotkey zum Stummschalten schaltete durch die
+  Tastenwiederholung mehrfach um (macOS).
+
 2026-10-08 (v10.6.2)
 Fehlerbehebungen: zerstückelte Stimme, selbstständig wechselnde Audiogeräte
 

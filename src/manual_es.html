@@ -111,6 +111,15 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Novedades</h2>
 <div class="new">
+<strong>v10.7.0 (2026-10-08):</strong> Comando listo para hablar, aviso de interceptación, sonidos de BearWare
+<ul>
+  <li><strong>Alternar listo para hablar</strong>: un solo comando (menú Audio, atajo, también como atajo global) aplica el audio, quita el silencio y activa o desactiva la activación por voz. Detalles en el capítulo 11.</li>
+  <li><strong>Aviso de interceptación</strong>: la aplicación avisa con un sonido cuando un administrador del servidor intercepta tu voz o tus mensajes. Detalles en el capítulo 10.</li>
+  <li><strong>Sonidos como en el cliente oficial</strong> para la activación por voz y "Silenciar a todos"; el nivel de activación empieza en 0 % en instalaciones nuevas.</li>
+  <li><strong>v10.6.2</strong>: corregida la voz entrecortada con activación por voz (retardo en 0 ms) y los dispositivos de audio que cambiaban solos.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v10.6.0 (2026-10-06):</strong> Novedades de TeamTalk 5.22/5.23 y tt-Accessible
 <ul>
   <li><strong>Cola de turnos</strong>: en los canales donde solo una persona puede hablar a la vez, la aplicación anuncia con un sonido cuándo es tu turno, cuándo termina y tu posición en la cola.</li>
@@ -727,8 +736,8 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <table>
 <tr><th>Ajuste</th><th>Descripción</th></tr>
 <tr><td>Activación por voz (casilla)</td><td>Activar/desactivar (Alt+S)</td></tr>
-<tr><td>Nivel de activación (0–100)</td><td>Umbral a partir del cual comienza la transmisión. Valor más bajo = más sensible. Por defecto: 30</td></tr>
-<tr><td>Retardo en ms (0–5000)</td><td>Cuánto tiempo continúa la transmisión tras el silencio. Por defecto: 0 ms</td></tr>
+<tr><td>Nivel de activación (0–100)</td><td>Umbral a partir del cual comienza la transmisión. Valor más bajo = más sensible; 0 = se transmite cualquier sonido. Por defecto: 0</td></tr>
+<tr><td>Retardo en ms (0–5000)</td><td>Cuánto tiempo continúa la transmisión tras el silencio. Por defecto: 1500 ms; valores muy bajos cortan la voz en las pausas</td></tr>
 </table>
 
 <h2>Push-to-Talk (PTT)</h2>

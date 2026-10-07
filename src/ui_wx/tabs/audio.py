@@ -96,7 +96,7 @@ class AudioTab(wx.Panel):
         self.voice_activation.Bind(wx.EVT_CHECKBOX, self.on_voice_activation)
 
         lbl_vl = wx.StaticText(self, label="Aktivierungspegel (0–100)")
-        self.voice_level = wx.SpinCtrl(self, value="30", min=0, max=100)
+        self.voice_level = wx.SpinCtrl(self, value="0", min=0, max=100)
         self.voice_level.SetName("Aktivierungspegel")
         self.voice_level.Bind(wx.EVT_SPINCTRL, self.on_voice_level)
 

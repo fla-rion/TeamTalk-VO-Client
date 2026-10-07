@@ -111,6 +111,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 
 <h2>Was ist neu</h2>
 <div class="new">
+<strong>v10.7.0 (2026-10-08):</strong> Sprechbereit-Befehl, Abhör-Warnung, BearWare-Töne
+<ul>
+  <li><strong>Sprechbereit umschalten</strong>: Ein Befehl (Menü Audio, Kürzel, auch als globaler Hotkey) wendet Audio an, hebt die Stummschaltung auf und schaltet die Sprachaktivierung ein bzw. wieder aus. Details in Kapitel 11.</li>
+  <li><strong>Abhör-Warnung</strong>: Die App meldet mit Ton und Ansage, wenn ein Server-Administrator deine Stimme oder Nachrichten abfängt. Details in Kapitel 10.</li>
+  <li><strong>Töne wie im offiziellen Client</strong> für Sprachaktivierung ein/aus und „Alles stummschalten“; Aktivierungspegel startet bei neuen Installationen bei 0 %.</li>
+  <li><strong>v10.6.2</strong>: Zerstückelte Stimme bei Sprachaktivierung (Nachlauf stand auf 0 ms) und selbstständig wechselnde Audiogeräte behoben.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v10.6.0 (2026-10-06):</strong> Neuerungen aus TeamTalk 5.22/5.23 und tt-Accessible
 <ul>
   <li><strong>Sprech-Warteschlange</strong>: In Kanälen, in denen nur eine Person gleichzeitig sprechen kann, sagt die App mit Ton an, wann du dran bist, wann deine Runde endet und an welcher Position du wartest.</li>
@@ -727,8 +736,8 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <table>
 <tr><th>Einstellung</th><th>Beschreibung</th></tr>
 <tr><td>Sprachaktivierung (Checkbox)</td><td>Ein-/ausschalten (Alt+S)</td></tr>
-<tr><td>Aktivierungspegel (0–100)</td><td>Schwelle ab der Übertragung beginnt. Niedrigerer Wert = empfindlicher. Standard: 30</td></tr>
-<tr><td>Nachlauf in ms (0–5000)</td><td>Wie lange nach Stille noch übertragen wird. Standard: 0 ms</td></tr>
+<tr><td>Aktivierungspegel (0–100)</td><td>Schwelle ab der Übertragung beginnt. Niedrigerer Wert = empfindlicher; 0 = jedes Geräusch wird übertragen. Standard: 0</td></tr>
+<tr><td>Nachlauf in ms (0–5000)</td><td>Wie lange nach Stille noch übertragen wird. Standard: 1500 ms; sehr kleine Werte schneiden die Stimme in Sprechpausen ab</td></tr>
 </table>
 
 <h2>Push-to-Talk (PTT)</h2>

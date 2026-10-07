@@ -1,6 +1,42 @@
 Changelog
 =========
 
+2026-10-08 (v10.7.0)
+Nouveau : commande prêt à parler, alerte d'interception, sons BearWare pour l'activation vocale et la sourdine
+
+Parler
+- **Nouveau : « Basculer prêt à parler »** (menu Audio, assignable à un
+  raccourci clavier). Une seule commande applique l'audio, annule « Tout
+  mettre en sourdine » et active l'activation vocale ; un nouvel appel la
+  désactive. Si un périphérique ne peut pas être ouvert, rien ne change et
+  l'application en indique la raison.
+- **Nouveau : raccourci global pour « Basculer prêt à parler »** (macOS et
+  Windows), fonctionne même lorsque l'application est en arrière-plan. À
+  configurer sous Raccourcis clavier → Raccourcis globaux.
+- **Nouveau : sons comme dans le client officiel.** Activation vocale
+  activée/désactivée et « Tout mettre en sourdine » activé/désactivé jouent
+  désormais les sons BearWare – par le menu, la barre d'outils, l'onglet
+  Audio, un raccourci ou le raccourci global. Chaque son est modifiable sous
+  Événements sonores.
+- **Le niveau d'activation commence à 0 % sur les nouvelles
+  installations** : l'activation vocale transmet donc tout son jusqu'à ce
+  que vous releviez le niveau. Les valeurs enregistrées restent inchangées.
+
+Sécurité
+- **Nouveau : alerte d'interception.** Si un administrateur du serveur
+  intercepte votre voix, vos messages privés ou du canal, vos fichiers
+  multimédias, votre vidéo ou votre bureau, l'application l'annonce avec un
+  son (« Admin intercepte maintenant : Voix ») et signale aussi la fin. Une
+  interception déjà en cours à la connexion est également signalée. Voir le
+  manuel : « Alerte d'interception ».
+
+Corrections
+- Le bouton « Activation vocale » de la barre d'outils (macOS) et les coches
+  du menu pour l'activation vocale et la sourdine affichaient parfois un
+  mauvais état après l'utilisation de raccourcis.
+- Maintenir enfoncé un raccourci global de sourdine basculait plusieurs
+  fois à cause de la répétition des touches (macOS).
+
 2026-10-08 (v10.6.2)
 Corrections : voix hachée, périphériques audio qui changent tout seuls
 

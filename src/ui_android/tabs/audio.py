@@ -88,7 +88,7 @@ class AudioTab(toga.Box):
         va_level_row = toga.Box(style=Pack(direction=ROW, padding_bottom=4))
         va_level_label = toga.Label("Aktivierungspegel:", style=Pack(padding_right=8))
         set_description(va_level_label, "Sprachaktivierungspegel Beschriftung")
-        self.va_level = toga.Slider(min=0, max=100, value=30, style=Pack(flex=1))
+        self.va_level = toga.Slider(min=0, max=100, value=0, style=Pack(flex=1))
         set_description(self.va_level, "Sprachaktivierungspegel von 0 bis 100 – je niedriger, desto empfindlicher")
         va_level_row.add(va_level_label)
         va_level_row.add(self.va_level)

@@ -1,6 +1,39 @@
 Changelog
 =========
 
+2026-10-08 (v10.7.0)
+New: ready-to-talk command, interception warning, BearWare sounds for voice activation and muting
+
+Talking
+- **New: "Toggle ready to talk"** (Audio menu, can be assigned a keyboard
+  shortcut). One command applies audio, cancels "Mute all" and turns voice
+  activation on; triggered again it turns voice activation off. If a device
+  cannot be opened, nothing changes and the app reports the reason.
+- **New: global hotkey for "Toggle ready to talk"** (macOS and Windows),
+  works even while the app is in the background. Set it up under Keyboard
+  Shortcuts → Global Hotkeys.
+- **New: sounds like in the official client.** Voice activation on/off and
+  "Mute all" on/off now play the BearWare sounds – whether via menu,
+  toolbar, Audio tab, shortcut or global hotkey. Each sound can be changed
+  under Sound Events.
+- **The activation level starts at 0 % on new installations**, so voice
+  activation transmits every sound until you raise the level. Saved values
+  stay unchanged.
+
+Security
+- **New: interception warning.** If a server administrator intercepts your
+  voice, private or channel messages, media files, video or desktop, the app
+  announces it with a sound ("Admin is now intercepting: Voice") and also
+  reports when it ends. Interception already running when you log in is
+  reported as well. See the manual: "Interception Warning".
+
+Bug fixes
+- The "Voice activation" toolbar switch (macOS) and the menu check marks
+  for voice activation and muting sometimes showed the wrong state after
+  using shortcuts.
+- Holding down a global mute hotkey toggled several times because of key
+  repeat (macOS).
+
 2026-10-08 (v10.6.2)
 Bug fixes: choppy voice, audio devices switching on their own
 

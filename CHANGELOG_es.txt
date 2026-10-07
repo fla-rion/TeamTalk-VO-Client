@@ -1,6 +1,42 @@
 Changelog
 =========
 
+2026-10-08 (v10.7.0)
+Novedades: comando listo para hablar, aviso de interceptación, sonidos de BearWare para la activación por voz y el silencio
+
+Hablar
+- **Nuevo: "Alternar listo para hablar"** (menú Audio, se le puede asignar
+  un atajo de teclado). Un solo comando aplica el audio, anula "Silenciar a
+  todos" y activa la activación por voz; al usarlo de nuevo la desactiva. Si
+  un dispositivo no se puede abrir, no cambia nada y la aplicación indica el
+  motivo.
+- **Nuevo: atajo global para "Alternar listo para hablar"** (macOS y
+  Windows), funciona también con la aplicación en segundo plano. Se
+  configura en Atajos de teclado → Atajos globales.
+- **Nuevo: sonidos como en el cliente oficial.** Activar/desactivar la
+  activación por voz y "Silenciar a todos" reproducen ahora los sonidos de
+  BearWare, ya sea desde el menú, la barra de herramientas, la pestaña
+  Audio, un atajo o el atajo global. Cada sonido se puede cambiar en
+  Eventos sonoros.
+- **El nivel de activación empieza en 0 % en instalaciones nuevas**: la
+  activación por voz transmite cualquier sonido hasta que subas el nivel.
+  Los valores guardados no cambian.
+
+Seguridad
+- **Nuevo: aviso de interceptación.** Si un administrador del servidor
+  intercepta tu voz, tus mensajes privados o del canal, tus archivos
+  multimedia, tu vídeo o tu escritorio, la aplicación lo anuncia con un
+  sonido ("Admin está interceptando: Voz") y también avisa cuando termina.
+  Una interceptación que ya esté en curso al iniciar sesión también se
+  avisa. Ver el manual: "Aviso de interceptación".
+
+Correcciones
+- El interruptor "Activación por voz" de la barra de herramientas (macOS) y
+  las marcas del menú para la activación por voz y el silencio mostraban a
+  veces un estado incorrecto tras usar atajos.
+- Mantener pulsado un atajo global de silencio alternaba varias veces por la
+  repetición de teclas (macOS).
+
 2026-10-08 (v10.6.2)
 Correcciones: voz entrecortada, dispositivos de audio que cambian solos
 

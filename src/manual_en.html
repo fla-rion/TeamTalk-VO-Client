@@ -111,6 +111,15 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 
 <h2>What's New</h2>
 <div class="new">
+<strong>v10.7.0 (2026-10-08):</strong> Ready-to-talk command, interception warning, BearWare sounds
+<ul>
+  <li><strong>Toggle ready to talk</strong>: One command (Audio menu, shortcut, also as a global hotkey) applies audio, unmutes and turns voice activation on or off again. Details in chapter 11.</li>
+  <li><strong>Interception warning</strong>: The app announces with a sound when a server administrator intercepts your voice or messages. Details in chapter 10.</li>
+  <li><strong>Sounds like in the official client</strong> for voice activation on/off and "Mute all"; the activation level starts at 0 % on new installations.</li>
+  <li><strong>v10.6.2</strong>: Fixed choppy voice with voice activation (stop delay was 0 ms) and audio devices switching on their own.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v10.6.0 (2026-10-06):</strong> New features from TeamTalk 5.22/5.23 and tt-Accessible
 <ul>
   <li><strong>Speaking queue</strong>: in channels where only one person can speak at a time, the app announces with a sound when it is your turn, when your turn ends and your position in the queue.</li>
@@ -727,8 +736,8 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <table>
 <tr><th>Setting</th><th>Description</th></tr>
 <tr><td>Voice activation (checkbox)</td><td>Turn on/off (Alt+S)</td></tr>
-<tr><td>Activation level (0–100)</td><td>Threshold above which transmission starts. Lower value = more sensitive. Default: 30</td></tr>
-<tr><td>Hangover in ms (0–5000)</td><td>How long transmission continues after silence. Default: 0 ms</td></tr>
+<tr><td>Activation level (0–100)</td><td>Threshold above which transmission starts. Lower value = more sensitive; 0 = every sound is transmitted. Default: 0</td></tr>
+<tr><td>Hangover in ms (0–5000)</td><td>How long transmission continues after silence. Default: 1500 ms; very small values cut off your voice in speech pauses</td></tr>
 </table>
 
 <h2>Push-to-Talk (PTT)</h2>
