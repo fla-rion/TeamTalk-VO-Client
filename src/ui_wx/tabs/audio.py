@@ -15,11 +15,14 @@ if TYPE_CHECKING:
 _IS_MAC = sys.platform == "darwin"
 
 
-class AudioTab(wx.Panel):
+class AudioTab(wx.ScrolledWindow):
     """Tab 4: Audio -- devices, VU meter, VA, gain, loopback, effects, preprocessing."""
 
     def __init__(self, parent: wx.Window, frame: MainFrame) -> None:
         super().__init__(parent)
+        # Scrollbar, damit bei vielen aufgeklappten Kategorien nichts
+        # abgeschnitten wird (vorher fester Bereich ohne Bildlauf).
+        self.SetScrollRate(0, 20)
         self.frame = frame
         self.SetName("Audio")
         self._input_devices = []

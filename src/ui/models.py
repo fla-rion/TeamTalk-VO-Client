@@ -147,6 +147,8 @@ class AppSettings:
     show_vu_meter: bool = True
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
+    # Einstellungen: ein-/ausgeklappte Kategorien {"Bereich/Kategorie": True=eingeklappt}
+    collapsed_settings_categories: Dict[str, bool] = field(default_factory=dict)
     # ElevenLabs
     elevenlabs_api_key: str = ""
     # TTS (espeak-ng)
@@ -435,6 +437,8 @@ class SettingsStore:
             self.settings.show_vu_meter = bool(data.get("show_vu_meter", True))
             sound_events = data.get("sound_events", {})
             self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
+            collapsed = data.get("collapsed_settings_categories", {})
+            self.settings.collapsed_settings_categories = collapsed if isinstance(collapsed, dict) else {}
             self.settings.elevenlabs_api_key = str(data.get("elevenlabs_api_key", "") or "")
             self.settings.tts_enabled = bool(data.get("tts_enabled", False))
             self.settings.tts_speak_chat = bool(data.get("tts_speak_chat", True))
@@ -683,6 +687,7 @@ class SettingsStore:
             "show_event_log": bool(self.settings.show_event_log),
             "show_vu_meter": bool(self.settings.show_vu_meter),
             "sound_events": self.settings.sound_events or {},
+            "collapsed_settings_categories": self.settings.collapsed_settings_categories or {},
             "elevenlabs_api_key": str(self.settings.elevenlabs_api_key or ""),
             "tts_enabled": bool(self.settings.tts_enabled),
             "tts_speak_chat": bool(self.settings.tts_speak_chat),

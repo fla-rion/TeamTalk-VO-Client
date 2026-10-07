@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QTime, Qt, QTimer
 
 from ui_qt.tabs.audio import AudioTab
+from ui_qt.collapsible import CollapsibleCategories, collect_entries
+import settings_search
 from ui_qt.tabs.video import VideoTab
 from ui_qt.tabs.shortcuts import ShortcutsTab
 from ui_qt.tabs.system import SystemTab
@@ -72,6 +74,37 @@ class SettingsTab(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(4, 4, 4, 4)
 
+        # --- Einstellungssuche + alle Kategorien auf-/zuklappen ---
+        from PySide6.QtWidgets import QLineEdit, QListWidget, QPushButton as _QPushButton
+        search_row = QHBoxLayout()
+        search_label = QLabel(_("Einstellung suchen"))
+        self._search_edit = QLineEdit()
+        self._search_edit.setAccessibleName(_("Einstellung suchen"))
+        self._search_edit.setPlaceholderText(_("z. B. Nachlauf, Ausgabegerät, Sprache"))
+        search_label.setBuddy(self._search_edit)
+        self._search_edit.textChanged.connect(self._on_settings_search)
+        self._search_edit.returnPressed.connect(lambda: self._open_search_result(0))
+        self._search_edit.installEventFilter(self)
+        search_row.addWidget(search_label)
+        search_row.addWidget(self._search_edit, 1)
+        expand_btn = _QPushButton(_("Alle aufklappen"))
+        expand_btn.setAccessibleName(_("Alle Kategorien aufklappen"))
+        expand_btn.clicked.connect(lambda: self._set_all_collapsed(False))
+        collapse_btn = _QPushButton(_("Alle zuklappen"))
+        collapse_btn.setAccessibleName(_("Alle Kategorien zuklappen"))
+        collapse_btn.clicked.connect(lambda: self._set_all_collapsed(True))
+        search_row.addWidget(expand_btn)
+        search_row.addWidget(collapse_btn)
+        root.addLayout(search_row)
+        self._search_results = QListWidget()
+        self._search_results.setAccessibleName(_("Suchergebnisse"))
+        self._search_results.setMaximumHeight(160)
+        self._search_results.itemActivated.connect(lambda _i: self._open_search_result())
+        self._search_results.hide()
+        root.addWidget(self._search_results)
+        self._search_hits: list = []
+        self._search_index = None
+
         self.inner = QTabWidget()
         root.addWidget(self.inner)
 
@@ -94,6 +127,88 @@ class SettingsTab(QWidget):
         self.inner.addTab(self._build_user_volumes_tab(), _("Nutzer-Lautstärken"))
         self.inner.addTab(self._build_braille_tab(), _("Braille"))
         self.inner.addTab(self._build_device_sync_tab(), _("Geräte-Sync"))
+
+        # Gruppen jedes Reiters als einklappbare Kategorien
+        _state = self.window.settings_store.settings.collapsed_settings_categories
+        self._collapsibles = []
+        for i in range(self.inner.count()):
+            self._collapsibles.append(CollapsibleCategories(
+                self.inner.widget(i), self.inner.tabText(i).replace("&", ""), _state,
+                on_change=self._save_collapsed_state,
+            ))
+
+    # ------------------------------------------------------------------
+    # Kategorien & Einstellungssuche
+    # ------------------------------------------------------------------
+
+    def _save_collapsed_state(self) -> None:
+        try:
+            self.window.settings_store.save()
+        except Exception:
+            pass
+
+    def _set_all_collapsed(self, collapsed: bool) -> None:
+        idx = self.inner.currentIndex()
+        if 0 <= idx < len(self._collapsibles):
+            self._collapsibles[idx].set_all(collapsed)
+        self.window.set_status(_("Alle Kategorien zugeklappt") if collapsed else _("Alle Kategorien aufgeklappt"))
+
+    def _build_search_index(self) -> list:
+        entries = []
+        for i in range(self.inner.count()):
+            label = self.inner.tabText(i).replace("&", "")
+            entries.append(settings_search.SettingEntry(str(i), label, "", label, (), target=None))
+            entries.extend(collect_entries(self.inner.widget(i), str(i), label, self._collapsibles[i]))
+        return entries
+
+    def _on_settings_search(self, text: str) -> None:
+        query = text.strip()
+        if self._search_index is None:
+            self._search_index = self._build_search_index()
+        self._search_hits = settings_search.search(self._search_index, query) if query else []
+        self._search_results.clear()
+        if query:
+            self._search_results.addItems([h.display for h in self._search_hits]
+                                          or [_("Keine Einstellung gefunden")])
+            self._search_results.setCurrentRow(0)
+        self._search_results.setVisible(bool(query))
+
+    def eventFilter(self, obj, event):
+        from PySide6.QtCore import QEvent
+        if obj is self._search_edit and event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Down and self._search_results.isVisible():
+                self._search_results.setFocus()
+                return True
+            if event.key() == Qt.Key_Escape and self._search_edit.text():
+                self._search_edit.clear()
+                return True
+        return super().eventFilter(obj, event)
+
+    def _open_search_result(self, index: int = -1) -> None:
+        if index < 0:
+            index = self._search_results.currentRow()
+        if not (0 <= index < len(self._search_hits)):
+            return
+        hit = self._search_hits[index]
+        page_idx = int(hit.section)
+        self.inner.setCurrentIndex(page_idx)
+        target = hit.target
+        if target is None:
+            self.inner.setFocus()
+            return
+        coll = self._collapsibles[page_idx]
+        cat = coll.category_of(target)
+        if cat is not None and cat.collapsed:
+            coll.set_collapsed(cat, False)
+        from PySide6.QtWidgets import QScrollArea
+        p = target.parentWidget()
+        while p is not None:
+            if isinstance(p, QScrollArea):
+                p.ensureWidgetVisible(target)
+                break
+            p = p.parentWidget()
+        target.setFocus()
+        self.window.set_status(_("Einstellung: {}").format(hit.label))
 
     # ------------------------------------------------------------------
     # Allgemein

@@ -518,6 +518,25 @@ def set_accessible_name(ctrl: "wx.Window", name: str) -> None:
         pass
 
 
+def set_native_accessibility_label(ctrl: "wx.Window", label: str) -> None:
+    """Setzt die VoiceOver-Beschriftung direkt am nativen NSView.
+
+    Für Tasten mit Symbolzeichen im sichtbaren Titel (z. B. "▸ Geräte"):
+    ``SetName()`` erreicht bei wxNSButton nicht AXLabel, VoiceOver läse
+    sonst das Dreieck mit vor. Auf anderen Plattformen wirkungslos.
+    """
+    if sys.platform != "darwin":
+        return
+    try:
+        import objc  # noqa: PLC0415
+
+        handle = ctrl.GetHandle()
+        if handle:
+            objc.objc_object(c_void_p=handle).setAccessibilityLabel_(label)
+    except Exception:
+        pass
+
+
 def set_accessible_help(ctrl: "wx.Window", help_text: str) -> None:
     """Setzt den Hilfetext eines Controls (AXHelp / Tooltip).
 

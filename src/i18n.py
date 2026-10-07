@@ -7594,6 +7594,52 @@ _TRANSLATIONS_ES.update({
     "Abhören beendet": "Interceptación terminada",
 })
 
+# Einstellungen: Suche einzelner Einstellungen + einklappbare Kategorien
+_TRANSLATIONS.update({
+    "Einstellung suchen": "Search settings",
+    "z. B. Nachlauf, Ausgabegerät, Sprache": "e.g. hangover, output device, language",
+    "Alle aufklappen": "Expand all",
+    "Alle zuklappen": "Collapse all",
+    "Alle Kategorien aufklappen": "Expand all categories",
+    "Alle Kategorien zuklappen": "Collapse all categories",
+    "Keine Einstellung gefunden": "No setting found",
+    "Alle Kategorien zugeklappt": "All categories collapsed",
+    "Alle Kategorien aufgeklappt": "All categories expanded",
+    "Einstellung: {}": "Setting: {}",
+    "eingeklappt": "collapsed",
+    "ausgeklappt": "expanded",
+})
+_TRANSLATIONS_FR.update({
+    "Einstellung suchen": "Rechercher un paramètre",
+    "z. B. Nachlauf, Ausgabegerät, Sprache": "p. ex. temporisation, périphérique de sortie, langue",
+    "Alle aufklappen": "Tout déplier",
+    "Alle zuklappen": "Tout replier",
+    "Alle Kategorien aufklappen": "Déplier toutes les catégories",
+    "Alle Kategorien zuklappen": "Replier toutes les catégories",
+    "Suchergebnisse": "Résultats de recherche",
+    "Keine Einstellung gefunden": "Aucun paramètre trouvé",
+    "Alle Kategorien zugeklappt": "Toutes les catégories repliées",
+    "Alle Kategorien aufgeklappt": "Toutes les catégories dépliées",
+    "Einstellung: {}": "Paramètre : {}",
+    "eingeklappt": "replié",
+    "ausgeklappt": "déplié",
+})
+_TRANSLATIONS_ES.update({
+    "Einstellung suchen": "Buscar ajuste",
+    "z. B. Nachlauf, Ausgabegerät, Sprache": "p. ej. retardo, dispositivo de salida, idioma",
+    "Alle aufklappen": "Expandir todo",
+    "Alle zuklappen": "Contraer todo",
+    "Alle Kategorien aufklappen": "Expandir todas las categorías",
+    "Alle Kategorien zuklappen": "Contraer todas las categorías",
+    "Suchergebnisse": "Resultados de búsqueda",
+    "Keine Einstellung gefunden": "No se encontró ningún ajuste",
+    "Alle Kategorien zugeklappt": "Todas las categorías contraídas",
+    "Alle Kategorien aufgeklappt": "Todas las categorías expandidas",
+    "Einstellung: {}": "Ajuste: {}",
+    "eingeklappt": "contraído",
+    "ausgeklappt": "expandido",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

@@ -23,6 +23,8 @@ from platform_paths import app_data_dir, log_dir
 from macos_integration import set_spotlight_comment
 from i18n import _
 from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
+from ui_wx.collapsible import CollapsibleCategories, collect_entries
+import settings_search
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -97,16 +99,37 @@ class SettingsTab(wx.Panel):
         self.section_choice.SetSelection(0)
         self.section_choice.Bind(wx.EVT_CHOICE, self._on_section_changed)
         top_row.Add(self.section_choice, 1, wx.EXPAND)
+        # Alle Kategorien des aktuellen Bereichs auf einmal auf-/zuklappen
+        self._expand_all_btn = wx.Button(self, label="Alle aufklappen")
+        self._expand_all_btn.SetName("Alle Kategorien aufklappen")
+        self._expand_all_btn.Bind(wx.EVT_BUTTON, lambda _e: self._set_all_collapsed(False))
+        top_row.Add(self._expand_all_btn, 0, wx.LEFT, 8)
+        self._collapse_all_btn = wx.Button(self, label="Alle zuklappen")
+        self._collapse_all_btn.SetName("Alle Kategorien zuklappen")
+        self._collapse_all_btn.Bind(wx.EVT_BUTTON, lambda _e: self._set_all_collapsed(True))
+        top_row.Add(self._collapse_all_btn, 0, wx.LEFT, 8)
         root.Add(top_row, 0, wx.ALL | wx.EXPAND, 8)
 
-        # --- Suchfeld ---
+        # --- Suchfeld: sucht einzelne Einstellungen in allen Bereichen ---
         search_row = wx.BoxSizer(wx.HORIZONTAL)
-        search_row.Add(wx.StaticText(self, label="Suche"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._section_search = wx.TextCtrl(self)
-        self._section_search.SetName("Einstellungsbereich suchen")
+        search_row.Add(wx.StaticText(self, label="Einstellung suchen"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._section_search = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER)
+        self._section_search.SetName("Einstellung suchen")
+        self._section_search.SetHint(_("z. B. Nachlauf, Ausgabegerät, Sprache"))
         self._section_search.Bind(wx.EVT_TEXT, self._on_section_search)
+        self._section_search.Bind(wx.EVT_TEXT_ENTER, lambda _e: self._open_search_result(0))
+        self._section_search.Bind(wx.EVT_KEY_DOWN, self._on_search_key)
         search_row.Add(self._section_search, 1, wx.EXPAND)
         root.Add(search_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        self._search_results = wx.ListBox(self, style=wx.LB_SINGLE)
+        self._search_results.SetName("Suchergebnisse")
+        self._search_results.SetMinSize((-1, 140))
+        self._search_results.Bind(wx.EVT_LISTBOX_DCLICK, lambda _e: self._open_search_result())
+        self._search_results.Bind(wx.EVT_KEY_DOWN, self._on_results_key)
+        root.Add(self._search_results, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+        self._search_results.Hide()
+        self._search_hits: list = []
+        self._search_index = None
 
         # --- Log sharing ---
         log_row = wx.BoxSizer(wx.HORIZONTAL)
@@ -156,6 +179,19 @@ class SettingsTab(wx.Panel):
                     _seen.add(id(panel))
 
         self.SetSizer(root)
+
+        # Rahmen jedes Bereichs als einklappbare Kategorien
+        self._collapsibles = {}
+        _state = self.frame.settings_store.settings.collapsed_settings_categories
+        _done = set()
+        for section, panels in self._sections.items():
+            for panel in panels:
+                if id(panel) in _done:
+                    continue
+                _done.add(id(panel))
+                self._collapsibles[id(panel)] = CollapsibleCategories(
+                    panel, section, _state, on_change=self._save_collapsed_state
+                )
         self._show_section("Allgemein")
 
     # ------------------------------------------------------------------
@@ -2521,16 +2557,112 @@ class SettingsTab(wx.Panel):
         if 0 <= idx < len(self._section_keys):
             self._show_section(self._section_keys[idx])
 
+    # ------------------------------------------------------------------
+    # Kategorien & Einstellungssuche
+    # ------------------------------------------------------------------
+
+    def _save_collapsed_state(self) -> None:
+        try:
+            self.frame.settings_store.save()
+        except Exception:
+            pass
+
+    def _current_section(self) -> str:
+        idx = self.section_choice.GetSelection()
+        return self._section_keys[idx] if 0 <= idx < len(self._section_keys) else ""
+
+    def _set_all_collapsed(self, collapsed: bool) -> None:
+        for panel in self._sections.get(self._current_section(), []):
+            coll = self._collapsibles.get(id(panel))
+            if coll is not None:
+                coll.set_all(collapsed)
+        self.Layout()
+        self.frame.set_status(_("Alle Kategorien zugeklappt") if collapsed else _("Alle Kategorien aufgeklappt"))
+
+    def _build_search_index(self) -> list:
+        entries = []
+        for section, panels in self._sections.items():
+            label = _(section)
+            # Der Bereich selbst ist auch ein Treffer (springt nur hin)
+            entries.append(settings_search.SettingEntry(section, label, "", label, (section,), target=None))
+            for panel in panels:
+                entries.extend(collect_entries(panel, section, label, self._collapsibles.get(id(panel))))
+        return entries
+
     def _on_section_search(self, _event) -> None:
-        query = self._section_search.GetValue().strip().lower()
-        if not query:
+        query = self._section_search.GetValue().strip()
+        if self._search_index is None:
+            self._search_index = self._build_search_index()
+        self._search_hits = settings_search.search(self._search_index, query) if query else []
+        self._search_results.Set([hit.display for hit in self._search_hits])
+        show = bool(query)
+        if show and not self._search_hits:
+            self._search_results.Set([_("Keine Einstellung gefunden")])
+        if show:
+            self._search_results.SetSelection(0)
+        if self._search_results.IsShown() != show:
+            self._search_results.Show(show)
+            self.Layout()
+
+    def _on_search_key(self, event) -> None:
+        key = event.GetKeyCode()
+        if key == wx.WXK_DOWN and self._search_results.IsShown():
+            self._search_results.SetFocus()
             return
-        for idx, name in enumerate(self._section_keys):
-            localized = _(name)
-            if query in name.lower() or query in localized.lower():
-                self.section_choice.SetSelection(idx)
-                self._show_section(name)
-                return
+        if key == wx.WXK_ESCAPE and self._section_search.GetValue():
+            self._section_search.SetValue("")
+            return
+        event.Skip()
+
+    def _on_results_key(self, event) -> None:
+        key = event.GetKeyCode()
+        if key in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER, wx.WXK_SPACE):
+            self._open_search_result()
+            return
+        if key == wx.WXK_ESCAPE:
+            self._section_search.SetFocus()
+            return
+        event.Skip()
+
+    def _open_search_result(self, index: int = -1) -> None:
+        if index < 0:
+            index = self._search_results.GetSelection()
+        if not (0 <= index < len(self._search_hits)):
+            return
+        hit = self._search_hits[index]
+        self.show_section(hit.section)
+        target = hit.target
+        if target is None:
+            try:
+                self.section_choice.SetFocus()
+            except Exception:
+                pass
+            return
+        for panel in self._sections.get(hit.section, []):
+            coll = self._collapsibles.get(id(panel))
+            cat = coll.category_of(target) if coll is not None else None
+            if cat is not None and cat.collapsed:
+                coll.set_collapsed(cat, False)
+        self.Layout()
+        wx.CallAfter(self._focus_target, target, hit.label)
+
+    def _focus_target(self, target, label: str) -> None:
+        try:
+            target.SetFocus()
+            parent = target.GetParent()
+            while parent is not None and parent is not self:
+                if isinstance(parent, wx.ScrolledWindow):
+                    # Bedienelement in den sichtbaren Bereich holen
+                    _ppu_x, ppu_y = parent.GetScrollPixelsPerUnit()
+                    if ppu_y:
+                        visible_y = target.GetScreenPosition()[1] - parent.GetScreenPosition()[1]
+                        absolute_y = visible_y + parent.GetViewStart()[1] * ppu_y
+                        parent.Scroll(-1, max(0, absolute_y // ppu_y - 2))
+                    break
+                parent = parent.GetParent()
+        except Exception:
+            pass
+        self.frame.set_status(_("Einstellung: {}").format(label))
 
     def localize_ui(self) -> None:
         current = self.section_choice.GetSelection()
