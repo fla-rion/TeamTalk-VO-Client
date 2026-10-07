@@ -158,7 +158,7 @@ Offene Restarbeit aus Punkt 6 abschließen: die verbleibenden ~60 `wx.SpinCtrl`-
 
 🔴 · Recherchiert 2026-09-25 (siehe Nebenfund bei Punkt 9): [math65/ttaccessible](https://github.com/math65/ttaccessible), Fork von GruiaChiscop.
 
-Andere Kanalteilnehmer hören ein VoiceOver-Echo, wenn man unstumm navigiert – die SDK-eigene Echo-Unterdrückung hat dafür kein Referenzsignal. Lösung nach Vorbild von ttaccessible: Core-Audio-Process-Taps (`AudioHardwareCreateProcessTap`, macOS 14.2+) fangen das lokale VoiceOver-/Systemsound-Signal als Referenz ab, WebRTC AEC3 filtert es aus dem ausgehenden Stream heraus. Echtes Core-Audio/DSP-Neuland, mehrwöchiges Teilprojekt, eigene Design-/Review-Runde nötig (analog Punkt 7). Hebt zugleich das Mindest-macOS auf 14.2+ – ein in sich schlüssiger Grund für den Major-Versionssprung. Bei Umsetzung GruiaChiscops eigenen TeamTalk-VO-Client-Fork (Stand 2026-06-16) auf abweichende Änderungen prüfen.
+Andere Kanalteilnehmer hören ein VoiceOver-Echo, wenn man unstumm navigiert – die SDK-eigene Echo-Unterdrückung hat dafür kein Referenzsignal. Lösung nach Vorbild von ttaccessible: Core-Audio-Process-Taps (`AudioHardwareCreateProcessTap`, macOS 14.2+) fangen das lokale VoiceOver-/Systemsound-Signal als Referenz ab, WebRTC AEC3 filtert es aus dem ausgehenden Stream heraus. Echtes Core-Audio/DSP-Neuland, mehrwöchiges Teilprojekt, eigene Design-/Review-Runde nötig (analog Punkt 7). Hebt zugleich das Mindest-macOS auf 14.2+ – vor der Umsetzung mit Florian abstimmen. Bei Umsetzung GruiaChiscops eigenen TeamTalk-VO-Client-Fork (Stand 2026-06-16) auf abweichende Änderungen prüfen.
 
 ---
 
@@ -166,7 +166,7 @@ Andere Kanalteilnehmer hören ein VoiceOver-Echo, wenn man unstumm navigiert –
 
 🟡–🔴 · Eigene Idee, Lückenprüfung gegen `src/desktop.py` / `src/screen_capture.py` / `src/apple_fm.py`.
 
-Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Information über den Inhalt. Neu: auf Anfrage einen Screenshot der Freigabe per Vision-fähiger KI beschreiben lassen und per TTS ansagen. `apple_fm.py` (Apple Foundation Models) ist aktuell reiner Text-Wrapper ohne Vision-Support – nötig ist eine Erweiterung der bestehenden Backend-Fallback-Kette (Claude/Gemini/Ollama) um Bildeingabe, kein komplett neues KI-Backend. Falls Punkt 15 den Umfang von v11.0.0 bereits ausfüllt: auf v11.1.0 verschieben.
+Bei geteiltem Bildschirm bekommen blinde Teilnehmer aktuell keinerlei Information über den Inhalt. Neu: auf Anfrage einen Screenshot der Freigabe per Vision-fähiger KI beschreiben lassen und per TTS ansagen. `apple_fm.py` (Apple Foundation Models) ist aktuell reiner Text-Wrapper ohne Vision-Support – nötig ist eine Erweiterung der bestehenden Backend-Fallback-Kette (Claude/Gemini/Ollama) um Bildeingabe, kein komplett neues KI-Backend.
 
 ---
 
