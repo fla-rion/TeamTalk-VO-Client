@@ -1125,11 +1125,7 @@ class MainFrame(wx.Frame):
         self.set_status("PTT aktiv" if val else "PTT deaktiviert")
 
     def _on_tb_va(self, event):
-        self.on_menu_audio_va(event)
-        try:
-            self.tb_va.SetValue(self.audio_tab.va_toggle.GetValue())
-        except Exception:
-            pass
+        self.set_voice_activation(bool(event.GetEventObject().GetValue()))
 
     def _on_tb_video(self, event):
         val = event.GetEventObject().GetValue()
@@ -1147,10 +1143,7 @@ class MainFrame(wx.Frame):
             pass
 
     def _on_tb_mute(self, event):
-        val = event.GetEventObject().GetValue()
-        self._mute_all = val
-        self.client.set_sound_output_mute(val)
-        self.set_status("Ausgabe stummgeschaltet" if val else "Ausgabe aktiv")
+        self.set_mute_all(bool(event.GetEventObject().GetValue()))
 
     def _on_tb_record(self, event):
         val = event.GetEventObject().GetValue()
@@ -2100,9 +2093,7 @@ class MainFrame(wx.Frame):
             self.set_status("Sprechen aus")
 
     def _on_global_mute(self) -> None:
-        self._mute_all = not self._mute_all
-        self.client.set_sound_output_mute(self._mute_all)
-        self.set_status("Stummgeschaltet" if self._mute_all else "Stummschaltung aufgehoben")
+        self.set_mute_all(not self._mute_all)
 
     def start_global_hotkey_capture(self, target: str) -> None:
         if self._global_hotkey_mgr is None:
@@ -2320,6 +2311,7 @@ class MainFrame(wx.Frame):
         user_move_stored = user_menu.Append(wx.ID_ANY, _("In Zielkanal verschieben"))
         user_menu.AppendSeparator()
         user_mute_all = user_menu.AppendCheckItem(wx.ID_ANY, _("Alles stummschalten"))
+        self._user_mute_item = user_mute_all
         menubar.Append(user_menu, _("Benutzer"))
 
         # Server
@@ -2359,6 +2351,8 @@ class MainFrame(wx.Frame):
         audio_menu = wx.Menu()
         audio_ptt = audio_menu.AppendCheckItem(wx.ID_ANY, _("Push-to-Talk"))
         audio_va = audio_menu.AppendCheckItem(wx.ID_ANY, _("Sprachaktivierung"))
+        audio_speak_ready = audio_menu.Append(wx.ID_ANY, _("Sprechbereit umschalten"))
+        self._audio_va_item = audio_va
         audio_menu.AppendSeparator()
         audio_settings = audio_menu.Append(wx.ID_ANY, _("Audio-Einstellungen..."))
         audio_menu.AppendSeparator()
@@ -2373,6 +2367,7 @@ class MainFrame(wx.Frame):
         audio_loopback = audio_menu.AppendCheckItem(wx.ID_ANY, _("Mikrofontest"))
         audio_menu.AppendSeparator()
         audio_mute_all = audio_menu.AppendCheckItem(wx.ID_ANY, _("Alles stummschalten"))
+        self._audio_mute_item = audio_mute_all
         audio_media_up = audio_menu.Append(wx.ID_ANY, _("Medien lauter") + "\tCtrl+Alt+Shift+Up")
         audio_media_down = audio_menu.Append(wx.ID_ANY, _("Medien leiser") + "\tCtrl+Alt+Shift+Down")
         audio_menu.AppendSeparator()
@@ -2570,6 +2565,7 @@ class MainFrame(wx.Frame):
 
         self.Bind(wx.EVT_MENU, self.on_menu_audio_ptt, audio_ptt)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_va, audio_va)
+        self.Bind(wx.EVT_MENU, lambda _e: self.toggle_speak_ready(), audio_speak_ready)
         self.Bind(wx.EVT_MENU, self.on_menu_audio_settings, audio_settings)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_audio_effect_toggle("agc", e), audio_agc)
         self.Bind(wx.EVT_MENU, lambda e: self.on_menu_audio_effect_toggle("denoise", e), audio_denoise)
@@ -2840,9 +2836,7 @@ class MainFrame(wx.Frame):
 
     def _http_api_toggle_mute(self) -> None:
         """Atomically toggles mute state on the main thread (called via wx.CallAfter)."""
-        new = not self._mute_all
-        self._mute_all = new
-        self.client.set_sound_output_mute(new)
+        self.set_mute_all(not self._mute_all)
 
     def _http_api_join_channel(self, name: str) -> None:
         """v2.7.0 – Finds a channel by name and joins it (for HTTP API use)."""
@@ -4261,9 +4255,7 @@ class MainFrame(wx.Frame):
         self.tts.speak(f"Mediendatei {name} {status}", kind="system")
 
     def on_menu_user_mute_all(self, _event):
-        self._mute_all = not self._mute_all
-        self.client.set_sound_output_mute(self._mute_all)
-        self.set_status("Ausgabe stummgeschaltet" if self._mute_all else "Ausgabe aktiv")
+        self.set_mute_all(not self._mute_all)
 
     def on_menu_user_relay_voice(self, _event):
         if not self._require_connected("Sprachstream weiterleiten"):
@@ -5123,22 +5115,96 @@ class MainFrame(wx.Frame):
     def on_menu_audio_va(self, _event):
         self.set_voice_activation(not self.audio_tab.voice_activation.GetValue())
 
-    def set_voice_activation(self, enabled: bool) -> None:
-        """v10.5.0 – Sprachaktivierung ein/aus, wirkt sofort (Checkbox, Menü).
+    def set_voice_activation(self, enabled: bool, sound: bool = True) -> bool:
+        """v10.5.0 – Sprachaktivierung ein/aus, wirkt sofort (Checkbox, Menü,
+        Symbolleiste, Kürzel).
 
         Übernimmt dabei Pegel und Nachlauf aus dem Audio-Tab, damit kein
         "Audio anwenden" mehr nötig ist. Die PTT-/VA-Verriegelung liegt in
-        TeamTalkClient.enable_voice_activation().
+        TeamTalkClient.enable_voice_activation(). Bei einer echten Änderung
+        ertönt wie im offiziellen Client vox_me_enable/-disable.
         """
         if enabled and not self._check_input_device_configured():
-            self.audio_tab.voice_activation.SetValue(False)
-            return
-        self.audio_tab.voice_activation.SetValue(enabled)
+            self._sync_voice_activation_controls(False)
+            return False
+        was_enabled = self.client.is_voice_activation_enabled()
         if enabled:
             self.client.set_voice_activation_level(int(self.audio_tab.voice_level.GetValue()))
             self.client.set_voice_activation_stop_delay(int(self.audio_tab.va_delay.GetValue()))
         self.client.enable_voice_activation(enabled)
+        self._sync_voice_activation_controls(enabled)
+        if sound and bool(enabled) != was_enabled:
+            self._play_sound_event("voiceact_me_on" if enabled else "voiceact_me_off")
         self.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+        return True
+
+    def _sync_voice_activation_controls(self, enabled: bool) -> None:
+        for ctrl in (getattr(getattr(self, "audio_tab", None), "voice_activation", None), getattr(self, "tb_va", None)):
+            try:
+                if ctrl is not None:
+                    ctrl.SetValue(bool(enabled))
+            except Exception:
+                pass
+        try:
+            self._audio_va_item.Check(bool(enabled))
+        except Exception:
+            pass
+
+    def set_mute_all(self, muted: bool, sound: bool = True, status: bool = True) -> None:
+        """Gesamte Audioausgabe stumm/laut – einziger Weg für Menüs,
+        Symbolleiste, Audio-Tab, Kürzel, globalen Hotkey und HTTP-API, damit
+        alle Schalter denselben Zustand zeigen. Bei einer echten Änderung
+        ertönt wie im offiziellen Client mute_all/unmute_all."""
+        muted = bool(muted)
+        changed = muted != bool(self._mute_all)
+        self._mute_all = muted
+        self.client.set_sound_output_mute(muted)
+        for ctrl in (getattr(self, "tb_mute", None), getattr(getattr(self, "audio_tab", None), "output_mute", None)):
+            try:
+                if ctrl is not None:
+                    ctrl.SetValue(muted)
+            except Exception:
+                pass
+        for item in (getattr(self, "_audio_mute_item", None), getattr(self, "_user_mute_item", None)):
+            try:
+                if item is not None:
+                    item.Check(muted)
+            except Exception:
+                pass
+        if sound and changed:
+            self._play_sound_event("mute_all_on" if muted else "mute_all_off")
+        if status:
+            self.set_status("Ausgabe stummgeschaltet" if muted else "Ausgabe aktiv")
+
+    def toggle_speak_ready(self) -> None:
+        """Ein Befehl, um sofort hörbar zu sein: Audio anwenden (Geräte neu
+        öffnen), Stummschaltung der Ausgabe aufheben und Sprachaktivierung
+        einschalten. Ist die Sprachaktivierung schon an, schaltet er sie aus."""
+        if self.client.is_voice_activation_enabled():
+            self.set_voice_activation(False)
+            return
+        if not self._check_input_device_configured():
+            return
+        if not self.audio_tab.on_apply_audio(None, announce=False):
+            return  # Audio-Tab hat den Grund bereits gemeldet
+        was_muted = bool(self._mute_all)
+        if was_muted:
+            # Nur ein Ton für den ganzen Befehl (vox_me_enable), sonst
+            # überlagern sich unmute_all und vox_me_enable.
+            self.set_mute_all(False, sound=False, status=False)
+        if not self.set_voice_activation(True):
+            return
+        self.set_status(
+            _("Sprechbereit: Audio angewendet, Sprachaktivierung an, Stummschaltung aufgehoben")
+            if was_muted else
+            _("Sprechbereit: Audio angewendet, Sprachaktivierung an")
+        )
+
+    def _play_sound_event(self, key: str) -> None:
+        try:
+            self.sound_manager.play(key, self.settings_store.settings.sound_events.get(key))
+        except Exception:
+            pass
 
     def _force_mic_off_on_connect(self) -> None:
         """Option "Beim Verbinden immer mit ausgeschaltetem Mikrofon starten":
@@ -5150,12 +5216,7 @@ class MainFrame(wx.Frame):
             self.client.enable_voice_transmission(False)
         except Exception:
             pass
-        for ctrl in (getattr(self.audio_tab, "voice_activation", None), getattr(self, "tb_va", None)):
-            try:
-                if ctrl is not None:
-                    ctrl.SetValue(False)
-            except Exception:
-                pass
+        self._sync_voice_activation_controls(False)
         self.set_status(_("Mikrofon beim Verbinden ausgeschaltet"))
 
     def user_display_name(self, user, fallback: str = "") -> str:
@@ -5239,10 +5300,7 @@ class MainFrame(wx.Frame):
         at.on_loopback_toggle(None)
 
     def on_menu_audio_mute_all(self, event):
-        enabled = event.IsChecked()
-        self._mute_all = bool(enabled)
-        self.client.set_sound_output_mute(enabled)
-        self.set_status("Ausgabe stummgeschaltet" if enabled else "Ausgabe aktiv")
+        self.set_mute_all(bool(event.IsChecked()))
 
     def on_menu_eq_presets(self, _event):
         """v4.7.0 – Equalizer-Voreinstellungen mit Import/Export/Speichern."""
@@ -8434,6 +8492,7 @@ class MainFrame(wx.Frame):
         rows = [
             ("Alles stummschalten",       _fmt(int(s.hotkey_mute_all or 0))),
             ("Sprachaktivierung",          _fmt(int(s.hotkey_voice_activation or 0))),
+            ("Sprechbereit umschalten",    _fmt(int(getattr(s, "hotkey_speak_ready", 0) or 0))),
             ("Video senden",              _fmt(int(s.hotkey_video_tx or 0))),
             ("Eingangspegel ansagen",     _fmt(int(s.hotkey_announce_level or 0))),
             ("Nutzerinfo ansagen",        _fmt(int(s.hotkey_announce_user_info or 0))),
@@ -9943,12 +10002,13 @@ class MainFrame(wx.Frame):
         if not self._is_text_input_focused():
             settings = self.settings_store.settings
             if key and key == int(settings.hotkey_mute_all or 0):
-                self._mute_all = not self._mute_all
-                self.client.set_sound_output_mute(self._mute_all)
-                self.set_status("Ausgabe stummgeschaltet" if self._mute_all else "Ausgabe aktiv")
+                self.set_mute_all(not self._mute_all)
                 return
             if key and key == int(settings.hotkey_voice_activation or 0):
                 self.on_menu_audio_va(None)
+                return
+            if key and key == int(getattr(settings, "hotkey_speak_ready", 0) or 0):
+                self.toggle_speak_ready()
                 return
             if key and key == int(settings.hotkey_video_tx or 0):
                 self._video_tx_enabled = not self._video_tx_enabled

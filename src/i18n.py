@@ -7530,6 +7530,47 @@ _TRANSLATIONS_ES.update({
     "Bann": "Bloqueo",
 })
 
+# Sprechbereit-Befehl + BearWare-Töne für Sprachaktivierung/Stummschaltung
+_TRANSLATIONS.update({
+    "Sprechbereit umschalten": "Toggle ready to talk",
+    "Sprechbereit umschalten (Audio anwenden, Ton an, Sprachaktivierung)": "Toggle ready to talk (apply audio, unmute, voice activation)",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an": "Ready to talk: audio applied, voice activation on",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an, Stummschaltung aufgehoben": "Ready to talk: audio applied, voice activation on, unmuted",
+    "Sprachaktivierung eingeschaltet": "Voice activation enabled",
+    "Sprachaktivierung ausgeschaltet": "Voice activation disabled",
+    "Alles stummgeschaltet": "Everything muted",
+    "Sprachaktivierung an": "Voice activation on",
+    "Sprachaktivierung aus": "Voice activation off",
+    "Audiogerät konnte nicht initialisiert werden": "Audio device could not be initialized",
+    "Bitte Ein- und Ausgabegerät wählen": "Please select an input and output device",
+})
+_TRANSLATIONS_FR.update({
+    "Sprechbereit umschalten": "Basculer prêt à parler",
+    "Sprechbereit umschalten (Audio anwenden, Ton an, Sprachaktivierung)": "Basculer prêt à parler (appliquer l'audio, rétablir le son, activation vocale)",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an": "Prêt à parler : audio appliqué, activation vocale activée",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an, Stummschaltung aufgehoben": "Prêt à parler : audio appliqué, activation vocale activée, son rétabli",
+    "Sprachaktivierung eingeschaltet": "Activation vocale activée",
+    "Sprachaktivierung ausgeschaltet": "Activation vocale désactivée",
+    "Alles stummgeschaltet": "Tout est coupé",
+    "Sprachaktivierung an": "Activation vocale activée",
+    "Sprachaktivierung aus": "Activation vocale désactivée",
+    "Audiogerät konnte nicht initialisiert werden": "Impossible d'initialiser le périphérique audio",
+    "Bitte Ein- und Ausgabegerät wählen": "Veuillez choisir un périphérique d'entrée et de sortie",
+})
+_TRANSLATIONS_ES.update({
+    "Sprechbereit umschalten": "Alternar listo para hablar",
+    "Sprechbereit umschalten (Audio anwenden, Ton an, Sprachaktivierung)": "Alternar listo para hablar (aplicar audio, quitar silencio, activación por voz)",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an": "Listo para hablar: audio aplicado, activación por voz activada",
+    "Sprechbereit: Audio angewendet, Sprachaktivierung an, Stummschaltung aufgehoben": "Listo para hablar: audio aplicado, activación por voz activada, silencio desactivado",
+    "Sprachaktivierung eingeschaltet": "Activación por voz activada",
+    "Sprachaktivierung ausgeschaltet": "Activación por voz desactivada",
+    "Alles stummgeschaltet": "Todo silenciado",
+    "Sprachaktivierung an": "Activación por voz activada",
+    "Sprachaktivierung aus": "Activación por voz desactivada",
+    "Audiogerät konnte nicht initialisiert werden": "No se pudo inicializar el dispositivo de audio",
+    "Bitte Ein- und Ausgabegerät wählen": "Selecciona un dispositivo de entrada y de salida",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

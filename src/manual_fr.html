@@ -708,6 +708,16 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 </ol>
 <div class="tip">Après la première connexion, vous devez appliquer les paramètres audio une fois pour que le microphone soit actif.</div>
 
+<h3>Prêt à parler en une seule commande</h3>
+<p><em>Audio → Basculer prêt à parler</em> (également assignable à un raccourci clavier, voir chapitre 19) fait tout en une fois :</p>
+<ul>
+  <li>applique l'audio, c'est-à-dire rouvre les périphériques d'entrée et de sortie comme <strong>Appliquer l'audio</strong>. Utile aussi lorsqu'un casque vient d'être branché ;</li>
+  <li>rétablit le son de la sortie si « Tout mettre en sourdine » est actif ;</li>
+  <li>active l'activation vocale.</li>
+</ul>
+<p>Si l'activation vocale est déjà active, la même commande la désactive ; les périphériques et la sourdine restent inchangés. Le son du client TeamTalk officiel pour « activation vocale activée » ou « désactivée » est joué. Si aucun périphérique d'entrée n'est configuré ou si un périphérique ne peut pas être ouvert, rien ne change et l'application en indique la raison.</p>
+<div class="note">Depuis cette version, « Activation vocale » et « Tout mettre en sourdine » (menu, barre d'outils, onglet Audio, raccourcis) jouent aussi les sons BearWare. Chaque son peut être modifié ou désactivé sous <em>Paramètres → Événements sonores</em>.</div>
+
 <h2>Activation vocale (Voice Activation)</h2>
 <p>L'activation vocale transmet automatiquement lorsque vous parlez – sans appuyer sur une touche.</p>
 <table>
@@ -1026,6 +1036,7 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <tr><th>Action</th><th>Description</th></tr>
 <tr><td>Tout mettre en sourdine</td><td>Coupe/rétablit le son de tous les autres utilisateurs</td></tr>
 <tr><td>Basculer l'activation vocale</td><td>Active/désactive l'activation vocale</td></tr>
+<tr><td>Basculer prêt à parler (appliquer l'audio, rétablir le son, activation vocale)</td><td>Applique l'audio, annule « Tout mettre en sourdine » et active l'activation vocale ; un nouvel appui la désactive (voir chapitre 11)</td></tr>
 <tr><td>Basculer l'envoi vidéo</td><td>Active/désactive la transmission de la caméra</td></tr>
 </table>
 <ol>

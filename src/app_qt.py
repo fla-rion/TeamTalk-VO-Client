@@ -720,6 +720,7 @@ class MainWindow(QMainWindow):
         self._va_action = self._add_checkable(audio_m, _("&Sprachaktivierung"),
             self._on_toggle_va,
             bool(getattr(self.settings_store.settings, "voice_activation", False)))
+        self._add_action(audio_m, _("Sprechbereit umschalten"), lambda *_a: self.toggle_speak_ready())
         audio_m.addSeparator()
         self._agc_action = self._add_checkable(audio_m, _("&AGC"),
             self._on_toggle_agc,
@@ -1665,16 +1666,7 @@ class MainWindow(QMainWindow):
             pass
 
     def _on_global_mute(self) -> None:
-        self._mute_all = not self._mute_all
-        try:
-            self.client.set_sound_output_mute(self._mute_all)
-            if hasattr(self, "_tb_mute"):
-                self._tb_mute.setChecked(self._mute_all)
-            if hasattr(self, "_all_mute_action"):
-                self._all_mute_action.setChecked(self._mute_all)
-        except Exception:
-            pass
-        self.set_status("Stummgeschaltet" if self._mute_all else "Stummschaltung aufgehoben")
+        self.set_mute_all(not self._mute_all)
 
     def _on_global_key_captured(self, vk: int) -> None:
         target = self._global_capture_target
@@ -1787,14 +1779,13 @@ class MainWindow(QMainWindow):
         if not isinstance(fw, (QLineEdit, QTextEdit, QPlainTextEdit)):
             settings = self.settings_store.settings
             if key and key == int(getattr(settings, "hotkey_mute_all", 0) or 0):
-                new_mute = not self._mute_all
-                self._all_mute_action.setChecked(new_mute)
-                self._on_toggle_mute_all(new_mute)
+                self.set_mute_all(not self._mute_all)
                 return
             if key and key == int(getattr(settings, "hotkey_voice_activation", 0) or 0):
-                new_va = not bool(getattr(settings, "voice_activation", False))
-                self._va_action.setChecked(new_va)
-                self._on_toggle_va(new_va)
+                self.set_voice_activation_state(not self.client.is_voice_activation_enabled())
+                return
+            if key and key == int(getattr(settings, "hotkey_speak_ready", 0) or 0):
+                self.toggle_speak_ready()
                 return
             if key and key == int(getattr(settings, "hotkey_announce_ping", 0) or 0):
                 self.on_menu_announce_ping()
@@ -3578,10 +3569,38 @@ class MainWindow(QMainWindow):
             self.set_status(f"Operator-Fehler: {exc}")
 
     def _on_toggle_mute_all(self, checked: bool) -> None:
-        self._mute_all = checked
+        self.set_mute_all(bool(checked))
+
+    def set_mute_all(self, muted: bool, sound: bool = True, status: bool = True) -> None:
+        """Gesamte Audioausgabe stumm/laut – einziger Weg für Menü,
+        Symbolleiste, Audio-Tab, Kürzel und globalen Hotkey, damit alle
+        Schalter denselben Zustand zeigen. Bei einer echten Änderung ertönt
+        wie im offiziellen Client mute_all/unmute_all."""
+        muted = bool(muted)
+        changed = muted != bool(self._mute_all)
+        self._mute_all = muted
         try:
-            self.client.set_sound_output_mute(checked)
-            self.set_status("Ausgabe stummgeschaltet" if checked else "Ausgabe aktiv")
+            self.client.set_sound_output_mute(muted)
+        except Exception:
+            pass
+        for ctrl in (getattr(self, "_tb_mute", None), getattr(self, "_all_mute_action", None),
+                     getattr(getattr(self, "audio_tab", None), "output_mute", None)):
+            if ctrl is None:
+                continue
+            try:
+                ctrl.blockSignals(True)
+                ctrl.setChecked(muted)
+                ctrl.blockSignals(False)
+            except Exception:
+                pass
+        if sound and changed:
+            self._play_sound_event("mute_all_on" if muted else "mute_all_off")
+        if status:
+            self.set_status("Ausgabe stummgeschaltet" if muted else "Ausgabe aktiv")
+
+    def _play_sound_event(self, key: str) -> None:
+        try:
+            self.sound_manager.play(key, self.settings_store.settings.sound_events.get(key))
         except Exception:
             pass
 
@@ -3979,21 +3998,68 @@ class MainWindow(QMainWindow):
                 pass
 
     def _on_toggle_va(self, checked: bool) -> None:
-        if checked and not self._check_input_device_configured():
-            # VA-Checkbox zurücksetzen
+        self.set_voice_activation_state(bool(checked))
+
+    def set_voice_activation_state(self, enabled: bool, sound: bool = True) -> bool:
+        """Sprachaktivierung ein/aus für Menü, Symbolleiste, Audio-Tab und
+        Kürzel: hält alle Schalter synchron, speichert den Zustand und spielt
+        bei einer echten Änderung vox_me_enable/-disable (wie BearWare)."""
+        if enabled and not self._check_input_device_configured():
+            self._sync_voice_activation_controls(False)
+            return False
+        was_enabled = self.client.is_voice_activation_enabled()
+        if enabled:
             try:
-                self._va_action.blockSignals(True)
-                self._va_action.setChecked(False)
-                self._va_action.blockSignals(False)
+                self.client.set_voice_activation_level(self.audio_tab.voice_level.value())
+                self.client.set_voice_activation_stop_delay(self.audio_tab.va_delay.value())
             except Exception:
                 pass
-            return
-        self.set_voice_activation(checked)
+        self.set_voice_activation(enabled)
+        self._sync_voice_activation_controls(enabled)
         try:
-            self.settings_store.settings.voice_activation = checked
+            self.settings_store.settings.voice_activation = bool(enabled)
             self.settings_store.save()
         except Exception:
             pass
+        if sound and bool(enabled) != was_enabled:
+            self._play_sound_event("voiceact_me_on" if enabled else "voiceact_me_off")
+        self.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+        return True
+
+    def _sync_voice_activation_controls(self, enabled: bool) -> None:
+        for ctrl in (getattr(self, "_va_action", None), getattr(self, "_tb_va", None),
+                     getattr(getattr(self, "audio_tab", None), "voice_activation", None)):
+            if ctrl is None:
+                continue
+            try:
+                ctrl.blockSignals(True)
+                ctrl.setChecked(bool(enabled))
+                ctrl.blockSignals(False)
+            except Exception:
+                pass
+
+    def toggle_speak_ready(self) -> None:
+        """Ein Befehl, um sofort hörbar zu sein: Audio anwenden (Geräte neu
+        öffnen), Stummschaltung der Ausgabe aufheben und Sprachaktivierung
+        einschalten. Ist die Sprachaktivierung schon an, schaltet er sie aus."""
+        if self.client.is_voice_activation_enabled():
+            self.set_voice_activation_state(False)
+            return
+        if not self._check_input_device_configured():
+            return
+        if not self.audio_tab.on_apply(announce=False):
+            return  # Audio-Tab hat den Grund bereits gemeldet
+        was_muted = bool(self._mute_all)
+        if was_muted:
+            # Nur ein Ton für den ganzen Befehl (vox_me_enable)
+            self.set_mute_all(False, sound=False, status=False)
+        if not self.set_voice_activation_state(True):
+            return
+        self.set_status(
+            _("Sprechbereit: Audio angewendet, Sprachaktivierung an, Stummschaltung aufgehoben")
+            if was_muted else
+            _("Sprechbereit: Audio angewendet, Sprachaktivierung an")
+        )
 
     def _on_tb_record(self, checked: bool) -> None:
         if checked:

@@ -521,7 +521,8 @@ class AudioTab(QWidget):
 
     # ── Apply ─────────────────────────────────────────────────────────────
 
-    def on_apply(self, announce: bool = True) -> None:
+    def on_apply(self, announce: bool = True) -> bool:
+        """Öffnet die gewählten Geräte neu; True, wenn das gelungen ist."""
         try:
             client = self.window.client
             indev, outdev = self._open_devices()
@@ -549,11 +550,12 @@ class AudioTab(QWidget):
                 if not ok:
                     use_duplex = False
 
+            ok = True
             if not use_duplex:
                 if indev is not None:
-                    client.init_sound_input_device(int(indev.nDeviceID))
+                    ok = bool(client.init_sound_input_device(int(indev.nDeviceID))) and ok
                 if outdev is not None:
-                    client.init_sound_output_device(int(outdev.nDeviceID))
+                    ok = bool(client.init_sound_output_device(int(outdev.nDeviceID))) and ok
 
             try:
                 client.set_sound_input_gain(self.mic_gain_slider.value() * 160)
@@ -569,25 +571,25 @@ class AudioTab(QWidget):
                 pass
 
             self._devices_applied = True
+            if indev is None or outdev is None:
+                self.window.set_status("Bitte Ein- und Ausgabegerät wählen")
+                return False
+            if not ok:
+                self.window.set_status("Audiogerät konnte nicht initialisiert werden")
+                return False
             if announce:
                 self.window.set_status("Audio-Einstellungen übernommen")
+            return True
         except Exception as exc:
             self.window.set_status(f"Audio-Fehler: {exc}")
+            return False
 
     # ── Voice activation ──────────────────────────────────────────────────
 
     def on_voice_activation(self, *_) -> None:
-        enabled = self.voice_activation.isChecked()
-        try:
-            # v10.5.0 – wirkt sofort; kein zusätzliches
-            # enable_voice_transmission(True) (blockiert VA im SDK, siehe
-            # TeamTalkClient.enable_voice_activation).
-            if enabled:
-                self.window.client.set_voice_activation_level(self.voice_level.value())
-            self.window.client.enable_voice_activation(enabled)
-        except Exception:
-            pass
-        self.window.set_status("Sprachaktivierung an" if enabled else "Sprachaktivierung aus")
+        # v10.5.0 – wirkt sofort; Pegel, Schalter-Abgleich und Ton übernimmt
+        # das Hauptfenster (MainWindow.set_voice_activation_state).
+        self.window.set_voice_activation_state(self.voice_activation.isChecked())
 
     def on_voice_level(self, value: int) -> None:
         try:
@@ -604,12 +606,7 @@ class AudioTab(QWidget):
     # ── Levels ────────────────────────────────────────────────────────────
 
     def _on_output_mute(self, state: int) -> None:
-        muted = bool(state)
-        try:
-            self.window.client.set_sound_output_mute(muted)
-        except Exception:
-            pass
-        self.window.set_status("Ausgabe stummgeschaltet" if muted else "Ausgabe aktiv")
+        self.window.set_mute_all(bool(state))
 
     def _on_master_volume_changed(self, value: int) -> None:
         self.master_volume_label.setText(str(value))
@@ -899,12 +896,20 @@ class AudioTab(QWidget):
 
         self.on_apply()
 
-        if "voice_activation" in prefs:
-            self.voice_activation.setChecked(bool(prefs["voice_activation"]))
+        # Gespeicherten Zustand still übernehmen (kein Ton beim Start)
         if "va_delay" in prefs:
             self.va_delay.setValue(int(prefs["va_delay"]))
+        if "voice_activation" in prefs:
+            enabled = bool(prefs["voice_activation"])
+            try:
+                if enabled:
+                    self.window.client.set_voice_activation_level(self.voice_level.value())
+                self.window.client.enable_voice_activation(enabled)
+            except Exception:
+                pass
+            self.window._sync_voice_activation_controls(enabled)
         if "output_mute" in prefs:
-            self.output_mute.setChecked(bool(prefs["output_mute"]))
+            self.window.set_mute_all(bool(prefs["output_mute"]), sound=False, status=False)
         if "effects_agc" in prefs:
             self.agc_check.setChecked(bool(prefs["effects_agc"]))
         if "effects_denoise" in prefs:

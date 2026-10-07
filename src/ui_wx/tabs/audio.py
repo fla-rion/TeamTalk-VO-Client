@@ -633,12 +633,13 @@ class AudioTab(wx.Panel):
             if choice.GetSelection() != 0:
                 choice.SetSelection(0)
 
-    def on_apply_audio(self, _event, announce: bool = True):
+    def on_apply_audio(self, _event, announce: bool = True) -> bool:
+        """Öffnet die gewählten Geräte neu; True, wenn das gelungen ist."""
         client = self.frame.client
         indev, outdev = self._open_devices()
         if indev is None or outdev is None:
             self.frame.set_status("Bitte Ein- und Ausgabegerät wählen")
-            return
+            return False
         # Eine echte (nicht Platzhalter-)Auswahl wird zum gemerkten Gerät;
         # ein verbliebener "nicht verbunden"-Eintrag verschwindet dann.
         tt_str = self.frame.tt_str
@@ -682,13 +683,13 @@ class AudioTab(wx.Panel):
                 input_ok = client.init_sound_input_device(indev_id)
         if not input_ok:
             self.frame.set_status("Eingabegerät konnte nicht initialisiert werden")
-            return
+            return False
 
         if not use_duplex:
             output_ok = client.init_sound_output_device(outdev_id)
             if not output_ok:
                 self.frame.set_status("Ausgabegerät konnte nicht initialisiert werden")
-                return
+                return False
 
         client.set_sound_input_gain(int(self.input_gain.GetValue()))
         client.set_sound_output_volume(int(self.output_volume.GetValue()))
@@ -699,6 +700,7 @@ class AudioTab(wx.Panel):
         self._devices_applied = True
         if announce:
             self.frame.set_status("Audiogeräte aktiviert")
+        return True
 
     # --- Voice controls ---
 
@@ -718,8 +720,7 @@ class AudioTab(wx.Panel):
         self.frame.client.set_voice_activation_stop_delay(int(self.va_delay.GetValue()))
 
     def on_output_mute(self, event):
-        self.frame.client.set_sound_output_mute(event.IsChecked())
-        self.frame.set_status("Ausgabe stummgeschaltet" if event.IsChecked() else "Ausgabe aktiv")
+        self.frame.set_mute_all(bool(event.IsChecked()))
 
     # --- Device effects ---
 
@@ -925,8 +926,8 @@ class AudioTab(wx.Panel):
         # Voice activation
         if "voice_activation" in prefs:
             enabled = bool(prefs["voice_activation"])
-            self.voice_activation.SetValue(enabled)
             self.frame.client.enable_voice_activation(enabled)
+            self.frame._sync_voice_activation_controls(enabled)
 
         # VA delay
         if "va_delay" in prefs:
@@ -936,8 +937,8 @@ class AudioTab(wx.Panel):
         # Output mute
         if "output_mute" in prefs:
             muted = bool(prefs["output_mute"])
-            self.output_mute.SetValue(muted)
-            self.frame.client.set_sound_output_mute(muted)
+            # Gespeicherten Zustand still übernehmen (kein Ton beim Start)
+            self.frame.set_mute_all(muted, sound=False, status=False)
 
         # Effects
         if "effects_agc" in prefs:

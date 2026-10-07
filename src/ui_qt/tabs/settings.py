@@ -43,6 +43,10 @@ _SOUND_EVENTS = [
     ("Sprechrunde beginnt (Warteschlange)", "txqueue_start"),
     ("Sprechrunde endet (Warteschlange)", "txqueue_stop"),
     ("Jemand schreibt eine Privatnachricht", "user_typing"),
+    ("Sprachaktivierung eingeschaltet", "voiceact_me_on"),
+    ("Sprachaktivierung ausgeschaltet", "voiceact_me_off"),
+    ("Alles stummgeschaltet", "mute_all_on"),
+    ("Stummschaltung aufgehoben", "mute_all_off"),
 ]
 
 _SUBSCRIPTIONS = [

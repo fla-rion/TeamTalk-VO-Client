@@ -40,6 +40,13 @@ DEFAULT_SOUNDS: dict[str, str] = {
     "txqueue_start":     "txqueue_start.wav",
     "txqueue_stop":      "txqueue_stop.wav",
     "user_typing":       "typing.wav",
+    # Sprachaktivierung/Stummschaltung per Menü, Kürzel oder Symbolleiste –
+    # Namen und Zuordnung wie im offiziellen Client (SOUNDEVENT_VOICEACTMEON/
+    # -OFF, SOUNDEVENT_MUTEALLON/-OFF in qtTeamTalk/settings.h).
+    "voiceact_me_on":    "vox_me_enable.wav",
+    "voiceact_me_off":   "vox_me_disable.wav",
+    "mute_all_on":       "mute_all.wav",
+    "mute_all_off":      "unmute_all.wav",
 }
 
 # Mitgelieferter Ersatz, wenn der Standard-Dateiname weder im Sound-Pack-Ordner
@@ -73,6 +80,10 @@ SOUND_EVENT_LABELS: dict[str, str] = {
     "txqueue_start":     "Sprechrunde beginnt (Warteschlange)",
     "txqueue_stop":      "Sprechrunde endet (Warteschlange)",
     "user_typing":       "Jemand schreibt eine Privatnachricht",
+    "voiceact_me_on":    "Sprachaktivierung eingeschaltet",
+    "voiceact_me_off":   "Sprachaktivierung ausgeschaltet",
+    "mute_all_on":       "Alles stummgeschaltet",
+    "mute_all_off":      "Stummschaltung aufgehoben",
 }
 
 
