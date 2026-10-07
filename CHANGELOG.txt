@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.2)
+Fehlerbehebungen: zerstückelte Stimme, selbstständig wechselnde Audiogeräte
+
+- **Die eigene Stimme kam bei Sprachaktivierung zerstückelt an.** Der
+  Nachlauf der Sprachaktivierung stand im Audio-Tab auf 0 ms und wurde seit
+  v10.5.0 beim Einschalten der Sprachaktivierung übernommen: Das Mikrofon
+  schaltete in jeder kleinen Sprechpause ab und verschluckte den Anfang des
+  nächsten Wortes. Der Nachlauf ist jetzt standardmäßig 1500 ms wie im
+  offiziellen Client; ein früher gespeicherter Wert von 0 wird einmalig
+  ersetzt. Ändern lässt er sich weiterhin im Audio-Tab.
+- **Mikrofon-Wächter startete das Soundsystem grundlos neu.** In Kanälen, in
+  denen du gerade nicht sprechen darfst (Unterrichtsmodus ohne Sprechrecht,
+  vom Operator gesperrt, Sprachaktivierung in Kanälen ohne
+  Sprachaktivierung), hielt er die fehlende Übertragung für einen Fehler.
+  Das führte zu Aussetzern und konnte beim Wiederöffnen ein anderes Gerät
+  wählen.
+- **Die App wechselte von selbst das Ausgabegerät.** Ein Wechsel des
+  macOS-Standardgeräts (etwa durch Teams oder ein Bluetooth-Headset) löst
+  keinen Neustart des Soundsystems mehr aus. "Bei Gerätewechsel automatisch
+  anwenden" folgt nie mehr virtuellen Geräten wie Microsoft Teams Audio,
+  Zoom, Loopback oder dem TeamTalk-eigenen virtuellen Gerät. Nach einem
+  Neustart des Soundsystems wird das bisher gewählte Gerät über seinen Namen
+  wiedergefunden statt über eine Nummer, die sich verschieben kann.
+
 2026-10-08 (v10.6.1)
 Fehlerbehebungen: Desktopfreigabe über Menü/Symbolleiste, Startfehler-Diagnose (macOS)
 

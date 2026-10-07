@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.2)
+Bug fixes: choppy voice, audio devices switching on their own
+
+- **Your voice sounded choppy with voice activation.** The voice activation
+  stop delay in the Audio tab was set to 0 ms and, since v10.5.0, was applied
+  when turning voice activation on: the microphone switched off in every
+  short pause and cut off the start of the next word. The delay now defaults
+  to 1500 ms like in the official client; a previously saved value of 0 is
+  replaced once. You can still change it in the Audio tab.
+- **The microphone watchdog restarted the sound system for no reason.** In
+  channels where you are currently not allowed to speak (classroom mode
+  without permission, blocked by an operator, voice activation in channels
+  without voice activation) it took the missing transmission for a fault.
+  This caused dropouts and could select a different device when reopening.
+- **The app switched the output device on its own.** A change of the macOS
+  default device (e.g. by Teams or a Bluetooth headset) no longer restarts
+  the sound system. "Auto-apply on device change" never follows
+  virtual devices such as Microsoft Teams Audio, Zoom, Loopback or
+  TeamTalk's own virtual device. After a sound system restart the previously
+  selected device is found again by its name instead of by a number that
+  can shift.
+
 2026-10-08 (v10.6.1)
 Bug fixes: desktop sharing from menu/toolbar, startup error diagnostics (macOS)
 

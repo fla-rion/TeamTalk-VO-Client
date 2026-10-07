@@ -1,6 +1,31 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.2)
+Corrections : voix hachée, périphériques audio qui changent tout seuls
+
+- **Votre voix arrivait hachée avec l'activation vocale.** Le délai d'arrêt
+  de l'activation vocale était réglé sur 0 ms dans l'onglet Audio et, depuis
+  la v10.5.0, appliqué à l'activation : le micro se coupait à chaque petite
+  pause et avalait le début du mot suivant. Le délai est désormais de
+  1500 ms par défaut, comme dans le client officiel ; une valeur de 0
+  enregistrée auparavant est remplacée une seule fois. Il reste modifiable
+  dans l'onglet Audio.
+- **Le contrôle du micro redémarrait le système audio sans raison.** Dans
+  les canaux où vous n'avez pas le droit de parler (mode classe sans
+  autorisation, bloqué par un opérateur, activation vocale dans un canal qui
+  l'interdit), il prenait l'absence de transmission pour une panne. Cela
+  provoquait des coupures et pouvait choisir un autre périphérique à la
+  réouverture.
+- **L'application changeait toute seule de périphérique de sortie.** Un
+  changement du périphérique par défaut de macOS (par ex. par Teams ou un
+  casque Bluetooth) ne redémarre plus le système audio. « Appliquer
+  automatiquement au changement de périphérique » ne suit plus jamais
+  les périphériques virtuels comme Microsoft Teams Audio, Zoom, Loopback ou
+  le périphérique virtuel de TeamTalk. Après un redémarrage du système
+  audio, le périphérique choisi est retrouvé par son nom et non plus par un
+  numéro qui peut changer.
+
 2026-10-08 (v10.6.1)
 Corrections : partage d'écran depuis le menu/la barre d'outils, diagnostic des erreurs de démarrage (macOS)
 

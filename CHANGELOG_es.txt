@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.2)
+Correcciones: voz entrecortada, dispositivos de audio que cambian solos
+
+- **Tu voz llegaba entrecortada con la activación por voz.** El retardo de
+  parada de la activación por voz estaba en 0 ms en la pestaña Audio y,
+  desde la v10.5.0, se aplicaba al activarla: el micrófono se cerraba en
+  cada pequeña pausa y se comía el principio de la palabra siguiente. Ahora
+  el retardo es de 1500 ms por defecto, como en el cliente oficial; un valor
+  de 0 guardado antes se sustituye una sola vez. Se puede seguir cambiando
+  en la pestaña Audio.
+- **El vigilante del micrófono reiniciaba el sistema de sonido sin motivo.**
+  En canales donde ahora no puedes hablar (modo aula sin permiso, bloqueado
+  por un operador, activación por voz en canales sin activación por voz)
+  tomaba la falta de transmisión por un fallo. Eso causaba cortes y podía
+  elegir otro dispositivo al reabrir.
+- **La aplicación cambiaba sola el dispositivo de salida.** Un cambio del
+  dispositivo predeterminado de macOS (por ejemplo, por Teams o unos
+  auriculares Bluetooth) ya no reinicia el sistema de sonido. "Aplicar
+  automáticamente al cambiar dispositivo" ya nunca sigue a dispositivos
+  virtuales como Microsoft Teams Audio, Zoom, Loopback o el dispositivo
+  virtual propio de TeamTalk. Tras reiniciar el sistema de sonido, el
+  dispositivo elegido se vuelve a encontrar por su nombre y no por un número
+  que puede cambiar.
+
 2026-10-08 (v10.6.1)
 Correcciones: compartir escritorio desde el menú/la barra de herramientas, diagnóstico de errores de inicio (macOS)
 
