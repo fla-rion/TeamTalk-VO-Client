@@ -44,9 +44,12 @@ class Win32GlobalHotkeyManager:
         self._on_ptt_down: Optional[Callable] = None
         self._on_ptt_up: Optional[Callable] = None
         self._on_mute: Optional[Callable] = None
+        self._speak_ready_vk: int = 0
+        self._on_speak_ready: Optional[Callable] = None
         self._call_after: Optional[Callable] = None
         self._ptt_was_down = False
         self._mute_was_down = False
+        self._speak_ready_was_down = False
 
     def start(
         self,
@@ -56,6 +59,8 @@ class Win32GlobalHotkeyManager:
         on_ptt_up: Callable,
         on_mute: Callable,
         call_after: Optional[Callable] = None,
+        speak_ready_vk: int = 0,
+        on_speak_ready: Optional[Callable] = None,
     ) -> None:
         if sys.platform != "win32":
             return
@@ -65,9 +70,12 @@ class Win32GlobalHotkeyManager:
         self._on_ptt_down = on_ptt_down
         self._on_ptt_up = on_ptt_up
         self._on_mute = on_mute
+        self._speak_ready_vk = speak_ready_vk
+        self._on_speak_ready = on_speak_ready
         self._call_after = call_after or (lambda fn: fn())
         self._ptt_was_down = False
         self._mute_was_down = False
+        self._speak_ready_was_down = False
         self._running = True
         self._thread = threading.Thread(target=self._poll, daemon=True, name="Win32GlobalHotkeys")
         self._thread.start()
@@ -92,6 +100,16 @@ class Win32GlobalHotkeyManager:
                             self._call_after(self._on_mute)
                     elif not is_down:
                         self._mute_was_down = False
+
+                if self._speak_ready_vk:
+                    state = user32.GetAsyncKeyState(self._speak_ready_vk)
+                    is_down = bool(state & 0x8000)
+                    if is_down and not self._speak_ready_was_down:
+                        self._speak_ready_was_down = True
+                        if self._on_speak_ready:
+                            self._call_after(self._on_speak_ready)
+                    elif not is_down:
+                        self._speak_ready_was_down = False
 
                 if self._ptt_vk:
                     state = user32.GetAsyncKeyState(self._ptt_vk)

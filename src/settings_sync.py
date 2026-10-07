@@ -69,6 +69,7 @@ _SYNCABLE_FIELDS = {
     "global_hotkeys_enabled",
     "global_hotkey_ptt",
     "global_hotkey_mute",
+    "global_hotkey_speak_ready",
     "sound_events",
     "sound_profiles",
     "active_sound_profile",
@@ -923,7 +924,7 @@ class SettingsSyncManager:
         if self._sync_what.get("hotkeys"):
             hotkeys = {}
             for field_name in _SYNCABLE_FIELDS:
-                if field_name.startswith("hotkey") or field_name in ("ptt_hotkey", "global_hotkeys_enabled", "global_hotkey_ptt", "global_hotkey_mute"):
+                if field_name.startswith("hotkey") or field_name in ("ptt_hotkey", "global_hotkeys_enabled", "global_hotkey_ptt", "global_hotkey_mute", "global_hotkey_speak_ready"):
                     val = getattr(s, field_name, None)
                     if val is not None:
                         hotkeys[field_name] = val

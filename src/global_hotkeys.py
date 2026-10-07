@@ -51,6 +51,8 @@ class GlobalHotkeyManager:
         self._on_ptt_down: Optional[Callable] = None
         self._on_ptt_up: Optional[Callable] = None
         self._on_mute: Optional[Callable] = None
+        self._speak_ready_vk: int = 0
+        self._on_speak_ready: Optional[Callable] = None
         self._ptt_pressed = False
         self._thread: Optional[threading.Thread] = None
         self._running = False
@@ -69,6 +71,8 @@ class GlobalHotkeyManager:
         on_ptt_up: Callable,
         on_mute: Callable,
         call_after: Optional[Callable] = None,
+        speak_ready_vk: int = 0,
+        on_speak_ready: Optional[Callable] = None,
     ) -> None:
         self.stop()
         self._ptt_vk = ptt_vk
@@ -76,6 +80,8 @@ class GlobalHotkeyManager:
         self._on_ptt_down = on_ptt_down
         self._on_ptt_up = on_ptt_up
         self._on_mute = on_mute
+        self._speak_ready_vk = speak_ready_vk
+        self._on_speak_ready = on_speak_ready
         self._call_after = call_after
         self._ptt_pressed = False
         self._running = True
@@ -178,9 +184,20 @@ class GlobalHotkeyManager:
                         self._ptt_pressed = False
                         if self._on_ptt_up:
                             _dispatch(self._on_ptt_up)
-                elif self._mute_vk and vk == self._mute_vk and is_down:
-                    if self._on_mute:
-                        _dispatch(self._on_mute)
+                elif is_down:
+                    # Umschalt-Hotkeys nur beim ersten Anschlag, nicht bei der
+                    # Tastenwiederholung einer gehaltenen Taste.
+                    try:
+                        if event.isARepeat():
+                            return
+                    except Exception:
+                        pass
+                    if self._mute_vk and vk == self._mute_vk:
+                        if self._on_mute:
+                            _dispatch(self._on_mute)
+                    elif self._speak_ready_vk and vk == self._speak_ready_vk:
+                        if self._on_speak_ready:
+                            _dispatch(self._on_speak_ready)
 
             self._monitor = NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(
                 mask, _handler

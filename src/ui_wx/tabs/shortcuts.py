@@ -118,7 +118,8 @@ class ShortcutsTab(wx.Panel):
             scroll_sizer.Add(self._global_enable, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
 
             for label, key in [("PTT (Sprechtaste)", "global_hotkey_ptt"),
-                                ("Stummschalten umschalten", "global_hotkey_mute")]:
+                                ("Stummschalten umschalten", "global_hotkey_mute"),
+                                ("Sprechbereit umschalten", "global_hotkey_speak_ready")]:
                 row = self._make_row(self._scroll, label, key, global_key=True)
                 scroll_sizer.Add(row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
                 self._global_rows.append(row)

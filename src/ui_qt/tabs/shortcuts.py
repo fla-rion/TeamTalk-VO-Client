@@ -145,7 +145,8 @@ class ShortcutsTab(QWidget):
             self._global_enable.stateChanged.connect(self._on_global_enable_changed)
             global_layout.addWidget(self._global_enable)
             for label, key in [(_("PTT (Sprechtaste)"), "global_hotkey_ptt"),
-                                (_("Stummschalten umschalten"), "global_hotkey_mute")]:
+                                (_("Stummschalten umschalten"), "global_hotkey_mute"),
+                                (_("Sprechbereit umschalten"), "global_hotkey_speak_ready")]:
                 row = _HotkeyRow(global_group, label, key, True, window)
                 global_layout.addWidget(row)
                 self._global_rows.append(row)

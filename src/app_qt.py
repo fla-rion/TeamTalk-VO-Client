@@ -1623,6 +1623,8 @@ class MainWindow(QMainWindow):
                 on_ptt_up=self._on_global_ptt_up,
                 on_mute=self._on_global_mute,
                 call_after=_qt_call_after,
+                speak_ready_vk=int(getattr(s, "global_hotkey_speak_ready", 0) or 0),
+                on_speak_ready=self.toggle_speak_ready,
             )
         elif sys.platform == "win32":
             try:
@@ -1645,6 +1647,8 @@ class MainWindow(QMainWindow):
                     on_ptt_up=self._on_global_ptt_up,
                     on_mute=self._on_global_mute,
                     call_after=_qt_call_after,
+                    speak_ready_vk=int(getattr(s, "global_hotkey_speak_ready", 0) or 0),
+                    on_speak_ready=self.toggle_speak_ready,
                 )
             except Exception as exc:
                 self.logger.write(f"Win32 globale Hotkeys: {exc}")

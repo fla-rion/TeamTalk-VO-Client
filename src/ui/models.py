@@ -171,6 +171,7 @@ class AppSettings:
     global_hotkeys_enabled: bool = False
     global_hotkey_ptt: int = 0
     global_hotkey_mute: int = 0
+    global_hotkey_speak_ready: int = 0
     # v1.5.0 features
     tts_speak_user_join: bool = True
     tts_speak_user_leave: bool = True
@@ -457,6 +458,7 @@ class SettingsStore:
             self.settings.global_hotkeys_enabled = bool(data.get("global_hotkeys_enabled", False))
             self.settings.global_hotkey_ptt = int(data.get("global_hotkey_ptt", 0) or 0)
             self.settings.global_hotkey_mute = int(data.get("global_hotkey_mute", 0) or 0)
+            self.settings.global_hotkey_speak_ready = int(data.get("global_hotkey_speak_ready", 0) or 0)
             # v1.5.0
             self.settings.tts_speak_user_join = bool(data.get("tts_speak_user_join", True))
             self.settings.tts_speak_user_leave = bool(data.get("tts_speak_user_leave", True))
@@ -703,6 +705,7 @@ class SettingsStore:
             "global_hotkeys_enabled": bool(self.settings.global_hotkeys_enabled),
             "global_hotkey_ptt": int(self.settings.global_hotkey_ptt or 0),
             "global_hotkey_mute": int(self.settings.global_hotkey_mute or 0),
+            "global_hotkey_speak_ready": int(self.settings.global_hotkey_speak_ready or 0),
             # v1.5.0
             "tts_speak_user_join": bool(self.settings.tts_speak_user_join),
             "tts_speak_user_leave": bool(self.settings.tts_speak_user_leave),

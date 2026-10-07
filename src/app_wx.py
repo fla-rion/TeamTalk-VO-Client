@@ -2067,13 +2067,16 @@ class MainFrame(wx.Frame):
             return
         s = self.settings_store.settings
         self._global_hotkey_mgr.stop()
-        if s.global_hotkeys_enabled and (s.global_hotkey_ptt or s.global_hotkey_mute):
+        speak_ready_vk = int(getattr(s, "global_hotkey_speak_ready", 0) or 0)
+        if s.global_hotkeys_enabled and (s.global_hotkey_ptt or s.global_hotkey_mute or speak_ready_vk):
             self._global_hotkey_mgr.start(
                 ptt_vk=int(s.global_hotkey_ptt or 0),
                 mute_vk=int(s.global_hotkey_mute or 0),
                 on_ptt_down=self._on_global_ptt_down,
                 on_ptt_up=self._on_global_ptt_up,
                 on_mute=self._on_global_mute,
+                speak_ready_vk=speak_ready_vk,
+                on_speak_ready=self.toggle_speak_ready,
             )
 
     def _on_global_ptt_down(self) -> None:
@@ -2124,6 +2127,8 @@ class MainFrame(wx.Frame):
             s.global_hotkey_ptt = vk
         elif target == "global_hotkey_mute":
             s.global_hotkey_mute = vk
+        elif target == "global_hotkey_speak_ready":
+            s.global_hotkey_speak_ready = vk
         self.settings_store.save()
         try:
             self.shortcuts_tab.set_global_capture_label(target, False)
@@ -8548,11 +8553,15 @@ class MainFrame(wx.Frame):
                 from global_hotkeys import vk_to_name
                 ptt_label = vk_to_name(int(s.global_hotkey_ptt or 0)) if s.global_hotkey_ptt else "(nicht gesetzt)"
                 mute_label = vk_to_name(int(s.global_hotkey_mute or 0)) if s.global_hotkey_mute else "(nicht gesetzt)"
+                ready_vk = int(getattr(s, "global_hotkey_speak_ready", 0) or 0)
+                ready_label = vk_to_name(ready_vk) if ready_vk else "(nicht gesetzt)"
             except Exception:
                 ptt_label = str(s.global_hotkey_ptt or "(nicht gesetzt)")
                 mute_label = str(s.global_hotkey_mute or "(nicht gesetzt)")
+                ready_label = str(getattr(s, "global_hotkey_speak_ready", 0) or "(nicht gesetzt)")
             lines.append(f"  {'PTT (Sprechtaste)':<{col_w}}{ptt_label}")
             lines.append(f"  {'Stummschalten umschalten':<{col_w}}{mute_label}")
+            lines.append(f"  {'Sprechbereit umschalten':<{col_w}}{ready_label}")
 
         text = "\n".join(lines)
         dlg = wx.Dialog(self, title="Tastenkürzel-Referenz",
