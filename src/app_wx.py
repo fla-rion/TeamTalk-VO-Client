@@ -91,7 +91,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "10.6.0"
+APP_VERSION = "10.6.1"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -3627,7 +3627,9 @@ class MainFrame(wx.Frame):
             self.set_status("Desktop-Tab nicht verfügbar")
             return
         tab.share_toggle.SetValue(enabled)
-        tab.on_share_toggle(wx.CommandEvent())
+        toggle_event = wx.CommandEvent(wx.wxEVT_CHECKBOX)
+        toggle_event.SetInt(1 if enabled else 0)
+        tab._on_share_toggle(toggle_event)
 
     def on_menu_channel_create(self, _event):
         if not self._require_connected("Kanal erstellen"):

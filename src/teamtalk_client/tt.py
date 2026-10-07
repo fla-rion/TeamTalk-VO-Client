@@ -36,8 +36,12 @@ def ensure_teamtalk_sdk_on_path() -> None:
             try:
                 import ctypes
                 ctypes.CDLL(str(dylib_path))
-            except OSError:
-                pass
+            except OSError as exc:
+                # Nicht still schlucken: sonst bleibt im Crash-Log nur der
+                # nichtssagende Folgefehler des nackten LoadLibrary-Aufrufs.
+                print(f"libTeamTalk5.dylib konnte nicht geladen werden ({dylib_path}): {exc}", file=sys.stderr)
+        else:
+            print(f"libTeamTalk5.dylib fehlt im Bundle: {dylib_path}", file=sys.stderr)
     if str(sdk_py) not in sys.path:
         sys.path.insert(0, str(sdk_py))
 

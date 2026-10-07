@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.1)
+Bug fixes: desktop sharing from menu/toolbar, startup error diagnostics (macOS)
+
+- **Desktop sharing from the menu or toolbar caused an error.** The menu
+  item called a function that did not exist; in addition, sharing would
+  never have started this way because the on/off state was not passed on.
+  Both fixed.
+- **Startup error "libTeamTalk5.dylib not found" is easier to trace.** If
+  loading the TeamTalk library fails, the error log now contains the actual
+  cause instead of only the follow-up error.
+
+Thanks to David Losse for reporting the bug!
+
 2026-10-06 (v10.6.0)
 New features from TeamTalk 5.22/5.23 and tt-Accessible, many bug fixes
 
@@ -400,6 +413,51 @@ Bugfixes: Windows build startup, Eloquence TTS fallback, cleaner TTS settings
   Eloquence voice picker (1-8) remains visible. Conversely, the Eloquence
   picker is hidden when espeak-ng (or, on macOS, VoiceOver/say/AVS) is
   active.
+
+2026-09-04 (v10.3.0)
+New: Android port via BeeWare/Briefcase + TalkBack accessibility
+
+- **Android app** (BeeWare/Briefcase + Toga): New platform port for Android.
+  All tabs as a Toga OptionContainer: Connection, Channels, Chat, Audio,
+  Media, Settings, System Log.
+- **TalkBack accessibility** (`src/ui_android/a11y.py`): Content descriptions
+  on all widgets, live regions (POLITE/ASSERTIVE) for chat and channel list,
+  immediate announcements via `announceForAccessibility()`,
+  `AccessibleDetailedList` with automatic row descriptions. Implemented via
+  Rubicon-Java – no native Kotlin code needed.
+- **TeamTalk Java SDK wrapper** (`src/teamtalk_client_android.py`): Drop-in
+  compatible replacement for `teamtalk_client/client.py` on Android, uses
+  the official TeamTalk5 Android AAR via Rubicon-Java.
+- **CI workflow** (`.github/workflows/build-android.yml`): APK build via
+  Briefcase on Ubuntu (Java 17, Android SDK 34), optional APK signing,
+  upload to GitHub Release and Gitea (like the Windows workflow).
+- New dependencies: `toga>=0.4.0`, `toga-android`, `rubicon-java>=0.4.0`.
+- `libs/README.libs.md`: Instructions for obtaining `TeamTalk5.aar`.
+
+2026-09-04 (v10.2.0)
+New: Multi-deck mixer; device sync on the local network
+
+- **Multi-deck mixer**: New section in the Media tab. Up to 4 independent
+  decks, each with its own source display, gain slider (25–400 %) and
+  play/pause/stop controls. Since the TeamTalk SDK only sends one media
+  stream to the channel at a time, activating another deck fades out the
+  running deck smoothly over 2 seconds (crossfade) before the new one
+  starts. Supports local files; URLs can be entered directly.
+  New module `src/deck_manager.py` (DeckManager class, thread-safe).
+
+- **Device sync**: Settings can now be synchronized securely between your
+  own devices on the same local network – without a cloud server.
+  - Pairing via a 6-digit code (valid for 2 min., HMAC-SHA256-based).
+  - Permanent secret per device pair in the OS keychain.
+  - Device discovery via mDNS/Bonjour (`zeroconf`). Discovery ≠ trust:
+    unknown devices are rejected silently.
+  - All sync messages are HMAC-SHA256-authenticated.
+  - Choose what gets synchronized: server profiles, keyboard shortcuts,
+    TTS settings, sound profiles, notification rules.
+    Never synchronized: API keys, passwords, hardware-specific settings.
+  - New settings section "Device sync" (wx + Qt).
+  - New module `src/settings_sync.py`.
+  - New dependency: `zeroconf>=0.132.2`.
 
 2026-08-29 (v10.1.0)
 New: Automatic spatial audio; large i18n cleanup pass

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.1)
+Fehlerbehebungen: Desktopfreigabe über Menü/Symbolleiste, Startfehler-Diagnose (macOS)
+
+- **Desktopfreigabe über Menü oder Symbolleiste brachte einen Fehler.**
+  Der Menüeintrag rief eine nicht vorhandene Funktion auf; zusätzlich
+  wäre die Freigabe auf diesem Weg nie gestartet, weil der Ein/Aus-Zustand
+  nicht weitergegeben wurde. Beides behoben.
+- **Startfehler "libTeamTalk5.dylib nicht gefunden" besser nachvollziehbar.**
+  Scheitert das Laden der TeamTalk-Bibliothek, steht jetzt die eigentliche
+  Ursache im Fehlerprotokoll statt nur des Folgefehlers.
+
+Danke an David Losse für die Fehlermeldung!
+
 2026-10-06 (v10.6.0)
 Neuerungen aus TeamTalk 5.22/5.23 und tt-Accessible, viele Fehlerbehebungen
 

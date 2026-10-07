@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.1)
+Correcciones: compartir escritorio desde el menú/la barra de herramientas, diagnóstico de errores de inicio (macOS)
+
+- **Compartir escritorio desde el menú o la barra de herramientas producía
+  un error.** La opción de menú llamaba a una función inexistente; además,
+  por esta vía nunca se habría iniciado la transmisión, porque no se pasaba
+  el estado activado/desactivado. Ambos problemas corregidos.
+- **El error de inicio "libTeamTalk5.dylib no encontrado" es más fácil de
+  rastrear.** Si falla la carga de la biblioteca de TeamTalk, el registro de
+  errores muestra ahora la causa real en lugar de solo el error posterior.
+
+¡Gracias a David Losse por informar del error!
+
 2026-10-06 (v10.6.0)
 Novedades de TeamTalk 5.22/5.23 y tt-Accessible, muchas correcciones
 
@@ -435,6 +448,57 @@ Correcciones: inicio del build de Windows, respaldo TTS de Eloquence, ajustes de
   "Actualizar voces") - solo queda visible el selector de voz de
   Eloquence (1-8). A la inversa, ese selector se oculta cuando espeak-ng
   (o, en macOS, VoiceOver/say/AVS) está activo.
+
+2026-09-04 (v10.3.0)
+Nuevo: versión para Android mediante BeeWare/Briefcase + accesibilidad con TalkBack
+
+- **App para Android** (BeeWare/Briefcase + Toga): nueva versión para
+  Android. Todas las pestañas en un OptionContainer de Toga: Conexión,
+  Canales, Chat, Audio, Medios, Ajustes, Registro del sistema.
+- **Accesibilidad con TalkBack** (`src/ui_android/a11y.py`): descripciones
+  de contenido en todos los widgets, regiones activas (POLITE/ASSERTIVE)
+  para el chat y la lista de canales, anuncios inmediatos mediante
+  `announceForAccessibility()`, `AccessibleDetailedList` con descripciones
+  automáticas de filas. Implementado con Rubicon-Java, sin código Kotlin
+  nativo.
+- **Wrapper del SDK Java de TeamTalk** (`src/teamtalk_client_android.py`):
+  sustituto compatible de `teamtalk_client/client.py` en Android; usa el
+  AAR oficial de TeamTalk5 para Android mediante Rubicon-Java.
+- **Flujo de CI** (`.github/workflows/build-android.yml`): compilación del
+  APK con Briefcase en Ubuntu (Java 17, Android SDK 34), firma opcional del
+  APK, subida a GitHub Release y Gitea (igual que el flujo de Windows).
+- Nuevas dependencias: `toga>=0.4.0`, `toga-android`, `rubicon-java>=0.4.0`.
+- `libs/README.libs.md`: instrucciones para obtener `TeamTalk5.aar`.
+
+2026-09-04 (v10.2.0)
+Nuevo: mezclador multideck; sincronización de dispositivos en la red local
+
+- **Mezclador multideck**: nueva sección en la pestaña Medios. Hasta 4
+  decks independientes, cada uno con su propia indicación de fuente,
+  regulador de ganancia (25–400 %) y controles de reproducir/pausa/detener.
+  Como el SDK de TeamTalk solo envía un flujo de medios al canal a la vez,
+  al activar otro deck el que está sonando se desvanece suavemente durante
+  2 segundos (fundido cruzado) antes de que empiece el nuevo. Admite
+  archivos locales; las URL se pueden introducir directamente.
+  Nuevo módulo `src/deck_manager.py` (clase DeckManager, segura para hilos).
+
+- **Sincronización de dispositivos**: los ajustes se pueden sincronizar
+  ahora de forma segura entre tus propios dispositivos en la misma red
+  local, sin servidor en la nube.
+  - Emparejamiento mediante un código de 6 dígitos (válido 2 min, basado en
+    HMAC-SHA256).
+  - Secreto permanente por pareja de dispositivos en el llavero del sistema.
+  - Detección de dispositivos mediante mDNS/Bonjour (`zeroconf`).
+    Detección ≠ confianza: los dispositivos desconocidos se rechazan sin
+    aviso.
+  - Todos los mensajes de sincronización autenticados con HMAC-SHA256.
+  - Se puede elegir qué se sincroniza: perfiles de servidor, atajos de
+    teclado, ajustes de TTS, perfiles de sonido, reglas de notificación.
+    Nunca se sincronizan: claves de API, contraseñas, ajustes propios del
+    hardware.
+  - Nueva sección de ajustes "Sincronización de dispositivos" (wx + Qt).
+  - Nuevo módulo `src/settings_sync.py`.
+  - Nueva dependencia: `zeroconf>=0.132.2`.
 
 2026-08-29 (v10.1.0)
 Nuevo: audio espacial automático; gran limpieza de i18n

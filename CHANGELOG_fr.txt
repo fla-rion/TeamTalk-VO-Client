@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-10-08 (v10.6.1)
+Corrections : partage d'écran depuis le menu/la barre d'outils, diagnostic des erreurs de démarrage (macOS)
+
+- **Le partage d'écran depuis le menu ou la barre d'outils provoquait une
+  erreur.** L'entrée de menu appelait une fonction inexistante ; de plus, le
+  partage n'aurait jamais démarré par ce biais, car l'état activé/désactivé
+  n'était pas transmis. Les deux problèmes sont corrigés.
+- **L'erreur de démarrage « libTeamTalk5.dylib introuvable » est plus facile
+  à diagnostiquer.** Si le chargement de la bibliothèque TeamTalk échoue, le
+  journal d'erreurs indique désormais la cause réelle au lieu de la seule
+  erreur consécutive.
+
+Merci à David Losse d'avoir signalé le problème !
+
 2026-10-06 (v10.6.0)
 Nouveautés de TeamTalk 5.22/5.23 et de tt-Accessible, nombreuses corrections
 
@@ -444,6 +458,60 @@ Corrections : démarrage du build Windows, repli TTS Eloquence, réglages TTS si
   espeak-ng, « Actualiser les voix ») - seul le sélecteur de voix
   Eloquence (1-8) reste visible. Inversement, ce sélecteur est masqué
   quand espeak-ng (ou, sur macOS, VoiceOver/say/AVS) est actif.
+
+2026-09-04 (v10.3.0)
+Nouveau : portage Android via BeeWare/Briefcase + accessibilité TalkBack
+
+- **Application Android** (BeeWare/Briefcase + Toga) : nouveau portage pour
+  Android. Tous les onglets dans un OptionContainer Toga : Connexion,
+  Canaux, Chat, Audio, Médias, Paramètres, Journal système.
+- **Accessibilité TalkBack** (`src/ui_android/a11y.py`) : descriptions de
+  contenu sur tous les widgets, régions live (POLITE/ASSERTIVE) pour le chat
+  et la liste des canaux, annonces immédiates via
+  `announceForAccessibility()`, `AccessibleDetailedList` avec descriptions
+  automatiques des lignes. Implémenté via Rubicon-Java – aucun code Kotlin
+  natif nécessaire.
+- **Wrapper du SDK Java TeamTalk** (`src/teamtalk_client_android.py`) :
+  remplacement compatible de `teamtalk_client/client.py` sous Android,
+  utilise l'AAR Android officiel de TeamTalk5 via Rubicon-Java.
+- **Workflow CI** (`.github/workflows/build-android.yml`) : compilation de
+  l'APK via Briefcase sur Ubuntu (Java 17, Android SDK 34), signature
+  optionnelle de l'APK, envoi vers GitHub Release et Gitea (comme le
+  workflow Windows).
+- Nouvelles dépendances : `toga>=0.4.0`, `toga-android`,
+  `rubicon-java>=0.4.0`.
+- `libs/README.libs.md` : instructions pour obtenir `TeamTalk5.aar`.
+
+2026-09-04 (v10.2.0)
+Nouveau : mixeur multi-platines ; synchronisation des appareils sur le réseau local
+
+- **Mixeur multi-platines** : nouvelle section dans l'onglet Médias. Jusqu'à
+  4 platines indépendantes, chacune avec son affichage de source, son
+  réglage de gain (25–400 %) et ses commandes lecture/pause/arrêt. Comme le
+  SDK TeamTalk n'envoie qu'un seul flux média à la fois vers le canal,
+  l'activation d'une autre platine fait disparaître en fondu la platine en
+  cours sur 2 secondes (fondu enchaîné) avant que la nouvelle ne démarre.
+  Prend en charge les fichiers locaux ; les URL peuvent être saisies
+  directement. Nouveau module `src/deck_manager.py` (classe DeckManager,
+  thread-safe).
+
+- **Synchronisation des appareils** : les paramètres peuvent désormais être
+  synchronisés en toute sécurité entre vos propres appareils sur le même
+  réseau local – sans serveur cloud.
+  - Appairage via un code à 6 chiffres (valable 2 min, basé sur
+    HMAC-SHA256).
+  - Secret permanent par paire d'appareils dans le trousseau du système.
+  - Découverte des appareils via mDNS/Bonjour (`zeroconf`). Découverte ≠
+    confiance : les appareils inconnus sont rejetés sans message.
+  - Tous les messages de synchronisation sont authentifiés par HMAC-SHA256.
+  - Choix des éléments synchronisés : profils de serveur, raccourcis
+    clavier, paramètres TTS, profils sonores, règles de notification.
+    Jamais synchronisés : clés API, mots de passe, paramètres propres au
+    matériel.
+  - Nouvelle section de paramètres « Synchronisation des appareils »
+    (wx + Qt).
+  - Nouveau module `src/settings_sync.py`.
+  - Nouvelle dépendance : `zeroconf>=0.132.2`.
 
 2026-08-29 (v10.1.0)
 Nouveau : audio spatial automatique ; grand nettoyage i18n
