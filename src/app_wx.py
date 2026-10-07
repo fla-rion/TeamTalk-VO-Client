@@ -77,6 +77,7 @@ from offline_queue import OfflineMessageQueue
 import system_audio as sa
 import audio_device_memory as adm
 from mic_watchdog import MicWatchdog, ACTION_RESTART, ACTION_GIVE_UP, sample_from_client
+from intercept_watch import InterceptTracker
 from coreaudio_watch import CoreAudioDeviceWatcher
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
@@ -1041,6 +1042,7 @@ class MainFrame(wx.Frame):
         self._vu_timer.Start(100)
         # Mikrofon-Watchdog: Senden aktiv, aber es geht keine Sprache raus
         self._mic_watchdog = MicWatchdog()
+        self._intercept_tracker = InterceptTracker()
         self._mic_watchdog_timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self._on_mic_watchdog_timer, self._mic_watchdog_timer)
         self._mic_watchdog_timer.Start(1000)
@@ -5204,6 +5206,26 @@ class MainFrame(wx.Frame):
             if was_muted else
             _("Sprechbereit: Audio angewendet, Sprachaktivierung an")
         )
+
+    def _on_peer_subscriptions(self, user_id: int, peer_subs: int, display: str) -> None:
+        """Abhör-Warnung: meldet, wenn jemand beginnt oder aufhört, deine
+        Sprache bzw. Nachrichten abzufangen (Ansage + intercept-Töne)."""
+        try:
+            my_id = int(self.client.get_my_user_id() or 0)
+        except Exception:
+            my_id = 0
+        for change in self._intercept_tracker.update(user_id, peer_subs, my_id):
+            text = change.text(display)
+            self._play_sound_event(change.sound_key)
+            self.set_status(text)
+            try:
+                self.chat_tab.append_chat(f"* {text}", kind="system", speak=False)
+            except Exception:
+                pass
+            try:
+                self.tts.speak(text, kind="system")
+            except Exception:
+                pass
 
     def _play_sound_event(self, key: str) -> None:
         try:
@@ -10604,6 +10626,7 @@ class MainFrame(wx.Frame):
             self.bus.emit("connection_state_changed", connected=False, reason="failed")
         elif event == tt.ClientEvent.CLIENTEVENT_CON_LOST:
             self._away_set_by_timer = False
+            wx.CallAfter(self._intercept_tracker.reset)
             wx.CallAfter(self._reset_typing_state)
             self._status_mode = 0
             wx.CallAfter(self.set_status, "Verbindung verloren")
@@ -10707,6 +10730,14 @@ class MainFrame(wx.Frame):
             # des offiziellen Clients)
             if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
                 self._queue_media_stream_check(_user, tt)
+            # Abhör-Warnung (wie offizieller Client): Abos des anderen bei mir
+            if _user and _user_id:
+                if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT:
+                    wx.CallAfter(self._intercept_tracker.forget, _user_id)
+                else:
+                    _peer_subs = int(getattr(_user, "uPeerSubscriptions", 0) or 0)
+                    _iname = self.user_display_name(_user, f"id{_user_id}")
+                    wx.CallAfter(self._on_peer_subscriptions, _user_id, _peer_subs, _iname)
             if self._user_recording_enabled:
                 self._handle_user_recording_event(msg, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_USER_STATECHANGE:
@@ -10716,6 +10747,7 @@ class MainFrame(wx.Frame):
                 self._queue_media_stream_check(_user, tt)
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self._media_stream_users.clear)
+            wx.CallAfter(self._intercept_tracker.reset)
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._reapply_media_master_volume)
             if getattr(self.settings_store.settings, "auto_join_root_channel", False):

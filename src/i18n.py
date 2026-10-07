@@ -7571,6 +7571,29 @@ _TRANSLATIONS_ES.update({
     "Bitte Ein- und Ausgabegerät wählen": "Selecciona un dispositivo de entrada y de salida",
 })
 
+# Abhör-Warnung (intercept_watch.py)
+_TRANSLATIONS.update({
+    "{name} hört jetzt mit: {what}": "{name} is now intercepting: {what}",
+    "{name} hört nicht mehr mit: {what}": "{name} stopped intercepting: {what}",
+    "Mediendateien": "Media files",
+    "Jemand hört mit (Abhören beginnt)": "Someone is intercepting (interception starts)",
+    "Abhören beendet": "Interception ended",
+})
+_TRANSLATIONS_FR.update({
+    "{name} hört jetzt mit: {what}": "{name} intercepte maintenant : {what}",
+    "{name} hört nicht mehr mit: {what}": "{name} n'intercepte plus : {what}",
+    "Mediendateien": "Fichiers multimédias",
+    "Jemand hört mit (Abhören beginnt)": "Quelqu'un intercepte (début de l'interception)",
+    "Abhören beendet": "Interception terminée",
+})
+_TRANSLATIONS_ES.update({
+    "{name} hört jetzt mit: {what}": "{name} está interceptando: {what}",
+    "{name} hört nicht mehr mit: {what}": "{name} dejó de interceptar: {what}",
+    "Mediendateien": "Archivos multimedia",
+    "Jemand hört mit (Abhören beginnt)": "Alguien está interceptando (empieza la interceptación)",
+    "Abhören beendet": "Interceptación terminada",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

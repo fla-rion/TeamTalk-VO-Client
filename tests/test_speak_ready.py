@@ -179,3 +179,24 @@ def test_speak_ready_stops_when_apply_fails(main_frame_cls):
     f.set_mute_all(True, sound=False, status=False)
     f.toggle_speak_ready()
     assert f.client.va is False and f.client.muted is True and f.sounds == []
+
+
+# --- Abhör-Warnung (MainFrame._on_peer_subscriptions) --------------------
+
+def test_intercept_warning_announces_and_plays_sound(main_frame_cls):
+    import intercept_watch as iw
+    spoken, chat = [], []
+    f = _fake_frame(main_frame_cls)
+    f._intercept_tracker = iw.InterceptTracker()
+    f.client.get_my_user_id = lambda: 1
+    f.tts = types.SimpleNamespace(speak=lambda text, kind=None: spoken.append(text))
+    f.chat_tab = types.SimpleNamespace(append_chat=lambda text, kind=None, speak=None: chat.append(text))
+    f._on_peer_subscriptions = types.MethodType(main_frame_cls._on_peer_subscriptions, f)
+
+    f._on_peer_subscriptions(7, 0x17F, "Admin")             # Anmeldung, kein Abhören
+    f._on_peer_subscriptions(7, 0x17F | iw.SUBSCRIBE_INTERCEPT_VOICE, "Admin")
+    f._on_peer_subscriptions(7, 0x17F | iw.SUBSCRIBE_INTERCEPT_VOICE, "Admin")  # nur Sprechzustand
+    f._on_peer_subscriptions(7, 0x17F, "Admin")
+    assert f.sounds == ["intercept_on", "intercept_off"]
+    assert len(spoken) == 2 and all("Admin" in t for t in spoken)
+    assert len(chat) == 2 and f.statuses[-1] == spoken[-1]

@@ -162,6 +162,8 @@ class MainWindow(QMainWindow):
         self._recording_path: Optional[str] = None
         self._video_tx_enabled = False
         self._mute_all = False
+        from intercept_watch import InterceptTracker
+        self._intercept_tracker = InterceptTracker()
         self._move_target_channel_id: int = 0
         self._last_private_sender_id: Optional[int] = None
         # Tipp-Anzeige bei Privatnachrichten (protokollkompatibel zu TeamTalk 5)
@@ -923,9 +925,30 @@ class MainWindow(QMainWindow):
         tt = self.client.tt
         mtype = int(msg.nClientEvent)
 
+        if mtype in (
+            int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDIN),
+            int(tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED),
+            int(tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE),
+        ):
+            # Abhör-Warnung: Werte sofort kopieren, der SDK-Puffer wird überschrieben
+            try:
+                _u = msg.user
+                call_after(
+                    self._on_peer_subscriptions,
+                    int(_u.nUserID),
+                    int(getattr(_u, "uPeerSubscriptions", 0) or 0),
+                    self.user_display_name(_u, f"id{int(_u.nUserID)}"),
+                )
+            except Exception:
+                pass
+
         if mtype == int(tt.ClientEvent.CLIENTEVENT_CON_LOST):
+            call_after(self._intercept_tracker.reset)
             call_after(self._on_connection_lost)
+        elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN):
+            call_after(self._intercept_tracker.reset)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDOUT):
+            call_after(self._intercept_tracker.reset)
             call_after(self._on_logged_out)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_CHANNEL_NEW):
             call_after(self._on_channel_update)
@@ -950,6 +973,10 @@ class MainWindow(QMainWindow):
             call_after(self.client.apply_media_master_to_user, int(msg.user.nUserID))
             call_after(self._on_user_loggedin, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT):
+            try:
+                call_after(self._intercept_tracker.forget, int(msg.user.nUserID))
+            except Exception:
+                pass
             call_after(self._on_user_loggedout, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_JOINED):
             call_after(self.client.apply_media_master_to_user, int(msg.user.nUserID))
@@ -3601,6 +3628,17 @@ class MainWindow(QMainWindow):
             self._play_sound_event("mute_all_on" if muted else "mute_all_off")
         if status:
             self.set_status("Ausgabe stummgeschaltet" if muted else "Ausgabe aktiv")
+
+    def _on_peer_subscriptions(self, user_id: int, peer_subs: int, display: str) -> None:
+        """Abhör-Warnung: meldet, wenn jemand beginnt oder aufhört, deine
+        Sprache bzw. Nachrichten abzufangen (Ansage + intercept-Töne)."""
+        try:
+            my_id = int(self.client.get_my_user_id() or 0)
+        except Exception:
+            my_id = 0
+        for change in self._intercept_tracker.update(user_id, peer_subs, my_id):
+            self._play_sound_event(change.sound_key)
+            self.set_status(change.text(display))  # set_status spricht bereits
 
     def _play_sound_event(self, key: str) -> None:
         try:

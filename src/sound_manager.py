@@ -47,6 +47,9 @@ DEFAULT_SOUNDS: dict[str, str] = {
     "voiceact_me_off":   "vox_me_disable.wav",
     "mute_all_on":       "mute_all.wav",
     "mute_all_off":      "unmute_all.wav",
+    # Abhör-Warnung (SOUNDEVENT_INTERCEPT/-END im offiziellen Client)
+    "intercept_on":      "intercept.wav",
+    "intercept_off":     "interceptEnd.wav",
 }
 
 # Mitgelieferter Ersatz, wenn der Standard-Dateiname weder im Sound-Pack-Ordner
@@ -84,6 +87,8 @@ SOUND_EVENT_LABELS: dict[str, str] = {
     "voiceact_me_off":   "Sprachaktivierung ausgeschaltet",
     "mute_all_on":       "Alles stummgeschaltet",
     "mute_all_off":      "Stummschaltung aufgehoben",
+    "intercept_on":      "Jemand hört mit (Abhören beginnt)",
+    "intercept_off":     "Abhören beendet",
 }
 
 

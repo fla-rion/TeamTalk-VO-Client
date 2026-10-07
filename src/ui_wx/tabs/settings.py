@@ -54,6 +54,8 @@ _SOUND_EVENTS = [
     ("Sprachaktivierung ausgeschaltet", "voiceact_me_off"),
     ("Alles stummgeschaltet", "mute_all_on"),
     ("Stummschaltung aufgehoben", "mute_all_off"),
+    ("Jemand hört mit (Abhören beginnt)", "intercept_on"),
+    ("Abhören beendet", "intercept_off"),
 ]
 
 _SUBSCRIPTION_FLAGS = [
