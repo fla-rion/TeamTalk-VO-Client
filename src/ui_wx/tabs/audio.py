@@ -101,7 +101,7 @@ class AudioTab(wx.Panel):
         self.voice_level.Bind(wx.EVT_SPINCTRL, self.on_voice_level)
 
         lbl_delay = wx.StaticText(self, label="Nachlauf (ms, 0–5000)")
-        self.va_delay = wx.SpinCtrl(self, value="0", min=0, max=5000)
+        self.va_delay = wx.SpinCtrl(self, value=str(adm.DEFAULT_VA_STOP_DELAY_MS), min=0, max=5000)
         self.va_delay.SetName("Sprachaktivierung Nachlauf")
         self.va_delay.Bind(wx.EVT_SPINCTRL, self.on_va_delay)
 
@@ -436,14 +436,9 @@ class AudioTab(wx.Panel):
     ):
         client = self.frame.client
         tt_str = self.frame.tt_str
-        prev_in_id = None
-        prev_out_id = None
+        old_inputs, old_outputs = list(self._input_devices), list(self._output_devices)
         prev_in_idx = self.input_device.GetSelection()
         prev_out_idx = self.output_device.GetSelection()
-        if 0 <= prev_in_idx < len(self._input_devices):
-            prev_in_id = int(self._input_devices[prev_in_idx].nDeviceID)
-        if 0 <= prev_out_idx < len(self._output_devices):
-            prev_out_id = int(self._output_devices[prev_out_idx].nDeviceID)
         if restart_sound:
             # SDK-Vorgabe (TT_RestartSoundSystem-Doku): Geräte MÜSSEN vor dem
             # Neustart geschlossen werden, sonst erkennt der Neustart weder
@@ -488,6 +483,10 @@ class AudioTab(wx.Panel):
 
         self._input_devices = inputs
         self._output_devices = outputs
+        # Vorherige Auswahl über die Identität in die neue Liste übertragen
+        # (nDeviceID verschiebt sich nach einem Neustart).
+        prev_in_id = adm.remap_device_id(old_inputs, prev_in_idx, inputs, tt_str)
+        prev_out_id = adm.remap_device_id(old_outputs, prev_out_idx, outputs, tt_str)
 
         indev, outdev = client.get_default_sound_devices()
         indev_val = getattr(indev, "value", indev)
@@ -498,13 +497,15 @@ class AudioTab(wx.Panel):
             # "Bei Gerätewechsel automatisch anwenden": neuem System-Standard
             # folgen – aber nicht, solange das gewählte Gerät nur ausgesteckt
             # ist (dann soll es beim Wiedereinstecken zurückkommen).
+            # Virtuellen Geräten (Teams, Zoom, Loopback …) wird nie gefolgt –
+            # Konferenz-Apps setzen sie gern ungefragt als Standard.
             if adm.find_device_index(inputs, self._wanted_in, tt_str) >= 0:
                 idx = adm.find_device_id_index(inputs, indev_val)
-                if idx >= 0:
+                if idx >= 0 and not sa.is_virtual_device_name(tt_str(inputs[idx].szDeviceName)):
                     self._wanted_in = adm.device_identity(inputs[idx], tt_str)
             if adm.find_device_index(outputs, self._wanted_out, tt_str) >= 0:
                 idx = adm.find_device_id_index(outputs, outdev_val)
-                if idx >= 0:
+                if idx >= 0 and not sa.is_virtual_device_name(tt_str(outputs[idx].szDeviceName)):
                     self._wanted_out = adm.device_identity(outputs[idx], tt_str)
 
         if prefer_previous:
@@ -555,8 +556,10 @@ class AudioTab(wx.Panel):
                             wanted, fallback_ids: tuple) -> bool:
         """Füllt die Auswahl und wählt das gewünschte Gerät; fehlt es, wird es
         als "(nicht verbunden)" angehängt und gewählt. Gibt ``missing`` zurück."""
+        tt_str = self.frame.tt_str
         final_labels, idx, missing = adm.plan_selection(
-            devices, labels, wanted, fallback_ids, self.frame.tt_str, _("nicht verbunden")
+            devices, labels, wanted, fallback_ids, tt_str, _("nicht verbunden"),
+            is_virtual=lambda d: sa.is_virtual_device_name(tt_str(d.szDeviceName)),
         )
         if list(choice.GetStrings()) != final_labels:
             choice.Set(final_labels)
@@ -873,6 +876,7 @@ class AudioTab(wx.Panel):
             "input_gain": int(self.input_gain.GetValue()),
             "output_volume": int(self.output_volume.GetValue()),
             "va_delay": int(self.va_delay.GetValue()),
+            adm.VA_DELAY_MIGRATION_KEY: True,
             "output_mute": bool(self.output_mute.GetValue()),
             "effects_agc": bool(self.agc_check.GetValue()),
             "effects_denoise": bool(self.denoise_check.GetValue()),
@@ -930,7 +934,7 @@ class AudioTab(wx.Panel):
 
         # VA delay
         if "va_delay" in prefs:
-            self.va_delay.SetValue(int(prefs["va_delay"]))
+            self.va_delay.SetValue(adm.stored_va_delay(prefs))
             self.on_va_delay(None)
 
         # Output mute

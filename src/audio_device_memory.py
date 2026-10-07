@@ -62,6 +62,19 @@ def find_device_id_index(devices: Sequence, device_id) -> int:
     return -1
 
 
+def remap_device_id(old_devices: Sequence, old_index: int, new_devices: Sequence, tt_str: Callable):
+    """``nDeviceID`` des zuvor gewählten Geräts in der neuen Liste.
+
+    ``nDeviceID`` ist nur ein laufender Index und verschiebt sich nach einem
+    Soundsystem-Neustart, wenn Geräte hinzukommen oder wegfallen – die alte
+    Nummer zeigt dann auf ein anderes Gerät. Deshalb über die Identität
+    (szDeviceID bzw. Name) neu zuordnen; ``None``, wenn das Gerät fehlt."""
+    if not 0 <= old_index < len(old_devices):
+        return None
+    idx = find_device_index(new_devices, device_identity(old_devices[old_index], tt_str), tt_str)
+    return int(new_devices[idx].nDeviceID) if idx >= 0 else None
+
+
 def missing_label(wanted: DeviceIdentity, not_connected_text: str) -> str:
     name = wanted[1] or wanted[0] or "?"
     return f"{name} ({not_connected_text})"
@@ -74,6 +87,7 @@ def plan_selection(
     fallback_ids: Sequence,
     tt_str: Callable,
     not_connected_text: str,
+    is_virtual: Optional[Callable[[object], bool]] = None,
 ) -> Tuple[List[str], int, bool]:
     """Berechnet Auswahl-Einträge und zu wählenden Index.
 
@@ -89,6 +103,12 @@ def plan_selection(
         idx = find_device_id_index(devices, dev_id)
         if idx >= 0:
             return list(labels), idx, False
+    if is_virtual is not None:
+        # Notauswahl: lieber echte Hardware als z. B. "TeamTalk Virtual Sound
+        # Device" oder ein Konferenz-App-Gerät, das zufällig vorne steht.
+        for idx, dev in enumerate(devices):
+            if not is_virtual(dev):
+                return list(labels), idx, False
     return list(labels), (0 if devices else -1), False
 
 
@@ -101,3 +121,24 @@ def resolve_open_device(devices: Sequence, selection: int, default_id) -> Option
     if idx >= 0:
         return devices[idx]
     return devices[0] if devices else None
+
+
+# Nachlauf der Sprachaktivierung: SDK-Vorgabe laut TeamTalk.h
+# (TT_SetVoiceActivationStopDelay) sind 1500 ms. Bis v10.6.1 stand das Feld
+# im Audio-Tab auf 0 und wurde seit v10.5.0 beim Einschalten der
+# Sprachaktivierung ans SDK übergeben – das Mikrofon schloss dann nach jeder
+# Silbe, die Stimme kam zerstückelt an.
+DEFAULT_VA_STOP_DELAY_MS = 1500
+VA_DELAY_MIGRATION_KEY = "va_delay_v2"
+
+
+def stored_va_delay(prefs: dict) -> int:
+    """Nachlauf aus gespeicherten Audio-Einstellungen; ein alter 0-Wert (vor
+    v10.7.0 ungefragt gespeichert) wird einmalig durch die SDK-Vorgabe ersetzt."""
+    try:
+        value = int(prefs.get("va_delay", DEFAULT_VA_STOP_DELAY_MS))
+    except (TypeError, ValueError):
+        return DEFAULT_VA_STOP_DELAY_MS
+    if value <= 0 and not prefs.get(VA_DELAY_MIGRATION_KEY):
+        return DEFAULT_VA_STOP_DELAY_MS
+    return max(0, value)

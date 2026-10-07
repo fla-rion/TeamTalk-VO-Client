@@ -110,6 +110,70 @@ def test_watchdog_rearms_after_transmission_resumes():
     assert actions.count(mw.ACTION_RESTART) == 1
 
 
+def test_sdk_sends_voice_mirrors_can_transmit():
+    me = 5
+    voice = mw.STREAMTYPE_VOICE
+    # Normaler Kanal: senden
+    assert mw.sdk_sends_voice(0, {}, me, READY_TX)
+    # Unterrichtsmodus ohne Sprechrecht: SDK verwirft die Pakete
+    assert not mw.sdk_sends_voice(mw.CHANNEL_CLASSROOM, {}, me, READY_TX)
+    assert mw.sdk_sends_voice(mw.CHANNEL_CLASSROOM, {me: voice}, me, READY_TX)
+    assert mw.sdk_sends_voice(mw.CHANNEL_CLASSROOM, {mw.TRANSMITUSERS_FREEFORALL: voice}, me, READY_TX)
+    # Nur Video erlaubt zählt nicht als Sprechrecht
+    assert not mw.sdk_sends_voice(mw.CHANNEL_CLASSROOM, {me: 0x4}, me, READY_TX)
+    # Außerhalb des Unterrichtsmodus bedeutet die Liste "gesperrt"
+    assert not mw.sdk_sends_voice(0, {me: voice}, me, READY_TX)
+    # Kanal ohne Sprachaktivierung: VA-Sprache wird nicht gesendet, PTT schon
+    assert not mw.sdk_sends_voice(mw.CHANNEL_NO_VOICEACTIVATION, {}, me, READY_VA_ACTIVE)
+    assert mw.sdk_sends_voice(mw.CHANNEL_NO_VOICEACTIVATION, {}, me, READY_TX)
+
+
+def test_transmit_users_parses_2d_and_flat_arrays():
+    assert mw.transmit_users(type("C", (), {"transmitUsers": [[5, 1], [7, 3], [0, 0]]})()) == {5: 1, 7: 3}
+    assert mw.transmit_users(type("C", (), {"transmitUsers": [5, 1, 0, 0]})()) == {5: 1}
+
+
+class _WdClient:
+    def __init__(self, channel_type, tx_users, flags):
+        self._ch = type("Ch", (), {
+            "audiocodec": type("A", (), {"nCodec": 3})(),
+            "uChannelType": channel_type,
+            "transmitUsers": tx_users,
+        })()
+        self._flags = flags
+
+    def is_connected(self):
+        return True
+
+    def get_flags(self):
+        return self._flags
+
+    def get_client_statistics(self):
+        return type("S", (), {"nVoiceBytesSent": 500})()
+
+    def get_my_channel_id(self):
+        return 1
+
+    def get_channel(self, _cid):
+        return self._ch
+
+    def get_my_user_id(self):
+        return 5
+
+
+def test_watchdog_never_restarts_in_classroom_without_permission():
+    client = _WdClient(mw.CHANNEL_CLASSROOM, [[0, 0]], READY_VA_ACTIVE)
+    sample = mw.sample_from_client(client)
+    assert sample is not None and sample.in_voice_channel is False
+    wd = mw.MicWatchdog()
+    assert set(_run(wd, [(t, sample) for t in range(0, 120)])) == {mw.ACTION_NONE}
+
+
+def test_watchdog_still_counts_normal_channel():
+    sample = mw.sample_from_client(_WdClient(0, [[0, 0]], READY_VA_ACTIVE))
+    assert sample is not None and sample.in_voice_channel is True
+
+
 # --- Medien-Gesamtlautstärke (TeamTalkClient ohne SDK) --------------------
 
 class _FakeTT:
@@ -166,3 +230,60 @@ def test_media_master_default_is_noop_for_new_users():
     c = _fake_client()
     c.apply_media_master_to_user(9)
     assert c.tt.calls == []
+
+
+# --- Nachlauf der Sprachaktivierung --------------------------------------
+
+def test_va_delay_default_matches_sdk():
+    assert adm.DEFAULT_VA_STOP_DELAY_MS == 1500
+
+
+def test_va_delay_old_zero_is_migrated_once():
+    # Vor v10.7.0 ungefragt gespeicherte 0 → SDK-Vorgabe (sonst zerstückelte Stimme)
+    assert adm.stored_va_delay({"va_delay": 0}) == 1500
+    assert adm.stored_va_delay({}) == 1500
+    # Nach der Migration ist eine bewusst gesetzte 0 erlaubt
+    assert adm.stored_va_delay({"va_delay": 0, adm.VA_DELAY_MIGRATION_KEY: True}) == 0
+    assert adm.stored_va_delay({"va_delay": 800}) == 800
+    assert adm.stored_va_delay({"va_delay": "kaputt"}) == 1500
+
+
+# --- Gerätewechsel ohne falsche Auswahl ----------------------------------
+
+def test_remap_device_id_follows_identity_not_index():
+    old = [_dev(0, "Mac mini-Lautsprecher"), _dev(1, "USB Headset")]
+    # Nach dem Neustart steht ein neues Gerät vorne – Indizes verschoben
+    new = [_dev(0, "Microsoft Teams Audio"), _dev(1, "Mac mini-Lautsprecher"), _dev(2, "USB Headset")]
+    assert adm.remap_device_id(old, 1, new, _s) == 2
+    assert adm.remap_device_id(old, 0, new, _s) == 1
+    assert adm.remap_device_id(old, 1, [_dev(0, "Mac mini-Lautsprecher")], _s) is None
+    assert adm.remap_device_id(old, -1, new, _s) is None
+
+
+def test_plan_selection_never_falls_back_to_virtual_device():
+    import system_audio as sa
+    devs = [_dev(1978, "TeamTalk Virtual Sound Device"), _dev(0, "NT Headless"), _dev(1, "Mac mini-Lautsprecher")]
+    devs[1].szDeviceName = "Microsoft Teams Audio"
+    _labels, idx, missing = adm.plan_selection(
+        devs, ["a", "b", "c"], None, (None, None), _s, "x",
+        is_virtual=lambda d: sa.is_virtual_device_name(d.szDeviceName),
+    )
+    assert (idx, missing) == (2, False)
+
+
+def test_virtual_device_names():
+    import system_audio as sa
+    for name in ("Microsoft Teams Audio", "ZoomAudioDevice", "TeamTalk Virtual Sound Device",
+                 "BlackHole 2ch", "Loopback Audio"):
+        assert sa.is_virtual_device_name(name), name
+    for name in ("MacBook Pro-Lautsprecher", "AirPods Pro", "USB Headset", "Jabra Evolve2 65"):
+        assert not sa.is_virtual_device_name(name), name
+
+
+def test_coreaudio_change_classification():
+    import coreaudio_watch as cw
+    a = (frozenset({1, 2}), 1, 2)
+    assert cw.classify_change(a, a) is None
+    assert cw.classify_change(a, (frozenset({1, 2}), 1, 1)) == cw.CHANGE_DEFAULTS
+    assert cw.classify_change(a, (frozenset({1, 2, 3}), 1, 2)) == cw.CHANGE_DEVICES
+    assert cw.classify_change(None, a) == cw.CHANGE_DEVICES

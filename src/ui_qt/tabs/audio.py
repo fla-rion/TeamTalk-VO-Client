@@ -96,7 +96,7 @@ class AudioTab(QWidget):
         va_form.addRow(QLabel(_("Aktivierungspegel (0–100)")), self.voice_level)
         self.va_delay = QSpinBox()
         self.va_delay.setRange(0, 5000)
-        self.va_delay.setValue(0)
+        self.va_delay.setValue(adm.DEFAULT_VA_STOP_DELAY_MS)
         self.va_delay.setAccessibleName("Nachlauf")
         self.va_delay.valueChanged.connect(self.on_va_delay)
         va_form.addRow(QLabel(_("Nachlauf (ms, 0–5000)")), self.va_delay)
@@ -444,11 +444,14 @@ class AudioTab(QWidget):
         except Exception:
             default_id = None
         prev_idx = combo.currentIndex()
-        prev_id = int(old_devices[prev_idx].nDeviceID) if 0 <= prev_idx < len(old_devices) else None
-        labels = [e.label for e in sa.classify_devices(devices, self.window.tt_str)]
+        tt_str = self.window.tt_str
+        # nDeviceID verschiebt sich nach einem Neustart → über Identität zuordnen
+        prev_id = adm.remap_device_id(old_devices, prev_idx, devices, tt_str)
+        labels = [e.label for e in sa.classify_devices(devices, tt_str)]
         labels, idx, missing = adm.plan_selection(
             devices, labels, wanted, (prev_id, default_id),
-            self.window.tt_str, _("nicht verbunden"),
+            tt_str, _("nicht verbunden"),
+            is_virtual=lambda d: sa.is_virtual_device_name(tt_str(d.szDeviceName)),
         )
         combo.blockSignals(True)
         if [combo.itemText(i) for i in range(combo.count())] != labels:
@@ -854,6 +857,7 @@ class AudioTab(QWidget):
             "input_gain": self.mic_gain_slider.value(),
             "output_volume": self.master_volume_slider.value(),
             "va_delay": self.va_delay.value(),
+            adm.VA_DELAY_MIGRATION_KEY: True,
             "output_mute": self.output_mute.isChecked(),
             "effects_agc": self.agc_check.isChecked(),
             "effects_denoise": self.denoise_check.isChecked(),
@@ -902,7 +906,7 @@ class AudioTab(QWidget):
         if "voice_activation" in prefs:
             self.voice_activation.setChecked(bool(prefs["voice_activation"]))
         if "va_delay" in prefs:
-            self.va_delay.setValue(int(prefs["va_delay"]))
+            self.va_delay.setValue(adm.stored_va_delay(prefs))
         if "output_mute" in prefs:
             self.output_mute.setChecked(bool(prefs["output_mute"]))
         if "effects_agc" in prefs:
