@@ -7640,6 +7640,68 @@ _TRANSLATIONS_ES.update({
     "ausgeklappt": "expandido",
 })
 
+# Redezeit-Statistik (talk_time.py, Roadmap 11)
+_TRANSLATIONS.update({
+    '{h} Std. {m} Min.': '{h} h {m} min',
+    '{m} Min. {s} Sek.': '{m} min {s} s',
+    '{s} Sek.': '{s} s',
+    '1 Wortmeldung': '1 turn',
+    '{n} Wortmeldungen': '{n} turns',
+    'Noch keine Redezeit erfasst': 'No speaking time recorded yet',
+    'Redezeit: {list}': 'Speaking time: {list}',
+    'und {n} weitere': 'and {n} more',
+    'Redezeit-Statistik': 'Speaking time statistics',
+    'Redezeit-Statistik...': 'Speaking time statistics...',
+    'Rede&zeit-Statistik...': 'Speaking &time statistics...',
+    'Zeitraum': 'Period',
+    'Aktueller Kanal': 'Current channel',
+    'Gesamte Sitzung': 'Whole session',
+    'Redezeit je Nutzer': 'Speaking time per user',
+    '&Zurücksetzen': '&Reset',
+    'Redezeit-Statistik zurückgesetzt': 'Speaking time statistics reset',
+    'Redezeit ansagen': 'Announce speaking time',
+})
+_TRANSLATIONS_FR.update({
+    '{h} Std. {m} Min.': '{h} h {m} min',
+    '{m} Min. {s} Sek.': '{m} min {s} s',
+    '{s} Sek.': '{s} s',
+    '1 Wortmeldung': '1 prise de parole',
+    '{n} Wortmeldungen': '{n} prises de parole',
+    'Noch keine Redezeit erfasst': 'Aucun temps de parole enregistré',
+    'Redezeit: {list}': 'Temps de parole : {list}',
+    'und {n} weitere': 'et {n} autres',
+    'Redezeit-Statistik': 'Statistiques du temps de parole',
+    'Redezeit-Statistik...': 'Statistiques du temps de parole...',
+    'Rede&zeit-Statistik...': 'Statistiques du &temps de parole...',
+    'Zeitraum': 'Période',
+    'Aktueller Kanal': 'Canal actuel',
+    'Gesamte Sitzung': 'Session entière',
+    'Redezeit je Nutzer': 'Temps de parole par utilisateur',
+    '&Zurücksetzen': '&Réinitialiser',
+    'Redezeit-Statistik zurückgesetzt': 'Statistiques du temps de parole réinitialisées',
+    'Redezeit ansagen': 'Annoncer le temps de parole',
+})
+_TRANSLATIONS_ES.update({
+    '{h} Std. {m} Min.': '{h} h {m} min',
+    '{m} Min. {s} Sek.': '{m} min {s} s',
+    '{s} Sek.': '{s} s',
+    '1 Wortmeldung': '1 intervención',
+    '{n} Wortmeldungen': '{n} intervenciones',
+    'Noch keine Redezeit erfasst': 'Aún no se ha registrado tiempo de habla',
+    'Redezeit: {list}': 'Tiempo de habla: {list}',
+    'und {n} weitere': 'y {n} más',
+    'Redezeit-Statistik': 'Estadísticas de tiempo de habla',
+    'Redezeit-Statistik...': 'Estadísticas de tiempo de habla...',
+    'Rede&zeit-Statistik...': 'Estadísticas de &tiempo de habla...',
+    'Zeitraum': 'Periodo',
+    'Aktueller Kanal': 'Canal actual',
+    'Gesamte Sitzung': 'Sesión completa',
+    'Redezeit je Nutzer': 'Tiempo de habla por usuario',
+    '&Zurücksetzen': '&Restablecer',
+    'Redezeit-Statistik zurückgesetzt': 'Estadísticas de tiempo de habla restablecidas',
+    'Redezeit ansagen': 'Anunciar tiempo de habla',
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

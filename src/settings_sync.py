@@ -36,6 +36,7 @@ _SYNCABLE_FIELDS = {
     "hotkey_mute_all",
     "hotkey_voice_activation",
     "hotkey_speak_ready",
+    "hotkey_announce_talk_time",
     "hotkey_video_tx",
     "hotkey_announce_level",
     "hotkey_announce_user_info",

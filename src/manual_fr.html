@@ -668,6 +668,10 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Si l'option est activée dans <em>Paramètres → Général → Enregistrer l'historique du chat</em>, les messages sont enregistrés par serveur dans un fichier JSON (max. 200 entrées). L'historique est automatiquement chargé à la prochaine connexion au même serveur.</p>
 <div class="note">L'historique peut être réinitialisé à tout moment via « Effacer l'historique ».</div>
 
+<h2>Statistiques du temps de parole</h2>
+<p>L'application compte combien de temps chaque autre utilisateur parle. <em>Serveur → Statistiques du temps de parole…</em> affiche une liste au format <code>Nom, durée, part en pourcentage, nombre de prises de parole</code>, les plus longs orateurs en premier. <strong>Période</strong> permet de passer de <strong>Canal actuel</strong> à <strong>Session entière</strong> ; <strong>Réinitialiser</strong> recommence à zéro. Sous <em>Paramètres → Raccourcis clavier</em>, vous pouvez assigner <strong>Annoncer le temps de parole</strong> : il annonce les cinq plus longs orateurs du canal actuel avec durée et part.</p>
+<p>Le comptage commence à la connexion au serveur ; une nouvelle connexion démarre une nouvelle session. Votre propre voix n'est pas comptée, car le serveur ne signale pas de début de parole pour elle. Les mêmes prises de parole apparaissent une par une dans le <em>journal de prise de parole</em>.</p>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notifications</h1>
 

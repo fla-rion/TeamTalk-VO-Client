@@ -125,6 +125,7 @@ class AppSettings:
     hotkey_mute_all: int = 0
     hotkey_voice_activation: int = 0
     hotkey_speak_ready: int = 0
+    hotkey_announce_talk_time: int = 0
     hotkey_video_tx: int = 0
     # Allgemein
     gender: str = ""
@@ -418,6 +419,7 @@ class SettingsStore:
             self.settings.hotkey_mute_all = int(data.get("hotkey_mute_all", 0) or 0)
             self.settings.hotkey_voice_activation = int(data.get("hotkey_voice_activation", 0) or 0)
             self.settings.hotkey_speak_ready = int(data.get("hotkey_speak_ready", 0) or 0)
+            self.settings.hotkey_announce_talk_time = int(data.get("hotkey_announce_talk_time", 0) or 0)
             self.settings.hotkey_video_tx = int(data.get("hotkey_video_tx", 0) or 0)
             self.settings.gender = str(data.get("gender", "") or "")
             self.settings.away_timer_min = int(data.get("away_timer_min", 0) or 0)
@@ -669,6 +671,7 @@ class SettingsStore:
             "hotkey_mute_all": int(self.settings.hotkey_mute_all or 0),
             "hotkey_voice_activation": int(self.settings.hotkey_voice_activation or 0),
             "hotkey_speak_ready": int(self.settings.hotkey_speak_ready or 0),
+            "hotkey_announce_talk_time": int(self.settings.hotkey_announce_talk_time or 0),
             "hotkey_video_tx": int(self.settings.hotkey_video_tx or 0),
             "gender": str(self.settings.gender or ""),
             "away_timer_min": int(self.settings.away_timer_min or 0),
