@@ -453,3 +453,72 @@ def apply_pending_restore(app_dir: Path, now: Optional[datetime] = None) -> Opti
     for old in olds[:-KEEP_BEFORE_RESTORE]:
         shutil.rmtree(old, ignore_errors=True)
     return before.name
+
+
+# ---------------------------------------------------------------------------
+# Neustart nach dem Wiederherstellen
+# ---------------------------------------------------------------------------
+
+RESTART_WAIT_ENV = "TTVO_RESTART_WAIT_PID"
+RESTORE_DONE_ENV = "TTVO_RESTORE_DONE"
+
+
+def _process_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        try:
+            import ctypes
+            SYNCHRONIZE = 0x00100000
+            k32 = ctypes.windll.kernel32
+            handle = k32.OpenProcess(SYNCHRONIZE, False, pid)
+            if not handle:
+                return False
+            try:
+                return k32.WaitForSingleObject(handle, 0) == 0x00000102  # WAIT_TIMEOUT
+            finally:
+                k32.CloseHandle(handle)
+        except Exception:
+            return False
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def wait_for_restart_parent(timeout: float = 20.0) -> None:
+    """Die neu gestartete App wartet, bis die alte Instanz beendet ist – sonst
+    schriebe die alte beim Beenden ihre Einstellungen über das gerade
+    übernommene Backup."""
+    import time
+    try:
+        pid = int(os.environ.pop(RESTART_WAIT_ENV, "0") or 0)
+    except ValueError:
+        return
+    end = time.time() + timeout
+    while _process_alive(pid) and time.time() < end:
+        time.sleep(0.2)
+
+
+def restart_env() -> Dict[str, str]:
+    """Umgebung für den Neustart-Prozess (wartet auf diesen Prozess)."""
+    env = dict(os.environ)
+    env[RESTART_WAIT_ENV] = str(os.getpid())
+    return env
+
+
+def apply_pending_restore_at_startup(app_dir: Path) -> Optional[str]:
+    """Aufruf ganz am Anfang des Programmstarts (vor dem Öffnen von
+    settings.db). Merkt das Ergebnis für die Ansage in der Oberfläche."""
+    wait_for_restart_parent()
+    if not has_pending_restore(app_dir):
+        return None
+    before = apply_pending_restore(app_dir)
+    if before:
+        os.environ[RESTORE_DONE_ENV] = before
+    return before
