@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-10-09 (v10.9.0)
+Nouveau : statistiques du temps de parole
+
+- **Nouveau : statistiques du temps de parole** (Serveur → Statistiques de
+  temps de parole…). Affiche pour chaque autre utilisateur combien de temps
+  il a parlé, sa part en pourcentage et le nombre d'interventions – pour le
+  canal actuel ou toute la session, les plus bavards en premier.
+  « Réinitialiser » repart de zéro. Votre propre voix n'est pas comptée.
+- **Nouveau : raccourci « Annoncer le temps de parole »** (assignable dans
+  Raccourcis clavier) : annonce les cinq plus longs orateurs du canal actuel
+  avec durée et part.
+- **Corrigé (macOS) : le journal « qui parle » restait pratiquement vide**,
+  car l'état de sourdine était évalué au lieu de l'état de parole.
+
 2026-10-08 (v10.8.0)
 Nouveau : rechercher dans les paramètres, déplier et replier les catégories
 

@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-10-09 (v10.9.0)
+Neu: Redezeit-Statistik
+
+- **Neu: Redezeit-Statistik** (Server → Redezeit-Statistik…). Zeigt für
+  jeden anderen Nutzer, wie lange er gesprochen hat, seinen Anteil in
+  Prozent und die Zahl der Wortmeldungen – für den aktuellen Kanal oder die
+  ganze Sitzung, die meisten Sprecher zuerst. "Zurücksetzen" beginnt von
+  vorn. Die eigene Stimme wird nicht mitgezählt.
+- **Neu: Tastenkürzel "Redezeit ansagen"** (unter Tastenkürzel belegbar):
+  sagt die fünf längsten Sprecher im aktuellen Kanal mit Dauer und Anteil
+  an.
+- **Behoben (macOS): Das Wer-spricht-Protokoll blieb praktisch leer**, weil
+  der Stummschalt-Zustand statt des Sprechzustands ausgewertet wurde.
+
 2026-10-08 (v10.8.0)
 Neu: Einstellungen durchsuchen, Kategorien ein- und ausklappen
 

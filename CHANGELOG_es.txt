@@ -1,6 +1,20 @@
 Changelog
 =========
 
+2026-10-09 (v10.9.0)
+Novedad: estadísticas de tiempo de habla
+
+- **Nuevo: estadísticas de tiempo de habla** (Servidor → Estadísticas de
+  tiempo de habla…). Muestra para cada otro usuario cuánto tiempo ha
+  hablado, su porcentaje y el número de intervenciones – para el canal
+  actual o toda la sesión, los que más hablan primero. "Restablecer" empieza
+  de cero. Tu propia voz no se cuenta.
+- **Nuevo: atajo "Anunciar tiempo de habla"** (asignable en Atajos de
+  teclado): anuncia los cinco que más han hablado en el canal actual con
+  duración y porcentaje.
+- **Corregido (macOS): el registro de quién habla quedaba prácticamente
+  vacío**, porque se evaluaba el estado de silencio en lugar del de habla.
+
 2026-10-08 (v10.8.0)
 Novedades: buscar en la configuración, expandir y contraer categorías
 

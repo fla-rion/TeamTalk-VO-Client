@@ -121,7 +121,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 11. Redezeit-/Gesprächsanteil-Statistik – für v10.9.0 vorgesehen
+## 11. Redezeit-/Gesprächsanteil-Statistik – ✅ erledigt in v10.9.0
 
 🟢–🟡 · Eigene Idee, Lückenprüfung gegen `src/analytics.py`.
 
@@ -201,7 +201,7 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | ✅ v10.7.0 | Sprechbereit-Befehl + globaler Hotkey, Abhör-Warnung, BearWare-Töne (Nutzerwunsch) | 🟢–🟡 | Abhör-Warnung gegen lokalen tt5srv verifiziert |
 | ✅ v10.8.0 | Einstellungen: Suche einzelner Einstellungen, einklappbare Kategorien (Nutzerwunsch) | 🟡 | wx + Qt |
 | — | ~~Suno-Links streamen (Nutzerwunsch)~~ | — | Suno-Audio ist verschlüsselt (2026-10), nur mit Schutzumgehung möglich – nicht umgesetzt |
-| geplant v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
+| ✅ v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
 | geplant v11.0.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
 | geplant v11.1.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
 | geplant v11.2.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |

@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-09 (v10.9.0)
+New: speaking time statistics
+
+- **New: speaking time statistics** (Server → Speaking time statistics…). Shows for
+  every other user how long they have spoken, their share in percent and the
+  number of turns – for the current channel or the whole session, most
+  active speakers first. "Reset" starts over. Your own voice is not counted.
+- **New: "Announce speaking time" shortcut** (assignable under Keyboard
+  Shortcuts): announces the five longest speakers in the current channel
+  with duration and share.
+- **Fixed (macOS): the who-is-speaking log stayed practically empty**
+  because the mute state was evaluated instead of the speaking state.
+
 2026-10-08 (v10.8.0)
 New: search settings, expand and collapse categories
 
