@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, List, Dict
 
 import wx
+from ui.a11y import set_native_accessibility_label
+from i18n import _
 
 from macro_manager import ACTION_TYPES, TRIGGER_EVENTS
 
@@ -145,6 +147,7 @@ class MacroDialog(wx.Dialog):
         aform.Add(self._a_val, 1, wx.RIGHT, 4)
         self._a_browse = wx.Button(panel, label="…")
         self._a_browse.SetName("Datei wählen")
+        set_native_accessibility_label(self._a_browse, _("Datei wählen"))
         self._a_browse.SetToolTip("Datei auswählen (nur für Sound)")
         aform.Add(self._a_browse, 0)
         right.Add(aform, 0, wx.EXPAND | wx.BOTTOM, 4)

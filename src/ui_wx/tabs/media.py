@@ -16,12 +16,15 @@ import json
 import xml.etree.ElementTree as ET
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 try:
     import requests
 except Exception:
     requests = None
 
 from ui_wx.a11y import setup_list_accessible
+from ui.a11y import set_native_accessibility_label
+from i18n import _
 from spotify_streamer import SpotifyStreamer, find_librespot, has_stored_credentials
 from deezer_downloader import DeezerDownloader, search_tracks as dz_search, format_track, load_arl, save_arl, clear_arl, has_arl
 
@@ -253,14 +256,14 @@ class MediaTab(wx.Panel):
         stream_sizer.Add(ctrl_row, 0, wx.ALL, 4)
 
         stream_sizer.Add(wx.StaticText(self.stream_panel, label="Position (0–1000)"), 0, wx.ALL, 4)
-        self.seek_slider = wx.SpinCtrl(self.stream_panel, value="0", min=0, max=1000)
+        self.seek_slider = AccessibleSpinCtrl(self.stream_panel, value="0", min=0, max=1000)
         self.seek_slider.SetName("Position")
         self.seek_slider.Bind(wx.EVT_SPINCTRL, self.on_seek)
         stream_sizer.Add(self.seek_slider, 0, wx.ALL | wx.EXPAND, 4)
 
         gain_row = wx.BoxSizer(wx.HORIZONTAL)
         gain_row.Add(wx.StaticText(self.stream_panel, label="Streaming-Lautstärke (10–400, Standard: 50)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.stream_gain = wx.SpinCtrl(self.stream_panel, value="50", min=10, max=400)
+        self.stream_gain = AccessibleSpinCtrl(self.stream_panel, value="50", min=10, max=400)
         self.stream_gain.SetName("Streaming-Lautstärke")
         self.stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
         gain_row.Add(self.stream_gain, 1, wx.EXPAND)
@@ -346,7 +349,7 @@ class MediaTab(wx.Panel):
 
         ytdlp_gain_row = wx.BoxSizer(wx.HORIZONTAL)
         ytdlp_gain_row.Add(wx.StaticText(self.ytdlp_panel, label="Streaming-Lautstärke (10–400, Standard: 50)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.ytdlp_stream_gain = wx.SpinCtrl(self.ytdlp_panel, value="50", min=10, max=400)
+        self.ytdlp_stream_gain = AccessibleSpinCtrl(self.ytdlp_panel, value="50", min=10, max=400)
         self.ytdlp_stream_gain.SetName("Streaming-Lautstärke")
         self.ytdlp_stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
         ytdlp_gain_row.Add(self.ytdlp_stream_gain, 1, wx.EXPAND)
@@ -430,7 +433,7 @@ class MediaTab(wx.Panel):
 
         radio_gain_row = wx.BoxSizer(wx.HORIZONTAL)
         radio_gain_row.Add(wx.StaticText(self.radio_panel, label="Streaming-Lautstärke (10–400, Standard: 50)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.radio_stream_gain = wx.SpinCtrl(self.radio_panel, value="50", min=10, max=400)
+        self.radio_stream_gain = AccessibleSpinCtrl(self.radio_panel, value="50", min=10, max=400)
         self.radio_stream_gain.SetName("Webradio-Lautstärke")
         self.radio_stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
         radio_gain_row.Add(self.radio_stream_gain, 1, wx.EXPAND)
@@ -496,7 +499,7 @@ class MediaTab(wx.Panel):
 
         pod_gain_row = wx.BoxSizer(wx.HORIZONTAL)
         pod_gain_row.Add(wx.StaticText(self.podcast_panel, label="Streaming-Lautstärke (10–400, Standard: 50)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.podcast_stream_gain = wx.SpinCtrl(self.podcast_panel, value="50", min=10, max=400)
+        self.podcast_stream_gain = AccessibleSpinCtrl(self.podcast_panel, value="50", min=10, max=400)
         self.podcast_stream_gain.SetName("Podcast-Lautstärke")
         self.podcast_stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
         pod_gain_row.Add(self.podcast_stream_gain, 1, wx.EXPAND)
@@ -569,7 +572,7 @@ class MediaTab(wx.Panel):
 
         pl_gain_row = wx.BoxSizer(wx.HORIZONTAL)
         pl_gain_row.Add(wx.StaticText(self.playlist_panel, label="Streaming-Lautstärke (10–400, Standard: 50)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.pl_stream_gain = wx.SpinCtrl(self.playlist_panel, value="50", min=10, max=400)
+        self.pl_stream_gain = AccessibleSpinCtrl(self.playlist_panel, value="50", min=10, max=400)
         self.pl_stream_gain.SetName("Playlist-Lautstärke")
         self.pl_stream_gain.Bind(wx.EVT_SPINCTRL, self.on_stream_gain)
         pl_gain_row.Add(self.pl_stream_gain, 1, wx.EXPAND)
@@ -601,6 +604,7 @@ class MediaTab(wx.Panel):
         self.sp_binary.SetValue(find_librespot() or "")
         sp_bin_browse = wx.Button(self.spotify_panel, label="&...")
         sp_bin_browse.SetName("librespot auswählen")
+        set_native_accessibility_label(sp_bin_browse, _("librespot auswählen"))
         sp_bin_browse.Bind(wx.EVT_BUTTON, self._on_sp_browse_binary)
         sp_bin_row.Add(self.sp_binary, 1, wx.RIGHT | wx.EXPAND, 4)
         sp_bin_row.Add(sp_bin_browse, 0)
@@ -780,7 +784,7 @@ class MediaTab(wx.Panel):
 
             gain_row = wx.BoxSizer(wx.HORIZONTAL)
             gain_row.Add(wx.StaticText(self, label="Lautstärke (25–400)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-            gain_spin = wx.SpinCtrl(self, value="50", min=25, max=400)
+            gain_spin = AccessibleSpinCtrl(self, value="50", min=25, max=400)
             gain_spin.SetName(f"Deck {i + 1} Lautstärke")
             gain_spin.Bind(wx.EVT_SPINCTRL, lambda evt, idx=i: self._on_deck_gain(evt, idx))
             self._deck_gain_spins.append(gain_spin)

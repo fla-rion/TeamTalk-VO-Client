@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Tuple
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -58,7 +59,7 @@ class VideoTab(wx.Panel):
 
         bitrate_row = wx.BoxSizer(wx.HORIZONTAL)
         bitrate_row.Add(wx.StaticText(self, label="Bitrate (kbps)"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.bitrate = wx.SpinCtrl(self, min=32, max=2000, initial=256)
+        self.bitrate = AccessibleSpinCtrl(self, min=32, max=2000, initial=256)
         self.bitrate.SetName("Video-Bitrate")
         bitrate_row.Add(self.bitrate, 0, wx.RIGHT, 8)
         tx_sizer.Add(bitrate_row, 0, wx.ALL, 4)

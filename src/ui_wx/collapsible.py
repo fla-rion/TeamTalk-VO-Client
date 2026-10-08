@@ -20,6 +20,7 @@ import wx
 from i18n import _
 from settings_search import SettingEntry, clean_label
 from ui.a11y import set_native_accessibility_label
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 
 ARROW_COLLAPSED = "▸"
 ARROW_EXPANDED = "▾"
@@ -32,6 +33,7 @@ _CONTROL_TYPES = tuple(
         getattr(wx, "Slider", None), getattr(wx, "Button", None), getattr(wx, "RadioBox", None),
         getattr(wx, "RadioButton", None), getattr(wx, "ListBox", None), getattr(wx, "ToggleButton", None),
         getattr(wx, "CheckListBox", None), getattr(wx, "FilePickerCtrl", None), getattr(wx, "DirPickerCtrl", None),
+        AccessibleSpinCtrl,  # Panel mit Textfeld – als ein Bedienelement zählen, nicht hineinlaufen
     ) if t is not None
 )
 # Bedienelemente mit eigener Beschriftung (sonst gilt das Textfeld davor)

@@ -157,7 +157,7 @@ class SystemTab(wx.Panel):
         evv_voice_row = wx.BoxSizer(wx.HORIZONTAL)
         self._lbl_evv_voice = wx.StaticText(self, label="Eloquence Stimme (1–8):")
         evv_voice_row.Add(self._lbl_evv_voice, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self.tts_evv_voice = wx.SpinCtrl(self, min=1, max=8, initial=1)
+        self.tts_evv_voice = AccessibleSpinCtrl(self, min=1, max=8, initial=1)
         self.tts_evv_voice.SetName("Eloquence Stimme")
         evv_voice_row.Add(self.tts_evv_voice, 0)
         tts_sizer.Add(evv_voice_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 6)
@@ -249,13 +249,13 @@ class SystemTab(wx.Panel):
 
         self._lbl_tts_rate = wx.StaticText(self, label="Sprechtempo (80–400)")
         grid.Add(self._lbl_tts_rate, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.tts_rate = wx.SpinCtrl(self, value="175", min=80, max=400)
+        self.tts_rate = AccessibleSpinCtrl(self, value="175", min=80, max=400)
         self.tts_rate.SetName("TTS Sprechtempo")
         grid.Add(self.tts_rate, 1, wx.EXPAND)
 
         self._lbl_tts_volume = wx.StaticText(self, label="Lautstärke (0–200)")
         grid.Add(self._lbl_tts_volume, 0, wx.ALIGN_CENTER_VERTICAL)
-        self.tts_volume = wx.SpinCtrl(self, value="100", min=0, max=200)
+        self.tts_volume = AccessibleSpinCtrl(self, value="100", min=0, max=200)
         self.tts_volume.SetName("TTS Lautstärke")
         grid.Add(self.tts_volume, 1, wx.EXPAND)
 

@@ -35,7 +35,7 @@ from ai_summary import ChatSummaryManager
 from gemini_auth import GeminiAuthManager
 from ui_wx.tray import TrayIcon
 from ui_wx.tt_file_parser import parse_teamtalk_file
-from ui_wx.accessible_controls import AccessibleSpinCtrl
+from ui_wx.accessible_controls import AccessibleSpinCtrl, CustomTextEntryDialog
 from ui_wx.tabs.connection import ConnectionTab
 from ui_wx.tabs.channels_chat import ChannelsChatTab
 from ui_wx.tabs.media import MediaTab
@@ -841,7 +841,7 @@ class MainFrame(wx.Frame):
 
         # Master volume spin (output)
         qa_sizer.Add(wx.StaticText(qa_panel, label="Ausgabe:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
-        self.master_volume_slider = wx.SpinCtrl(qa_panel, value="100", min=0, max=200)
+        self.master_volume_slider = AccessibleSpinCtrl(qa_panel, value="100", min=0, max=200)
         self.master_volume_slider.SetName("Ausgabelautstärke")
         self.master_volume_slider.SetMinSize((70, -1))
         qa_sizer.Add(self.master_volume_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
@@ -849,7 +849,7 @@ class MainFrame(wx.Frame):
         # Medien-Gesamtlautstärke: alle eingehenden Medien-Streams zusammen,
         # unabhängig von Stimmen (auch für später startende Streams).
         qa_sizer.Add(wx.StaticText(qa_panel, label=_("Medien:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
-        self.media_volume_spin = wx.SpinCtrl(
+        self.media_volume_spin = AccessibleSpinCtrl(
             qa_panel, min=0, max=200,
             initial=max(0, min(200, int(getattr(self.settings_store.settings, "media_master_volume", 100) or 0))),
         )
@@ -859,7 +859,7 @@ class MainFrame(wx.Frame):
 
         # Mic gain spin
         qa_sizer.Add(wx.StaticText(qa_panel, label="Mikrofon:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 4)
-        self.mic_gain_slider = wx.SpinCtrl(qa_panel, value="100", min=0, max=200)
+        self.mic_gain_slider = AccessibleSpinCtrl(qa_panel, value="100", min=0, max=200)
         self.mic_gain_slider.SetName("Mikrofon-Gain")
         self.mic_gain_slider.SetMinSize((70, -1))
         qa_sizer.Add(self.mic_gain_slider, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 12)
@@ -3119,9 +3119,9 @@ class MainFrame(wx.Frame):
         limits = wx.FlexGridSizer(cols=2, vgap=6, hgap=12)
         limits.AddGrowableCol(1)
         lbl_quota = wx.StaticText(dlg, label="Datei-Quota (MB, 0=aus)")
-        quota_ctrl = wx.SpinCtrl(dlg, min=0, max=1024 * 1024, initial=int(disk_quota_mb))
+        quota_ctrl = AccessibleSpinCtrl(dlg, min=0, max=1024 * 1024, initial=int(disk_quota_mb))
         lbl_max = wx.StaticText(dlg, label="Max. Benutzer (0=Server)")
-        max_ctrl = wx.SpinCtrl(dlg, min=0, max=10000, initial=int(max_users))
+        max_ctrl = AccessibleSpinCtrl(dlg, min=0, max=10000, initial=int(max_users))
         lbl_op = wx.StaticText(dlg, label="Operator-Passwort")
         op_ctrl = wx.TextCtrl(dlg, value=op_password)
         limits.Add(lbl_quota, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -3188,13 +3188,13 @@ class MainFrame(wx.Frame):
         opus_ch = wx.Choice(dlg, choices=["Mono", "Stereo"])
         opus_ch.SetSelection(0)
         lbl_opus_br = wx.StaticText(dlg, label="Bitrate (kbps)")
-        opus_br = wx.SpinCtrl(dlg, min=6, max=510, initial=64)
+        opus_br = AccessibleSpinCtrl(dlg, min=6, max=510, initial=64)
         opus_vbr = wx.CheckBox(dlg, label="Variable Bitrate (VBR)")
         opus_dtx = wx.CheckBox(dlg, label="Silence ignorieren (DTX)")
         lbl_opus_tx = wx.StaticText(dlg, label="Intervall (ms)")
-        opus_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
+        opus_tx = AccessibleSpinCtrl(dlg, min=20, max=1000, initial=40)
         lbl_opus_frame = wx.StaticText(dlg, label="Framegröße (ms)")
-        opus_frame = wx.SpinCtrl(dlg, min=2, max=60, initial=20)
+        opus_frame = AccessibleSpinCtrl(dlg, min=2, max=60, initial=20)
 
         for lbl, ctrl in [(lbl_opus_app, opus_app), (lbl_opus_sr, opus_sr),
                           (lbl_opus_ch, opus_ch), (lbl_opus_br, opus_br),
@@ -3216,12 +3216,12 @@ class MainFrame(wx.Frame):
         spx_sr = wx.Choice(dlg, choices=["8000", "16000", "32000"])
         spx_sr.SetStringSelection("16000")
         lbl_spx_q = wx.StaticText(dlg, label="Qualität (0–10)")
-        spx_q = wx.SpinCtrl(dlg, min=0, max=10, initial=4)
+        spx_q = AccessibleSpinCtrl(dlg, min=0, max=10, initial=4)
         lbl_spx_tx = wx.StaticText(dlg, label="Intervall (ms)")
-        spx_tx = wx.SpinCtrl(dlg, min=20, max=1000, initial=40)
+        spx_tx = AccessibleSpinCtrl(dlg, min=20, max=1000, initial=40)
         spx_vbr = wx.CheckBox(dlg, label="Variable Bitrate (VBR)")
         lbl_spx_maxbr = wx.StaticText(dlg, label="Max. Bitrate (bps, 0=aus)")
-        spx_maxbr = wx.SpinCtrl(dlg, min=0, max=128000, initial=0)
+        spx_maxbr = AccessibleSpinCtrl(dlg, min=0, max=128000, initial=0)
         spx_dtx = wx.CheckBox(dlg, label="Stille ignorieren (DTX)")
         for lbl, ctrl in [(lbl_spx_sr, spx_sr), (lbl_spx_q, spx_q),
                           (lbl_spx_tx, spx_tx), (lbl_spx_maxbr, spx_maxbr)]:
@@ -4612,11 +4612,12 @@ class MainFrame(wx.Frame):
                 return
             dlg.Destroy()
         username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
-        reason_dlg = wx.TextEntryDialog(
+        reason_dlg = CustomTextEntryDialog(
             self,
             f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
             "Kick mit Begründung",
             "",
+            ok_label=_("Kicken"),
         )
         reason_dlg.SetName("Kick-Begründung")
         reason = ""
@@ -4688,11 +4689,12 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
         username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
-        reason_dlg = wx.TextEntryDialog(
+        reason_dlg = CustomTextEntryDialog(
             self,
             f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
             "Kick mit Begründung",
             "",
+            ok_label=_("Kicken und bannen"),
         )
         reason_dlg.SetName("Kick-Begründung")
         reason = ""
@@ -5510,14 +5512,14 @@ class MainFrame(wx.Frame):
 
         mic_row = wx.BoxSizer(wx.HORIZONTAL)
         mic_row.Add(wx.StaticText(dlg, label="Mikrofon-Gain (%):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        mic_spin = wx.SpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_mic_gain_pct", 50) or 50))
+        mic_spin = AccessibleSpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_mic_gain_pct", 50) or 50))
         mic_spin.SetName("Mikrofon-Gain Prozent")
         mic_row.Add(mic_spin, 0)
         custom_sizer.Add(mic_row, 0, wx.ALL, 8)
 
         out_row = wx.BoxSizer(wx.HORIZONTAL)
         out_row.Add(wx.StaticText(dlg, label="Ausgabe-Lautstärke (%):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        out_spin = wx.SpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_out_volume_pct", 100) or 100))
+        out_spin = AccessibleSpinCtrl(dlg, min=0, max=200, initial=int(getattr(s, "eq_out_volume_pct", 100) or 100))
         out_spin.SetName("Ausgabe-Lautstärke Prozent")
         out_row.Add(out_spin, 0)
         custom_sizer.Add(out_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)

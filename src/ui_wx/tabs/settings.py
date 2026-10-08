@@ -6,6 +6,7 @@ import threading
 from typing import TYPE_CHECKING, List
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 import zipfile
 from datetime import datetime
 
@@ -25,6 +26,7 @@ from i18n import _
 from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
 from ui_wx.collapsible import CollapsibleCategories, collect_entries
 import settings_search
+from ui.a11y import set_native_accessibility_label
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -241,7 +243,7 @@ class SettingsTab(wx.Panel):
         # Away timer + custom message
         away_row = wx.BoxSizer(wx.HORIZONTAL)
         away_lbl = wx.StaticText(panel, label="Abwesenheits-Timer (Min., 0=aus)")
-        self._away_timer = wx.SpinCtrl(panel, min=0, max=120, initial=int(s.away_timer_min or 0))
+        self._away_timer = AccessibleSpinCtrl(panel, min=0, max=120, initial=int(s.away_timer_min or 0))
         self._away_timer.SetName("Abwesenheits-Timer")
         away_row.Add(away_lbl, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
         away_row.Add(self._away_timer, 0)
@@ -503,11 +505,11 @@ class SettingsTab(wx.Panel):
         reconnect_form = wx.FlexGridSizer(cols=2, vgap=4, hgap=8)
         reconnect_form.AddGrowableCol(1)
         reconnect_form.Add(wx.StaticText(panel, label="Max. Versuche (0=unbegrenzt)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._reconnect_max = wx.SpinCtrl(panel, min=0, max=999, initial=int(s.reconnect_max_attempts or 0))
+        self._reconnect_max = AccessibleSpinCtrl(panel, min=0, max=999, initial=int(s.reconnect_max_attempts or 0))
         self._reconnect_max.SetName("Max. Reconnect-Versuche")
         reconnect_form.Add(self._reconnect_max, 0)
         reconnect_form.Add(wx.StaticText(panel, label="Mindestverzögerung (Sek.)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._reconnect_delay = wx.SpinCtrl(panel, min=1, max=300, initial=int(s.reconnect_delay_sec or 2))
+        self._reconnect_delay = AccessibleSpinCtrl(panel, min=1, max=300, initial=int(s.reconnect_delay_sec or 2))
         self._reconnect_delay.SetName("Reconnect-Verzögerung")
         reconnect_form.Add(self._reconnect_delay, 0)
         reconnect_sizer.Add(reconnect_form, 0, wx.ALL | wx.EXPAND, 6)
@@ -519,11 +521,11 @@ class SettingsTab(wx.Panel):
         port_form = wx.FlexGridSizer(cols=2, vgap=4, hgap=8)
         port_form.AddGrowableCol(1)
         port_form.Add(wx.StaticText(panel, label="TCP-Port (0=auto)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tcp_bind_port = wx.SpinCtrl(panel, min=0, max=65535, initial=int(s.tcp_bind_port or 0))
+        self._tcp_bind_port = AccessibleSpinCtrl(panel, min=0, max=65535, initial=int(s.tcp_bind_port or 0))
         self._tcp_bind_port.SetName("TCP-Port Bindung")
         port_form.Add(self._tcp_bind_port, 0)
         port_form.Add(wx.StaticText(panel, label="UDP-Port (0=auto)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._udp_bind_port = wx.SpinCtrl(panel, min=0, max=65535, initial=int(s.udp_bind_port or 0))
+        self._udp_bind_port = AccessibleSpinCtrl(panel, min=0, max=65535, initial=int(s.udp_bind_port or 0))
         self._udp_bind_port.SetName("UDP-Port Bindung")
         port_form.Add(self._udp_bind_port, 0)
         ports_sizer.Add(port_form, 0, wx.ALL | wx.EXPAND, 8)
@@ -563,7 +565,7 @@ class SettingsTab(wx.Panel):
 
         cq_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
         cq_thresh_row.Add(wx.StaticText(panel, label="Ping-Schwellenwert (ms):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._cq_threshold = wx.SpinCtrl(panel, min=50, max=5000,
+        self._cq_threshold = AccessibleSpinCtrl(panel, min=50, max=5000,
                                           initial=int(getattr(s, "connection_quality_threshold_ms", 200) or 200))
         self._cq_threshold.SetName("Verbindungsqualität Schwellenwert ms")
         cq_thresh_row.Add(self._cq_threshold, 0)
@@ -604,7 +606,7 @@ class SettingsTab(wx.Panel):
 
         ng_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
         ng_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert (0-10000):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._noise_gate_threshold = wx.SpinCtrl(panel, min=0, max=10000,
+        self._noise_gate_threshold = AccessibleSpinCtrl(panel, min=0, max=10000,
                                                   initial=int(getattr(s, "noise_gate_threshold", 0) or 0))
         self._noise_gate_threshold.SetName("Noise Gate Schwellenwert")
         ng_thresh_row.Add(self._noise_gate_threshold, 0)
@@ -616,7 +618,7 @@ class SettingsTab(wx.Panel):
         ptt_sizer = wx.StaticBoxSizer(ptt_box, wx.VERTICAL)
         ptt_row = wx.BoxSizer(wx.HORIZONTAL)
         ptt_row.Add(wx.StaticText(panel, label="PTT-Zeitlimit (Sekunden, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._ptt_max_seconds = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "ptt_max_seconds", 0) or 0))
+        self._ptt_max_seconds = AccessibleSpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "ptt_max_seconds", 0) or 0))
         self._ptt_max_seconds.SetName("PTT-Zeitlimit Sekunden")
         ptt_row.Add(self._ptt_max_seconds, 0)
         ptt_sizer.Add(ptt_row, 0, wx.ALL, 8)
@@ -630,7 +632,7 @@ class SettingsTab(wx.Panel):
         vu_sizer.Add(self._vu_alert_enabled, 0, wx.ALL, 8)
         vu_thresh_row = wx.BoxSizer(wx.HORIZONTAL)
         vu_thresh_row.Add(wx.StaticText(panel, label="Schwellenwert % (0-100):"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._vu_alert_threshold = wx.SpinCtrl(panel, min=0, max=100, initial=int(getattr(s, "vu_alert_threshold", 90) or 90))
+        self._vu_alert_threshold = AccessibleSpinCtrl(panel, min=0, max=100, initial=int(getattr(s, "vu_alert_threshold", 90) or 90))
         self._vu_alert_threshold.SetName("VU-Alarm Schwellenwert")
         vu_thresh_row.Add(self._vu_alert_threshold, 0)
         vu_sizer.Add(vu_thresh_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -641,11 +643,11 @@ class SettingsTab(wx.Panel):
         seg_grid = wx.FlexGridSizer(2, 2, 8, 8)
         seg_grid.AddGrowableCol(1)
         seg_grid.Add(wx.StaticText(panel, label="Max. Dateigröße (MB, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._rec_max_size = wx.SpinCtrl(panel, min=0, max=10000, initial=int(getattr(s, "recording_max_size_mb", 0) or 0))
+        self._rec_max_size = AccessibleSpinCtrl(panel, min=0, max=10000, initial=int(getattr(s, "recording_max_size_mb", 0) or 0))
         self._rec_max_size.SetName("Max. Aufnahmegröße MB")
         seg_grid.Add(self._rec_max_size, 0)
         seg_grid.Add(wx.StaticText(panel, label="Max. Dauer (Minuten, 0=aus):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._rec_max_minutes = wx.SpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "recording_max_minutes", 0) or 0))
+        self._rec_max_minutes = AccessibleSpinCtrl(panel, min=0, max=600, initial=int(getattr(s, "recording_max_minutes", 0) or 0))
         self._rec_max_minutes.SetName("Max. Aufnahmedauer Minuten")
         seg_grid.Add(self._rec_max_minutes, 0)
         seg_sizer.Add(seg_grid, 0, wx.ALL, 8)
@@ -660,11 +662,11 @@ class SettingsTab(wx.Panel):
         silence_sizer.Add(self._silence_detection_enabled, 0, wx.ALL, 8)
         silence_grid = wx.FlexGridSizer(2, 2, 8, 8)
         silence_grid.Add(wx.StaticText(panel, label="Stille-Schwellenwert (%):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._silence_threshold = wx.SpinCtrl(panel, min=0, max=50, initial=int(getattr(s, "silence_detection_threshold_pct", 2) or 2))
+        self._silence_threshold = AccessibleSpinCtrl(panel, min=0, max=50, initial=int(getattr(s, "silence_detection_threshold_pct", 2) or 2))
         self._silence_threshold.SetName("Stille-Schwellenwert Prozent")
         silence_grid.Add(self._silence_threshold, 0)
         silence_grid.Add(wx.StaticText(panel, label="Stille-Timeout (Sekunden):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._silence_timeout = wx.SpinCtrl(panel, min=5, max=600, initial=int(getattr(s, "silence_detection_timeout_sec", 30) or 30))
+        self._silence_timeout = AccessibleSpinCtrl(panel, min=5, max=600, initial=int(getattr(s, "silence_detection_timeout_sec", 30) or 30))
         self._silence_timeout.SetName("Stille-Timeout Sekunden")
         silence_grid.Add(self._silence_timeout, 0)
         silence_sizer.Add(silence_grid, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
@@ -716,17 +718,17 @@ class SettingsTab(wx.Panel):
         grid.AddGrowableCol(1)
 
         grid.Add(wx.StaticText(panel, label="Chat / Privat (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_chat_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_chat_rate", 0) or 0))
+        self._tts_chat_rate = AccessibleSpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_chat_rate", 0) or 0))
         self._tts_chat_rate.SetName("Chat TTS Geschwindigkeit")
         grid.Add(self._tts_chat_rate, 0)
 
         grid.Add(wx.StaticText(panel, label="System-Meldungen (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_system_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_system_rate", 0) or 0))
+        self._tts_system_rate = AccessibleSpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_system_rate", 0) or 0))
         self._tts_system_rate.SetName("System TTS Geschwindigkeit")
         grid.Add(self._tts_system_rate, 0)
 
         grid.Add(wx.StaticText(panel, label="Kanal-Thema (Wörter/Min):"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._tts_channel_rate = wx.SpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_channel_rate", 0) or 0))
+        self._tts_channel_rate = AccessibleSpinCtrl(panel, min=0, max=500, initial=int(getattr(s, "tts_channel_rate", 0) or 0))
         self._tts_channel_rate.SetName("Kanal TTS Geschwindigkeit")
         grid.Add(self._tts_channel_rate, 0)
 
@@ -1062,7 +1064,7 @@ class SettingsTab(wx.Panel):
 
         api_port_row = wx.BoxSizer(wx.HORIZONTAL)
         api_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._http_api_port = wx.SpinCtrl(panel, min=1024, max=65535,
+        self._http_api_port = AccessibleSpinCtrl(panel, min=1024, max=65535,
                                            initial=int(getattr(s, "http_api_port", 8765) or 8765))
         self._http_api_port.SetName("HTTP-API Port")
         api_port_row.Add(self._http_api_port, 0)
@@ -1080,7 +1082,7 @@ class SettingsTab(wx.Panel):
 
         cs_port_row = wx.BoxSizer(wx.HORIZONTAL)
         cs_port_row.Add(wx.StaticText(panel, label="Port:"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._companion_port = wx.SpinCtrl(panel, min=1024, max=65535,
+        self._companion_port = AccessibleSpinCtrl(panel, min=1024, max=65535,
                                            initial=int(getattr(s, "companion_server_port", 19880) or 19880))
         self._companion_port.SetName("Companion-Server Port")
         cs_port_row.Add(self._companion_port, 0)
@@ -1649,6 +1651,10 @@ class SettingsTab(wx.Panel):
             browse_btn.SetName(f"Durchsuchen: {label}")
             test_btn = wx.Button(scroll, label="Testen")
             test_btn.SetName(f"Test: {label}")
+            # VoiceOver liest bei wx.Button den Titel ("...", "Testen") statt
+            # SetName – ohne Ereignisnamen wären alle Zeilen gleich.
+            set_native_accessibility_label(browse_btn, _("Durchsuchen: {}").format(_(label)))
+            set_native_accessibility_label(test_btn, _("Testen: {}").format(_(label)))
 
             browse_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_browse_sound(k, tc))
             test_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_test_sound(k, tc))
@@ -1669,7 +1675,7 @@ class SettingsTab(wx.Panel):
 
         vol_row = wx.BoxSizer(wx.HORIZONTAL)
         vol_row.Add(wx.StaticText(panel, label="Lautstärke"), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
-        self._sound_volume = wx.SpinCtrl(panel, value="100", min=0, max=100)
+        self._sound_volume = AccessibleSpinCtrl(panel, value="100", min=0, max=100)
         self._sound_volume.SetName("Sound-Lautstärke")
         vol_row.Add(self._sound_volume, 0)
         bottom_sizer.Add(vol_row, 0, wx.ALL | wx.EXPAND, 8)
