@@ -56,8 +56,8 @@ app = BUNDLE(
     # Leerzeichen). Zusammen mit der festen Signatur behält macOS die Rechte.
     bundle_identifier='cc.leons.flarion.teamtalkvoclient',
     info_plist={
-        'CFBundleShortVersionString': '11.2.2',
-        'CFBundleVersion': '11.2.2',
+        'CFBundleShortVersionString': '11.2.3',
+        'CFBundleVersion': '11.2.3',
         'NSMicrophoneUsageDescription': 'Der TeamTalk VO Client benötigt Zugriff auf das Mikrofon, um Sprache übertragen zu können.',
         'NSSpeechRecognitionUsageDescription': 'Der TeamTalk VO Client wandelt aufgenommene Sprachnachrichten mit der Spracherkennung von macOS in Text um.',
         'CFBundleDevelopmentRegion': 'de',

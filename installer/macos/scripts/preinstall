@@ -1,0 +1,26 @@
+#!/bin/bash
+# Vorab-Skript des macOS-Pakets (läuft als root, $3 = Zielvolume).
+# Ersetzt eine vorhandene App vollständig, statt Dateien hineinzumischen,
+# und entfernt Reste fehlerhafter Installationen von v11.2.2.
+apps="${3%/}/Applications"
+app="$apps/TeamTalk VO Client.app"
+
+# Laufende App beenden (Update aus der App heraus beendet sie bereits selbst)
+pkill -x "TeamTalk VO Client" 2>/dev/null || true
+
+# Vorhandene App entfernen – egal mit welcher Bundle-Kennung
+if [ -d "$app" ]; then
+  rm -rf "$app"
+fi
+
+# Reste aus v11.2.2: Ordner in /Applications, deren Name mit
+# "TeamTalk VO Client" beginnt, die selbst keine App sind, aber eine
+# TeamTalk-VO-Client-App enthalten.
+for d in "$apps"/TeamTalk\ VO\ Client*; do
+  [ -d "$d" ] || continue
+  case "$d" in *.app) continue ;; esac
+  if [ -e "$d/TeamTalk VO Client.app" ] || [ -e "$d/Contents/MacOS/TeamTalk VO Client" ]; then
+    rm -rf "$d"
+  fi
+done
+exit 0

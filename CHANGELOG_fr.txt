@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.3)
+Correction : le paquet d'installation macOS remplace l'application directement dans Applications
+
+- **Corrigé (macOS) : après l'installation, un dossier supplémentaire
+  apparaissait dans Applications au lieu de remplacer l'application
+  existante.** En raison de règles d'installation définies automatiquement,
+  le paquet pouvait déplacer l'application et ne remplaçait pas une
+  application d'un autre identifiant (l'application en a un nouveau depuis
+  11.2.2). Désormais elle est toujours installée sous
+  /Applications/TeamTalk VO Client.app ; une application existante est
+  entièrement remplacée et les restes de l'installation 11.2.2 sont
+  supprimés.
+
 2026-10-09 (v11.2.2)
 Les paramètres sont vraiment enregistrés, l'autorisation micro est conservée après les mises à jour
 

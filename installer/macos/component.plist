@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Installationsregeln für das macOS-Paket (pkgbuild --component-plist).
+  Ohne diese Datei setzt pkgbuild: BundleIsRelocatable (Installer sucht eine
+  vorhandene Kopie mit gleicher Kennung und installiert dorthin) und
+  BundleHasStrictIdentifier (eine App mit anderer Kennung am Ziel wird nicht
+  ersetzt). Beides führte in v11.2.2 dazu, dass die App nicht sauber nach
+  /Applications kam. Die App soll immer genau dort landen und eine
+  vorhandene ersetzen; das Vorab-Skript (scripts/preinstall) räumt auf.
+-->
+<plist version="1.0">
+<array>
+  <dict>
+    <key>RootRelativeBundlePath</key>
+    <string>TeamTalk VO Client.app</string>
+    <key>BundleIsRelocatable</key>
+    <false/>
+    <key>BundleHasStrictIdentifier</key>
+    <false/>
+    <key>BundleIsVersionChecked</key>
+    <false/>
+    <key>BundleOverwriteAction</key>
+    <string>upgrade</string>
+    <key>ChildBundles</key>
+    <array>
+      <dict>
+        <key>BundleOverwriteAction</key>
+        <string></string>
+        <key>RootRelativeBundlePath</key>
+        <string>TeamTalk VO Client.app/Contents/Frameworks/Python.framework</string>
+      </dict>
+    </array>
+  </dict>
+</array>
+</plist>

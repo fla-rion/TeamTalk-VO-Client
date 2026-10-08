@@ -1,6 +1,17 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.3)
+Fehlerbehebung: macOS-Installationspaket ersetzt die App direkt im Programme-Ordner
+
+- **Behoben (macOS): Nach der Installation lag ein zusätzlicher Ordner im
+  Programme-Ordner, statt dass die vorhandene App ersetzt wurde.** Das Paket
+  durfte die App wegen automatisch gesetzter Installationsregeln
+  verschieben und ersetzte keine App mit anderer Kennung (die App hat seit
+  11.2.2 eine neue). Jetzt landet sie immer als
+  /Programme/TeamTalk VO Client.app; eine vorhandene App wird vollständig
+  ersetzt, Reste der 11.2.2-Installation werden entfernt.
+
 2026-10-09 (v11.2.2)
 Einstellungen werden wirklich gespeichert, Mikrofon-Rechte bleiben nach Updates
 

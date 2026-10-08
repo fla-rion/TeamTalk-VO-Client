@@ -144,11 +144,24 @@ jobs:
         run: |
           version="${{ steps.version.outputs.version }}"
           pkg_name="TeamTalk-VO-Client-${version}-macOS.pkg"
-          # Installiert nach /Applications; Update über die App startet dieses Paket
-          pkgbuild --component "dist/TeamTalk VO Client.app" \
+          # Installiert immer nach /Applications und ersetzt eine vorhandene
+          # App (eigene Regeln in installer/macos/component.plist, Aufräumen in
+          # installer/macos/scripts/preinstall). Update über die App startet
+          # dieses Paket.
+          pkgroot="$RUNNER_TEMP/pkgroot"
+          rm -rf "$pkgroot" && mkdir -p "$pkgroot"
+          ditto "dist/TeamTalk VO Client.app" "$pkgroot/TeamTalk VO Client.app"
+          pkgbuild --root "$pkgroot" \
+            --component-plist installer/macos/component.plist \
+            --scripts installer/macos/scripts \
             --install-location /Applications \
             --identifier cc.leons.flarion.teamtalkvoclient \
             --version "$version" "dist/$pkg_name"
+          pkgutil --expand "dist/$pkg_name" "$RUNNER_TEMP/pkgcheck"
+          cat "$RUNNER_TEMP/pkgcheck/PackageInfo"
+          if grep -q '<relocate>' "$RUNNER_TEMP/pkgcheck/PackageInfo"; then
+            echo "::error::Paket würde die App verschieben (relocate)"; exit 1
+          fi
           echo "PKG_NAME=$pkg_name" >> "$GITHUB_ENV"
 
       - name: GitHub Release erstellen und DMG hochladen
