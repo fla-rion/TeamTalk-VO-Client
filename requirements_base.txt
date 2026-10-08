@@ -8,3 +8,4 @@ mss>=9.0
 pedalboard>=0.9
 pyinstaller>=6.0
 zeroconf>=0.132.2
+cryptography>=42.0

@@ -668,6 +668,15 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Si está activado en <em>Configuración → General → Guardar historial de chat</em>, los mensajes se guardan por servidor en un archivo JSON (máx. 200 entradas). El historial se carga automáticamente en la próxima conexión al mismo servidor.</p>
 <div class="note">El historial se puede restablecer en cualquier momento mediante "Borrar historial".</div>
 
+<h2>Unión programada a canal</h2>
+<p>En <em>Canal → Unión programada a canal…</em> la aplicación entra en un canal de un servidor guardado a una hora fija: a diario, en días de la semana elegidos o una sola vez en una fecha (después la entrada se desactiva sola). La contraseña del canal se toma del perfil de servidor si allí figura el mismo canal.</p>
+<ul>
+  <li>Conectado a ese mismo servidor: la aplicación entra en el canal.</li>
+  <li>Sin conexión y con "Conectar mediante el perfil de servidor si hace falta" activo: la aplicación se conecta mediante el perfil y luego entra en el canal.</li>
+  <li>Conectado a otro servidor: la unión se omite y se anuncia; nunca se corta una conversación en curso sin preguntar.</li>
+</ul>
+<p><strong>Exportar calendario (.ics)</strong> guarda todas las entradas como eventos para aplicaciones de calendario. Límites: la aplicación debe estar abierta a la hora programada; se comprueba cada 30 segundos, así que la unión puede retrasarse hasta medio minuto. Si cambias el nombre de un perfil de servidor, la entrada ya no lo encuentra.</p>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notificaciones</h1>
 
@@ -1050,6 +1059,14 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <tr><td>Puerto del servidor complementario</td><td>Puerto del servidor HTTP local (por defecto: 19880). Los cambios se aplican tras la próxima conexión.</td></tr>
 </table>
 <div class="note">El servidor complementario solo es accesible localmente (<code>http://localhost:&lt;puerto&gt;</code>). Solo se inicia cuando hay una conexión de servidor activa.</div>
+
+<h2>Copia de seguridad y restauración de la configuración</h2>
+<p><em>Archivo → Copia de seguridad de la configuración (Backup)…</em> guarda todos los ajustes y perfiles de servidor en un archivo cifrado (<code>.ttbackup</code>, AES-256 con una contraseña que elijas, de al menos 6 caracteres). Sin esa contraseña el archivo no se puede abrir, ni siquiera el desarrollador.</p>
+<ul>
+  <li><strong>Incluir contraseñas de servidor y claves de API</strong> está desactivado por defecto. Entonces el archivo no contiene contraseñas de servidor ni de canal, ni la contraseña de BearWare, ni claves de API (ElevenLabs, Claude, Gemini), ni la dirección del webhook; al restaurar se conservan las ya guardadas en el equipo.</li>
+  <li>No se incluyen los historiales de chat ni las contraseñas guardadas en el llavero.</li>
+</ul>
+<p><em>Archivo → Restaurar configuración…</em> pide la contraseña y, antes de aplicar, muestra cuándo y con qué versión se hizo la copia, qué archivos contiene y si incluye contraseñas. Tras confirmar, la aplicación se reinicia y aplica la copia al arrancar. El estado anterior se conserva en la carpeta de datos en <code>before_restore_…</code> (los tres últimos). Las copias ZIP antiguas sin cifrar se siguen pudiendo leer.</p>
 
 <!-- ============================================================ -->
 <h1 id="kuerzel">19 · Atajos de teclado y atajos globales</h1>

@@ -668,6 +668,15 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <p>When enabled under <em>Settings → General → Save chat history</em>, messages are saved per server in a JSON file (max. 200 entries). The history is automatically loaded the next time you connect to the same server.</p>
 <div class="note">The history can be reset at any time via "Clear history".</div>
 
+<h2>Scheduled Channel Join</h2>
+<p>Under <em>Channel → Scheduled channel join…</em> you can have the app join a channel on a saved server at a set time – daily, on selected weekdays or once on a date (the entry is then disabled automatically). A channel password is taken from the server profile if the same channel is entered there.</p>
+<ul>
+  <li>Connected to exactly this server: the app moves into the channel.</li>
+  <li>Not connected and "Connect via the server profile if needed" enabled: the app connects via the profile and then joins the channel.</li>
+  <li>Connected to another server: the join is skipped and announced – an ongoing conversation is never disconnected without asking.</li>
+</ul>
+<p><strong>Export calendar (.ics)</strong> saves all entries as events for calendar apps. Limits: the app must be running at the scheduled time; it checks every 30 seconds, so the join can be delayed by up to half a minute. If you rename a server profile, the entry no longer finds it.</p>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notifications</h1>
 
@@ -1050,6 +1059,14 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <tr><td>Companion server port</td><td>Port of the local HTTP server (default: 19880). Changes take effect after the next connection.</td></tr>
 </table>
 <div class="note">The companion server is only reachable locally (<code>http://localhost:&lt;port&gt;</code>). It is only started when a server connection is active.</div>
+
+<h2>Backing Up and Restoring Settings</h2>
+<p><em>File → Back up settings (Backup)…</em> saves all settings and server profiles to an encrypted file (<code>.ttbackup</code>, AES-256 with a password of your choice, at least 6 characters). Without this password the file cannot be opened – not even by the developer.</p>
+<ul>
+  <li><strong>Include server passwords and API keys</strong> is off by default. The file then contains no server or channel passwords, no BearWare password, no API keys (ElevenLabs, Claude, Gemini) and no webhook address; when restoring, the ones already saved on the computer are kept.</li>
+  <li>Chat histories and passwords stored in the keychain are not included.</li>
+</ul>
+<p><em>File → Restore settings…</em> asks for the password and, before applying, shows when and with which version the backup was made, which files it contains and whether passwords are included. After confirming, the app restarts and applies the backup on startup. The previous state is kept in the data folder under <code>before_restore_…</code> (the last three). Older, unencrypted ZIP backups can still be read.</p>
 
 <!-- ============================================================ -->
 <h1 id="kuerzel">19 · Keyboard Shortcuts &amp; Global Hotkeys</h1>
