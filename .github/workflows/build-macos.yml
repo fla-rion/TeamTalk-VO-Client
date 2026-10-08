@@ -4,7 +4,12 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Vorhandenes Release, in das die macOS-Dateien hochgeladen werden (z. B. v11.2.2); leer = nur bauen"
+        required: false
+        default: ""
 
 jobs:
   build:
@@ -107,7 +112,17 @@ jobs:
             security import "$RUNNER_TEMP/sign.p12" -k "$kc" -P "$MACOS_SIGN_P12_PASSWORD" -T /usr/bin/codesign
             security set-key-partition-list -S apple-tool:,apple: -s -k "$kcpw" "$kc" >/dev/null
             rm -f "$RUNNER_TEMP/sign.p12"
-            codesign --force --deep --keychain "$kc" --sign "TeamTalk VO Client Signing" "$app"
+            # Schlüsselbund in die Suchliste aufnehmen – sonst findet codesign
+            # die Identität nicht ("no identity found"), obwohl sie importiert ist
+            security list-keychains -d user -s "$kc" $(security list-keychains -d user | tr -d '"')
+            # Über den SHA-1-Fingerabdruck signieren: Ein selbst signiertes
+            # Zertifikat gilt nicht als "valid", der Name allein reicht codesign dann nicht
+            identity=$(security find-identity -p codesigning "$kc" | awk '/TeamTalk VO Client Signing/ {print $2; exit}')
+            if [ -z "$identity" ]; then
+              security find-identity -p codesigning "$kc"
+              echo "::error::Signatur-Identität nicht gefunden"; exit 1
+            fi
+            codesign --force --deep --keychain "$kc" --sign "$identity" "$app"
           else
             echo "::warning::Kein Signatur-Zertifikat (Secret MACOS_SIGN_P12) – ad-hoc signiert, macOS fragt nach Updates erneut nach Rechten"
             codesign --force --deep --sign - "$app"
@@ -137,9 +152,10 @@ jobs:
           echo "PKG_NAME=$pkg_name" >> "$GITHUB_ENV"
 
       - name: GitHub Release erstellen und DMG hochladen
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
         uses: softprops/action-gh-release@v3
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           name: "TeamTalk VO Client ${{ steps.version.outputs.version }}"
           append_body: true
           body: |
