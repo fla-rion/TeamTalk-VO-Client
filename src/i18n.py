@@ -7868,6 +7868,11 @@ _TRANSLATIONS_ES.update({
     'Sprache nicht erkannt': 'voz no reconocida',
 })
 
+# Offline-Warteschlange: Schaltfläche "Alle jetzt senden"
+_TRANSLATIONS.update({"Alle &jetzt senden": "Send all &now", "Alle Nachrichten jetzt senden": "Send all messages now"})
+_TRANSLATIONS_FR.update({"Alle &jetzt senden": "Tout &envoyer maintenant", "Alle Nachrichten jetzt senden": "Envoyer tous les messages maintenant"})
+_TRANSLATIONS_ES.update({"Alle &jetzt senden": "Enviar todo &ahora", "Alle Nachrichten jetzt senden": "Enviar todos los mensajes ahora"})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

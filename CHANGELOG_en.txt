@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-09 (v11.0.0)
+New: voice messages, also for the offline queue
+
+- **New: record a voice message** (Automation → Record voice message…).
+  Choose a recipient (current channel or a user), speak for up to 120
+  seconds; the recording is converted to text locally and the text can be
+  edited before sending. When connected the message is sent right away,
+  otherwise it goes into the offline queue and is delivered after
+  reconnecting. Optionally the audio file is also uploaded to the channel's
+  file area.
+- **Speech recognition:** Whisper is used if installed; otherwise macOS uses
+  Apple's speech recognition (on-device where possible, macOS asks for
+  permission the first time). On Windows/Linux without Whisper only a note
+  with the duration is sent; the audio file can be uploaded.
+- **Fixed (Windows/Linux): offline messages were lost when reconnecting**,
+  without any error message.
+- **Fixed: "Send all now" in the offline queue sent channel messages
+  nowhere.** Messages that cannot be delivered now stay in the queue.
+
 2026-10-09 (v10.9.0)
 New: speaking time statistics
 

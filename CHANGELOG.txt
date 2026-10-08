@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-09 (v11.0.0)
+Neu: Sprachnachrichten, auch für die Offline-Warteschlange
+
+- **Neu: Sprachnachricht aufnehmen** (Automation → Sprachnachricht
+  aufnehmen…). Empfänger wählen (aktueller Kanal oder ein Nutzer), bis zu
+  120 Sekunden sprechen, die Aufnahme wird lokal in Text umgewandelt, der
+  Text lässt sich vor dem Senden bearbeiten. Mit Verbindung geht die
+  Nachricht sofort raus, ohne Verbindung landet sie in der
+  Offline-Warteschlange und wird nach dem Wiederverbinden zugestellt.
+  Optional wird die Audiodatei zusätzlich in den Dateibereich des Kanals
+  hochgeladen.
+- **Spracherkennung:** Ist Whisper installiert, wird es verwendet; sonst auf
+  macOS Apples Spracherkennung (wenn möglich auf dem Gerät, beim ersten Mal
+  fragt macOS nach der Erlaubnis). Unter Windows/Linux ohne Whisper wird nur
+  ein Hinweis mit der Dauer gesendet, die Audiodatei kann hochgeladen werden.
+- **Behoben (Windows/Linux): Offline-Nachrichten gingen beim Wiederverbinden
+  verloren**, ohne Fehlermeldung.
+- **Behoben: "Alle jetzt senden" in der Offline-Warteschlange schickte
+  Kanalnachrichten ins Leere.** Nicht zustellbare Nachrichten bleiben jetzt
+  in der Warteschlange.
+
 2026-10-09 (v10.9.0)
 Neu: Redezeit-Statistik
 

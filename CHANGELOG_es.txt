@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-09 (v11.0.0)
+Novedad: mensajes de voz, también para la cola sin conexión
+
+- **Nuevo: grabar un mensaje de voz** (Automatización → Grabar mensaje de
+  voz…). Elige un destinatario (canal actual o un usuario), habla hasta 120
+  segundos; la grabación se convierte en texto localmente y el texto se
+  puede editar antes de enviarlo. Con conexión se envía en el acto; sin
+  conexión va a la cola sin conexión y se entrega al volver a conectar.
+  Opcionalmente el archivo de audio también se sube al área de archivos del
+  canal.
+- **Reconocimiento de voz:** si Whisper está instalado se usa; si no, en
+  macOS se usa el reconocimiento de voz de Apple (en el dispositivo si es
+  posible, la primera vez macOS pide permiso). En Windows/Linux sin Whisper
+  solo se envía un aviso con la duración; el archivo de audio se puede
+  subir.
+- **Corregido (Windows/Linux): los mensajes sin conexión se perdían al
+  volver a conectar**, sin ningún aviso.
+- **Corregido: "Enviar todo ahora" en la cola sin conexión no enviaba los
+  mensajes de canal.** Los mensajes que no se pueden entregar se quedan
+  ahora en la cola.
+
 2026-10-09 (v10.9.0)
 Novedad: estadísticas de tiempo de habla
 

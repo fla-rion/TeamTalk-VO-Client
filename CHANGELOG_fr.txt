@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-09 (v11.0.0)
+Nouveau : messages vocaux, aussi pour la file d'attente hors ligne
+
+- **Nouveau : enregistrer un message vocal** (Automatisation → Enregistrer
+  un message vocal…). Choisissez un destinataire (canal actuel ou un
+  utilisateur), parlez jusqu'à 120 secondes ; l'enregistrement est converti
+  en texte localement et le texte peut être modifié avant l'envoi. Connecté,
+  le message part aussitôt ; sinon il va dans la file d'attente hors ligne
+  et est remis après la reconnexion. Le fichier audio peut aussi être envoyé
+  dans l'espace fichiers du canal.
+- **Reconnaissance vocale :** Whisper est utilisé s'il est installé ; sinon
+  macOS utilise la reconnaissance vocale d'Apple (sur l'appareil si
+  possible, macOS demande l'autorisation la première fois). Sous
+  Windows/Linux sans Whisper, seule une note avec la durée est envoyée ; le
+  fichier audio peut être envoyé.
+- **Corrigé (Windows/Linux) : les messages hors ligne étaient perdus à la
+  reconnexion**, sans message d'erreur.
+- **Corrigé : « Tout envoyer maintenant » dans la file d'attente hors ligne
+  n'envoyait pas les messages de canal.** Les messages non remis restent
+  désormais dans la file.
+
 2026-10-09 (v10.9.0)
 Nouveau : statistiques du temps de parole
 

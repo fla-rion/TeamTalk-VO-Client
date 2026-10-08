@@ -129,7 +129,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 12. Sprachnachrichten für die Offline-Warteschlange – für v11.0.0 vorgesehen
+## 12. Sprachnachrichten für die Offline-Warteschlange – ✅ erledigt in v11.0.0
 
 🟡 · Eigene Idee, Lückenprüfung gegen `src/offline_queue.py`.
 
@@ -202,7 +202,7 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | ✅ v10.8.0 | Einstellungen: Suche einzelner Einstellungen, einklappbare Kategorien (Nutzerwunsch) | 🟡 | wx + Qt |
 | — | ~~Suno-Links streamen (Nutzerwunsch)~~ | — | Suno-Audio ist verschlüsselt (2026-10), nur mit Schutzumgehung möglich – nicht umgesetzt |
 | ✅ v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
-| geplant v11.0.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
+| ✅ v11.0.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
 | geplant v11.1.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
 | geplant v11.2.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant nach v11.2.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
