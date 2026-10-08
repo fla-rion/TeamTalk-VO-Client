@@ -1,6 +1,24 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.0)
+Accessibilité et traduction : finitions avant de nouvelles grandes fonctions
+
+- **Champs numériques (macOS) :** Les 54 champs numériques se composent
+  désormais d'un champ texte avec des flèches. VoiceOver annonce les
+  changements de valeur de façon fiable ; Flèche haut/bas modifie la valeur
+  directement.
+- **Les dialogues de saisie nomment l'action :** Expulser, Bannir, Envoyer,
+  Créer au lieu de simplement « OK ».
+- **Événements sonores :** Les boutons « … » et « Tester » annoncent
+  désormais l'événement concerné au lieu de sonner pareil à chaque ligne.
+- **Traduction :** 373 textes de menus et de dialogues jusqu'ici
+  uniquement en allemand – surtout sous Windows et Linux – existent
+  désormais en anglais, français et espagnol. Un nouveau test signale les
+  futures lacunes.
+- **Stabilité :** Nouvelles vérifications automatiques contre des pièges
+  wxPython connus qui rendaient des dialogues inutilisables sans bruit.
+
 2026-10-09 (v11.1.0)
 Nouveau : sauvegarde chiffrée des paramètres, connexion programmée à un canal
 

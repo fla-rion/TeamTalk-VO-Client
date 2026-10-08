@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.0)
+Accesibilidad y traducción: pulido antes de nuevas funciones grandes
+
+- **Campos numéricos (macOS):** Los 54 campos numéricos constan ahora de un
+  campo de texto con flechas. VoiceOver lee con fiabilidad los cambios de
+  valor; Flecha arriba/abajo cambia el valor directamente.
+- **Los diálogos de entrada nombran la acción:** Expulsar, Banear,
+  Enviar, Crear en lugar de solo "Aceptar".
+- **Eventos sonoros:** Los botones "…" y "Probar" anuncian ahora el evento
+  correspondiente en lugar de sonar igual en cada fila.
+- **Traducción:** 373 textos de menús y diálogos que solo estaban en alemán
+  – sobre todo en Windows y Linux – están ahora en inglés, francés y
+  español. Una nueva prueba avisa de futuras lagunas.
+- **Estabilidad:** Nuevas comprobaciones automáticas contra trampas
+  conocidas de wxPython que dejaban diálogos inutilizables sin aviso.
+
 2026-10-09 (v11.1.0)
 Novedades: copia de seguridad cifrada de la configuración, unión programada a canal
 

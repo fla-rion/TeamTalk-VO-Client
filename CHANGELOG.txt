@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.0)
+Barrierefreiheit und Übersetzung: Politur vor neuen großen Funktionen
+
+- **Zahlenfelder (macOS):** Alle 54 Zahlenfelder bestehen jetzt aus einem
+  Textfeld mit Pfeiltasten. VoiceOver liest Wertänderungen zuverlässig vor,
+  Pfeil hoch/runter ändert den Wert direkt.
+- **Eingabedialoge benennen die Aktion:** Kicken, Bannen, Senden, Erstellen
+  statt nur "OK".
+- **Sound-Ereignisse:** Die Tasten "…" und "Testen" sagen jetzt das
+  jeweilige Ereignis an, statt in jeder Zeile gleich zu klingen.
+- **Übersetzung:** 373 bisher nur deutsche Menü- und Dialogtexte – vor
+  allem unter Windows und Linux – gibt es jetzt auch auf Englisch,
+  Französisch und Spanisch. Ein neuer Test meldet künftige Lücken.
+- **Stabilität:** Neue automatische Prüfungen gegen bekannte wxPython-
+  Fallen, die Dialoge lautlos unbenutzbar machen.
+
 2026-10-09 (v11.1.0)
 Neu: verschlüsseltes Einstellungs-Backup, geplanter Kanalbeitritt
 

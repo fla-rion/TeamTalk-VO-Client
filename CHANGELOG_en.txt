@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.0)
+Accessibility and translation: polish before new big features
+
+- **Number fields (macOS):** All 54 number fields now consist of a text
+  field with arrow buttons. VoiceOver reliably reads value changes; Up/Down
+  Arrow change the value directly.
+- **Input dialogs name the action:** Kick, Ban, Send, Create instead of just
+  "OK".
+- **Sound events:** The "…" and "Test" buttons now announce the respective
+  event instead of sounding the same in every row.
+- **Translation:** 373 menu and dialog texts that were German only – mostly
+  on Windows and Linux – are now available in English, French and Spanish.
+  A new test reports future gaps.
+- **Stability:** New automatic checks against known wxPython pitfalls that
+  silently made dialogs unusable.
+
 2026-10-09 (v11.1.0)
 New: encrypted settings backup, scheduled channel join
 

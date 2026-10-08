@@ -146,7 +146,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 14. Accessibility-Politur & Stabilisierung – für v11.2.0 vorgesehen
+## 14. Accessibility-Politur & Stabilisierung – ✅ erledigt in v11.2.0
 
 🟢 · Bewusste Aufräum-Minor vor dem Major-Release, kein neuer Feature-Block.
 
@@ -204,7 +204,7 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | ✅ v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
 | ✅ v11.0.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
 | ✅ v11.1.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
-| geplant v11.2.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
+| ✅ v11.2.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant nach v11.2.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
 | Kandidat nach v11.2.0 | KI-Bildschirmbeschreibung (16) | 🟡–🔴 | Vision-Erweiterung der bestehenden KI-Backend-Kette |
 | blockiert | Bans/eigener Server | 🔴/blockiert | BearWare-Issue #3414 ohne Antwort geschlossen – weiterhin ungeklärt |
