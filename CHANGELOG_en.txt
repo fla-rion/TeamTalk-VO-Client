@@ -1,6 +1,22 @@
 Changelog
 =========
 
+2026-10-09 (v11.1.0)
+New: encrypted settings backup, scheduled channel join
+
+- **New: back up settings as an encrypted file** (File → Back up settings /
+  Restore settings). All settings and server profiles go into a
+  password-protected .ttbackup file. Server passwords and API keys are only
+  included on request. When restoring, the app first shows a preview, keeps
+  the previous state and restarts. Older ZIP backups can still be read.
+- **New: scheduled channel join** (Channel → Scheduled channel join…). Join
+  a channel daily, on certain weekdays or once at a set time. If the app is
+  not connected it can connect via the server profile; if it is connected to
+  a different server the appointment is skipped and announced. Appointments
+  can be exported as a calendar file (.ics).
+- **Fixed:** when restoring settings, the running app could overwrite the
+  restored backup again on quitting.
+
 2026-10-09 (v11.0.0)
 New: voice messages, also for the offline queue
 

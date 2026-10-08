@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-09 (v11.1.0)
+Novedades: copia de seguridad cifrada de la configuración, unión programada a canal
+
+- **Nuevo: copia de seguridad de la configuración en un archivo cifrado**
+  (Archivo → Hacer copia de seguridad / Restaurar configuración). Toda la
+  configuración y los perfiles de servidor van a un archivo .ttbackup
+  protegido con contraseña. Las contraseñas de servidor y las claves API
+  solo se incluyen si se desea. Al restaurar, la aplicación muestra primero
+  una vista previa, guarda el estado anterior y se reinicia. Las copias ZIP
+  antiguas siguen siendo legibles.
+- **Nuevo: unión programada a canal** (Canal → Unión programada a canal…).
+  Unirse a un canal a diario, ciertos días de la semana o una sola vez a una
+  hora. Si la aplicación no está conectada puede conectarse mediante el
+  perfil del servidor; si está conectada a otro servidor, la cita se omite
+  y se anuncia. Las citas se pueden exportar como archivo de calendario
+  (.ics).
+- **Corregido:** al restaurar la configuración, la aplicación en marcha
+  podía sobrescribir al cerrarse la copia recién restaurada.
+
 2026-10-09 (v11.0.0)
 Novedad: mensajes de voz, también para la cola sin conexión
 

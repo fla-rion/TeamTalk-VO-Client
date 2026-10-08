@@ -137,7 +137,7 @@ Wenn TTS/Screenreader über laufendes Kanalaudio spricht (Ansagen, Systemmeldung
 
 ---
 
-## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – für v11.1.0 vorgesehen
+## 13. Einstellungs-Backup/Restore + geplanter Kanalbeitritt – ✅ erledigt in v11.1.0
 
 🟢 · Zwei kleine, verwandte Punkte, gebündelt in einer Version.
 
@@ -203,7 +203,7 @@ Wichtigste Nebenfunde (alle behoben): `TT_InsertAudioBlock`-Sitzung wurde nie be
 | — | ~~Suno-Links streamen (Nutzerwunsch)~~ | — | Suno-Audio ist verschlüsselt (2026-10), nur mit Schutzumgehung möglich – nicht umgesetzt |
 | ✅ v10.9.0 | Redezeit-Statistik (11) | 🟢–🟡 | Erweiterung von `analytics.py`, keine teuren Refreshes |
 | ✅ v11.0.0 | Sprachnachrichten Offline-Queue (12) | 🟡 | Nutzt `transcription.py` + `scheduled_recordings.py` |
-| geplant v11.1.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
+| ✅ v11.1.0 | Backup/Restore + geplanter Beitritt (13) | 🟢 | Zwei kleine Punkte gebündelt |
 | geplant v11.2.0 | A11y-Politur & Stabilisierung (14) | 🟢 | Rest von Punkt 6 + VoiceOver-/Narrator-Regressionstest |
 | geplant nach v11.2.0 | Echo-Unterdrückung Core-Audio (15) | 🔴 | Flaggschiff, hebt Mindest-macOS auf 14.2+ |
 | Kandidat nach v11.2.0 | KI-Bildschirmbeschreibung (16) | 🟡–🔴 | Vision-Erweiterung der bestehenden KI-Backend-Kette |

@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-09 (v11.1.0)
+Nouveau : sauvegarde chiffrée des paramètres, connexion programmée à un canal
+
+- **Nouveau : sauvegarder les paramètres dans un fichier chiffré** (Fichier
+  → Sauvegarder / Restaurer les paramètres). Tous les paramètres et profils
+  de serveur sont placés dans un fichier .ttbackup protégé par mot de passe.
+  Les mots de passe de serveur et les clés API ne sont inclus que sur
+  demande. À la restauration, l'application affiche d'abord un aperçu,
+  conserve l'état précédent et redémarre. Les anciennes sauvegardes ZIP
+  restent lisibles.
+- **Nouveau : rejoindre un canal à heure fixe** (Canal → Rejoindre un canal
+  à heure fixe…). Tous les jours, certains jours de la semaine ou une seule
+  fois à une heure donnée. Si l'application n'est pas connectée, elle peut
+  se connecter via le profil du serveur ; connectée à un autre serveur, le
+  rendez-vous est ignoré et annoncé. Export possible en fichier calendrier
+  (.ics).
+- **Corrigé :** lors d'une restauration, l'application en cours pouvait
+  écraser à sa fermeture la sauvegarde qui venait d'être restaurée.
+
 2026-10-09 (v11.0.0)
 Nouveau : messages vocaux, aussi pour la file d'attente hors ligne
 

@@ -1,6 +1,24 @@
 Changelog
 =========
 
+2026-10-09 (v11.1.0)
+Neu: verschlüsseltes Einstellungs-Backup, geplanter Kanalbeitritt
+
+- **Neu: Einstellungen als verschlüsselte Datei sichern** (Datei →
+  Einstellungen sichern / wiederherstellen). Alle Einstellungen und
+  Serverprofile landen in einer passwortgeschützten .ttbackup-Datei.
+  Server-Passwörter und API-Schlüssel werden nur auf Wunsch mitgesichert.
+  Beim Wiederherstellen zeigt die App erst eine Vorschau, bewahrt den
+  bisherigen Stand auf und startet neu. Ältere ZIP-Backups bleiben lesbar.
+- **Neu: Geplanter Kanalbeitritt** (Kanal → Geplanter Kanalbeitritt…).
+  Täglich, an bestimmten Wochentagen oder einmalig zu einer Uhrzeit einem
+  Kanal beitreten. Ist die App nicht verbunden, verbindet sie auf Wunsch
+  über das Serverprofil; ist sie mit einem anderen Server verbunden, wird
+  der Termin übersprungen und angesagt. Termine lassen sich als
+  Kalenderdatei (.ics) exportieren.
+- **Behoben:** Beim Wiederherstellen von Einstellungen konnte die laufende
+  App beim Beenden das gerade eingespielte Backup wieder überschreiben.
+
 2026-10-09 (v11.0.0)
 Neu: Sprachnachrichten, auch für die Offline-Warteschlange
 
