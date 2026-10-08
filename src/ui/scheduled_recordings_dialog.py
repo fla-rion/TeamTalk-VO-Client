@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import List, Optional, TYPE_CHECKING
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 
 from ui.a11y import setup_list_accessible
 from scheduled_recordings import ScheduledRecording, ScheduledRecordingManager
@@ -149,7 +150,7 @@ class _EditRecordingDialog(wx.Dialog):
 
         # Dauer
         form.Add(wx.StaticText(self, label="Dauer (Minuten)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self._duration = wx.SpinCtrl(self, min=1, max=1440, initial=rec.duration_min if rec else 60)
+        self._duration = AccessibleSpinCtrl(self, min=1, max=1440, initial=rec.duration_min if rec else 60)
         self._duration.SetName("Dauer in Minuten")
         form.Add(self._duration, 0)
 

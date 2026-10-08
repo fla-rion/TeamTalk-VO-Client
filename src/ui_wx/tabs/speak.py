@@ -6,6 +6,7 @@ import threading
 from typing import List, Optional, TYPE_CHECKING
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 from ui_wx.a11y import setup_list_accessible
 
 if TYPE_CHECKING:
@@ -71,19 +72,19 @@ class SpeakTab(wx.Panel):
         settings_form.AddGrowableCol(1)
 
         settings_form.Add(wx.StaticText(self, label="Stabilität (0–100)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.stability_slider = wx.SpinCtrl(self, value="50", min=0, max=100)
+        self.stability_slider = AccessibleSpinCtrl(self, value="50", min=0, max=100)
         self.stability_slider.SetName("Stabilität")
         self.stability_slider.SetHelpText("Stimmstabilität (0–100)")
         settings_form.Add(self.stability_slider, 1, wx.EXPAND)
 
         settings_form.Add(wx.StaticText(self, label="Ähnlichkeit (0–100)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.similarity_slider = wx.SpinCtrl(self, value="75", min=0, max=100)
+        self.similarity_slider = AccessibleSpinCtrl(self, value="75", min=0, max=100)
         self.similarity_slider.SetName("Ähnlichkeit")
         self.similarity_slider.SetHelpText("Ähnlichkeit zur Originalstimme (0–100)")
         settings_form.Add(self.similarity_slider, 1, wx.EXPAND)
 
         settings_form.Add(wx.StaticText(self, label="Stil (0–100)"), 0, wx.ALIGN_CENTER_VERTICAL)
-        self.style_slider = wx.SpinCtrl(self, value="0", min=0, max=100)
+        self.style_slider = AccessibleSpinCtrl(self, value="0", min=0, max=100)
         self.style_slider.SetName("Stil")
         self.style_slider.SetHelpText("Stil-Übertreibung (0–100)")
         settings_form.Add(self.style_slider, 1, wx.EXPAND)

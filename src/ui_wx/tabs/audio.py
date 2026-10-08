@@ -4,6 +4,7 @@ import sys
 from typing import Optional, TYPE_CHECKING
 
 import wx
+from ui_wx.accessible_controls import AccessibleSpinCtrl
 
 import system_audio as sa
 import audio_device_memory as adm
@@ -99,12 +100,12 @@ class AudioTab(wx.ScrolledWindow):
         self.voice_activation.Bind(wx.EVT_CHECKBOX, self.on_voice_activation)
 
         lbl_vl = wx.StaticText(self, label="Aktivierungspegel (0–100)")
-        self.voice_level = wx.SpinCtrl(self, value="0", min=0, max=100)
+        self.voice_level = AccessibleSpinCtrl(self, value="0", min=0, max=100)
         self.voice_level.SetName("Aktivierungspegel")
         self.voice_level.Bind(wx.EVT_SPINCTRL, self.on_voice_level)
 
         lbl_delay = wx.StaticText(self, label="Nachlauf (ms, 0–5000)")
-        self.va_delay = wx.SpinCtrl(self, value=str(adm.DEFAULT_VA_STOP_DELAY_MS), min=0, max=5000)
+        self.va_delay = AccessibleSpinCtrl(self, value=str(adm.DEFAULT_VA_STOP_DELAY_MS), min=0, max=5000)
         self.va_delay.SetName("Sprachaktivierung Nachlauf")
         self.va_delay.Bind(wx.EVT_SPINCTRL, self.on_va_delay)
 
@@ -124,12 +125,12 @@ class AudioTab(wx.ScrolledWindow):
         levels_form.AddGrowableCol(1)
 
         lbl_ig = wx.StaticText(self, label="Mikrofonverstärkung (0–32000)")
-        self.input_gain = wx.SpinCtrl(self, value="2000", min=0, max=32000)
+        self.input_gain = AccessibleSpinCtrl(self, value="2000", min=0, max=32000)
         self.input_gain.SetName("Mikrofonverstärkung")
         self.input_gain.Bind(wx.EVT_SPINCTRL, self.on_input_gain)
 
         lbl_ov = wx.StaticText(self, label="Ausgabe-Lautstärke (0–32000)")
-        self.output_volume = wx.SpinCtrl(self, value="1000", min=0, max=32000)
+        self.output_volume = AccessibleSpinCtrl(self, value="1000", min=0, max=32000)
         self.output_volume.SetName("Ausgabe-Lautstärke")
         self.output_volume.Bind(wx.EVT_SPINCTRL, self.on_output_volume)
 
@@ -204,11 +205,11 @@ class AudioTab(wx.ScrolledWindow):
         self.mgp_mode.SetSelection(0)
 
         lbl_mgp_thresh = wx.StaticText(self, label="Schwellwert (0–100)")
-        self.mgp_threshold = wx.SpinCtrl(self, value="30", min=0, max=100)
+        self.mgp_threshold = AccessibleSpinCtrl(self, value="30", min=0, max=100)
         self.mgp_threshold.SetName("Verarbeitungs-Schwellwert")
 
         lbl_mgp_db = wx.StaticText(self, label="Rauschunterdrückung (5–60 dB)")
-        self.mgp_suppress_db = wx.SpinCtrl(self, value="30", min=5, max=60)
+        self.mgp_suppress_db = AccessibleSpinCtrl(self, value="30", min=5, max=60)
         self.mgp_suppress_db.SetName("Rauschunterdrückung dB")
 
         mgp_form.Add(lbl_mgp_mode, 0, wx.ALIGN_CENTER_VERTICAL)
