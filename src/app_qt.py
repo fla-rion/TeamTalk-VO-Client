@@ -801,6 +801,7 @@ class MainWindow(QMainWindow):
         self._add_action(auto_m, _("&Chat-Suche..."), self.on_menu_chat_search, "Ctrl+F")
         self._add_action(auto_m, _("&Nutzerwatcher..."), self.on_menu_user_watcher)
         self._add_action(auto_m, _("&Offline-Warteschlange..."), self.on_menu_offline_queue)
+        self._add_action(auto_m, _("Sprach&nachricht aufnehmen..."), self.on_menu_voice_note)
         auto_m.addSeparator()
         self._translation_action = self._add_checkable(auto_m, _("Chat-&Übersetzung"),
             self._on_toggle_translation,
@@ -2599,20 +2600,23 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _drain_offline_queue(self) -> None:
+        # Bis v10.9.x behandelte dieser Code die Einträge als dict (msg.get)
+        # und rief send_channel_message ohne Kanal-ID auf: Die AttributeError
+        # wurde verschluckt, die Warteschlange war danach leer – alle
+        # Offline-Nachrichten gingen unter Windows/Linux verloren.
+        from offline_queue import deliver
         try:
             messages = self._offline_queue.dequeue_all()
             if not messages:
                 return
-            for msg in messages:
-                try:
-                    if msg.get("kind") == "private" and msg.get("target_id"):
-                        self.client.send_user_message(msg["target_id"], msg["text"])
-                    else:
-                        self.client.send_channel_message(msg["text"])
-                except Exception:
-                    pass
-            count = len(messages)
-            self.tts.speak(f"{count} Offline-Nachrichten gesendet", kind="system")
+            sent, failed, uploads = deliver(messages, self.client, int(self.client.get_my_channel_id() or 0))
+            self._offline_queue.requeue(failed)
+            text = f"{sent} Offline-Nachrichten gesendet"
+            if failed:
+                text += f", {len(failed)} weiterhin in der Warteschlange"
+            if uploads:
+                text += f", {uploads} Audiodatei(en) werden hochgeladen"
+            self.tts.speak(text, kind="system")
         except Exception:
             pass
 
@@ -4644,6 +4648,14 @@ class MainWindow(QMainWindow):
     def on_menu_offline_queue(self) -> None:
         from ui_qt.dialogs import OfflineQueueDialogFull
         dlg = OfflineQueueDialogFull(self, self)
+        dlg.exec()
+        self._refocus_channel_list()
+
+    def on_menu_voice_note(self) -> None:
+        """v10.10.0 – Sprachnachricht aufnehmen, transkribieren, senden bzw.
+        in die Offline-Warteschlange legen (ROADMAP Punkt 12)."""
+        from ui_qt.voice_note_dialog import VoiceNoteDialog
+        dlg = VoiceNoteDialog(self, self)
         dlg.exec()
         self._refocus_channel_list()
 

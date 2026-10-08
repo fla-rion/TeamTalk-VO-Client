@@ -7,4 +7,5 @@ google-genai>=1.0.0
 google-auth-oauthlib>=1.2.0
 mss>=9.0
 pyobjc-framework-Quartz>=12.0
+pyobjc-framework-Speech>=12.0; sys_platform == "darwin"
 zeroconf>=0.132.2
