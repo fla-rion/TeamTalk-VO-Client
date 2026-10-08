@@ -690,6 +690,15 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Nachrichten, die du ohne Verbindung schreibst, landen in der Offline-Warteschlange (<em>Automation → Offline-Warteschlange…</em>) und werden nach dem Wiederverbinden zugestellt. Neu ist <em>Automation → Sprachnachricht aufnehmen…</em>: Du wählst den Empfänger (aktueller Kanal oder ein Nutzer, der in der Chat-Auswahl „Privat an“ noch aufgeführt ist), startest und beendest die Aufnahme (höchstens 120 Sekunden), die App wandelt sie in Text um, du kannst den Text noch korrigieren und schickst ihn ab. Bist du verbunden, wird sofort gesendet, sonst kommt die Nachricht in die Warteschlange. Optional wird die Audiodatei nach dem Senden in den Dateibereich des Kanals hochgeladen.</p>
 <div class="note">Grenzen: TeamTalk überträgt nur Text – Empfänger lesen das Transkript, die Sprache selbst nur über den hochgeladenen Dateianhang (nur bei Kanalzielen und nur mit Upload-Recht). Spracherkennung: Ist Whisper installiert (nur in Entwicklungsumgebungen, im fertigen App-Paket wegen der Größe nicht enthalten), wird es verwendet. <span class="platform mac">macOS</span> Sonst nutzt die App Apples Spracherkennung, wenn möglich direkt auf dem Gerät; beim ersten Mal fragt macOS nach der Erlaubnis (Systemeinstellungen → Datenschutz &amp; Sicherheit → Spracherkennung). Ohne Erkennung, ohne Erlaubnis und <span class="platform win">Windows</span> <span class="platform lin">Linux</span> ohne Whisper wird „Sprachnachricht (Dauer), nicht transkribiert“ verschickt; die App nennt den Grund. Die Aufnahme nutzt das in den Audio-Einstellungen gewählte Mikrofon. Einträge der Warteschlange verfallen nach einer Stunde; Kanalnachrichten gehen in den Kanal, in dem du nach dem Wiederverbinden bist. Die WAV-Dateien liegen im App-Datenordner unter <code>voice_notes</code>.</div>
 
+<h2>Geplanter Kanalbeitritt</h2>
+<p>Über <em>Kanal → Geplanter Kanalbeitritt…</em> legst du fest, dass die App zu einer bestimmten Uhrzeit einen Kanal auf einem gespeicherten Server betritt – täglich, an ausgewählten Wochentagen oder einmalig an einem Datum (danach wird der Eintrag automatisch deaktiviert). Ein Kanalpasswort wird aus dem Serverprofil übernommen, wenn dort derselbe Kanal eingetragen ist.</p>
+<ul>
+  <li>Mit genau diesem Server verbunden: die App wechselt in den Kanal.</li>
+  <li>Nicht verbunden und „Bei Bedarf über das Serverprofil verbinden“ aktiv: die App verbindet sich über das Profil und betritt danach den Kanal.</li>
+  <li>Mit einem anderen Server verbunden: der Beitritt wird übersprungen und angesagt – eine laufende Unterhaltung wird nie ungefragt getrennt.</li>
+</ul>
+<p><strong>Kalender exportieren (.ics)</strong> legt alle Einträge als Termine für Kalender-Apps ab. Grenzen: Die App muss zur geplanten Zeit laufen; geprüft wird alle 30 Sekunden, der Beitritt kann sich also um bis zu eine halbe Minute verzögern. Benennst du ein Serverprofil um, findet der Eintrag es nicht mehr.</p>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Benachrichtigungen</h1>
 
@@ -1072,6 +1081,14 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <tr><td>Companion-Server-Port</td><td>Port des lokalen HTTP-Servers (Standard: 19880). Änderungen sind nach dem nächsten Verbinden aktiv.</td></tr>
 </table>
 <div class="note">Der Companion-Server ist nur lokal erreichbar (<code>http://localhost:&lt;Port&gt;</code>). Er wird nur gestartet, wenn eine Serververbindung aktiv ist.</div>
+
+<h2>Einstellungen sichern und wiederherstellen</h2>
+<p><em>Datei → Einstellungen sichern (Backup)…</em> speichert alle Einstellungen und Serverprofile in eine verschlüsselte Datei (<code>.ttbackup</code>, AES-256 mit einem Passwort deiner Wahl, mindestens 6 Zeichen). Ohne dieses Passwort lässt sich die Datei nicht öffnen – auch nicht vom Entwickler.</p>
+<ul>
+  <li><strong>Server-Passwörter und API-Schlüssel mitsichern</strong> ist standardmäßig aus. Dann enthält die Datei keine Server- und Kanalpasswörter, kein BearWare-Passwort, keine API-Schlüssel (ElevenLabs, Claude, Gemini) und keine Webhook-Adresse; beim Wiederherstellen bleiben die auf dem Rechner bereits gespeicherten erhalten.</li>
+  <li>Nicht enthalten sind Chat-Verläufe und Passwörter, die im Schlüsselbund liegen.</li>
+</ul>
+<p><em>Datei → Einstellungen wiederherstellen…</em> fragt das Passwort ab und zeigt vor dem Übernehmen, wann und mit welcher Version das Backup erstellt wurde, welche Dateien es enthält und ob Passwörter dabei sind. Nach der Bestätigung startet die App neu und übernimmt das Backup beim Start. Der bisherige Stand bleibt im Datenordner unter <code>before_restore_…</code> erhalten (die letzten drei). Ältere, unverschlüsselte ZIP-Backups lassen sich weiterhin einlesen.</p>
 
 <!-- ============================================================ -->
 <h1 id="kuerzel">19 · Tastaturkürzel &amp; Globale Hotkeys</h1>

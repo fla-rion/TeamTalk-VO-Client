@@ -233,6 +233,13 @@ class MainWindow(QMainWindow):
         self._async_bridge.start()
         from scheduled_recordings import ScheduledRecordingManager
         self._scheduled_rec_manager = ScheduledRecordingManager(_app_dir)
+        from scheduled_joins import ScheduledJoinManager
+        self._scheduled_join_manager = ScheduledJoinManager(_app_dir)
+        # Geplanter Kanalbeitritt: alle 30 s prüfen
+        self._scheduled_join_timer = QTimer(self)
+        self._scheduled_join_timer.timeout.connect(self._on_scheduled_join_timer)
+        self._scheduled_join_timer.start(30_000)
+        QTimer.singleShot(2500, self._announce_restored_backup)
         from plugin_api import PluginAPI
         from plugin_loader import PluginLoader
         self._plugin_api = PluginAPI(self)
@@ -617,6 +624,7 @@ class MainWindow(QMainWindow):
         self._add_action(kanal, _("Sperren im Kanal anzeigen..."), self.on_menu_channel_bans)
         self._add_action(kanal, _("Kanal&nachrichten anzeigen..."), self.on_menu_channel_view_msgs)
         self._add_action(kanal, _("Kanal&verlauf..."), self.on_menu_channel_history)
+        self._add_action(kanal, _("Geplanter Kanalbeitritt..."), self.on_menu_scheduled_joins)
         self._recent_ch_menu = kanal.addMenu(_("&Zuletzt besucht"))
         self._refresh_recent_channels_menu()
         kanal.addSeparator()
@@ -2818,58 +2826,75 @@ class MainWindow(QMainWindow):
             self.set_status(f"Export fehlgeschlagen: {exc}")
 
     def on_menu_settings_backup(self) -> None:
-        import zipfile as _zip
-        import time as _time
-        from platform_paths import app_data_dir as _app_data_dir
-        from PySide6.QtWidgets import QFileDialog
-        app_dir = _app_data_dir()
-        default_name = f"teamtalk_backup_{_time.strftime('%Y%m%d_%H%M%S')}.zip"
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Einstellungen sichern", default_name, "ZIP-Backup (*.zip);;Alle Dateien (*.*)"
-        )
-        if not path:
-            return
-        try:
-            _BACKUP_EXTENSIONS = {".db", ".json", ".txt"}
-            with _zip.ZipFile(path, "w", _zip.ZIP_DEFLATED) as zf:
-                for f in app_dir.iterdir():
-                    if f.is_file() and f.suffix.lower() in _BACKUP_EXTENSIONS:
-                        zf.write(f, f.name)
-            self.set_status(f"Backup erstellt: {Path(path).name}")
-        except Exception as exc:
-            self.set_status(f"Backup fehlgeschlagen: {exc}")
+        """Exportiert Einstellungen + Serverprofile als verschlüsseltes Backup."""
+        from ui_qt.backup_join_dialogs import export_backup
+        export_backup(self, APP_VERSION)
 
     def on_menu_settings_restore(self) -> None:
-        import zipfile as _zip
-        from platform_paths import app_data_dir as _app_data_dir
-        from PySide6.QtWidgets import QFileDialog
-        app_dir = _app_data_dir()
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Backup wiederherstellen", "", "ZIP-Backup (*.zip);;Alle Dateien (*.*)"
-        )
-        if not path:
-            return
-        answer = QMessageBox.warning(
-            self,
-            "Backup wiederherstellen",
-            "Achtung: Die aktuellen Einstellungen werden überschrieben.\n"
-            "Die App wird danach neu gestartet.\n\nFortfahren?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.No,
-        )
-        if answer != QMessageBox.StandardButton.Yes:
-            return
+        """Stellt ein Backup wieder her (wird beim Neustart übernommen)."""
+        from ui_qt.backup_join_dialogs import restore_backup
+        restore_backup(self)
+
+    def _announce_restored_backup(self) -> None:
+        import os as _os
+        import settings_backup as _sb
+        before = _os.environ.pop(_sb.RESTORE_DONE_ENV, "")
+        if before:
+            self.set_status(_("Backup wiederhergestellt. Vorheriger Stand gesichert in {}").format(before))
+
+    def on_menu_scheduled_joins(self) -> None:
+        from ui_qt.backup_join_dialogs import ScheduledJoinsDialog
+        names = [p.name for p in self.store.items() if (p.name or "").strip()]
+        ScheduledJoinsDialog(self, self._scheduled_join_manager, names).exec()
+
+    def _on_scheduled_join_timer(self) -> None:
         try:
-            with _zip.ZipFile(path, "r") as zf:
-                zf.extractall(app_dir)
-            self.set_status("Backup wiederhergestellt – App wird neu gestartet…")
-            QTimer.singleShot(1500, self._restart_app)
+            for job in self._scheduled_join_manager.check_due():
+                self._run_scheduled_join(job)
         except Exception as exc:
-            self.set_status(f"Wiederherstellung fehlgeschlagen: {exc}")
+            self.logger.write(f"Geplanter Kanalbeitritt: {exc}")
+
+    def _run_scheduled_join(self, job) -> None:
+        """Führt einen fälligen geplanten Kanalbeitritt aus (siehe scheduled_joins)."""
+        import copy
+        import scheduled_joins as sj
+        profile = sj.find_profile(self.store.items(), job.server_name)
+        connected = bool(self.client.is_connected())
+        current = str(getattr(self, "_current_server_key", "") or "") if connected else ""
+        action = sj.decide_action(job, profile, connected, current)
+        label = job.label or job.channel
+        password = sj.channel_password_for(job, profile)
+        if action == sj.ACTION_SKIP_NO_PROFILE:
+            self.set_status(_("Geplanter Beitritt {}: Serverprofil {} nicht gefunden").format(label, job.server_name))
+            return
+        if action == sj.ACTION_SKIP_OTHER_SERVER:
+            self.set_status(_("Geplanter Beitritt {} übersprungen: mit einem anderen Server verbunden").format(label))
+            return
+        if action == sj.ACTION_SKIP_NOT_CONNECTED:
+            self.set_status(_("Geplanter Beitritt {} übersprungen: nicht verbunden").format(label))
+            return
+        if action == sj.ACTION_JOIN:
+            def _worker():
+                try:
+                    self.client.join_channel_by_path(job.channel, password)
+                except Exception as exc:
+                    call_after(self.set_status, f"Kanal-Beitritt fehlgeschlagen: {exc}")
+            threading.Thread(target=_worker, daemon=True).start()
+        else:
+            # Kopie mit Zielkanal: connect_to_server betritt ihn nach dem Login
+            target = copy.copy(profile)
+            target.channel = job.channel
+            target.channel_password = password
+            target.channel_type = 0
+            self.connect_to_server(target)
+        self.set_status(_("Geplanter Kanalbeitritt: {}").format(label))
 
     def _restart_app(self) -> None:
+        # Die neue Instanz wartet, bis diese beendet ist (sonst überschriebe
+        # das Beenden ein gerade übernommenes Backup).
         import subprocess
-        subprocess.Popen([sys.executable] + sys.argv)
+        import settings_backup as _sb
+        subprocess.Popen([sys.executable] + sys.argv, env=_sb.restart_env())
         self.force_close()
 
     def _on_toggle_auto_reconnect(self, checked: bool) -> None:

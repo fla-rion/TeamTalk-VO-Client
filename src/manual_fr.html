@@ -690,6 +690,15 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Les messages écrits sans connexion vont dans la file d'attente hors ligne (<em>Automatisation → File d'attente hors ligne…</em>) et sont remis après la reconnexion. Nouveau : <em>Automatisation → Enregistrer un message vocal…</em> : choisissez le destinataire (canal actuel ou un utilisateur encore présent dans le choix « Privé à » du chat), démarrez et arrêtez l'enregistrement (120 secondes au maximum), l'application le convertit en texte, vous pouvez encore corriger le texte puis l'envoyer. Connecté, il part tout de suite, sinon le message va dans la file. En option, le fichier audio est envoyé dans l'espace de fichiers du canal.</p>
 <div class="note">Limites : TeamTalk ne transmet que du texte – les destinataires lisent la transcription, la voix elle-même uniquement via le fichier envoyé (canal uniquement, droit d'envoi requis). Reconnaissance vocale : si Whisper est installé (environnements de développement uniquement ; absent de l'application empaquetée à cause de sa taille), il est utilisé. <span class="platform mac">macOS</span> Sinon l'application utilise la reconnaissance vocale d'Apple, si possible sur l'appareil ; la première fois, macOS demande l'autorisation (Réglages Système → Confidentialité et sécurité → Reconnaissance vocale). Sans reconnaissance, sans autorisation et sous <span class="platform win">Windows</span> <span class="platform lin">Linux</span> sans Whisper, « Message vocal (durée), non transcrit » est envoyé ; l'application indique la raison. L'enregistrement utilise le microphone choisi dans les paramètres audio. Les entrées de la file expirent après une heure ; les messages de canal vont dans le canal où vous êtes après la reconnexion. Les fichiers WAV se trouvent dans le dossier de données de l'application sous <code>voice_notes</code>.</div>
 
+<h2>Rejoindre un canal à heure fixe</h2>
+<p>Sous <em>Canal → Rejoindre un canal à heure fixe…</em>, l'application rejoint un canal d'un serveur enregistré à une heure donnée – tous les jours, certains jours de la semaine ou une seule fois à une date (l'entrée est ensuite désactivée automatiquement). Un mot de passe de canal est repris du profil de serveur si le même canal y est indiqué.</p>
+<ul>
+  <li>Connecté à ce serveur précis : l'application passe dans le canal.</li>
+  <li>Non connecté et « Se connecter via le profil de serveur si nécessaire » activé : l'application se connecte via le profil puis rejoint le canal.</li>
+  <li>Connecté à un autre serveur : l'entrée est ignorée et annoncée – une conversation en cours n'est jamais coupée sans demande.</li>
+</ul>
+<p><strong>Exporter le calendrier (.ics)</strong> enregistre toutes les entrées comme événements pour les applications de calendrier. Limites : l'application doit être ouverte à l'heure prévue ; la vérification a lieu toutes les 30 secondes, l'entrée peut donc avoir jusqu'à une demi-minute de retard. Si vous renommez un profil de serveur, l'entrée ne le retrouve plus.</p>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notifications</h1>
 
@@ -1072,6 +1081,14 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <tr><td>Port du serveur compagnon</td><td>Port du serveur HTTP local (par défaut : 19880). Les modifications prennent effet après la prochaine connexion.</td></tr>
 </table>
 <div class="note">Le serveur compagnon n'est accessible que localement (<code>http://localhost:&lt;port&gt;</code>). Il n'est démarré que lorsqu'une connexion au serveur est active.</div>
+
+<h2>Sauvegarder et restaurer les paramètres</h2>
+<p><em>Fichier → Sauvegarder les paramètres (Backup)…</em> enregistre tous les paramètres et profils de serveur dans un fichier chiffré (<code>.ttbackup</code>, AES-256 avec un mot de passe de votre choix, au moins 6 caractères). Sans ce mot de passe, le fichier ne peut pas être ouvert – pas même par le développeur.</p>
+<ul>
+  <li><strong>Inclure les mots de passe des serveurs et les clés API</strong> est désactivé par défaut. Le fichier ne contient alors ni mots de passe de serveur ou de canal, ni mot de passe BearWare, ni clés API (ElevenLabs, Claude, Gemini), ni adresse de webhook ; lors de la restauration, ceux déjà enregistrés sur l'ordinateur sont conservés.</li>
+  <li>Les historiques de chat et les mots de passe du trousseau ne sont pas inclus.</li>
+</ul>
+<p><em>Fichier → Restaurer les paramètres…</em> demande le mot de passe et affiche, avant d'appliquer, la date et la version de la sauvegarde, les fichiers qu'elle contient et si des mots de passe sont inclus. Après confirmation, l'application redémarre et applique la sauvegarde au démarrage. L'état précédent est conservé dans le dossier de données sous <code>before_restore_…</code> (les trois derniers). Les anciennes sauvegardes ZIP non chiffrées restent lisibles.</p>
 
 <!-- ============================================================ -->
 <h1 id="kuerzel">19 · Raccourcis clavier &amp; raccourcis globaux</h1>

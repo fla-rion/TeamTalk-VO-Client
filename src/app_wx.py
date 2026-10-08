@@ -619,6 +619,8 @@ class MainFrame(wx.Frame):
         self._async_bridge.start()
         from scheduled_recordings import ScheduledRecordingManager
         self._scheduled_rec_manager = ScheduledRecordingManager(app_dir)
+        from scheduled_joins import ScheduledJoinManager
+        self._scheduled_join_manager = ScheduledJoinManager(app_dir)
         from plugin_api import PluginAPI
         from plugin_loader import PluginLoader
         self._plugin_api = PluginAPI(self)
@@ -1073,6 +1075,7 @@ class MainFrame(wx.Frame):
 
         # Start global hotkeys if configured
         wx.CallLater(500, self.apply_global_hotkeys)
+        wx.CallLater(2500, self._announce_restored_backup)
         # CoreAudio-Hotplug-Watcher: erkennt neue/entfernte Audiogeräte sofort,
         # unabhängig vom sichtbaren Panel (siehe coreaudio_watch.py)
         wx.CallLater(1500, self._start_coreaudio_watch)
@@ -1576,6 +1579,12 @@ class MainFrame(wx.Frame):
         """Prüft ob eine geplante Aufnahme jetzt starten soll."""
         if getattr(self, '_closing', False):
             return
+        # Geplanter Kanalbeitritt läuft im selben 30-s-Takt
+        try:
+            for job in self._scheduled_join_manager.check_due():
+                self._run_scheduled_join(job)
+        except Exception as exc:
+            self.logger.write(f"Geplanter Kanalbeitritt: {exc}")
         try:
             rec = self._scheduled_rec_manager.check_due()
             if rec:
@@ -1584,6 +1593,61 @@ class MainFrame(wx.Frame):
                     self.set_status(f"Geplante Aufnahme gestartet: {rec.label}")
                     if rec.duration_min > 0:
                         wx.CallLater(rec.duration_min * 60_000, self._stop_scheduled_recording, rec.label)
+        except Exception:
+            pass
+
+    def _run_scheduled_join(self, job) -> None:
+        """Führt einen fälligen geplanten Kanalbeitritt aus (siehe scheduled_joins)."""
+        import scheduled_joins as sj
+        profile = sj.find_profile(self.store.items(), job.server_name)
+        connected = bool(self.client.is_connected())
+        action = sj.decide_action(job, profile, connected, self._get_server_key() if connected else "")
+        label = job.label or job.channel
+        if action == sj.ACTION_SKIP_NO_PROFILE:
+            msg = _("Geplanter Beitritt {}: Serverprofil {} nicht gefunden").format(label, job.server_name)
+        elif action == sj.ACTION_SKIP_OTHER_SERVER:
+            msg = _("Geplanter Beitritt {} übersprungen: mit einem anderen Server verbunden").format(label)
+        elif action == sj.ACTION_SKIP_NOT_CONNECTED:
+            msg = _("Geplanter Beitritt {} übersprungen: nicht verbunden").format(label)
+        else:
+            parsed = ParsedTeamTalkFile(
+                profile=profile,
+                channel_path=job.channel,
+                channel_password=sj.channel_password_for(job, profile) or None,
+            )
+            if action == sj.ACTION_JOIN:
+                self._pending_join = parsed
+                self._join_from_pending()
+            else:
+                try:
+                    self.connection_tab.fill_form(profile)
+                except Exception:
+                    pass
+                self._connect_from_profile(parsed)
+            msg = _("Geplanter Kanalbeitritt: {}").format(label)
+        self.set_status(msg)
+        try:
+            self.tts.speak(msg, kind="system")
+        except Exception:
+            pass
+
+    def on_menu_scheduled_joins(self, _event) -> None:
+        from ui_wx.scheduled_joins_dialog import ScheduledJoinsDialog
+        names = [p.name for p in self.store.items() if (p.name or "").strip()]
+        dlg = ScheduledJoinsDialog(self, self._scheduled_join_manager, names)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def _announce_restored_backup(self) -> None:
+        import os as _os
+        import settings_backup as _sb
+        before = _os.environ.pop(_sb.RESTORE_DONE_ENV, "")
+        if not before:
+            return
+        msg = _("Backup wiederhergestellt. Vorheriger Stand gesichert in {}").format(before)
+        self.set_status(msg)
+        try:
+            self.tts.speak(msg, kind="system")
         except Exception:
             pass
 
@@ -2323,6 +2387,9 @@ class MainFrame(wx.Frame):
         chan_menu.AppendSubMenu(self._recent_channels_menu, "Letzte Kanäle")
         chan_recent_dialog = chan_menu.Append(wx.ID_ANY, _("Kanalverlauf..."))
         chan_stream_audio = chan_menu.Append(wx.ID_ANY, _("Audio-Datei in Kanal streamen..."))
+        chan_menu.AppendSeparator()
+        chan_scheduled_join = chan_menu.Append(wx.ID_ANY, _("Geplanter Kanalbeitritt..."))
+        self.Bind(wx.EVT_MENU, self.on_menu_scheduled_joins, chan_scheduled_join)
         menubar.Append(chan_menu, _("Kanal"))
 
         # Benutzer
@@ -10033,68 +10100,21 @@ class MainFrame(wx.Frame):
             self.set_status(f"Export fehlgeschlagen: {exc}")
 
     def on_menu_settings_backup(self, _event) -> None:
-        """Exportiert alle App-Daten als ZIP-Backup."""
-        import zipfile as _zip
-        import time as _time
-        from platform_paths import app_data_dir as _app_data_dir
-        app_dir = _app_data_dir()
-        default_name = f"teamtalk_backup_{_time.strftime('%Y%m%d_%H%M%S')}.zip"
-        with wx.FileDialog(
-            self, "Einstellungen sichern",
-            wildcard="ZIP-Backup (*.zip)|*.zip|Alle Dateien|*.*",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-            defaultFile=default_name,
-        ) as dlg:
-            if dlg.ShowModal() != wx.ID_OK:
-                return
-            dest = Path(dlg.GetPath())
-        try:
-            # Alle relevanten Dateien in ZIP schreiben
-            _BACKUP_EXTENSIONS = {".db", ".json", ".txt"}
-            with _zip.ZipFile(dest, "w", _zip.ZIP_DEFLATED) as zf:
-                for f in app_dir.iterdir():
-                    if f.is_file() and f.suffix.lower() in _BACKUP_EXTENSIONS:
-                        zf.write(f, f.name)
-            self.set_status(f"Backup erstellt: {dest.name}")
-        except Exception as exc:
-            self.set_status(f"Backup fehlgeschlagen: {exc}")
+        """Exportiert Einstellungen + Serverprofile als verschlüsseltes Backup."""
+        from ui_wx.backup_dialogs import export_backup
+        export_backup(self, APP_VERSION)
 
     def on_menu_settings_restore(self, _event) -> None:
-        """Stellt ein ZIP-Backup wieder her (überschreibt aktuelle Einstellungen)."""
-        import zipfile as _zip
-        from platform_paths import app_data_dir as _app_data_dir
-        app_dir = _app_data_dir()
-        with wx.FileDialog(
-            self, "Backup wiederherstellen",
-            wildcard="ZIP-Backup (*.zip)|*.zip|Alle Dateien|*.*",
-            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
-        ) as dlg:
-            if dlg.ShowModal() != wx.ID_OK:
-                return
-            src = Path(dlg.GetPath())
-        confirm = wx.MessageDialog(
-            self,
-            "Achtung: Die aktuellen Einstellungen werden überschrieben.\n"
-            "Die App wird danach neu gestartet.\n\nFortfahren?",
-            "Backup wiederherstellen",
-            wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
-        )
-        if confirm.ShowModal() != wx.ID_YES:
-            confirm.Destroy()
-            return
-        confirm.Destroy()
-        try:
-            with _zip.ZipFile(src, "r") as zf:
-                zf.extractall(app_dir)
-            self.set_status("Backup wiederhergestellt – App wird neu gestartet…")
-            wx.CallLater(1500, self._restart_app)
-        except Exception as exc:
-            self.set_status(f"Wiederherstellung fehlgeschlagen: {exc}")
+        """Stellt ein Backup wieder her (wird beim Neustart übernommen)."""
+        from ui_wx.backup_dialogs import restore_backup
+        restore_backup(self)
 
     def _restart_app(self) -> None:
-        """Startet die App neu."""
+        """Startet die App neu. Die neue Instanz wartet, bis diese beendet ist
+        (sonst überschriebe das Beenden ein gerade übernommenes Backup)."""
         import subprocess as _sp
-        _sp.Popen([sys.executable] + sys.argv)
+        import settings_backup as _sb
+        _sp.Popen([sys.executable] + sys.argv, env=_sb.restart_env())
         wx.CallAfter(self.on_menu_quit, None)
 
     # ------------------------------------------------------------------
