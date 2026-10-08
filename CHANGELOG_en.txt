@@ -1,6 +1,25 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.2)
+Settings are really saved, microphone permission persists across updates
+
+- **Settings are no longer lost.** Sections with a "Save" button only kept
+  changes when the button was pressed. Now the app also saves every changed
+  section when you close the settings window, switch sections or quit.
+- **Audio settings are kept.** Devices, voice activation, levels, volumes
+  and effects were only stored via "Save current audio settings" and only
+  applied at start if an option that was off by default was enabled. Now
+  the app remembers them automatically after "Apply audio" and on quitting
+  and applies them again at start (option switched on once for everyone).
+  Windows/Linux: the option was never evaluated at start before.
+- **macOS no longer asks for the microphone after updates.** The app was
+  "ad-hoc" signed anew with every build, so macOS treated every version as
+  a different app. It is now signed with a fixed certificate and has a
+  valid identifier (cc.leons.flarion.teamtalkvoclient). After this update
+  macOS asks one last time for microphone, accessibility and speech
+  recognition permissions, then never again.
+
 2026-10-09 (v11.2.1)
 Installer packages with in-app updates, install speech recognition later
 

@@ -111,6 +111,13 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 
 <h2>What's New</h2>
 <div class="new">
+<strong>v11.2.2 (2026-10-09):</strong> Settings and permissions persist
+<ul>
+  <li><strong>Settings are saved automatically</strong>, even without "Save"; audio settings persist across restarts. Details in chapter 18.</li>
+  <li><span class="platform mac">macOS</span> <strong>Microphone and other permissions persist across updates</strong> (fixed signature; asked one last time after this update).</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.1 (2026-10-09):</strong> Installer packages and speech recognition
 <ul>
   <li><strong>Installer packages</strong> (.pkg, Setup.exe, .deb) and <strong>updates directly from the app</strong>: download, quit the app, setup starts. Details in chapter 3.</li>
@@ -487,6 +494,8 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <p>Since version 11.2.1 every version comes with installer packages: <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (installs to /Applications), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (default: just for you, no administrator rights; all users can be chosen, then User Account Control asks), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (to /opt, command <code>teamtalk-vo-client</code>, start menu entry). DMG, ZIP and tar.gz are still available.</p>
 <p>When the app finds an update, it asks and then downloads the matching installer package to your Downloads folder. It then points out that it must quit to install; if you confirm, the setup starts and the app quits (even if it otherwise minimizes to the tray). On Linux a terminal opens that installs the package with apt and asks for your password. After installing, start the app again.</p>
 <div class="note"><span class="platform mac">macOS</span> The package always installs to /Applications. If your app is somewhere else, a second copy is created there – you can delete the old one.</div>
+
+<div class="note"><span class="platform mac">macOS</span> <strong>Permissions after updates:</strong> From version 11.2.2 the app has a fixed signature. After this update macOS asks one last time for microphone, accessibility and speech recognition permissions; after that they are kept across all further updates.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Part B · Main Window &amp; Navigation</div>
@@ -1061,6 +1070,8 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <p>Accessible via: <em>File → Settings…</em> or F4 / Cmd+,</p>
 <h2>Searching for a Setting</h2>
 <p>Type a term such as "hangover", "output device" or "language" into the <strong>Search settings</strong> field at the top of the window. A list of matches with setting, category and section appears below it. Press Down Arrow to move into the list; Return (or double-click) opens the section, expands the category and puts the focus directly on the setting. Return in the search field opens the first match, Escape clears the field. Case and umlauts don't matter. <span class="platform win">Windows</span> <span class="platform lin">Linux</span> The search sits above the tabs.</p>
+<h2>Saving</h2>
+<p>Since version 11.2.2 changes are no longer lost if you forget "Save": when you close the settings window, switch sections or quit the app, it saves every section in which something changed. The "Save" button stays for applying immediately. Audio settings (devices, voice activation, levels, volumes, effects) are remembered automatically after "Apply Audio" and when quitting, and applied again at the next start.</p>
 <h2>Expanding and Collapsing Categories</h2>
 <p>Every frame (e.g. "Devices", "Voice activation", "Output") has a header that expands or collapses it; VoiceOver announces "collapsed" or "expanded". When you first open the window only the first category of each section is expanded; after that the app remembers your choice. <strong>Expand all</strong> and <strong>Collapse all</strong> at the top apply to the current section.</p>
 <p>The settings window is divided into sections (via the "Area" dropdown):</p>

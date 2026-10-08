@@ -1,6 +1,29 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.2)
+Les paramètres sont vraiment enregistrés, l'autorisation micro est conservée après les mises à jour
+
+- **Les paramètres ne se perdent plus.** Les sections avec un bouton
+  « Enregistrer » ne conservaient les modifications qu'en appuyant sur ce
+  bouton. Désormais l'application enregistre aussi chaque section modifiée
+  à la fermeture de la fenêtre des paramètres, au changement de section et
+  à la fermeture de l'application.
+- **Les réglages audio sont conservés.** Périphériques, activation vocale,
+  niveaux, volumes et effets n'étaient enregistrés que via « Enregistrer
+  les paramètres audio actuels » et appliqués au démarrage seulement si une
+  option désactivée par défaut était cochée. Désormais l'application les
+  mémorise automatiquement après « Appliquer l'audio » et à la fermeture,
+  puis les réapplique au démarrage (option activée une fois pour tous).
+  Windows/Linux : l'option n'était jusqu'ici jamais prise en compte.
+- **macOS ne redemande plus le micro après les mises à jour.** L'application
+  était signée « ad hoc » à chaque compilation, macOS considérait donc
+  chaque version comme une autre application. Elle est désormais signée
+  avec un certificat fixe et a un identifiant valide
+  (cc.leons.flarion.teamtalkvoclient). Après cette mise à jour, macOS
+  demande une dernière fois les autorisations micro, accessibilité et
+  reconnaissance vocale, puis plus jamais.
+
 2026-10-09 (v11.2.1)
 Paquets d'installation avec mise à jour depuis l'application, reconnaissance vocale installable
 

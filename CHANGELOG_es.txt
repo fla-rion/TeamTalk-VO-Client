@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.2)
+La configuración se guarda de verdad, el permiso del micrófono se conserva tras actualizar
+
+- **La configuración ya no se pierde.** Las secciones con botón «Guardar»
+  solo conservaban los cambios al pulsarlo. Ahora la aplicación guarda
+  también cada sección modificada al cerrar la ventana de configuración, al
+  cambiar de sección y al salir.
+- **Los ajustes de audio se conservan.** Dispositivos, activación por voz,
+  niveles, volúmenes y efectos solo se guardaban con «Guardar configuración
+  de audio actual» y solo se aplicaban al iniciar si una opción desactivada
+  por defecto estaba marcada. Ahora la aplicación los recuerda
+  automáticamente tras «Aplicar audio» y al salir, y los vuelve a aplicar
+  al iniciar (opción activada una vez para todos). Windows/Linux: la opción
+  nunca se evaluaba al iniciar.
+- **macOS ya no vuelve a pedir el micrófono tras actualizar.** La
+  aplicación se firmaba «ad hoc» en cada compilación, así que macOS trataba
+  cada versión como otra aplicación. Ahora se firma con un certificado fijo
+  y tiene un identificador válido (cc.leons.flarion.teamtalkvoclient). Tras
+  esta actualización macOS pide por última vez los permisos de micrófono,
+  accesibilidad y reconocimiento de voz, y después nunca más.
+
 2026-10-09 (v11.2.1)
 Paquetes de instalación con actualización desde la aplicación, instalar reconocimiento de voz
 

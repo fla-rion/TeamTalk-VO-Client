@@ -196,6 +196,24 @@ class SettingsTab(wx.Panel):
                 )
         self._show_section("Allgemein")
 
+        # v11.2.2 – Änderungen werden auch ohne "Speichern" gesichert: beim
+        # Schließen des Fensters, beim Bereichswechsel und beim Beenden. Je
+        # Bereich wird genau das ausgelöst, was seine "Speichern"-Taste tut –
+        # aber nur, wenn sich dort ein Wert geändert hat.
+        self._autosave_targets = [
+            (self.general_combined_tab, lambda: (self._on_save_general(None), self._on_save_display(None))),
+            (self.connection_combined_tab, lambda: (self._on_save_connection(None), self._on_save_extra_connection(None))),
+            (self.sound_events_tab, lambda: self._on_save_sound_events(None)),
+            (self.recording_combined_tab, lambda: (self._on_save_recording(None), self._on_save_ptt_advanced(None))),
+            (self.tts_extended_tab, lambda: self._on_save_tts_ctx(None)),
+            (self.ki_integration_tab, lambda: (self._on_save_elevenlabs(None), self._on_save_ai(None), self._on_save_integration(None))),
+            (self.chat_automation_tab, lambda: (self._on_save_chat_status(None), self._on_save_keyword_alert(None), self._on_save_automation(None))),
+        ]
+        # Audio vergleicht selbst mit den gespeicherten Werten und läuft daher
+        # immer (Änderungen kommen auch über Menü/Kürzel bei geschlossenem Fenster)
+        self._snapshots = {}
+        wx.CallAfter(self.snapshot_all)
+
     # ------------------------------------------------------------------
     # Combined build methods
     # ------------------------------------------------------------------
@@ -2583,9 +2601,63 @@ class SettingsTab(wx.Panel):
             self._show_section(section)
 
     def _on_section_changed(self, _event):
+        self.autosave_changed()
         idx = self.section_choice.GetSelection()
         if 0 <= idx < len(self._section_keys):
             self._show_section(self._section_keys[idx])
+
+    # ------------------------------------------------------------------
+    # Automatisch speichern (v11.2.2)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _control_values(window: wx.Window) -> list:
+        """Aktuelle Werte aller Eingabe-Bedienelemente unter ``window``."""
+        values = []
+
+        def walk(win):
+            for child in win.GetChildren():
+                val = None
+                try:
+                    if isinstance(child, (wx.CheckBox, wx.TextCtrl, wx.Slider, wx.ComboBox, wx.SpinCtrl, wx.SpinCtrlDouble)):
+                        val = child.GetValue()
+                    elif isinstance(child, (wx.Choice, wx.RadioBox, wx.ListBox)):
+                        val = child.GetSelection()
+                except Exception:
+                    val = None
+                if val is not None:
+                    values.append((child.GetId(), val))
+                walk(child)
+        walk(window)
+        return values
+
+    def snapshot_all(self) -> None:
+        for panel, _saver in getattr(self, "_autosave_targets", []):
+            self._snapshots[id(panel)] = self._control_values(panel)
+
+    def autosave_changed(self) -> int:
+        """Speichert jeden Bereich, in dem sich seit dem letzten Stand etwas
+        geändert hat. Gibt die Zahl der gespeicherten Bereiche zurück."""
+        saved = 0
+        for panel, saver in getattr(self, "_autosave_targets", []):
+            now = self._control_values(panel)
+            if now == self._snapshots.get(id(panel)):
+                continue
+            try:
+                saver()
+                saved += 1
+            except Exception as exc:
+                try:
+                    self.frame.logger.write(f"Automatisch speichern fehlgeschlagen: {exc!r}")
+                except Exception:
+                    pass
+            self._snapshots[id(panel)] = self._control_values(panel)
+        try:
+            if self.audio_tab.autosave_prefs():
+                saved += 1
+        except Exception:
+            pass
+        return saved
 
     # ------------------------------------------------------------------
     # Kategorien & Einstellungssuche

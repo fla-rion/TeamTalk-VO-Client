@@ -142,3 +142,25 @@ def stored_va_delay(prefs: dict) -> int:
     if value <= 0 and not prefs.get(VA_DELAY_MIGRATION_KEY):
         return DEFAULT_VA_STOP_DELAY_MS
     return max(0, value)
+
+
+def prefs_have_devices(prefs: dict) -> bool:
+    """Ob ein Audio-Einstellungssatz echte Geräte enthält. Nur solche werden
+    automatisch gespeichert – sonst würde ein Zwischenstand ohne Geräteliste
+    (z. B. vor dem ersten Soundsystem-Start) gute Einstellungen überschreiben."""
+    if not isinstance(prefs, dict):
+        return False
+    has_in = prefs.get("input_device_id") is not None or bool(prefs.get("input_device_name") or prefs.get("input_device_uid"))
+    has_out = prefs.get("output_device_id") is not None or bool(prefs.get("output_device_name") or prefs.get("output_device_uid"))
+    return has_in and has_out
+
+
+def migrate_audio_autosave(settings) -> bool:
+    """v11.2.2: "Audioeinstellungen beim Start anwenden" war standardmäßig aus –
+    gespeicherte Audio-Einstellungen wirkten deshalb nach dem Neustart nicht.
+    Einmalig für alle einschalten. True, wenn etwas geändert wurde."""
+    if getattr(settings, "audio_autosave_migrated", False):
+        return False
+    settings.auto_apply_audio = True
+    settings.audio_autosave_migrated = True
+    return True

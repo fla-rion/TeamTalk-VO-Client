@@ -93,7 +93,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "11.2.1"
+APP_VERSION = "11.2.2"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -403,8 +403,11 @@ class SettingsWindow(wx.Frame):
     def _on_show(self, event):
         if event.IsShown():
             self.settings_tab.audio_tab.set_active(True)
+            self.settings_tab.snapshot_all()
         else:
             self.settings_tab.audio_tab.set_active(False)
+            # Beim Schließen: Änderungen speichern, auch ohne "Speichern"
+            wx.CallAfter(self.settings_tab.autosave_changed)
         event.Skip()
 
     def _bind_shortcuts(self) -> None:
@@ -2784,6 +2787,12 @@ class MainFrame(wx.Frame):
     def _apply_saved_audio_prefs_on_startup(self) -> None:
         try:
             settings = self.settings_store.settings
+            if adm.migrate_audio_autosave(settings):
+                self.settings_store.save()
+                try:
+                    self.audio_tab.auto_apply_prefs.SetValue(True)
+                except Exception:
+                    pass
             if settings.auto_apply_audio and settings.audio_prefs:
                 self.audio_tab.apply_audio_prefs(settings.audio_prefs, announce=False)
         except Exception:
@@ -11455,6 +11464,11 @@ class MainFrame(wx.Frame):
         if self._closing:
             return
         self._closing = True
+        # Geänderte Einstellungen (auch ohne "Speichern") vor dem Beenden sichern
+        try:
+            self.settings_window.settings_tab.autosave_changed()
+        except Exception:
+            pass
         # Dismiss any open modal dialogs so Destroy() can proceed
         for win in wx.GetTopLevelWindows():
             try:

@@ -75,7 +75,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "11.2.1"
+APP_VERSION = "11.2.2"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -391,6 +391,10 @@ class MainWindow(QMainWindow):
         self.notebook.setAccessibleDescription(
             "Hauptnavigation. Tab/Shift+Tab wechselt zwischen Registerkarten."
         )
+
+        # Gespeicherte Audio-Einstellungen beim Start anwenden (v11.2.2 – die
+        # Option wurde unter Windows/Linux bisher nie ausgewertet)
+        QTimer.singleShot(1500, self._apply_saved_audio_prefs_on_startup)
 
         # Update-Checker beim Start (Parität zu macOS/app_wx.py)
         if bool(getattr(_ts, "update_check_on_start", True)):
@@ -5213,8 +5217,34 @@ class MainWindow(QMainWindow):
             self.force_close()
             event.accept()
 
+    def _apply_saved_audio_prefs_on_startup(self) -> None:
+        try:
+            import audio_device_memory as adm
+            settings = self.settings_store.settings
+            if adm.migrate_audio_autosave(settings):
+                self.settings_store.save()
+                try:
+                    self.audio_tab.auto_apply_prefs.blockSignals(True)
+                    self.audio_tab.auto_apply_prefs.setChecked(True)
+                    self.audio_tab.auto_apply_prefs.blockSignals(False)
+                except Exception:
+                    pass
+            prefs = getattr(settings, "audio_prefs", None) or {}
+            if getattr(settings, "auto_apply_audio", False) and prefs:
+                self.audio_tab.apply_audio_prefs(prefs, announce=False)
+        except Exception as exc:
+            try:
+                self.logger.write(f"Audio-Einstellungen beim Start: {exc!r}")
+            except Exception:
+                pass
+
     def force_close(self) -> None:
         self._closing = True
+        # Audio-Einstellungen vor dem Beenden sichern (v11.2.2)
+        try:
+            self.audio_tab.autosave_prefs()
+        except Exception:
+            pass
         self._reconnect_timer.stop()
         try:
             self.client.stop_event_loop()

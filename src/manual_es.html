@@ -111,6 +111,13 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Novedades</h2>
 <div class="new">
+<strong>v11.2.2 (2026-10-09):</strong> Configuración y permisos se conservan
+<ul>
+  <li><strong>La configuración se guarda automáticamente</strong>, incluso sin «Guardar»; los ajustes de audio se conservan entre reinicios. Detalles en el capítulo 18.</li>
+  <li><span class="platform mac">macOS</span> <strong>Los permisos de micrófono y otros se conservan tras actualizar</strong> (firma fija; se piden por última vez tras esta actualización).</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.1 (2026-10-09):</strong> Paquetes de instalación y reconocimiento de voz
 <ul>
   <li><strong>Paquetes de instalación</strong> (.pkg, Setup.exe, .deb) y <strong>actualizaciones desde la aplicación</strong>: descarga, cierre, se inicia la instalación. Detalles en el capítulo 3.</li>
@@ -487,6 +494,8 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Desde la versión 11.2.1 cada versión incluye paquetes de instalación: <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (instala en /Aplicaciones), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (por defecto: solo para ti, sin derechos de administrador; se puede elegir para todos los usuarios, y entonces pregunta el Control de cuentas de usuario), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (en /opt, comando <code>teamtalk-vo-client</code>, entrada en el menú). Siguen existiendo DMG, ZIP y tar.gz.</p>
 <p>Cuando la aplicación encuentra una actualización, pregunta y descarga el paquete de instalación adecuado en tu carpeta de Descargas. Después avisa de que debe cerrarse para instalarla; si confirmas, se inicia la instalación y la aplicación se cierra (aunque normalmente se minimice a la bandeja). En Linux se abre un terminal que instala el paquete con apt y pide tu contraseña. Tras la instalación, vuelve a abrir la aplicación.</p>
 <div class="note"><span class="platform mac">macOS</span> El paquete siempre instala en /Aplicaciones. Si tu aplicación está en otro sitio, se crea allí una segunda copia; puedes borrar la antigua.</div>
+
+<div class="note"><span class="platform mac">macOS</span> <strong>Permisos tras las actualizaciones:</strong> desde la versión 11.2.2 la aplicación tiene una firma fija. Tras esta actualización macOS pide por última vez los permisos de micrófono, accesibilidad y reconocimiento de voz; después se conservan en todas las actualizaciones siguientes.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Parte B · Ventana principal y navegación</div>
@@ -1061,6 +1070,8 @@ Desarrollador principal: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Accesible mediante: <em>Archivo → Configuración…</em> o F4 / Cmd+,</p>
 <h2>Buscar un ajuste</h2>
 <p>Escribe un término como "retardo", "dispositivo de salida" o "idioma" en el campo <strong>Buscar ajuste</strong> de la parte superior de la ventana. Debajo aparece una lista de resultados con el ajuste, la categoría y la sección. Con Flecha abajo entras en la lista; Intro (o doble clic) abre la sección, expande la categoría y pone el foco directamente en el ajuste. Intro en el campo de búsqueda abre el primer resultado, Escape vacía el campo. No importan las mayúsculas ni los acentos. <span class="platform win">Windows</span> <span class="platform lin">Linux</span> La búsqueda está encima de las pestañas.</p>
+<h2>Guardar</h2>
+<p>Desde la versión 11.2.2 los cambios ya no se pierden si olvidas «Guardar»: al cerrar la ventana de configuración, al cambiar de sección y al salir de la aplicación se guarda cada sección en la que algo haya cambiado. El botón «Guardar» sigue disponible para aplicar al instante. Los ajustes de audio (dispositivos, activación por voz, niveles, volúmenes, efectos) se recuerdan automáticamente tras «Aplicar audio» y al salir, y se vuelven a aplicar en el siguiente inicio.</p>
 <h2>Expandir y contraer categorías</h2>
 <p>Cada marco (p. ej. "Dispositivos", "Activación por voz", "Salida") tiene un encabezado que lo expande o contrae; VoiceOver anuncia "contraído" o "expandido". La primera vez solo está expandida la primera categoría de cada sección; después la aplicación recuerda tu elección. <strong>Expandir todo</strong> y <strong>Contraer todo</strong> arriba se aplican a la sección actual.</p>
 <p>La ventana de configuración se divide en secciones (menú desplegable "Área"):</p>

@@ -1,6 +1,27 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.2)
+Einstellungen werden wirklich gespeichert, Mikrofon-Rechte bleiben nach Updates
+
+- **Einstellungen gehen nicht mehr verloren.** Bereiche mit
+  "Speichern"-Taste übernahmen Änderungen nur beim Druck auf die Taste.
+  Jetzt speichert die App jeden geänderten Bereich auch beim Schließen des
+  Einstellungsfensters, beim Bereichswechsel und beim Beenden.
+- **Audio-Einstellungen bleiben erhalten.** Geräte, Sprachaktivierung,
+  Pegel, Lautstärken und Effekte wurden nur über "Aktuelle
+  Audioeinstellungen speichern" gesichert und beim Start nur angewendet,
+  wenn eine standardmäßig ausgeschaltete Option an war. Jetzt merkt sich
+  die App sie nach "Audio anwenden" und beim Beenden automatisch und wendet
+  sie beim Start wieder an (Option einmalig für alle eingeschaltet).
+  Windows/Linux: Die Option wurde beim Start bisher gar nicht ausgewertet.
+- **macOS fragt nach Updates nicht mehr nach dem Mikrofon.** Die App war
+  bei jedem Build neu "ad-hoc" signiert, macOS hielt jede Version für eine
+  andere App. Jetzt ist sie mit einem festen Zertifikat signiert und hat
+  eine gültige Kennung (cc.leons.flarion.teamtalkvoclient). Nach diesem
+  Update fragt macOS ein letztes Mal nach Mikrofon-, Bedienungshilfen- und
+  Spracherkennungsrechten, danach nicht mehr.
+
 2026-10-09 (v11.2.1)
 Installationspakete mit Update über die App, Spracherkennung nachinstallieren
 

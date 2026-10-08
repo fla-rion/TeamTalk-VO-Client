@@ -707,6 +707,9 @@ class AudioTab(wx.ScrolledWindow):
         self._devices_applied = True
         if announce:
             self.frame.set_status("Audiogeräte aktiviert")
+        # Erfolgreich angewendete Geräte gleich merken (v11.2.2) – vorher nur
+        # per "Aktuelle Audioeinstellungen speichern"
+        self.autosave_prefs()
         return True
 
     # --- Voice controls ---
@@ -1016,6 +1019,22 @@ class AudioTab(wx.ScrolledWindow):
         self.frame.set_status(
             _("Mikrofon-Überwachung aktiviert") if enabled else _("Mikrofon-Überwachung deaktiviert")
         )
+
+    def autosave_prefs(self) -> bool:
+        """Aktuelle Audio-Einstellungen still speichern, sofern echte Geräte
+        gewählt sind. True, wenn gespeichert wurde."""
+        try:
+            prefs = self.get_audio_prefs()
+        except Exception:
+            return False
+        if not adm.prefs_have_devices(prefs):
+            return False
+        store = self.frame.settings_store
+        if store.settings.audio_prefs == prefs:
+            return False
+        store.settings.audio_prefs = prefs
+        store.save()
+        return True
 
     def _on_pref_save(self, _event) -> None:
         prefs = self.get_audio_prefs()

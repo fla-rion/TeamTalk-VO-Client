@@ -111,6 +111,13 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Nouveautés</h2>
 <div class="new">
+<strong>v11.2.2 (2026-10-09) :</strong> Paramètres et autorisations conservés
+<ul>
+  <li><strong>Les paramètres sont enregistrés automatiquement</strong>, même sans « Enregistrer » ; les réglages audio sont conservés entre les redémarrages. Détails au chapitre 18.</li>
+  <li><span class="platform mac">macOS</span> <strong>Les autorisations micro et autres sont conservées après les mises à jour</strong> (signature fixe ; une dernière demande après cette mise à jour).</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.1 (2026-10-09) :</strong> Paquets d'installation et reconnaissance vocale
 <ul>
   <li><strong>Paquets d'installation</strong> (.pkg, Setup.exe, .deb) et <strong>mises à jour depuis l'application</strong> : téléchargement, fermeture, l'installation démarre. Détails au chapitre 3.</li>
@@ -487,6 +494,8 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Depuis la version 11.2.1, chaque version est fournie avec des paquets d'installation : <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (installe dans /Applications), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (par défaut : pour vous seul, sans droits d'administrateur ; pour tous les utilisateurs au choix, le contrôle de compte d'utilisateur demande alors confirmation), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (dans /opt, commande <code>teamtalk-vo-client</code>, entrée de menu). Les DMG, ZIP et tar.gz restent disponibles.</p>
 <p>Quand l'application trouve une mise à jour, elle demande puis télécharge le paquet d'installation adapté dans votre dossier Téléchargements. Elle indique ensuite qu'elle doit se fermer pour l'installer ; si vous confirmez, l'installation démarre et l'application se ferme (même si elle se réduit sinon dans la zone de notification). Sous Linux, un terminal s'ouvre, installe le paquet avec apt et demande votre mot de passe. Après l'installation, relancez l'application.</p>
 <div class="note"><span class="platform mac">macOS</span> Le paquet installe toujours dans /Applications. Si votre application se trouve ailleurs, une seconde copie y est créée – vous pouvez supprimer l'ancienne.</div>
+
+<div class="note"><span class="platform mac">macOS</span> <strong>Autorisations après les mises à jour :</strong> à partir de la version 11.2.2, l'application a une signature fixe. Après cette mise à jour, macOS demande une dernière fois les autorisations micro, accessibilité et reconnaissance vocale ; elles sont ensuite conservées pour toutes les mises à jour suivantes.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Partie B · Fenêtre principale &amp; navigation</div>
@@ -1061,6 +1070,8 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Accessible via : <em>Fichier → Paramètres…</em> ou F4 / Cmd+,</p>
 <h2>Rechercher un paramètre</h2>
 <p>Saisissez un terme comme « temporisation », « périphérique de sortie » ou « langue » dans le champ <strong>Rechercher un paramètre</strong> en haut de la fenêtre. Une liste de résultats avec le paramètre, la catégorie et la section apparaît en dessous. Flèche bas pour entrer dans la liste ; Entrée (ou double-clic) ouvre la section, déplie la catégorie et place le focus directement sur le paramètre. Entrée dans le champ de recherche ouvre le premier résultat, Échap vide le champ. La casse et les accents n'ont pas d'importance. <span class="platform win">Windows</span> <span class="platform lin">Linux</span> La recherche se trouve au-dessus des onglets.</p>
+<h2>Enregistrement</h2>
+<p>Depuis la version 11.2.2, les modifications ne sont plus perdues si vous oubliez « Enregistrer » : à la fermeture de la fenêtre des paramètres, au changement de section et à la fermeture de l'application, chaque section modifiée est enregistrée. Le bouton « Enregistrer » reste disponible pour appliquer immédiatement. Les réglages audio (périphériques, activation vocale, niveaux, volumes, effets) sont mémorisés automatiquement après « Appliquer l'audio » et à la fermeture, puis réappliqués au démarrage suivant.</p>
 <h2>Déplier et replier les catégories</h2>
 <p>Chaque cadre (p. ex. « Périphériques », « Activation vocale », « Sortie ») a un en-tête qui le déplie ou le replie ; VoiceOver annonce « replié » ou « déplié ». À la première ouverture, seule la première catégorie de chaque section est dépliée ; ensuite l'application mémorise votre choix. <strong>Tout déplier</strong> et <strong>Tout replier</strong> en haut s'appliquent à la section actuelle.</p>
 <p>La fenêtre des paramètres est divisée en sections (liste déroulante « Zone ») :</p>

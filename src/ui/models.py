@@ -116,6 +116,8 @@ class ServerStore:
 class AppSettings:
     auto_apply_audio: bool = False
     auto_apply_audio_on_device_change: bool = False
+    # v11.2.2: einmalige Umstellung "Audio beim Start anwenden" auf an
+    audio_autosave_migrated: bool = False
     ptt_hotkey: int = 0
     audio_prefs: Dict[str, Any] = field(default_factory=dict)
     video_device_id: str = ""
@@ -409,6 +411,7 @@ class SettingsStore:
             self.settings.auto_apply_audio_on_device_change = bool(
                 data.get("auto_apply_audio_on_device_change", False)
             )
+            self.settings.audio_autosave_migrated = bool(data.get("audio_autosave_migrated", False))
             self.settings.ptt_hotkey = int(data.get("ptt_hotkey", 0) or 0)
             prefs = data.get("audio_prefs", {})
             self.settings.audio_prefs = prefs if isinstance(prefs, dict) else {}
@@ -662,6 +665,7 @@ class SettingsStore:
         payload = {
             "auto_apply_audio": bool(self.settings.auto_apply_audio),
             "auto_apply_audio_on_device_change": bool(self.settings.auto_apply_audio_on_device_change),
+            "audio_autosave_migrated": bool(self.settings.audio_autosave_migrated),
             "ptt_hotkey": int(self.settings.ptt_hotkey or 0),
             "audio_prefs": self.settings.audio_prefs or {},
             "video_device_id": str(self.settings.video_device_id or ""),

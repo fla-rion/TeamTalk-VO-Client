@@ -249,6 +249,7 @@ class SQLiteSettingsStore:
 
         s.auto_apply_audio = _bool("auto_apply_audio", False)
         s.auto_apply_audio_on_device_change = _bool("auto_apply_audio_on_device_change", False)
+        s.audio_autosave_migrated = _bool("audio_autosave_migrated", False)
         s.ptt_hotkey = _int("ptt_hotkey", 0)
         s.audio_prefs = _dict("audio_prefs")
         s.video_device_id = _str("video_device_id", "")
@@ -470,6 +471,7 @@ class SQLiteSettingsStore:
 
         _set("auto_apply_audio", bool(s.auto_apply_audio))
         _set("auto_apply_audio_on_device_change", bool(s.auto_apply_audio_on_device_change))
+        _set("audio_autosave_migrated", bool(s.audio_autosave_migrated))
         _set("ptt_hotkey", int(s.ptt_hotkey or 0))
         _set("audio_prefs", s.audio_prefs or {})
         _set("video_device_id", str(s.video_device_id or ""))

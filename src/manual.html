@@ -111,6 +111,13 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 
 <h2>Was ist neu</h2>
 <div class="new">
+<strong>v11.2.2 (2026-10-09):</strong> Einstellungen und Rechte bleiben
+<ul>
+  <li><strong>Einstellungen werden automatisch gespeichert</strong>, auch ohne „Speichern“; Audio-Einstellungen bleiben über Neustarts erhalten. Details in Kapitel 18.</li>
+  <li><span class="platform mac">macOS</span> <strong>Mikrofon- und andere Rechte bleiben nach Updates erhalten</strong> (fest signierte App; nach diesem Update ein letztes Mal nachfragen).</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.1 (2026-10-09):</strong> Installationspakete und Spracherkennung
 <ul>
   <li><strong>Installationspakete</strong> (.pkg, Setup.exe, .deb) und <strong>Updates direkt aus der App</strong>: herunterladen, App beenden, Setup startet. Details in Kapitel 3.</li>
@@ -487,6 +494,8 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Seit Version 11.2.1 gibt es zu jeder Version Installationspakete: <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (installiert nach /Programme), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (Standard: nur für dich, ohne Administratorrechte; für alle Nutzer wählbar, dann fragt die Benutzerkontensteuerung), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (nach /opt, Startbefehl <code>teamtalk-vo-client</code>, Startmenü-Eintrag). DMG, ZIP und tar.gz gibt es weiterhin.</p>
 <p>Findet die App ein Update, lädt sie nach Rückfrage das passende Installationspaket in deinen Download-Ordner. Danach weist sie darauf hin, dass sie sich zum Installieren beenden muss; bestätigst du, startet das Setup und die App beendet sich (auch wenn sie sonst in den Tray minimiert). Unter Linux öffnet sich dafür ein Terminal, das das Paket mit apt installiert und nach deinem Passwort fragt. Nach der Installation startest du die App wieder.</p>
 <div class="note"><span class="platform mac">macOS</span> Das Paket installiert immer nach /Programme. Liegt deine App woanders, entsteht dort eine zweite Kopie – die alte kannst du löschen.</div>
+
+<div class="note"><span class="platform mac">macOS</span> <strong>Rechte nach Updates:</strong> Ab Version 11.2.2 ist die App fest signiert. macOS fragt nach diesem Update noch ein letztes Mal nach Mikrofon-, Bedienungshilfen- und Spracherkennungsrechten; danach bleiben sie über alle weiteren Updates erhalten.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Teil B · Hauptfenster &amp; Navigation</div>
@@ -1061,6 +1070,8 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Erreichbar über: <em>Datei → Einstellungen…</em> oder F4 / Cmd+,</p>
 <h2>Einstellung suchen</h2>
 <p>Im Feld <strong>Einstellung suchen</strong> oben im Fenster tippst du einen Begriff, etwa „Nachlauf“, „Ausgabegerät“ oder „Sprache“. Darunter erscheint eine Trefferliste mit Einstellung, Kategorie und Bereich. Mit Pfeil nach unten gelangst du in die Liste; Eingabe (oder Doppelklick) öffnet den Bereich, klappt die Kategorie auf und setzt den Fokus direkt auf die Einstellung. Eingabe im Suchfeld öffnet den ersten Treffer, Escape leert das Feld. Groß-/Kleinschreibung und Umlaute spielen keine Rolle („gerate“ findet „Gerät“). <span class="platform win">Windows</span> <span class="platform lin">Linux</span> Die Suche steht über den Reitern.</p>
+<h2>Speichern</h2>
+<p>Seit Version 11.2.2 gehen Änderungen nicht mehr verloren, wenn du „Speichern“ vergisst: Beim Schließen des Einstellungsfensters, beim Wechsel des Bereichs und beim Beenden der App speichert sie jeden Bereich, in dem sich etwas geändert hat. Die Taste „Speichern“ bleibt für sofortiges Übernehmen. Audio-Einstellungen (Geräte, Sprachaktivierung, Pegel, Lautstärken, Effekte) werden nach „Audio anwenden“ und beim Beenden automatisch gemerkt und beim nächsten Start wieder angewendet.</p>
 <h2>Kategorien ein- und ausklappen</h2>
 <p>Jeder Rahmen (z. B. „Geräte“, „Sprachaktivierung“, „Ausgabe“) hat eine Kopfzeile, die ihn ein- oder ausklappt; VoiceOver sagt dabei „eingeklappt“ bzw. „ausgeklappt“. Beim ersten Öffnen ist in jedem Bereich nur die erste Kategorie aufgeklappt, danach merkt sich die App deine Auswahl. <strong>Alle aufklappen</strong> und <strong>Alle zuklappen</strong> oben wirken auf den aktuellen Bereich.</p>
 <p>Das Einstellungsfenster ist in Bereiche unterteilt (Auswahlmenü "Bereich"):</p>

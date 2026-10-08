@@ -582,6 +582,8 @@ class AudioTab(QWidget):
                 return False
             if announce:
                 self.window.set_status("Audio-Einstellungen übernommen")
+            # Erfolgreich angewendete Geräte gleich merken (v11.2.2)
+            self.autosave_prefs()
             return True
         except Exception as exc:
             self.window.set_status(f"Audio-Fehler: {exc}")
@@ -959,6 +961,22 @@ class AudioTab(QWidget):
         self.window.set_status(
             _("Mikrofon-Überwachung aktiviert") if val else _("Mikrofon-Überwachung deaktiviert")
         )
+
+    def autosave_prefs(self) -> bool:
+        """Aktuelle Audio-Einstellungen still speichern, sofern echte Geräte
+        gewählt sind. True, wenn gespeichert wurde."""
+        try:
+            prefs = self.get_audio_prefs()
+        except Exception:
+            return False
+        if not adm.prefs_have_devices(prefs):
+            return False
+        store = self.window.settings_store
+        if getattr(store.settings, "audio_prefs", None) == prefs:
+            return False
+        store.settings.audio_prefs = prefs
+        store.save()
+        return True
 
     def _on_pref_save(self) -> None:
         prefs = self.get_audio_prefs()
