@@ -5,6 +5,10 @@ landen in der Warteschlange und werden nach dem nächsten Reconnect automatisch
 übermittelt.
 
 Gespeichert als JSON in app_data_dir (persistent zwischen Neustarts).
+
+Seit v10.10.0 auch Sprachnachrichten (``kind="voice"``): Text = Transkript
+bzw. Hinweis, dazu der Pfad der lokalen WAV-Datei; auf Wunsch wird die Datei
+nach dem Wiederverbinden in den Dateibereich des Kanals hochgeladen.
 """
 from __future__ import annotations
 
@@ -12,7 +16,7 @@ import json
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 
 @dataclass
@@ -22,6 +26,14 @@ class QueuedMessage:
     target_id: int         # channel_id oder user_id
     target_name: str       # Anzeigename für Status
     timestamp: float
+    kind: str = "text"     # "text" | "voice"
+    audio_path: str = ""   # nur bei Sprachnachrichten
+    duration_s: float = 0.0
+    upload_audio: bool = False  # Audiodatei in den Kanal-Dateibereich laden
+
+    @property
+    def is_voice(self) -> bool:
+        return self.kind == "voice"
 
     @property
     def age_seconds(self) -> float:
@@ -58,6 +70,10 @@ class OfflineMessageQueue:
                     target_id=int(d.get("target_id", 0)),
                     target_name=str(d.get("target_name", "")),
                     timestamp=float(d.get("timestamp", time.time())),
+                    kind=str(d.get("kind", "text") or "text"),
+                    audio_path=str(d.get("audio_path", "") or ""),
+                    duration_s=float(d.get("duration_s", 0.0) or 0.0),
+                    upload_audio=bool(d.get("upload_audio", False)),
                 )
                 for d in data
                 if isinstance(d, dict)
@@ -101,6 +117,35 @@ class OfflineMessageQueue:
         ))
         self._save()
 
+    def enqueue_voice(
+        self,
+        text: str,
+        target_type: str,
+        target_id: int,
+        target_name: str,
+        audio_path: str,
+        duration_s: float,
+        upload_audio: bool = False,
+    ) -> None:
+        """Legt eine Sprachnachricht (Transkript/Hinweis + WAV) in die Warteschlange."""
+        self._prune_old()
+        if len(self._items) >= self.MAX_ENTRIES:
+            self._items.pop(0)
+        self._items.append(QueuedMessage(
+            text=text, target_type=target_type, target_id=target_id,
+            target_name=target_name, timestamp=time.time(), kind="voice",
+            audio_path=str(audio_path or ""), duration_s=float(duration_s or 0.0),
+            upload_audio=bool(upload_audio),
+        ))
+        self._save()
+
+    def requeue(self, items: List[QueuedMessage]) -> None:
+        """Nicht zustellbare Einträge (mit Originalzeit) wieder vorne einreihen."""
+        if not items:
+            return
+        self._items = (list(items) + self._items)[-self.MAX_ENTRIES:]
+        self._save()
+
     def dequeue_all(self) -> List[QueuedMessage]:
         """Gibt alle wartenden Nachrichten zurück und leert die Queue."""
         self._prune_old()
@@ -129,3 +174,38 @@ class OfflineMessageQueue:
 
     def __len__(self) -> int:
         return len(self._items)
+
+
+def deliver(items: List[QueuedMessage], client, my_channel_id: int) -> Tuple[int, List[QueuedMessage], int]:
+    """Stellt Einträge über einen verbundenen ``TeamTalkClient`` zu.
+
+    Kanalnachrichten gehen in den aktuellen Kanal (gespeichert wird beim
+    Einreihen keine Kanal-ID, weil offline keine bekannt ist). Bei
+    Sprachnachrichten mit ``upload_audio`` wird die WAV-Datei in den
+    Kanal-Dateibereich hochgeladen (nur bei Kanalzielen möglich).
+
+    Rückgabe: (zugestellt, fehlgeschlagen, gestartete Uploads).
+    """
+    sent, uploads = 0, 0
+    failed: List[QueuedMessage] = []
+    for m in items:
+        try:
+            if m.target_type == "private" and m.target_id:
+                ok = bool(client.send_user_message(int(m.target_id), m.text))
+            elif m.target_type == "channel" and my_channel_id:
+                ok = bool(client.send_channel_message(int(my_channel_id), m.text))
+            else:
+                ok = False
+        except Exception:
+            ok = False
+        if not ok:
+            failed.append(m)
+            continue
+        sent += 1
+        if m.is_voice and m.upload_audio and m.target_type == "channel" and m.audio_path:
+            try:
+                if Path(m.audio_path).exists() and int(client.send_file(int(my_channel_id), m.audio_path)) > 0:
+                    uploads += 1
+            except Exception:
+                pass
+    return sent, failed, uploads

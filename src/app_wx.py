@@ -2417,6 +2417,7 @@ class MainFrame(wx.Frame):
         auto_tts_transcript = auto_menu.Append(wx.ID_ANY, _("TTS-Mitschrift..."))
         auto_menu.AppendSeparator()
         auto_offline_queue = auto_menu.Append(wx.ID_ANY, _("Offline-Warteschlange..."))
+        auto_voice_note = auto_menu.Append(wx.ID_ANY, _("Sprachnachricht aufnehmen..."))
         auto_server_audio = auto_menu.Append(wx.ID_ANY, _("Per-Server-Soundprofile..."))
         auto_menu.AppendSeparator()
         auto_weather_now = auto_menu.Append(wx.ID_ANY, _("Wetter jetzt ansagen"))
@@ -2610,6 +2611,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_chat_search, auto_chat_search)
         self.Bind(wx.EVT_MENU, self.on_menu_tts_transcript, auto_tts_transcript)
         self.Bind(wx.EVT_MENU, self.on_menu_offline_queue, auto_offline_queue)
+        self.Bind(wx.EVT_MENU, self.on_menu_voice_note, auto_voice_note)
         self.Bind(wx.EVT_MENU, self.on_menu_server_audio_profiles, auto_server_audio)
         self.Bind(wx.EVT_MENU, self.on_menu_weather_now, auto_weather_now)
         self.Bind(wx.EVT_MENU, self.on_menu_plugin_manager, auto_plugin_manager)
@@ -5775,6 +5777,15 @@ class MainFrame(wx.Frame):
         dlg = OfflineQueueDialog(self, self._offline_queue)
         dlg.ShowModal()
         dlg.Destroy()
+
+    def on_menu_voice_note(self, _event) -> None:
+        """v10.10.0 – Sprachnachricht aufnehmen, transkribieren, senden bzw.
+        in die Offline-Warteschlange legen (ROADMAP Punkt 12)."""
+        from ui_wx.voice_note_dialog import VoiceNoteDialog
+        dlg = VoiceNoteDialog(self)
+        dlg.ShowModal()
+        if dlg:
+            dlg.Destroy()
 
     def on_menu_server_audio_profiles(self, _event) -> None:
         from ui_wx.server_audio_profile_dialog import ServerAudioProfileDialog
@@ -9187,23 +9198,20 @@ class MainFrame(wx.Frame):
 
     def _drain_offline_queue(self) -> None:
         """Sendet nach Reconnect alle gepufferten Offline-Nachrichten."""
+        from offline_queue import deliver
         items = self._offline_queue.dequeue_all()
         if not items:
             return
-        sent = 0
-        for m in items:
-            try:
-                if m.target_type == "private" and m.target_id:
-                    if self.client.send_user_message(m.target_id, m.text):
-                        sent += 1
-                elif m.target_type == "channel":
-                    ch = self.client.get_my_channel_id()
-                    if ch and self.client.send_channel_message(ch, m.text):
-                        sent += 1
-            except Exception:
-                pass
+        sent, failed, uploads = deliver(items, self.client, int(self.client.get_my_channel_id() or 0))
+        # Nicht zustellbare Einträge (z. B. noch in keinem Kanal) nicht verlieren
+        self._offline_queue.requeue(failed)
         self.chat_tab.append_chat(f"--- {sent} Offline-Nachricht(en) übermittelt ---", kind="system", speak=False)
-        self.tts.speak(f"{sent} Offline-Nachrichten gesendet", kind="system")
+        text = f"{sent} Offline-Nachrichten gesendet"
+        if failed:
+            text += f", {len(failed)} weiterhin in der Warteschlange"
+        if uploads:
+            text += f", {uploads} Audiodatei(en) werden hochgeladen"
+        self.tts.speak(text, kind="system")
 
     def _apply_server_audio_profile(self) -> None:
         """Setzt das für den aktuellen Server konfigurierte Sound-Profil."""

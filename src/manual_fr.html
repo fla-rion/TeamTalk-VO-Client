@@ -668,6 +668,10 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 <p>Si l'option est activée dans <em>Paramètres → Général → Enregistrer l'historique du chat</em>, les messages sont enregistrés par serveur dans un fichier JSON (max. 200 entrées). L'historique est automatiquement chargé à la prochaine connexion au même serveur.</p>
 <div class="note">L'historique peut être réinitialisé à tout moment via « Effacer l'historique ».</div>
 
+<h2>Messages vocaux et file d'attente hors ligne</h2>
+<p>Les messages écrits sans connexion vont dans la file d'attente hors ligne (<em>Automatisation → File d'attente hors ligne…</em>) et sont remis après la reconnexion. Nouveau : <em>Automatisation → Enregistrer un message vocal…</em> : choisissez le destinataire (canal actuel ou un utilisateur encore présent dans le choix « Privé à » du chat), démarrez et arrêtez l'enregistrement (120 secondes au maximum), l'application le convertit en texte, vous pouvez encore corriger le texte puis l'envoyer. Connecté, il part tout de suite, sinon le message va dans la file. En option, le fichier audio est envoyé dans l'espace de fichiers du canal.</p>
+<div class="note">Limites : TeamTalk ne transmet que du texte – les destinataires lisent la transcription, la voix elle-même uniquement via le fichier envoyé (canal uniquement, droit d'envoi requis). La reconnaissance vocale (Whisper) fonctionne localement mais n'est pas incluse dans l'application empaquetée ; sans elle, « Message vocal (durée), non transcrit » est envoyé. L'enregistrement utilise le microphone choisi dans les paramètres audio. Les entrées de la file expirent après une heure ; les messages de canal vont dans le canal où vous êtes après la reconnexion. Les fichiers WAV se trouvent dans le dossier de données de l'application sous <code>voice_notes</code>.</div>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notifications</h1>
 

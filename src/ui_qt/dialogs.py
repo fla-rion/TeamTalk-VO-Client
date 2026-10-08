@@ -208,10 +208,9 @@ class OfflineQueueDialog(QDialog):
         try:
             msgs = self._oq.peek()
             for msg in msgs:
-                kind   = msg.get("kind", "?")
-                text   = msg.get("text", "")
-                target = msg.get("target_name", "")
-                self._list.addItem(f"[{kind}→{target}] {text}")
+                kind   = "Privat" if msg.target_type == "private" else "Kanal"
+                voice  = ", Sprachnachricht" if msg.is_voice else ""
+                self._list.addItem(f"[{kind} → {msg.target_name}{voice}] {msg.text}")
         except Exception as exc:
             self._list.addItem(f"Fehler: {exc}")
 
@@ -1639,7 +1638,8 @@ class OfflineQueueDialogFull(QDialog):
                     kind_label  = "Privat" if target_type == "private" else "Kanal"
                     age         = getattr(m, "age_str", "?")
                     preview     = text[:60] + ("…" if len(text) > 60 else "")
-                    self._list.addItem(f"[{age} alt, {kind_label} → {target}] {preview}")
+                    voice       = ", Sprachnachricht" if getattr(m, "is_voice", False) else ""
+                    self._list.addItem(f"[{age} alt, {kind_label} → {target}{voice}] {preview}")
                 except Exception:
                     self._list.addItem(str(m))
             count = len(msgs)
@@ -1661,21 +1661,11 @@ class OfflineQueueDialogFull(QDialog):
             if oq is None or client is None or not client.is_connected():
                 QMessageBox.information(self, _("Hinweis"), _("Nicht verbunden – Nachrichten können nicht gesendet werden."))
                 return
+            from offline_queue import deliver
             msgs = list(oq.dequeue_all() or [])
-            sent = 0
-            for m in msgs:
-                try:
-                    target_id   = int(getattr(m, "target_id", 0))
-                    text        = getattr(m, "text", "")
-                    target_type = getattr(m, "target_type", "channel")
-                    if target_type == "private":
-                        ok = client.send_user_message(target_id, text)
-                    else:
-                        ok = client.send_channel_message(target_id, text)
-                    if ok:
-                        sent += 1
-                except Exception:
-                    pass
+            # Kanalnachrichten in den aktuellen Kanal (gespeicherte ID ist 0)
+            sent, failed, _uploads = deliver(msgs, client, int(client.get_my_channel_id() or 0))
+            oq.requeue(failed)
             self._fill()
             self._status.setText(f"{sent} von {len(msgs)} Nachricht(en) gesendet")
         except Exception as exc:

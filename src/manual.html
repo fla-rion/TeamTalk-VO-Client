@@ -668,6 +668,10 @@ Hauptentwickler: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ve
 <p>Wenn unter <em>Einstellungen → Allgemein → Chat-Verlauf speichern</em> aktiviert, werden Nachrichten pro Server in einer JSON-Datei gespeichert (max. 200 Einträge). Beim nächsten Verbinden mit demselben Server wird der Verlauf automatisch geladen.</p>
 <div class="note">Der Verlauf kann jederzeit über "Verlauf leeren" zurückgesetzt werden.</div>
 
+<h2>Sprachnachrichten und Offline-Warteschlange</h2>
+<p>Nachrichten, die du ohne Verbindung schreibst, landen in der Offline-Warteschlange (<em>Automation → Offline-Warteschlange…</em>) und werden nach dem Wiederverbinden zugestellt. Neu ist <em>Automation → Sprachnachricht aufnehmen…</em>: Du wählst den Empfänger (aktueller Kanal oder ein Nutzer, der in der Chat-Auswahl „Privat an“ noch aufgeführt ist), startest und beendest die Aufnahme (höchstens 120 Sekunden), die App wandelt sie in Text um, du kannst den Text noch korrigieren und schickst ihn ab. Bist du verbunden, wird sofort gesendet, sonst kommt die Nachricht in die Warteschlange. Optional wird die Audiodatei nach dem Senden in den Dateibereich des Kanals hochgeladen.</p>
+<div class="note">Grenzen: TeamTalk überträgt nur Text – Empfänger lesen das Transkript, die Sprache selbst nur über den hochgeladenen Dateianhang (nur bei Kanalzielen und nur mit Upload-Recht). Die Spracherkennung (Whisper) läuft lokal, ist im fertigen App-Paket aber nicht enthalten; ohne sie wird „Sprachnachricht (Dauer), nicht transkribiert“ verschickt. Die Aufnahme nutzt das in den Audio-Einstellungen gewählte Mikrofon. Einträge der Warteschlange verfallen nach einer Stunde; Kanalnachrichten gehen in den Kanal, in dem du nach dem Wiederverbinden bist. Die WAV-Dateien liegen im App-Datenordner unter <code>voice_notes</code>.</div>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Benachrichtigungen</h1>
 

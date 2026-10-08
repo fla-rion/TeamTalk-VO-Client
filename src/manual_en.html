@@ -668,6 +668,10 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 <p>When enabled under <em>Settings → General → Save chat history</em>, messages are saved per server in a JSON file (max. 200 entries). The history is automatically loaded the next time you connect to the same server.</p>
 <div class="note">The history can be reset at any time via "Clear history".</div>
 
+<h2>Voice Messages and Offline Queue</h2>
+<p>Messages you write without a connection go into the offline queue (<em>Automation → Offline queue…</em>) and are delivered after reconnecting. New is <em>Automation → Record voice message…</em>: choose the recipient (current channel or a user still listed in the chat's "Private to" choice), start and stop recording (at most 120 seconds), the app converts it to text, you can still correct the text and send it. When connected it is sent right away, otherwise the message goes into the queue. Optionally the audio file is uploaded to the channel's file area after sending.</p>
+<div class="note">Limits: TeamTalk only transmits text – recipients read the transcript, the voice itself only via the uploaded file (channel targets only, upload permission required). Speech recognition (Whisper) runs locally but is not included in the packaged app; without it "Voice message (duration), not transcribed" is sent. Recording uses the microphone selected in the audio settings. Queue entries expire after one hour; channel messages go to the channel you are in after reconnecting. The WAV files are stored in the app data folder under <code>voice_notes</code>.</div>
+
 <!-- ============================================================ -->
 <h1 id="benachrichtigungen">10 · Notifications</h1>
 

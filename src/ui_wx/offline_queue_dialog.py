@@ -77,7 +77,8 @@ class OfflineQueueDialog(wx.Dialog):
             target      = m.target_name or str(m.target_id)
             kind_label  = "Privat" if m.target_type == "private" else "Kanal"
             preview     = m.text[:60] + ("…" if len(m.text) > 60 else "")
-            self._lb.Append(f"[{m.age_str} alt, {kind_label} → {target}] {preview}")
+            voice       = ", Sprachnachricht" if getattr(m, "is_voice", False) else ""
+            self._lb.Append(f"[{m.age_str} alt, {kind_label} → {target}{voice}] {preview}")
         count = len(items)
         self._info.SetLabel(f"{count} Nachricht(en) ausstehend")
         connected = self._frame.client.is_connected()
@@ -90,18 +91,11 @@ class OfflineQueueDialog(wx.Dialog):
             wx.MessageBox("Nicht verbunden – Nachrichten können nicht gesendet werden.",
                           "Nicht verbunden", wx.OK | wx.ICON_INFORMATION, self)
             return
+        from offline_queue import deliver
         msgs = self._oq.dequeue_all()
-        sent = 0
-        for m in msgs:
-            try:
-                if m.target_type == "private":
-                    ok = client.send_user_message(int(m.target_id), m.text)
-                else:
-                    ok = client.send_channel_message(int(m.target_id), m.text)
-                if ok:
-                    sent += 1
-            except Exception:
-                pass
+        # Kanalnachrichten gehen in den aktuellen Kanal (gespeicherte ID ist 0)
+        sent, failed, _uploads = deliver(msgs, client, int(client.get_my_channel_id() or 0))
+        self._oq.requeue(failed)
         self._fill()
         msg = f"{sent} von {len(msgs)} Nachricht(en) gesendet"
         self._info.SetLabel(msg)
