@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 import wx
 
 import voice_notes as vn
+import whisper_setup
 from i18n import _, current_language
 from offline_queue import deliver
 from platform_paths import app_data_dir
@@ -58,6 +59,13 @@ class VoiceNoteDialog(wx.Dialog):
         self._status.SetName(_("Aufnahmestatus"))
         root.Add(self._status, 0, wx.LEFT | wx.RIGHT, 8)
 
+        # Spracherkennung nachinstallieren, solange keine bessere da ist
+        self._install_btn = wx.Button(self, label=_("Spracherkennung &installieren..."))
+        self._install_btn.SetName(_("Spracherkennung whisper.cpp installieren"))
+        self._install_btn.Bind(wx.EVT_BUTTON, self._on_install_whisper)
+        root.Add(self._install_btn, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._install_btn.Show(self._offer_install())
+
         root.Add(wx.StaticText(self, label=_("Text der Nachricht (änderbar):")), 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
         self._text = wx.TextCtrl(self, style=wx.TE_MULTILINE, size=(460, 100))
         self._text.SetName(_("Text der Sprachnachricht"))
@@ -94,6 +102,18 @@ class VoiceNoteDialog(wx.Dialog):
             self._set_status(vn.backend_hint())
 
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _offer_install() -> bool:
+        backend = vn.transcription_backend()
+        if backend in (vn.BACKEND_WHISPER, vn.BACKEND_WHISPERCPP):
+            return False
+        return whisper_setup.can_install()[0]
+
+    def _on_install_whisper(self, _event) -> None:
+        from ui_wx.whisper_install import ask_and_install
+        if ask_and_install(self, self.frame):
+            self._set_status(_("Nach der Installation steht die Spracherkennung sofort bereit."), announce=False)
 
     def _collect_targets(self) -> List[Tuple[str, int, str]]:
         """(Art, ID, Anzeige) – aktueller Kanal plus Nutzer aus der Chat-Auswahl

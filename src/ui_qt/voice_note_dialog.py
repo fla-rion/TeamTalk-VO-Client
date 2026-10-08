@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 import voice_notes as vn
+import whisper_setup
 from i18n import _, current_language
 from offline_queue import QueuedMessage, deliver
 from platform_paths import app_data_dir
@@ -61,6 +62,15 @@ class VoiceNoteDialog(QDialog):
         self._status.setAccessibleName(_("Aufnahmestatus"))
         self._status.setWordWrap(True)
         layout.addWidget(self._status)
+
+        # Spracherkennung nachinstallieren, solange keine bessere da ist
+        self._install_btn = QPushButton(_("Spracherkennung &installieren..."))
+        self._install_btn.setAccessibleName(_("Spracherkennung whisper.cpp installieren"))
+        self._install_btn.clicked.connect(self._on_install_whisper)
+        layout.addWidget(self._install_btn)
+        backend = vn.transcription_backend()
+        self._install_btn.setVisible(
+            backend not in (vn.BACKEND_WHISPER, vn.BACKEND_WHISPERCPP) and whisper_setup.can_install()[0])
 
         text_lbl = QLabel(_("Text der Nachricht (änderbar):"))
         self._text = QPlainTextEdit()
@@ -114,6 +124,11 @@ class VoiceNoteDialog(QDialog):
         self._upload.setEnabled(kind == "channel")
         if kind != "channel":
             self._upload.setChecked(False)
+
+    def _on_install_whisper(self) -> None:
+        from ui_qt.whisper_install import ask_and_install
+        if ask_and_install(self, self._window):
+            self._set_status(_("Nach der Installation steht die Spracherkennung sofort bereit."))
 
     def _set_status(self, text: str, announce: bool = False) -> None:
         self._status.setText(text)

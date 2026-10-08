@@ -1336,9 +1336,45 @@ class SettingsTab(QWidget):
         http_form.addRow(_("Port"), self.http_api_port)
         layout.addWidget(http_group)
 
+        # Spracherkennung (whisper.cpp) nachinstallieren
+        from ui_qt.whisper_install import status_text as _whisper_status
+        wh_group = QGroupBox(_("Spracherkennung (whisper.cpp)"))
+        wh_layout = QVBoxLayout(wh_group)
+        wh_info = QLabel(_(
+            "Lokale Spracherkennung für Sprachnachrichten. Wird bei Bedarf nachgeladen "
+            "(Programm ca. 5 MB, Sprachmodell ca. 140 MB) und braucht danach keine Internetverbindung."))
+        wh_info.setWordWrap(True)
+        wh_layout.addWidget(wh_info)
+        self._whisper_status = QLabel(_whisper_status())
+        self._whisper_status.setWordWrap(True)
+        self._whisper_status.setAccessibleName(_("Status der Spracherkennung"))
+        wh_layout.addWidget(self._whisper_status)
+        wh_row = QHBoxLayout()
+        wh_install = QPushButton(_("Spracherkennung &installieren..."))
+        wh_install.setAccessibleName(_("Spracherkennung whisper.cpp installieren"))
+        wh_install.clicked.connect(self._on_install_whisper)
+        wh_check = QPushButton(_("Status &prüfen"))
+        wh_check.setAccessibleName(_("Status der Spracherkennung prüfen"))
+        wh_check.clicked.connect(self._on_check_whisper)
+        wh_row.addWidget(wh_install)
+        wh_row.addWidget(wh_check)
+        wh_row.addStretch()
+        wh_layout.addLayout(wh_row)
+        layout.addWidget(wh_group)
+
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    def _on_install_whisper(self) -> None:
+        from ui_qt.whisper_install import ask_and_install
+        ask_and_install(self, self.window)
+
+    def _on_check_whisper(self) -> None:
+        from ui_qt.whisper_install import status_text
+        text = status_text()
+        self._whisper_status.setText(text)
+        self.window.set_status(text)
 
     # ------------------------------------------------------------------
     # Geräte-Sync

@@ -1094,6 +1094,30 @@ class SettingsTab(wx.Panel):
 
         sizer.Add(cs_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
 
+        # ---- Spracherkennung (whisper.cpp) nachinstallieren ----
+        from ui_wx.whisper_install import status_text as _whisper_status
+        wh_box = wx.StaticBox(panel, label=_("Spracherkennung (whisper.cpp)"))
+        wh_sizer = wx.StaticBoxSizer(wh_box, wx.VERTICAL)
+        wh_info = wx.StaticText(panel, label=_(
+            "Lokale Spracherkennung für Sprachnachrichten. Wird bei Bedarf nachgeladen "
+            "(Programm ca. 5 MB, Sprachmodell ca. 140 MB) und braucht danach keine Internetverbindung."))
+        wh_info.Wrap(520)
+        wh_sizer.Add(wh_info, 0, wx.ALL, 8)
+        self._whisper_status = wx.StaticText(panel, label=_whisper_status())
+        self._whisper_status.SetName(_("Status der Spracherkennung"))
+        wh_sizer.Add(self._whisper_status, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        wh_btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        wh_install = wx.Button(panel, label=_("Spracherkennung &installieren..."))
+        wh_install.SetName(_("Spracherkennung whisper.cpp installieren"))
+        wh_install.Bind(wx.EVT_BUTTON, self._on_install_whisper)
+        wh_btn_row.Add(wh_install, 0, wx.RIGHT, 8)
+        wh_check = wx.Button(panel, label=_("Status &prüfen"))
+        wh_check.SetName(_("Status der Spracherkennung prüfen"))
+        wh_check.Bind(wx.EVT_BUTTON, self._on_check_whisper)
+        wh_btn_row.Add(wh_check, 0)
+        wh_sizer.Add(wh_btn_row, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+        sizer.Add(wh_sizer, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM | wx.EXPAND, 8)
+
         # Single save button
         save_btn = wx.Button(panel, label="&Speichern")
         save_btn.SetName("KI & Integration speichern")
@@ -2566,6 +2590,21 @@ class SettingsTab(wx.Panel):
     # ------------------------------------------------------------------
     # Kategorien & Einstellungssuche
     # ------------------------------------------------------------------
+
+    def _on_install_whisper(self, _event) -> None:
+        from ui_wx.whisper_install import ask_and_install
+        ask_and_install(self, self.frame)
+
+    def _on_check_whisper(self, _event) -> None:
+        from ui_wx.whisper_install import status_text
+        text = status_text()
+        self._whisper_status.SetLabel(text)
+        self.frame.set_status(text)
+        try:
+            from ui_wx.a11y import post_voiceover_announcement
+            post_voiceover_announcement(text)
+        except Exception:
+            pass
 
     def _save_collapsed_state(self) -> None:
         try:

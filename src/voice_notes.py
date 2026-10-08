@@ -12,9 +12,10 @@ Serververbindung.
 Transkription, in dieser Reihenfolge:
 1. Whisper, falls importierbar (Entwicklungsumgebung; im ausgelieferten
    App-Bundle wegen der Größe ausgeschlossen, siehe ``excludes`` in der .spec).
-2. macOS: Apples Spracherkennung (Speech-Framework, ``SFSpeechRecognizer``),
+2. whisper.cpp, wenn der Nutzer es nachinstalliert hat (``whisper_setup.py``).
+3. macOS: Apples Spracherkennung (Speech-Framework, ``SFSpeechRecognizer``),
    wenn möglich auf dem Gerät; braucht die Erlaubnis "Spracherkennung".
-3. Sonst nur die Audiodatei mit Hinweistext.
+4. Sonst nur die Audiodatei mit Hinweistext.
 
 UI-frei; wx und Qt nutzen dieselben Klassen.
 """
@@ -63,13 +64,24 @@ def apple_speech_available() -> bool:
 
 
 BACKEND_WHISPER = "whisper"
+BACKEND_WHISPERCPP = "whisper.cpp"
 BACKEND_APPLE = "apple"
+
+
+def whispercpp_available() -> bool:
+    try:
+        import whisper_setup
+        return whisper_setup.available()
+    except Exception:
+        return False
 
 
 def transcription_backend() -> Optional[str]:
     """Welcher Transkriptionsweg greift: "whisper", "apple" oder None."""
     if whisper_available():
         return BACKEND_WHISPER
+    if whispercpp_available():
+        return BACKEND_WHISPERCPP
     if apple_speech_available():
         return BACKEND_APPLE
     return None
@@ -85,6 +97,8 @@ def backend_hint() -> str:
     backend = transcription_backend()
     if backend == BACKEND_WHISPER:
         return _("Spracherkennung: Whisper (lokal)")
+    if backend == BACKEND_WHISPERCPP:
+        return _("Spracherkennung: whisper.cpp (lokal)")
     if backend == BACKEND_APPLE:
         return _("Spracherkennung: Apple (macOS) – beim ersten Mal fragt macOS nach der Erlaubnis")
     return _("Keine Spracherkennung verfügbar – es wird nur die Audiodatei mit einem Hinweistext gespeichert.")
@@ -262,6 +276,11 @@ def transcribe_file(path: Path, language: str = "de", model_name: str = "base") 
     backend = transcription_backend()
     if backend == BACKEND_WHISPER:
         return _transcribe_whisper(path, language, model_name)
+    if backend == BACKEND_WHISPERCPP:
+        import whisper_setup
+        text, err = whisper_setup.transcribe(Path(path), language)
+        last_error = err
+        return text
     if backend == BACKEND_APPLE:
         return transcribe_apple(path, language)
     last_error = _("keine Spracherkennung verfügbar")
