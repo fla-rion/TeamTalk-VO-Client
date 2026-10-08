@@ -26,6 +26,7 @@ from i18n import _
 from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
 from ui_wx.collapsible import CollapsibleCategories, collect_entries
 import settings_search
+from ui.a11y import set_native_accessibility_label
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -1650,6 +1651,10 @@ class SettingsTab(wx.Panel):
             browse_btn.SetName(f"Durchsuchen: {label}")
             test_btn = wx.Button(scroll, label="Testen")
             test_btn.SetName(f"Test: {label}")
+            # VoiceOver liest bei wx.Button den Titel ("...", "Testen") statt
+            # SetName – ohne Ereignisnamen wären alle Zeilen gleich.
+            set_native_accessibility_label(browse_btn, _("Durchsuchen: {}").format(_(label)))
+            set_native_accessibility_label(test_btn, _("Testen: {}").format(_(label)))
 
             browse_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_browse_sound(k, tc))
             test_btn.Bind(wx.EVT_BUTTON, lambda e, k=key, tc=path_ctrl: self._on_test_sound(k, tc))

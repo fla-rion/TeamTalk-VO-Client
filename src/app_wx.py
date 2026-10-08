@@ -35,7 +35,7 @@ from ai_summary import ChatSummaryManager
 from gemini_auth import GeminiAuthManager
 from ui_wx.tray import TrayIcon
 from ui_wx.tt_file_parser import parse_teamtalk_file
-from ui_wx.accessible_controls import AccessibleSpinCtrl
+from ui_wx.accessible_controls import AccessibleSpinCtrl, CustomTextEntryDialog
 from ui_wx.tabs.connection import ConnectionTab
 from ui_wx.tabs.channels_chat import ChannelsChatTab
 from ui_wx.tabs.media import MediaTab
@@ -4612,11 +4612,12 @@ class MainFrame(wx.Frame):
                 return
             dlg.Destroy()
         username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
-        reason_dlg = wx.TextEntryDialog(
+        reason_dlg = CustomTextEntryDialog(
             self,
             f"Begründung für Kick von '{username}' (leer = ohne Begründung):",
             "Kick mit Begründung",
             "",
+            ok_label=_("Kicken"),
         )
         reason_dlg.SetName("Kick-Begründung")
         reason = ""
@@ -4688,11 +4689,12 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
         username = self.tt_str(getattr(user, "szNickname", "")) or self.tt_str(getattr(user, "szUsername", "")) or f"Benutzer {int(user.nUserID)}"
         channel_id = int(getattr(user, "nChannelID", 0) or 0)
-        reason_dlg = wx.TextEntryDialog(
+        reason_dlg = CustomTextEntryDialog(
             self,
             f"Begründung für Kick+Bann von '{username}' (leer = ohne Begründung):",
             "Kick mit Begründung",
             "",
+            ok_label=_("Kicken und bannen"),
         )
         reason_dlg.SetName("Kick-Begründung")
         reason = ""

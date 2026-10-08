@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, List
 import wx
 
 from ui_wx.a11y import setup_list_accessible
+from ui_wx.accessible_controls import CustomTextEntryDialog
+from i18n import _
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -243,7 +245,7 @@ class OnlineUsersDialog(wx.Dialog):
             return
         tt_str = self.frame.tt_str
         nick = self.frame.user_display_name(user, "Benutzer")
-        dlg = wx.TextEntryDialog(self, f"Nachricht an {nick}:", "Privatnachricht senden")
+        dlg = CustomTextEntryDialog(self, f"Nachricht an {nick}:", "Privatnachricht senden", ok_label=_("Senden"))
         if dlg.ShowModal() == wx.ID_OK:
             msg = dlg.GetValue().strip()
             if msg:

@@ -8,6 +8,7 @@ import wx
 from i18n import _
 from ui.account_format import format_last_login, last_login_sort_key
 from ui_wx.a11y import setup_list_accessible
+from ui_wx.accessible_controls import CustomTextEntryDialog
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -513,7 +514,7 @@ class AdminTab(wx.Panel):
     # --- IP-Adresse bannen ---
 
     def on_ban_ip(self, _event):
-        dlg = wx.TextEntryDialog(self, "IP-Adresse eingeben:", "IP-Adresse bannen")
+        dlg = CustomTextEntryDialog(self, "IP-Adresse eingeben:", "IP-Adresse bannen", ok_label=_("Bannen"))
         dlg.SetName("IP-Adresse bannen")
         if dlg.ShowModal() == wx.ID_OK:
             ip = dlg.GetValue().strip()

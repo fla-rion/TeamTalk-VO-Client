@@ -23,6 +23,8 @@ except Exception:
     requests = None
 
 from ui_wx.a11y import setup_list_accessible
+from ui.a11y import set_native_accessibility_label
+from i18n import _
 from spotify_streamer import SpotifyStreamer, find_librespot, has_stored_credentials
 from deezer_downloader import DeezerDownloader, search_tracks as dz_search, format_track, load_arl, save_arl, clear_arl, has_arl
 
@@ -602,6 +604,7 @@ class MediaTab(wx.Panel):
         self.sp_binary.SetValue(find_librespot() or "")
         sp_bin_browse = wx.Button(self.spotify_panel, label="&...")
         sp_bin_browse.SetName("librespot auswählen")
+        set_native_accessibility_label(sp_bin_browse, _("librespot auswählen"))
         sp_bin_browse.Bind(wx.EVT_BUTTON, self._on_sp_browse_binary)
         sp_bin_row.Add(self.sp_binary, 1, wx.RIGHT | wx.EXPAND, 4)
         sp_bin_row.Add(sp_bin_browse, 0)

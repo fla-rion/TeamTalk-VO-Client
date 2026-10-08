@@ -10,6 +10,7 @@ from ..tt_file_parser import build_teamtalk_url, build_teamtalk_xml, parse_teamt
 from ..models import ServerProfile
 from ui.profile_form import merge_form_into_profile
 from ..a11y import setup_list_accessible
+from ..accessible_controls import CustomTextEntryDialog
 from ..server_browser import ServerBrowserDialog
 from tls_verify import get_cert_fingerprint
 
@@ -1053,7 +1054,7 @@ class _ServerGroupsDialog(wx.Dialog):
         self._srv_list.Set(list(members))
 
     def _on_add_group(self, _event) -> None:
-        with wx.TextEntryDialog(self, _("Name der neuen Gruppe:"), _("Gruppe erstellen")) as dlg:
+        with CustomTextEntryDialog(self, _("Name der neuen Gruppe:"), _("Gruppe erstellen"), ok_label=_("Erstellen")) as dlg:
             if dlg.ShowModal() != wx.ID_OK:
                 return
             name = dlg.GetValue().strip()
