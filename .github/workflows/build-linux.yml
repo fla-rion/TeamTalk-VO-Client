@@ -101,6 +101,13 @@ jobs:
           tar -czf "dist/$tar_name" -C dist "TeamTalk VO Client"
           echo "TAR_NAME=$tar_name" >> "$GITHUB_ENV"
 
+      - name: Debian-Paket (.deb) erstellen
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          deb_path=$(bash installer/linux/build_deb.sh "$version" "${{ matrix.arch }}" | tail -1)
+          dpkg-deb --info "$deb_path"
+          echo "DEB_NAME=$(basename "$deb_path")" >> "$GITHUB_ENV"
+
       - name: GitHub Release erstellen und tar.gz hochladen
         uses: softprops/action-gh-release@v3
         with:
@@ -109,8 +116,10 @@ jobs:
           body: |
             Linux-Build (${{ matrix.arch }}) für Version ${{ steps.version.outputs.version }}.
 
-            **Installation:** Archiv entpacken und `TeamTalk VO Client/TeamTalk VO Client` ausführen.
-          files: dist/${{ env.TAR_NAME }}
+            **Installation:** `sudo apt install ./teamtalk-vo-client_…deb` – oder Archiv entpacken und `TeamTalk VO Client/TeamTalk VO Client` ausführen.
+          files: |
+            dist/${{ env.DEB_NAME }}
+            dist/${{ env.TAR_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

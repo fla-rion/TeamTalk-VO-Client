@@ -111,6 +111,13 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Nouveautés</h2>
 <div class="new">
+<strong>v11.2.1 (2026-10-09) :</strong> Paquets d'installation et reconnaissance vocale
+<ul>
+  <li><strong>Paquets d'installation</strong> (.pkg, Setup.exe, .deb) et <strong>mises à jour depuis l'application</strong> : téléchargement, fermeture, l'installation démarre. Détails au chapitre 3.</li>
+  <li><strong>Installer la reconnaissance vocale</strong> (whisper.cpp) en un clic, dans un terminal. Détails au chapitre 9.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.0 (2026-10-09) :</strong> Accessibilité et traduction
 <ul>
   <li><strong>Champs numériques</strong> <span class="platform mac">macOS</span> : champ texte avec flèches, VoiceOver annonce les changements de valeur.</li>
@@ -475,6 +482,11 @@ Développeur principal : <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&
 
 <h2>Mise à jour de l'application</h2>
 <p>Via <em>Aide → Rechercher des mises à jour</em>, l'application vérifie si une nouvelle version est disponible. Le DMG de mise à jour (macOS) est téléchargé et enregistré directement dans l'application – aucun accès navigateur au dépôt n'est nécessaire.</p>
+
+<h2>Paquets d'installation et mises à jour</h2>
+<p>Depuis la version 11.2.1, chaque version est fournie avec des paquets d'installation : <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (installe dans /Applications), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (par défaut : pour vous seul, sans droits d'administrateur ; pour tous les utilisateurs au choix, le contrôle de compte d'utilisateur demande alors confirmation), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (dans /opt, commande <code>teamtalk-vo-client</code>, entrée de menu). Les DMG, ZIP et tar.gz restent disponibles.</p>
+<p>Quand l'application trouve une mise à jour, elle demande puis télécharge le paquet d'installation adapté dans votre dossier Téléchargements. Elle indique ensuite qu'elle doit se fermer pour l'installer ; si vous confirmez, l'installation démarre et l'application se ferme (même si elle se réduit sinon dans la zone de notification). Sous Linux, un terminal s'ouvre, installe le paquet avec apt et demande votre mot de passe. Après l'installation, relancez l'application.</p>
+<div class="note"><span class="platform mac">macOS</span> Le paquet installe toujours dans /Applications. Si votre application se trouve ailleurs, une seconde copie y est créée – vous pouvez supprimer l'ancienne.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Partie B · Fenêtre principale &amp; navigation</div>

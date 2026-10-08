@@ -93,7 +93,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "11.2.0"
+APP_VERSION = "11.2.1"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -9451,20 +9451,12 @@ class MainFrame(wx.Frame):
             return
         dlg.Destroy()
 
-        # Speicherort erfragen
-        default_name = asset_name or f"TeamTalk VO Client {tag}.dmg"
-        save_dlg = wx.FileDialog(
-            self,
-            message="Update speichern unter…",
-            defaultFile=default_name,
-            wildcard="DMG-Dateien (*.dmg)|*.dmg|Alle Dateien (*.*)|*.*",
-            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT,
-        )
-        if save_dlg.ShowModal() != wx.ID_OK:
-            save_dlg.Destroy()
-            return
-        dest_path = save_dlg.GetPath()
-        save_dlg.Destroy()
+        # In den Download-Ordner laden; ein Installationspaket wird danach
+        # nach Bestätigung direkt gestartet (seit v11.2.1)
+        from pathlib import Path as _Path
+        downloads = _Path.home() / "Downloads"
+        downloads.mkdir(parents=True, exist_ok=True)
+        dest_path = str(downloads / (asset_name or f"TeamTalk-VO-Client-{tag}"))
 
         self.set_status(f"Lade Update v{tag} herunter…")
         self.tts.speak(f"Update wird heruntergeladen, Version {tag}", kind="system")
@@ -9512,16 +9504,12 @@ class MainFrame(wx.Frame):
         threading.Thread(target=_download, daemon=True).start()
 
     def _on_update_downloaded(self, tag: str, path: str) -> None:
-        """v6.1.0 – Erfolgsmeldung nach abgeschlossenem Update-Download."""
+        """Nach dem Download: Installationspaket nach Bestätigung starten und
+        die App beenden (seit v11.2.1), sonst Speicherort melden."""
         self.set_status(f"Update v{tag} heruntergeladen: {path}")
-        self.tts.speak(f"Update Version {tag} erfolgreich gespeichert", kind="system")
-        wx.MessageBox(
-            f"Update v{tag} wurde erfolgreich gespeichert:\n{path}\n\n"
-            "Bitte die App beenden, das DMG öffnen und neu installieren.",
-            "Update heruntergeladen",
-            wx.OK | wx.ICON_INFORMATION,
-            self,
-        )
+        self.tts.speak(f"Update Version {tag} heruntergeladen", kind="system")
+        from ui_wx.update_install import offer_install
+        offer_install(self, self, path, tag)
 
     def scan_saved_servers_presence(self):
         servers = list(self.store.items())

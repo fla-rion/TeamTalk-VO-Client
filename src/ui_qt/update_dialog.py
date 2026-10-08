@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 import update_manager as um
+from i18n import _
 
 
 class _Signals(QObject):
@@ -135,7 +136,7 @@ class UpdateManagerDialog(QDialog):
             tag = r.tag.lstrip("v")
             marker = " ★ NEU" if _version_gt(tag, current_v) else (" ✓ aktuell" if tag == current_v else "")
             has_asset = r.platform_asset is not None
-            asset_info = f"  [{um.format_size(r.platform_asset.size)}]" if has_asset else "  [kein Windows-Asset]"
+            asset_info = f"  [{um.format_size(r.platform_asset.size)}]" if has_asset else "  [" + _("kein passendes Paket") + "]"
             self._list.addItem(f"{r.tag}  {r.date}{marker}{asset_info}")
         self._btn_refresh.setEnabled(True)
         if releases:
@@ -205,10 +206,15 @@ class UpdateManagerDialog(QDialog):
         self._btn_refresh.setEnabled(True)
         self._btn_open.show()
         self._set_status(f"Download abgeschlossen: {os.path.basename(path)}")
-        if path.endswith(".zip"):
+        tag = self._selected.tag.lstrip("v") if self._selected else ""
+        if um.is_installer(os.path.basename(path)):
+            from ui_qt.update_install import offer_install
+            offer_install(self, self.parent(), path, tag)
+        else:
+            # Ältere Releases ohne Installationspaket: Speicherort anzeigen
             reply = QMessageBox.question(
                 self, "Download fertig",
-                f"Download abgeschlossen:\n{path}\n\nIm Explorer anzeigen?",
+                f"Download abgeschlossen:\n{path}\n\nIm Dateimanager anzeigen?",
             )
             if reply == QMessageBox.StandardButton.Yes:
                 um.reveal_in_finder(path)

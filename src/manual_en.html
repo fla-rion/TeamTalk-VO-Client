@@ -111,6 +111,13 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 
 <h2>What's New</h2>
 <div class="new">
+<strong>v11.2.1 (2026-10-09):</strong> Installer packages and speech recognition
+<ul>
+  <li><strong>Installer packages</strong> (.pkg, Setup.exe, .deb) and <strong>updates directly from the app</strong>: download, quit the app, setup starts. Details in chapter 3.</li>
+  <li><strong>Install speech recognition later</strong> (whisper.cpp) with one click, in a terminal window. Details in chapter 9.</li>
+</ul>
+</div>
+<div class="new">
 <strong>v11.2.0 (2026-10-09):</strong> Accessibility and translation
 <ul>
   <li><strong>Number fields</strong> <span class="platform mac">macOS</span>: text field with arrow buttons, VoiceOver reliably reads value changes.</li>
@@ -475,6 +482,11 @@ Lead developer: <strong>Florian Lichteblau (Flarion)</strong> &nbsp;·&nbsp; Ver
 
 <h2>App Update</h2>
 <p>Via <em>Help → Check for Updates</em>, the app checks whether a new version is available. The update DMG (macOS) is downloaded and saved directly within the app – no browser access to the repository required.</p>
+
+<h2>Installer Packages and Updates</h2>
+<p>Since version 11.2.1 every version comes with installer packages: <span class="platform mac">macOS</span> <code>…-macOS.pkg</code> (installs to /Applications), <span class="platform win">Windows</span> <code>…-windows-setup.exe</code> (default: just for you, no administrator rights; all users can be chosen, then User Account Control asks), <span class="platform lin">Linux</span> <code>teamtalk-vo-client_…deb</code> (to /opt, command <code>teamtalk-vo-client</code>, start menu entry). DMG, ZIP and tar.gz are still available.</p>
+<p>When the app finds an update, it asks and then downloads the matching installer package to your Downloads folder. It then points out that it must quit to install; if you confirm, the setup starts and the app quits (even if it otherwise minimizes to the tray). On Linux a terminal opens that installs the package with apt and asks for your password. After installing, start the app again.</p>
+<div class="note"><span class="platform mac">macOS</span> The package always installs to /Applications. If your app is somewhere else, a second copy is created there – you can delete the old one.</div>
 
 <!-- ============================================================ -->
 <div class="part-header">Part B · Main Window &amp; Navigation</div>

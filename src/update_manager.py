@@ -92,15 +92,42 @@ def fetch_releases(limit: int = 50) -> List[Release]:
     return result
 
 
-def get_platform_asset(release: Release) -> Optional[ReleaseAsset]:
-    """Gibt das passende Asset für die aktuelle Plattform zurück."""
-    for asset in release.assets:
-        n = asset.name.lower()
-        if sys.platform == "darwin" and n.endswith(".dmg"):
-            return asset
-        if sys.platform == "win32" and n.endswith(".zip"):
-            return asset
+def _linux_arch() -> str:
+    import platform
+    return "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x86_64"
+
+
+def _platform_patterns(plat: Optional[str] = None, arch: Optional[str] = None) -> List[tuple]:
+    """(Endung, ist_Installer) in Vorzugsreihenfolge – Installationspakete
+    (seit v11.2.1) vor den bisherigen Archiven."""
+    plat = plat or sys.platform
+    if plat == "darwin":
+        return [(".pkg", True), (".dmg", False)]
+    if plat == "win32":
+        return [("-setup.exe", True), ("-windows.zip", False), (".zip", False)]
+    arch = arch or _linux_arch()
+    deb_arch = "arm64" if arch == "arm64" else "amd64"
+    return [(f"_{deb_arch}.deb", True), (f"_linux_{arch}.tar.gz", False)]
+
+
+def get_platform_asset(release: Release, plat: Optional[str] = None,
+                       arch: Optional[str] = None) -> Optional[ReleaseAsset]:
+    """Gibt das passende Asset für die aktuelle Plattform zurück
+    (Installationspaket bevorzugt)."""
+    for suffix, _installer in _platform_patterns(plat, arch):
+        for asset in release.assets:
+            if asset.name.lower().endswith(suffix):
+                return asset
     return None
+
+
+_INSTALLER_SUFFIXES = {"darwin": (".pkg",), "win32": ("-setup.exe",), "linux": (".deb",)}
+
+
+def is_installer(name: str, plat: Optional[str] = None) -> bool:
+    plat = plat or sys.platform
+    key = plat if plat in _INSTALLER_SUFFIXES else "linux"
+    return name.lower().endswith(_INSTALLER_SUFFIXES[key])
 
 
 def download_asset(
@@ -128,6 +155,51 @@ def download_asset(
                 if progress_cb:
                     progress_cb(downloaded, total)
     return dest_path
+
+
+def install_update(path: str) -> "tuple[bool, str]":
+    """Startet das heruntergeladene Installationspaket. Die App muss sich
+    danach selbst beenden (macht der Aufrufer nach Bestätigung des Nutzers).
+
+    macOS: Installer (.pkg) per ``open``. Windows: Setup-Programm (Inno Setup,
+    schließt eine noch laufende App selbst). Linux: ``apt-get install`` des
+    .deb in einem Terminal mit Passwortabfrage (pkexec/sudo).
+    """
+    import subprocess
+    from i18n import _
+    try:
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", path])
+        elif sys.platform == "win32":
+            os.startfile(path)  # type: ignore[attr-defined]  # UAC-Abfrage kommt vom Setup
+        else:
+            from terminal_launcher import run_in_terminal
+            ok, err = run_in_terminal(linux_install_script(path), prefix="ttvo-update-")
+            if not ok:
+                return False, err
+    except OSError as exc:
+        return False, str(exc)
+    return True, _("Setup gestartet")
+
+
+def linux_install_script(deb_path: str) -> str:
+    from i18n import _
+
+    def q(s: str) -> str:
+        return "'" + str(s).replace("'", "'\\''") + "'"
+    return f"""#!/bin/bash
+echo {q(_("TeamTalk VO Client wird aktualisiert …"))}
+ok=0
+if command -v pkexec >/dev/null 2>&1; then
+  pkexec apt-get install -y {q(deb_path)} && ok=1
+else
+  sudo apt-get install -y {q(deb_path)} && ok=1
+fi
+echo
+if [ "$ok" -eq 1 ]; then echo {q(_("Fertig: Das Update ist installiert. Du kannst TeamTalk VO Client wieder starten."))}; else echo {q(_("Installation fehlgeschlagen"))}; fi
+echo
+read -r -p {q(_("Enter drücken, um dieses Fenster zu schließen") + " ")} _
+"""
 
 
 def open_file_or_folder(path: str) -> None:

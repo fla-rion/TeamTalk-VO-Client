@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.1)
+Installationspakete mit Update über die App, Spracherkennung nachinstallieren
+
+- **Neu: Installationspakete** für jede Version: macOS .pkg, Windows
+  Setup.exe (Standard ohne Administratorrechte, für alle Nutzer wählbar),
+  Linux .deb (x86_64 und arm64). DMG, ZIP und tar.gz gibt es weiterhin.
+- **Neu: Update direkt installieren.** Findet die App ein Update, lädt sie
+  das passende Installationspaket herunter, weist darauf hin, dass sie sich
+  zum Installieren beenden muss, und startet nach Bestätigung das Setup.
+  Unter Linux installiert ein Terminal das Paket mit apt (Passwortabfrage).
+  Gilt ab dem Update von 11.2.1 auf spätere Versionen.
+- **Neu: Spracherkennung nachinstallieren** (Sprachnachrichten-Dialog oder
+  Einstellungen → KI & Integration). Lädt die lokale Spracherkennung
+  whisper.cpp in einem sichtbaren Terminal-Fenster: Windows direkt von
+  GitHub ohne Administratorrechte (ein winget-Paket gibt es nicht), Linux
+  per apt (mit Passwortabfrage) oder von GitHub, macOS per Homebrew. Am
+  Ende erscheint eine Meldung, Enter schließt das Fenster.
+- **Behoben (Linux):** Der Update-Manager fand für Linux kein Paket und
+  meldete "kein Windows-Asset".
+- **Behoben:** "App beenden" im Update-Manager blendete die App bei
+  aktiviertem Tray-Modus nur aus, statt sie zu beenden.
+
 2026-10-09 (v11.2.0)
 Barrierefreiheit und Übersetzung: Politur vor neuen großen Funktionen
 

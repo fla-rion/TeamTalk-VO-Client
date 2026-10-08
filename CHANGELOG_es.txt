@@ -1,6 +1,30 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.1)
+Paquetes de instalación con actualización desde la aplicación, instalar reconocimiento de voz
+
+- **Nuevo: paquetes de instalación** para cada versión: macOS .pkg,
+  Windows Setup.exe (por defecto sin derechos de administrador, todos los
+  usuarios opcional), Linux .deb (x86_64 y arm64). Siguen existiendo DMG,
+  ZIP y tar.gz.
+- **Nuevo: instalar actualizaciones directamente.** Cuando la aplicación
+  encuentra una actualización, descarga el paquete adecuado, avisa de que
+  debe cerrarse para instalarla e inicia la instalación tras confirmar. En
+  Linux un terminal instala el paquete con apt (pide la contraseña). Se
+  aplica a partir de la actualización de 11.2.1 a versiones posteriores.
+- **Nuevo: instalar el reconocimiento de voz más tarde** (diálogo de
+  mensajes de voz o Configuración → IA e integración). Descarga el
+  reconocimiento de voz local whisper.cpp en una ventana de terminal
+  visible: Windows directamente desde GitHub sin derechos de administrador
+  (no existe paquete winget), Linux mediante apt (con contraseña) o desde
+  GitHub, macOS mediante Homebrew. Al final aparece un mensaje e Intro
+  cierra la ventana.
+- **Corregido (Linux):** el gestor de actualizaciones no encontraba ningún
+  paquete para Linux y mostraba "sin paquete de Windows".
+- **Corregido:** "Salir de la aplicación" en el gestor de actualizaciones
+  solo ocultaba la aplicación con el modo de bandeja activado.
+
 2026-10-09 (v11.2.0)
 Accesibilidad y traducción: pulido antes de nuevas funciones grandes
 

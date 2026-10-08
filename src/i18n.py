@@ -9325,6 +9325,53 @@ _TRANSLATIONS_ES.update({
     "Installation gestartet – bitte dem Terminal-Fenster folgen.": "Instalación iniciada: sigue la ventana del terminal.",
 })
 
+# Update über Installationspakete (update_manager.install_update, v11.2.1)
+_TRANSLATIONS.update({
+    "&Beenden und installieren": "&Quit and install",
+    "&Später": "&Later",
+    "Setup gestartet – TeamTalk VO Client wird beendet": "Setup started – TeamTalk VO Client is quitting",
+    "Setup konnte nicht gestartet werden: {}": "Setup could not be started: {}",
+    "Update gespeichert: {}": "Update saved: {}",
+    "Update heruntergeladen": "Update downloaded",
+    "Update installieren": "Install update",
+    "Update {}ist heruntergeladen.\n\nZum Installieren muss TeamTalk VO Client beendet werden. Jetzt beenden und das Setup starten?": "Update {}has been downloaded.\n\nTeamTalk VO Client must quit to install it. Quit now and start the setup?",
+    "Update {}wurde gespeichert:\n{}\n\nBitte die App beenden und das Update von Hand installieren.": "Update {}has been saved:\n{}\n\nPlease quit the app and install the update manually.",
+    "kein passendes Paket": "no matching package",
+    "Setup gestartet": "Setup started",
+    "TeamTalk VO Client wird aktualisiert …": "Updating TeamTalk VO Client …",
+    "Fertig: Das Update ist installiert. Du kannst TeamTalk VO Client wieder starten.": "Done: the update is installed. You can start TeamTalk VO Client again.",
+})
+_TRANSLATIONS_FR.update({
+    "&Beenden und installieren": "&Quitter et installer",
+    "&Später": "&Plus tard",
+    "Setup gestartet – TeamTalk VO Client wird beendet": "Installation lancée – TeamTalk VO Client se ferme",
+    "Setup konnte nicht gestartet werden: {}": "Impossible de lancer l'installation : {}",
+    "Update gespeichert: {}": "Mise à jour enregistrée : {}",
+    "Update heruntergeladen": "Mise à jour téléchargée",
+    "Update installieren": "Installer la mise à jour",
+    "Update {}ist heruntergeladen.\n\nZum Installieren muss TeamTalk VO Client beendet werden. Jetzt beenden und das Setup starten?": "La mise à jour {}est téléchargée.\n\nTeamTalk VO Client doit se fermer pour l'installer. Quitter maintenant et lancer l'installation ?",
+    "Update {}wurde gespeichert:\n{}\n\nBitte die App beenden und das Update von Hand installieren.": "La mise à jour {}a été enregistrée :\n{}\n\nQuittez l'application et installez la mise à jour manuellement.",
+    "kein passendes Paket": "aucun paquet adapté",
+    "Setup gestartet": "Installation lancée",
+    "TeamTalk VO Client wird aktualisiert …": "Mise à jour de TeamTalk VO Client …",
+    "Fertig: Das Update ist installiert. Du kannst TeamTalk VO Client wieder starten.": "Terminé : la mise à jour est installée. Vous pouvez relancer TeamTalk VO Client.",
+})
+_TRANSLATIONS_ES.update({
+    "&Beenden und installieren": "&Salir e instalar",
+    "&Später": "&Más tarde",
+    "Setup gestartet – TeamTalk VO Client wird beendet": "Instalación iniciada: TeamTalk VO Client se cierra",
+    "Setup konnte nicht gestartet werden: {}": "No se pudo iniciar la instalación: {}",
+    "Update gespeichert: {}": "Actualización guardada: {}",
+    "Update heruntergeladen": "Actualización descargada",
+    "Update installieren": "Instalar actualización",
+    "Update {}ist heruntergeladen.\n\nZum Installieren muss TeamTalk VO Client beendet werden. Jetzt beenden und das Setup starten?": "La actualización {}se ha descargado.\n\nTeamTalk VO Client debe cerrarse para instalarla. ¿Cerrar ahora e iniciar la instalación?",
+    "Update {}wurde gespeichert:\n{}\n\nBitte die App beenden und das Update von Hand installieren.": "La actualización {}se ha guardado:\n{}\n\nCierra la aplicación e instala la actualización manualmente.",
+    "kein passendes Paket": "ningún paquete adecuado",
+    "Setup gestartet": "Instalación iniciada",
+    "TeamTalk VO Client wird aktualisiert …": "Actualizando TeamTalk VO Client …",
+    "Fertig: Das Update ist installiert. Du kannst TeamTalk VO Client wieder starten.": "Listo: la actualización está instalada. Puedes volver a abrir TeamTalk VO Client.",
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 

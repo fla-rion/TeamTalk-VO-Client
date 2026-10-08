@@ -9,6 +9,7 @@ from typing import List, Optional
 import wx
 
 import update_manager as um
+from i18n import _
 
 
 class UpdateManagerDialog(wx.Dialog):
@@ -125,7 +126,7 @@ class UpdateManagerDialog(wx.Dialog):
             tag = r.tag.lstrip("v")
             marker = " ★ NEU" if _version_gt(tag, current_v) else (" ✓ aktuell" if tag == current_v else "")
             has_asset = r.platform_asset is not None
-            size_str = f", {um.format_size(r.platform_asset.size)}" if has_asset else ", kein macOS-Asset"
+            size_str = f", {um.format_size(r.platform_asset.size)}" if has_asset else ", " + _("kein passendes Paket")
             self._list.Append(f"{r.tag}, {r.date}{marker}{size_str}")
         self._btn_refresh.Enable()
         if releases:
@@ -197,8 +198,12 @@ class UpdateManagerDialog(wx.Dialog):
         self._btn_open.Show()
         self.Layout()
         self._set_status(f"Download abgeschlossen: {os.path.basename(path)}")
-        # DMG direkt öffnen anbieten
-        if path.endswith(".dmg"):
+        tag = self._selected.tag.lstrip("v") if self._selected else ""
+        if um.is_installer(os.path.basename(path)):
+            from ui_wx.update_install import offer_install
+            offer_install(self, self.GetParent(), path, tag)
+        elif path.endswith(".dmg"):
+            # Ältere Releases ohne Installationspaket: DMG öffnen anbieten
             if wx.MessageBox(
                 f"Download abgeschlossen:\n{path}\n\nDMG jetzt öffnen?",
                 "Download fertig",
@@ -220,7 +225,9 @@ class UpdateManagerDialog(wx.Dialog):
 
     def _on_app_quit(self, _event):
         self.EndModal(wx.ID_CANCEL)
-        wx.CallAfter(wx.GetApp().GetTopWindow().Close)
+        # Wirklich beenden, nicht nur in den Tray minimieren
+        top = wx.GetApp().GetTopWindow()
+        wx.CallAfter(getattr(top, "force_close", top.Close))
 
     def _set_status(self, text: str):
         self._status.SetLabel(text)

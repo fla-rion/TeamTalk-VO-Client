@@ -1,6 +1,28 @@
 Changelog
 =========
 
+2026-10-09 (v11.2.1)
+Installer packages with in-app updates, install speech recognition later
+
+- **New: installer packages** for every version: macOS .pkg, Windows
+  Setup.exe (by default without administrator rights, all users optional),
+  Linux .deb (x86_64 and arm64). DMG, ZIP and tar.gz remain available.
+- **New: install updates directly.** When the app finds an update, it
+  downloads the matching installer package, points out that it must quit to
+  install, and starts the setup after you confirm. On Linux a terminal
+  installs the package with apt (password prompt). Applies from the update
+  from 11.2.1 to later versions.
+- **New: install speech recognition later** (voice message dialog or
+  Settings → AI & Integration). Downloads the local speech recognition
+  whisper.cpp in a visible terminal window: Windows directly from GitHub
+  without administrator rights (there is no winget package), Linux via apt
+  (password prompt) or from GitHub, macOS via Homebrew. At the end a message
+  appears and Return closes the window.
+- **Fixed (Linux):** the update manager found no package for Linux and
+  reported "no Windows asset".
+- **Fixed:** "Quit app" in the update manager only hid the app when tray
+  mode was enabled instead of quitting.
+
 2026-10-09 (v11.2.0)
 Accessibility and translation: polish before new big features
 

@@ -22,11 +22,9 @@ Danach wird das Sprachmodell in den App-Datenordner geladen.
 """
 from __future__ import annotations
 
-import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -262,47 +260,14 @@ read -r -p {_sh_quote(t_enter + " ")} _
 """
 
 
-def _linux_terminal(script: Path) -> Optional[List[str]]:
-    cmd = ["bash", str(script)]
-    for term, prefix in (
-        ("x-terminal-emulator", ["-e"]), ("gnome-terminal", ["--"]), ("konsole", ["-e"]),
-        ("xfce4-terminal", ["-x"]), ("mate-terminal", ["-x"]), ("lxterminal", ["-e"]),
-        ("tilix", ["-e"]), ("kitty", []), ("alacritty", ["-e"]), ("xterm", ["-e"]),
-    ):
-        if shutil.which(term):
-            return [term] + prefix + cmd
-    return None
-
-
 def launch_install() -> Tuple[bool, str]:
     """Startet die Installation in einem sichtbaren Terminal-Fenster."""
     ok, reason = can_install()
     if not ok:
         return False, reason
-    plat = _platform()
     install_dir().mkdir(parents=True, exist_ok=True)
-    suffix = ".ps1" if plat == "win32" else ".sh"
-    fd, name = tempfile.mkstemp(prefix="ttvo-whisper-", suffix=suffix)
-    script = Path(name)
-    # PowerShell liest UTF-8 mit BOM sicher (Umlaute in den Meldungen)
-    with os.fdopen(fd, "w", encoding="utf-8-sig" if plat == "win32" else "utf-8", newline="\n") as f:
-        f.write(build_script(plat))
-    try:
-        if plat == "win32":
-            subprocess.Popen(
-                ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
-                creationflags=0x00000010,  # CREATE_NEW_CONSOLE
-            )
-        elif plat == "darwin":
-            script.chmod(0o755)
-            osa = f'tell application "Terminal" to do script "bash " & quoted form of "{script}"'
-            subprocess.Popen(["osascript", "-e", osa, "-e", 'tell application "Terminal" to activate'])
-        else:
-            script.chmod(0o755)
-            cmd = _linux_terminal(script)
-            if cmd is None:
-                return False, _("Kein Terminal-Programm gefunden. Bitte im Terminal ausführen: bash {}").format(script)
-            subprocess.Popen(cmd)
-    except OSError as exc:
-        return False, str(exc)
+    from terminal_launcher import run_in_terminal
+    started, err = run_in_terminal(build_script(_platform()), prefix="ttvo-whisper-")
+    if not started:
+        return False, err
     return True, _("Installation gestartet – bitte dem Terminal-Fenster folgen.")
