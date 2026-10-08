@@ -149,3 +149,39 @@ def test_deliver_failures_are_returned_for_requeue(tmp_path):
     q.enqueue("neu", "channel", 0)
     q.requeue(failed)
     assert [m.text for m in q.peek()] == ["a", "b", "neu"]
+
+
+# --- Transkriptionsweg: Whisper → Apple Speech → nur Audio --------------
+
+def test_backend_order(monkeypatch):
+    monkeypatch.setattr(vn, "whisper_available", lambda: True)
+    monkeypatch.setattr(vn, "apple_speech_available", lambda: True)
+    assert vn.transcription_backend() == vn.BACKEND_WHISPER
+    monkeypatch.setattr(vn, "whisper_available", lambda: False)
+    assert vn.transcription_backend() == vn.BACKEND_APPLE
+    monkeypatch.setattr(vn, "apple_speech_available", lambda: False)
+    assert vn.transcription_backend() is None and not vn.transcription_available()
+
+
+def test_transcribe_dispatches_to_apple(monkeypatch, tmp_path):
+    monkeypatch.setattr(vn, "whisper_available", lambda: False)
+    monkeypatch.setattr(vn, "apple_speech_available", lambda: True)
+    calls = []
+    monkeypatch.setattr(vn, "transcribe_apple", lambda p, lang: calls.append((p, lang)) or "hallo")
+    assert vn.transcribe_file(tmp_path / "a.wav", language="fr") == "hallo"
+    assert calls == [(tmp_path / "a.wav", "fr")]
+
+
+def test_no_backend_sets_reason(monkeypatch, tmp_path):
+    monkeypatch.setattr(vn, "whisper_available", lambda: False)
+    monkeypatch.setattr(vn, "apple_speech_available", lambda: False)
+    assert vn.transcribe_file(tmp_path / "a.wav") is None and vn.last_error
+
+
+def test_apple_denied_authorization(monkeypatch, tmp_path):
+    import pytest
+    if not vn.apple_speech_available():
+        pytest.skip("Speech-Framework nicht vorhanden")
+    monkeypatch.setattr(vn, "_apple_authorize", lambda timeout: vn._AUTH_DENIED)
+    assert vn.transcribe_apple(tmp_path / "a.wav", "de") is None
+    assert "Spracherkennung" in vn.last_error or vn.last_error

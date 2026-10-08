@@ -7,14 +7,20 @@ transkribiert sie – falls verfügbar – lokal mit Whisper (wie
 ``OfflineMessageQueue`` und werden nach dem Wiederverbinden zugestellt.
 
 Die Aufnahme läuft unabhängig vom TeamTalk-SDK, funktioniert also auch ohne
-Serververbindung. Whisper ist im ausgelieferten App-Bundle nicht enthalten
-(siehe ``excludes`` in der .spec); dann bleibt es bei der Audiodatei plus
-Hinweistext.
+Serververbindung.
+
+Transkription, in dieser Reihenfolge:
+1. Whisper, falls importierbar (Entwicklungsumgebung; im ausgelieferten
+   App-Bundle wegen der Größe ausgeschlossen, siehe ``excludes`` in der .spec).
+2. macOS: Apples Spracherkennung (Speech-Framework, ``SFSpeechRecognizer``),
+   wenn möglich auf dem Gerät; braucht die Erlaubnis "Spracherkennung".
+3. Sonst nur die Audiodatei mit Hinweistext.
 
 UI-frei; wx und Qt nutzen dieselben Klassen.
 """
 from __future__ import annotations
 
+import sys
 import threading
 import time
 import wave
@@ -37,13 +43,54 @@ def recording_available() -> bool:
         return False
 
 
-def transcription_available() -> bool:
+def whisper_available() -> bool:
     try:
         import whisper  # noqa: F401
         import numpy  # noqa: F401
         return True
     except Exception:
         return False
+
+
+def apple_speech_available() -> bool:
+    if sys.platform != "darwin":
+        return False
+    try:
+        import Speech  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+BACKEND_WHISPER = "whisper"
+BACKEND_APPLE = "apple"
+
+
+def transcription_backend() -> Optional[str]:
+    """Welcher Transkriptionsweg greift: "whisper", "apple" oder None."""
+    if whisper_available():
+        return BACKEND_WHISPER
+    if apple_speech_available():
+        return BACKEND_APPLE
+    return None
+
+
+def transcription_available() -> bool:
+    return transcription_backend() is not None
+
+
+
+def backend_hint() -> str:
+    """Kurzer Hinweis für den Dialog, welcher Weg genutzt wird."""
+    backend = transcription_backend()
+    if backend == BACKEND_WHISPER:
+        return _("Spracherkennung: Whisper (lokal)")
+    if backend == BACKEND_APPLE:
+        return _("Spracherkennung: Apple (macOS) – beim ersten Mal fragt macOS nach der Erlaubnis")
+    return _("Keine Spracherkennung verfügbar – es wird nur die Audiodatei mit einem Hinweistext gespeichert.")
+
+# Grund, warum die letzte Transkription nichts geliefert hat (für die UI)
+last_error: Optional[str] = None
 
 
 def match_input_device(pa, device_name: Optional[str]) -> Optional[int]:
@@ -207,11 +254,22 @@ _model = None
 
 
 def transcribe_file(path: Path, language: str = "de", model_name: str = "base") -> Optional[str]:
-    """Transkribiert eine 16-kHz-Mono-WAV lokal mit Whisper. Blockiert (im
-    Hintergrundthread aufrufen). None, wenn Whisper fehlt oder scheitert."""
-    if not transcription_available():
-        return None
-    global _model
+    """Transkribiert eine 16-kHz-Mono-WAV. Blockiert (im Hintergrundthread
+    aufrufen). None, wenn kein Weg verfügbar ist oder er scheitert; der Grund
+    steht dann in ``last_error``."""
+    global last_error
+    last_error = None
+    backend = transcription_backend()
+    if backend == BACKEND_WHISPER:
+        return _transcribe_whisper(path, language, model_name)
+    if backend == BACKEND_APPLE:
+        return transcribe_apple(path, language)
+    last_error = _("keine Spracherkennung verfügbar")
+    return None
+
+
+def _transcribe_whisper(path: Path, language: str, model_name: str) -> Optional[str]:
+    global _model, last_error
     try:
         import numpy as np
         import whisper
@@ -225,8 +283,91 @@ def transcribe_file(path: Path, language: str = "de", model_name: str = "base") 
         result = model.transcribe(audio, language=language or None, fp16=False)
         text = " ".join(str(result.get("text", "")).split())
         return text or None
-    except Exception:
+    except Exception as exc:
+        last_error = str(exc)
         return None
+
+
+# -- Apple Speech (macOS) --------------------------------------------------
+
+_APPLE_LOCALES = {"de": "de-DE", "en": "en-US", "fr": "fr-FR", "es": "es-ES"}
+# SFSpeechRecognizerAuthorizationStatus
+_AUTH_NOT_DETERMINED, _AUTH_DENIED, _AUTH_RESTRICTED, _AUTH_AUTHORIZED = 0, 1, 2, 3
+
+
+def _apple_authorize(timeout: float) -> int:
+    import Speech
+    status = int(Speech.SFSpeechRecognizer.authorizationStatus())
+    if status != _AUTH_NOT_DETERMINED:
+        return status
+    done = threading.Event()
+    box = {"status": _AUTH_NOT_DETERMINED}
+
+    def handler(new_status):
+        box["status"] = int(new_status)
+        done.set()
+
+    Speech.SFSpeechRecognizer.requestAuthorization_(handler)
+    done.wait(timeout)
+    return box["status"]
+
+
+def transcribe_apple(path: Path, language: str = "de", timeout: float = 90.0) -> Optional[str]:
+    """Transkribiert eine Audiodatei mit Apples Spracherkennung. Blockiert bis
+    zum Ergebnis oder ``timeout``; Rückmeldungen des Frameworks laufen auf
+    einer eigenen Operation-Queue, damit weder der UI-Thread noch ein
+    wartender Aufrufer im Hauptthread blockiert."""
+    global last_error
+    try:
+        import Speech
+        from Foundation import NSLocale, NSOperationQueue, NSURL
+    except Exception as exc:
+        last_error = str(exc)
+        return None
+    status = _apple_authorize(min(timeout, 60.0))
+    if status != _AUTH_AUTHORIZED:
+        last_error = (_("Spracherkennung nicht erlaubt (Systemeinstellungen → Datenschutz & Sicherheit → Spracherkennung)")
+                      if status in (_AUTH_DENIED, _AUTH_RESTRICTED)
+                      else _("Erlaubnis für die Spracherkennung wurde nicht erteilt"))
+        return None
+    locale_id = _APPLE_LOCALES.get((language or "de")[:2], "de-DE")
+    recognizer = Speech.SFSpeechRecognizer.alloc().initWithLocale_(
+        NSLocale.alloc().initWithLocaleIdentifier_(locale_id))
+    if recognizer is None or not recognizer.isAvailable():
+        last_error = _("Spracherkennung für {} nicht verfügbar").format(locale_id)
+        return None
+    recognizer.setQueue_(NSOperationQueue.alloc().init())
+    request = Speech.SFSpeechURLRecognitionRequest.alloc().initWithURL_(NSURL.fileURLWithPath_(str(path)))
+    request.setShouldReportPartialResults_(False)
+    try:
+        if recognizer.supportsOnDeviceRecognition():
+            request.setRequiresOnDeviceRecognition_(True)
+    except Exception:
+        pass
+    done = threading.Event()
+    box = {"text": None, "error": None}
+
+    def handler(result, error):
+        if error is not None:
+            box["error"] = str(error.localizedDescription())
+            done.set()
+            return
+        if result is not None and result.isFinal():
+            box["text"] = str(result.bestTranscription().formattedString())
+            done.set()
+
+    task = recognizer.recognitionTaskWithRequest_resultHandler_(request, handler)
+    if not done.wait(timeout):
+        try:
+            task.cancel()
+        except Exception:
+            pass
+        last_error = _("Spracherkennung hat nicht rechtzeitig geantwortet")
+        return None
+    text = " ".join((box["text"] or "").split())
+    if not text:
+        last_error = box["error"] or None
+    return text or None
 
 
 def format_duration(seconds: float) -> str:

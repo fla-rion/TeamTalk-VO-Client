@@ -90,9 +90,8 @@ class VoiceNoteDialog(wx.Dialog):
         if not vn.recording_available():
             self._record_btn.Disable()
             self._set_status(_("Aufnahme nicht möglich: PyAudio fehlt."))
-        elif not vn.transcription_available():
-            self._set_status(_("Hinweis: Spracherkennung (Whisper) ist nicht installiert – "
-                               "es wird nur die Audiodatei mit einem Hinweistext gespeichert."))
+        else:
+            self._set_status(vn.backend_hint())
 
     # ------------------------------------------------------------------
 
@@ -194,7 +193,7 @@ class VoiceNoteDialog(wx.Dialog):
         if text:
             self._set_status(_("Fertig: {}").format(text), True)
         else:
-            self._set_status(_("Spracherkennung ergab keinen Text – Hinweistext eingesetzt"), True)
+            self._set_status(_("Kein Text erkannt ({}) – Hinweistext eingesetzt").format(vn.last_error or _("Sprache nicht erkannt")), True)
         self._text.SetFocus()
 
     def _on_send(self, _evt) -> None:

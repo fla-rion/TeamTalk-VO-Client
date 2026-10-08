@@ -7768,6 +7768,44 @@ _TRANSLATIONS_ES.update({
     '{} s': '{} s',
 })
 
+# Sprachnachrichten: Transkriptionswege (Whisper / Apple Speech)
+_TRANSLATIONS.update({
+    'keine Spracherkennung verfügbar': 'no speech recognition available',
+    'Spracherkennung nicht erlaubt (Systemeinstellungen → Datenschutz & Sicherheit → Spracherkennung)': 'speech recognition not allowed (System Settings → Privacy & Security → Speech Recognition)',
+    'Erlaubnis für die Spracherkennung wurde nicht erteilt': 'permission for speech recognition was not granted',
+    'Spracherkennung für {} nicht verfügbar': 'speech recognition not available for {}',
+    'Spracherkennung hat nicht rechtzeitig geantwortet': 'speech recognition did not respond in time',
+    'Spracherkennung: Whisper (lokal)': 'Speech recognition: Whisper (local)',
+    'Spracherkennung: Apple (macOS) – beim ersten Mal fragt macOS nach der Erlaubnis': 'Speech recognition: Apple (macOS) – macOS asks for permission the first time',
+    'Keine Spracherkennung verfügbar – es wird nur die Audiodatei mit einem Hinweistext gespeichert.': 'No speech recognition available – only the audio file with a note text will be saved.',
+    'Kein Text erkannt ({}) – Hinweistext eingesetzt': 'No text recognized ({}) – note text inserted',
+    'Sprache nicht erkannt': 'speech not recognized',
+})
+_TRANSLATIONS_FR.update({
+    'keine Spracherkennung verfügbar': 'aucune reconnaissance vocale disponible',
+    'Spracherkennung nicht erlaubt (Systemeinstellungen → Datenschutz & Sicherheit → Spracherkennung)': 'reconnaissance vocale non autorisée (Réglages Système → Confidentialité et sécurité → Reconnaissance vocale)',
+    'Erlaubnis für die Spracherkennung wurde nicht erteilt': "l'autorisation de reconnaissance vocale n'a pas été accordée",
+    'Spracherkennung für {} nicht verfügbar': 'reconnaissance vocale non disponible pour {}',
+    'Spracherkennung hat nicht rechtzeitig geantwortet': "la reconnaissance vocale n'a pas répondu à temps",
+    'Spracherkennung: Whisper (lokal)': 'Reconnaissance vocale : Whisper (local)',
+    'Spracherkennung: Apple (macOS) – beim ersten Mal fragt macOS nach der Erlaubnis': "Reconnaissance vocale : Apple (macOS) – macOS demande l'autorisation la première fois",
+    'Keine Spracherkennung verfügbar – es wird nur die Audiodatei mit einem Hinweistext gespeichert.': 'Aucune reconnaissance vocale disponible – seul le fichier audio avec un texte indicatif sera enregistré.',
+    'Kein Text erkannt ({}) – Hinweistext eingesetzt': 'Aucun texte reconnu ({}) – texte indicatif inséré',
+    'Sprache nicht erkannt': 'parole non reconnue',
+})
+_TRANSLATIONS_ES.update({
+    'keine Spracherkennung verfügbar': 'no hay reconocimiento de voz disponible',
+    'Spracherkennung nicht erlaubt (Systemeinstellungen → Datenschutz & Sicherheit → Spracherkennung)': 'reconocimiento de voz no permitido (Ajustes del Sistema → Privacidad y seguridad → Reconocimiento de voz)',
+    'Erlaubnis für die Spracherkennung wurde nicht erteilt': 'no se concedió el permiso de reconocimiento de voz',
+    'Spracherkennung für {} nicht verfügbar': 'reconocimiento de voz no disponible para {}',
+    'Spracherkennung hat nicht rechtzeitig geantwortet': 'el reconocimiento de voz no respondió a tiempo',
+    'Spracherkennung: Whisper (lokal)': 'Reconocimiento de voz: Whisper (local)',
+    'Spracherkennung: Apple (macOS) – beim ersten Mal fragt macOS nach der Erlaubnis': 'Reconocimiento de voz: Apple (macOS); la primera vez macOS pide permiso',
+    'Keine Spracherkennung verfügbar – es wird nur die Audiodatei mit einem Hinweistext gespeichert.': 'No hay reconocimiento de voz disponible; solo se guardará el archivo de audio con un texto indicativo.',
+    'Kein Text erkannt ({}) – Hinweistext eingesetzt': 'No se reconoció texto ({}); se insertó un texto indicativo',
+    'Sprache nicht erkannt': 'voz no reconocida',
+})
+
 _SUPPORTED_LANGUAGES = ("de", "en", "fr", "es")
 
 
