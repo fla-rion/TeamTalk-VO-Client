@@ -702,6 +702,59 @@ class UserInfoDialog(QDialog):
         layout.addLayout(btn_row)
 
 
+class TalkTimeDialog(QDialog):
+    """Roadmap 11 – Redezeit je Nutzer mit Anteil in Prozent."""
+
+    def __init__(self, parent, rows_func, reset_func) -> None:
+        super().__init__(parent)
+        from PySide6.QtWidgets import QRadioButton, QButtonGroup
+        self.setWindowTitle(_("Redezeit-Statistik"))
+        self.resize(520, 420)
+        self._rows_func = rows_func
+        self._reset_func = reset_func
+        layout = QVBoxLayout(self)
+        scope_row = QHBoxLayout()
+        self._scope_channel = QRadioButton(_("Aktueller Kanal"))
+        self._scope_session = QRadioButton(_("Gesamte Sitzung"))
+        self._scope_channel.setChecked(True)
+        grp = QButtonGroup(self)
+        grp.addButton(self._scope_channel)
+        grp.addButton(self._scope_session)
+        self._scope_channel.toggled.connect(self._fill)
+        scope_row.addWidget(self._scope_channel)
+        scope_row.addWidget(self._scope_session)
+        scope_row.addStretch()
+        layout.addLayout(scope_row)
+        self._list = QListWidget()
+        self._list.setAccessibleName(_("Redezeit je Nutzer"))
+        layout.addWidget(self._list, 1)
+        btn_row = QHBoxLayout()
+        refresh_btn = QPushButton(_("&Aktualisieren"))
+        refresh_btn.clicked.connect(self._fill)
+        reset_btn = QPushButton(_("&Zurücksetzen"))
+        reset_btn.clicked.connect(self._on_reset)
+        close_btn = QPushButton(_("Sc&hließen"))
+        close_btn.clicked.connect(self.accept)
+        btn_row.addWidget(refresh_btn)
+        btn_row.addWidget(reset_btn)
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+        self._fill()
+        self._list.setFocus()
+
+    def _fill(self, *_args) -> None:
+        from talk_time import row_text
+        rows = self._rows_func(self._scope_session.isChecked())
+        self._list.clear()
+        self._list.addItems([row_text(r) for r in rows] or [_("Noch keine Redezeit erfasst")])
+        self._list.setCurrentRow(0)
+
+    def _on_reset(self) -> None:
+        self._reset_func()
+        self._fill()
+
+
 class SpeakingLogDialog(QDialog):
     """Wer hat wann gesprochen — Sprechprotokoll.
 

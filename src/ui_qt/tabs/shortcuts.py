@@ -36,6 +36,7 @@ _INAPP_CATEGORIES: List[Tuple[str, List[Tuple[str, str]]]] = [
         ("Eingangspegel ansagen", "hotkey_announce_level"),
         ("Nutzerinfo ansagen", "hotkey_announce_user_info"),
         ("Ping ansagen", "hotkey_announce_ping"),
+        ("Redezeit ansagen", "hotkey_announce_talk_time"),
         ("Braille-Status ansagen", "hotkey_announce_status"),
         ("TTS abbrechen", "hotkey_tts_cancel"),
         ("Braille-Verbosität wechseln", "hotkey_cycle_braille_verbosity"),

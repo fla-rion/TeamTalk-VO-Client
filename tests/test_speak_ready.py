@@ -200,3 +200,27 @@ def test_intercept_warning_announces_and_plays_sound(main_frame_cls):
     assert f.sounds == ["intercept_on", "intercept_off"]
     assert len(spoken) == 2 and all("Admin" in t for t in spoken)
     assert len(chat) == 2 and f.statuses[-1] == spoken[-1]
+
+
+# --- Redezeit-Statistik (MainFrame._track_speaking_log / _talk_time_stop) --
+
+def test_talk_time_feeds_speaking_log_and_announcement(main_frame_cls):
+    from talk_time import TalkTimeTracker
+    f = _fake_frame(main_frame_cls)
+    f._talk_time = TalkTimeTracker()
+    f._speaking_log = []
+    spoken = []
+    f.tts = types.SimpleNamespace(speak=lambda text, kind=None: spoken.append(text))
+    f.client.get_my_channel_id = lambda: 10
+    for name in ("_track_speaking_log", "_append_speaking_log", "_talk_time_stop",
+                 "_talk_time_rows", "_announce_talk_time"):
+        setattr(f, name, types.MethodType(getattr(main_frame_cls, name), f))
+
+    f._track_speaking_log(7, "Anna", True, 10)
+    f._track_speaking_log(7, "Anna", False, 10)
+    f._track_speaking_log(8, "Ben", True, 10)
+    f._talk_time_stop(8)  # Ben verlässt den Kanal mitten in der Wortmeldung
+    assert [e[1] for e in f._speaking_log] == ["Anna", "Ben"]
+    f._announce_talk_time()
+    assert spoken and "Anna" in spoken[-1] and "Ben" in spoken[-1]
+    assert f.statuses[-1] == spoken[-1]

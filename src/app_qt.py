@@ -183,6 +183,9 @@ class MainWindow(QMainWindow):
         self._known_audio_devices: List[str] = []
         self._speaking_log: List[dict] = []  # {"nick": ..., "ts": ..., "seconds": ...}
         self._speaking_start: Dict[int, float] = {}  # user_id -> start_time
+        # Roadmap 11 – Redezeit je Nutzer (Kanal + Sitzung)
+        from talk_time import TalkTimeTracker
+        self._talk_time = TalkTimeTracker()
         self._media_stream_users: Dict[int, bool] = {}  # user_id -> streamt Medien
         self._channel_message_log: List[str] = []
         self._current_channel_name: str = ""
@@ -778,6 +781,7 @@ class MainWindow(QMainWindow):
         self._add_action(server_m, _("Server&eigenschaften..."), self.on_menu_server_properties)
         server_m.addSeparator()
         self._add_action(server_m, _("&Wer-spricht-Protokoll..."), self.on_menu_speaking_log)
+        self._add_action(server_m, _("Rede&zeit-Statistik..."), self.on_menu_talk_time)
         self._add_action(server_m, _("&Sitzungsübersicht..."), self.on_menu_session_overview)
         server_m.addSeparator()
         self._add_action(server_m, _("Privatnachrichten-&Verlauf..."), self.on_menu_pm_history)
@@ -947,6 +951,7 @@ class MainWindow(QMainWindow):
             call_after(self._on_connection_lost)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN):
             call_after(self._intercept_tracker.reset)
+            call_after(self._talk_time.reset)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDOUT):
             call_after(self._intercept_tracker.reset)
             call_after(self._on_logged_out)
@@ -975,6 +980,7 @@ class MainWindow(QMainWindow):
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT):
             try:
                 call_after(self._intercept_tracker.forget, int(msg.user.nUserID))
+                call_after(self._talk_time_stop, int(msg.user.nUserID))
             except Exception:
                 pass
             call_after(self._on_user_loggedout, msg)
@@ -982,6 +988,10 @@ class MainWindow(QMainWindow):
             call_after(self.client.apply_media_master_to_user, int(msg.user.nUserID))
             call_after(self._on_user_joined, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT):
+            try:
+                call_after(self._talk_time_stop, int(msg.user.nUserID))
+            except Exception:
+                pass
             call_after(self._on_user_left, msg)
         elif mtype == int(tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE):
             call_after(self._on_user_update, msg)
@@ -1215,22 +1225,47 @@ class MainWindow(QMainWindow):
             ustate = int(user.uUserState)
             voice_flag = int(tt.UserState.USERSTATE_VOICE)
             is_talking = bool(ustate & voice_flag)
-            if is_talking:
-                if uid not in self._speaking_start:
-                    self._speaking_start[uid] = time.time()
-            else:
-                start = self._speaking_start.pop(uid, None)
-                if start is not None:
-                    duration_s = round(time.time() - start, 1)
-                    self._speaking_log.append({
-                        "nick": nick,
-                        "ts": time.strftime("%H:%M:%S"),
-                        "seconds": duration_s,
-                    })
-                    if len(self._speaking_log) > 200:
-                        self._speaking_log = self._speaking_log[-200:]
+            ch_id = int(getattr(user, "nChannelID", 0) or 0)
+            duration_s = self._talk_time.update(uid, nick, is_talking, time.time(), ch_id)
+            if duration_s is not None:
+                self._append_speaking_log(nick, duration_s)
         except Exception:
             pass
+
+    def _append_speaking_log(self, nick: str, duration_s: float) -> None:
+        self._speaking_log.append({
+            "nick": nick,
+            "ts": time.strftime("%H:%M:%S"),
+            "seconds": round(duration_s, 1),
+        })
+        if len(self._speaking_log) > 200:
+            self._speaking_log = self._speaking_log[-200:]
+
+    def _talk_time_stop(self, user_id: int) -> None:
+        name = self._talk_time.name_of(user_id)
+        duration_s = self._talk_time.stop(user_id, time.time())
+        if duration_s is not None:
+            self._append_speaking_log(name, duration_s)
+
+    def _talk_time_rows(self, whole_session: bool = False) -> list:
+        channel_id = None
+        if not whole_session:
+            try:
+                channel_id = int(self.client.get_my_channel_id() or 0)
+            except Exception:
+                channel_id = 0
+        return self._talk_time.rows(time.time(), channel_id)
+
+    def _announce_talk_time(self) -> None:
+        """Roadmap 11 – Redezeit im aktuellen Kanal ansagen (Kürzel)."""
+        from talk_time import summary_text
+        self.set_status(summary_text(self._talk_time_rows()))  # set_status spricht bereits
+
+    def on_menu_talk_time(self) -> None:
+        from ui_qt.dialogs import TalkTimeDialog
+        dlg = TalkTimeDialog(self, self._talk_time_rows, self._talk_time.reset)
+        dlg.exec()
+        self._refocus_channel_list()
 
     def _on_channel_update(self) -> None:
         self._refresh_channels()
@@ -1820,6 +1855,9 @@ class MainWindow(QMainWindow):
                 return
             if key and key == int(getattr(settings, "hotkey_announce_ping", 0) or 0):
                 self.on_menu_announce_ping()
+                return
+            if key and key == int(getattr(settings, "hotkey_announce_talk_time", 0) or 0):
+                self._announce_talk_time()
                 return
             if key and key == int(getattr(settings, "hotkey_cycle_braille_verbosity", 0) or 0):
                 self.braille.cycle_verbosity()

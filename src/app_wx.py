@@ -78,6 +78,7 @@ import system_audio as sa
 import audio_device_memory as adm
 from mic_watchdog import MicWatchdog, ACTION_RESTART, ACTION_GIVE_UP, sample_from_client
 from intercept_watch import InterceptTracker
+from talk_time import TalkTimeTracker, USERSTATE_VOICE, row_text as talk_row_text, summary_text as talk_summary_text
 from coreaudio_watch import CoreAudioDeviceWatcher
 from tls_verify import CertPinStore
 from plugin_package import PluginPackage, read_package, install_package, PluginManifestError
@@ -737,6 +738,8 @@ class MainFrame(wx.Frame):
         # v3.0.0 – Wer-spricht-Protokoll
         self._speaking_log: List[Tuple[str, str, str]] = []
         self._user_speaking_start: Dict[int, float] = {}
+        # Roadmap 11 – Redezeit je Nutzer (Kanal + Sitzung)
+        self._talk_time = TalkTimeTracker()
         # v2.0.0 – Braille-Manager (nach TTS-Init)
         self.braille = BrailleOutputManager(self.tts)
         _braille_verbosity = getattr(self.settings_store.settings, "braille_verbosity", "normal")
@@ -1736,19 +1739,84 @@ class MainFrame(wx.Frame):
                 return
 
     # v3.0.0 – Wer-spricht-Protokoll
-    def _track_speaking_log(self, user_id: int, username: str, is_talking: bool) -> None:
-        if is_talking:
-            if user_id not in self._user_speaking_start:
-                self._user_speaking_start[user_id] = time.time()
-        else:
-            start = self._user_speaking_start.pop(user_id, None)
-            if start is not None:
-                duration_s = time.time() - start
-                ts = time.strftime("%H:%M:%S")
-                dur_str = f"{duration_s:.1f}s"
-                self._speaking_log.append((ts, username, dur_str))
-                if len(self._speaking_log) > 100:
-                    self._speaking_log = self._speaking_log[-100:]
+    def _track_speaking_log(self, user_id: int, username: str, is_talking: bool, channel_id: int = 0) -> None:
+        duration_s = self._talk_time.update(user_id, username, is_talking, time.time(), channel_id)
+        if duration_s is not None:
+            self._append_speaking_log(username, duration_s)
+
+    def _append_speaking_log(self, username: str, duration_s: float) -> None:
+        ts = time.strftime("%H:%M:%S")
+        self._speaking_log.append((ts, username, f"{duration_s:.1f}s"))
+        if len(self._speaking_log) > 100:
+            self._speaking_log = self._speaking_log[-100:]
+
+    def _talk_time_stop(self, user_id: int) -> None:
+        name = self._talk_time.name_of(user_id)
+        duration_s = self._talk_time.stop(user_id, time.time())
+        if duration_s is not None:
+            self._append_speaking_log(name, duration_s)
+
+    def _talk_time_rows(self, whole_session: bool = False) -> list:
+        channel_id = None
+        if not whole_session:
+            try:
+                channel_id = int(self.client.get_my_channel_id() or 0)
+            except Exception:
+                channel_id = 0
+        return self._talk_time.rows(time.time(), channel_id)
+
+    def _announce_talk_time(self) -> None:
+        """Roadmap 11 – Redezeit im aktuellen Kanal ansagen (Kürzel)."""
+        text = talk_summary_text(self._talk_time_rows())
+        self.set_status(text)
+        try:
+            self.tts.speak(text, kind="system")
+        except Exception:
+            pass
+
+    def on_menu_talk_time(self, _event) -> None:
+        """Roadmap 11 – Übersicht: Redezeit je Nutzer mit Anteil in Prozent."""
+        dlg = wx.Dialog(self, title=_("Redezeit-Statistik"), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        dlg.SetMinSize((520, 420))
+        panel = wx.Panel(dlg)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        scope = wx.RadioBox(panel, label=_("Zeitraum"),
+                            choices=[_("Aktueller Kanal"), _("Gesamte Sitzung")],
+                            majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        scope.SetName(_("Zeitraum"))
+        sizer.Add(scope, 0, wx.ALL | wx.EXPAND, 8)
+        lb = wx.ListBox(panel, style=wx.LB_SINGLE)
+        lb.SetName(_("Redezeit je Nutzer"))
+        sizer.Add(lb, 1, wx.LEFT | wx.RIGHT | wx.EXPAND, 8)
+
+        def fill(_e=None):
+            rows = self._talk_time_rows(whole_session=scope.GetSelection() == 1)
+            lb.Set([talk_row_text(r) for r in rows] or [_("Noch keine Redezeit erfasst")])
+            if lb.GetCount():
+                lb.SetSelection(0)
+
+        def reset(_e=None):
+            self._talk_time.reset()
+            fill()
+            self.set_status(_("Redezeit-Statistik zurückgesetzt"))
+
+        scope.Bind(wx.EVT_RADIOBOX, fill)
+        btn_row = wx.BoxSizer(wx.HORIZONTAL)
+        refresh_btn = wx.Button(panel, label=_("&Aktualisieren"))
+        refresh_btn.Bind(wx.EVT_BUTTON, fill)
+        reset_btn = wx.Button(panel, label=_("&Zurücksetzen"))
+        reset_btn.Bind(wx.EVT_BUTTON, reset)
+        close_btn = wx.Button(panel, wx.ID_OK, label=_("Schließen"))
+        btn_row.Add(refresh_btn, 0, wx.RIGHT, 8)
+        btn_row.Add(reset_btn, 0, wx.RIGHT, 8)
+        btn_row.AddStretchSpacer()
+        btn_row.Add(close_btn, 0)
+        sizer.Add(btn_row, 0, wx.ALL | wx.EXPAND, 8)
+        panel.SetSizer(sizer)
+        fill()
+        lb.SetFocus()
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def on_menu_speaking_log(self, _event) -> None:
         dlg = wx.Dialog(self, title="Wer-spricht-Protokoll", style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
@@ -2332,6 +2400,7 @@ class MainFrame(wx.Frame):
         server_save_config = server_menu.Append(wx.ID_ANY, _("Konfiguration speichern"))
         server_menu.AppendSeparator()
         server_speaking_log = server_menu.Append(wx.ID_ANY, _("Wer-spricht-Protokoll..."))
+        server_talk_time = server_menu.Append(wx.ID_ANY, _("Redezeit-Statistik..."))
         server_sessions = server_menu.Append(wx.ID_ANY, _("Sitzungsübersicht..."))
         server_menu.AppendSeparator()
         pm_hist_item = server_menu.Append(wx.ID_ANY, _("Privatnachrichten-&Verlauf..."))
@@ -2556,6 +2625,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_menu_server_properties, server_props)
         self.Bind(wx.EVT_MENU, self.on_menu_server_save_config, server_save_config)
         self.Bind(wx.EVT_MENU, self.on_menu_speaking_log, server_speaking_log)
+        self.Bind(wx.EVT_MENU, self.on_menu_talk_time, server_talk_time)
         self.Bind(wx.EVT_MENU, self.on_menu_session_overview, server_sessions)
         self.Bind(wx.EVT_MENU, self.on_menu_pm_history, pm_hist_item)
 
@@ -8539,6 +8609,7 @@ class MainFrame(wx.Frame):
             ("Eingangspegel ansagen",     _fmt(int(s.hotkey_announce_level or 0))),
             ("Nutzerinfo ansagen",        _fmt(int(s.hotkey_announce_user_info or 0))),
             ("Ping ansagen",              _fmt(int(s.hotkey_announce_ping or 0))),
+            ("Redezeit ansagen",          _fmt(int(getattr(s, "hotkey_announce_talk_time", 0) or 0))),
             ("Braille-Status ansagen",    _fmt(int(getattr(s, "hotkey_announce_status", 0) or 0))),
             ("Privatantwort",             _fmt(int(s.hotkey_reply_last_sender or 0))),
             ("Sound-Profil wechseln",     _fmt(int(s.hotkey_cycle_sound_profile or 0))),
@@ -10069,6 +10140,9 @@ class MainFrame(wx.Frame):
             if key and key == int(settings.hotkey_announce_ping or 0):
                 self._announce_ping()
                 return
+            if key and key == int(getattr(settings, "hotkey_announce_talk_time", 0) or 0):
+                self._announce_talk_time()
+                return
             if key and key == int(settings.hotkey_reply_last_sender or 0):
                 self._reply_last_sender()
                 return
@@ -10720,12 +10794,13 @@ class MainFrame(wx.Frame):
                 wx.CallAfter(self.client.apply_media_master_to_user, _user_id)
             wx.CallAfter(self._emit_user_presence_event, msg, tt)
             wx.CallAfter(self._play_user_event_sound, _ev, _user_id, _user_ch, _source, tt)
-            # v3.0.0 – Wer-spricht-Protokoll
-            if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
-                _speaking_flags = int(getattr(_user, "uUserState", 0) or 0)
-                _is_talking = bool(_speaking_flags & 2)  # USERSTATE_TALKING = 2
-                _uname = self.user_display_name(_user, f"id{_user_id}")
-                wx.CallAfter(self._track_speaking_log, _user_id, _uname, _is_talking)
+            # Redezeit: laufende Wortmeldung beenden, wenn der Nutzer den
+            # Kanal verlässt oder sich abmeldet
+            if _user_id and _ev in (
+                tt.ClientEvent.CLIENTEVENT_CMD_USER_LEFT,
+                tt.ClientEvent.CLIENTEVENT_CMD_USER_LOGGEDOUT,
+            ):
+                wx.CallAfter(self._talk_time_stop, _user_id)
             # TeamTalk 5.23-Parität: Medienstream-Start ansagen (Status-Flag
             # des offiziellen Clients)
             if _ev == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE and _user and _user_id:
@@ -10745,8 +10820,22 @@ class MainFrame(wx.Frame):
             _user = getattr(msg, "user", None)
             if _user is not None:
                 self._queue_media_stream_check(_user, tt)
+                # v3.0.0 Wer-spricht-Protokoll + Roadmap 11 Redezeit:
+                # Sprechen = USERSTATE_VOICE (0x1) laut TeamTalk.h. Früher
+                # wurde USER_UPDATE mit Bit 2 (= USERSTATE_MUTE_VOICE) gelesen
+                # und dadurch nie eine Wortmeldung erfasst.
+                try:
+                    _sid = int(getattr(_user, "nUserID", 0) or 0)
+                    if _sid:
+                        _talking = bool(int(getattr(_user, "uUserState", 0) or 0) & USERSTATE_VOICE)
+                        _sch = int(getattr(_user, "nChannelID", 0) or 0)
+                        _sname = self.user_display_name(_user, f"id{_sid}")
+                        wx.CallAfter(self._track_speaking_log, _sid, _sname, _talking, _sch)
+                except Exception:
+                    pass
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_MYSELF_LOGGEDIN:
             wx.CallAfter(self._media_stream_users.clear)
+            wx.CallAfter(self._talk_time.reset)
             wx.CallAfter(self._intercept_tracker.reset)
             wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
             wx.CallAfter(self._reapply_media_master_volume)
