@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import QTime, Qt, QTimer
 
 from ui_qt.tabs.audio import AudioTab
+from sound_manager import DEFAULT_SOUND_THEME, SOUND_THEME_LABELS
 from ui_qt.collapsible import CollapsibleCategories, collect_entries
 import settings_search
 from ui_qt.tabs.video import VideoTab
@@ -554,6 +555,24 @@ class SettingsTab(QWidget):
         layout = QVBoxLayout(inner)
         s = self.window.settings_store.settings
 
+        # Mitgeliefertes Sound-Theme
+        theme_row = QHBoxLayout()
+        theme_label = QLabel(_("Sound-Theme:"))
+        theme_row.addWidget(theme_label)
+        self._sound_theme_keys = list(SOUND_THEME_LABELS)
+        self.sound_theme = QComboBox()
+        self.sound_theme.addItems([_(SOUND_THEME_LABELS[k]) for k in self._sound_theme_keys])
+        self.sound_theme.setAccessibleName(_("Sound-Theme"))
+        theme_label.setBuddy(self.sound_theme)
+        current_theme = getattr(s, "sound_theme", "") or DEFAULT_SOUND_THEME
+        if current_theme not in self._sound_theme_keys:
+            current_theme = DEFAULT_SOUND_THEME
+        self.sound_theme.setCurrentIndex(self._sound_theme_keys.index(current_theme))
+        self.sound_theme.currentIndexChanged.connect(self._on_sound_theme_changed)
+        theme_row.addWidget(self.sound_theme)
+        theme_row.addStretch()
+        layout.addLayout(theme_row)
+
         # Sound-Pack-Ordner
         pack_group = QGroupBox(_("Sound-Pack-Ordner"))
         pack_layout = QVBoxLayout(pack_group)
@@ -607,6 +626,19 @@ class SettingsTab(QWidget):
         layout.addStretch()
         scroll.setWidget(inner)
         return scroll
+
+    def _on_sound_theme_changed(self, idx: int) -> None:
+        if not 0 <= idx < len(self._sound_theme_keys):
+            return
+        theme = self._sound_theme_keys[idx]
+        try:
+            self.window.settings_store.settings.sound_theme = theme
+            self.window.settings_store.save()
+            self.window.sound_manager.set_theme(theme)
+            # Hörprobe, damit man das Theme sofort einordnen kann
+            self.window.sound_manager.play("server_connect")
+        except Exception:
+            pass
 
     def _on_sound_pack_dir_changed(self, value: str) -> None:
         try:

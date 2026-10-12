@@ -1,6 +1,21 @@
 Changelog
 =========
 
+2026-10-12 (v11.3.0)
+Nouveau thème sonore « Moderne » par défaut
+
+- **Nouveau jeu de sons par défaut « Moderne ».** Tous les sons
+  d'événement (arrivée, départ, messages, connexion, activation vocale,
+  sourdine, file de parole, alerte d'interception, etc.) forment désormais
+  un ensemble dédié et harmonisé, créé avec ElevenLabs. Les sons fréquents
+  (PTT, canal actif ou silencieux, message de canal envoyé, saisie) sont
+  volontairement plus discrets.
+- **Les sons TeamTalk classiques restent disponibles** sous Paramètres →
+  Événements sonores → Thème sonore. Le choix s'applique immédiatement, est
+  enregistré et synchronisé avec les paramètres. Les fichiers WAV
+  personnalisés par événement et un dossier de pack sonore restent
+  prioritaires.
+
 2026-10-09 (v11.2.3)
 Correction : le paquet d'installation macOS remplace l'application directement dans Applications
 

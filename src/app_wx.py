@@ -93,7 +93,7 @@ from platform_info import platform_info, capabilities, feature_summary
 import sr_output  # noqa: F401  — einheitlicher SR-Output-Layer (v8.0)
 
 
-APP_VERSION = "11.2.3"
+APP_VERSION = "11.3.0"
 
 TT_TRANSMITUSERS_MAX = 128
 TT_TRANSMITUSERS_FREEFORALL = 0xFFF
@@ -695,6 +695,7 @@ class MainFrame(wx.Frame):
         self.tts.settings.ducking_db = int(getattr(_ts, "tts_ducking_db", 12) or 12)
         self.tts.on_speaking = lambda active: wx.CallAfter(self._on_tts_speaking, active)
         self.sound_manager = SoundManager()
+        self.sound_manager.set_theme(getattr(self.settings_store.settings, "sound_theme", ""))
         self._ptt_hotkey = int(self.settings_store.settings.ptt_hotkey or 0) or wx.WXK_SPACE
         # v2.1.0 – Auto-Reconnect persistent
         self._auto_reconnect = bool(getattr(self.settings_store.settings, "auto_reconnect_enabled", True))

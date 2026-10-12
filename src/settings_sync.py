@@ -942,6 +942,7 @@ class SettingsSyncManager:
         if self._sync_what.get("sound"):
             payload["sound"] = {
                 "sound_events": dict(getattr(s, "sound_events", {}) or {}),
+                "sound_theme": str(getattr(s, "sound_theme", "modern") or "modern"),
                 "sound_profiles": list(getattr(s, "sound_profiles", []) or []),
                 "active_sound_profile": str(getattr(s, "active_sound_profile", "Standard") or "Standard"),
             }
@@ -1005,6 +1006,9 @@ class SettingsSyncManager:
                 changed = True
             if "sound_profiles" in sd:
                 s.sound_profiles = list(sd["sound_profiles"])
+                changed = True
+            if "sound_theme" in sd:
+                s.sound_theme = str(sd["sound_theme"] or "modern")
                 changed = True
             if "active_sound_profile" in sd:
                 s.active_sound_profile = str(sd["active_sound_profile"])

@@ -150,6 +150,8 @@ class AppSettings:
     show_vu_meter: bool = True
     # Sound-Ereignisse
     sound_events: Dict[str, str] = field(default_factory=dict)
+    # Mitgeliefertes Sound-Theme ("modern" = Standard, "classic" = TeamTalk)
+    sound_theme: str = "modern"
     # Einstellungen: ein-/ausgeklappte Kategorien {"Bereich/Kategorie": True=eingeklappt}
     collapsed_settings_categories: Dict[str, bool] = field(default_factory=dict)
     # ElevenLabs
@@ -442,6 +444,7 @@ class SettingsStore:
             self.settings.show_vu_meter = bool(data.get("show_vu_meter", True))
             sound_events = data.get("sound_events", {})
             self.settings.sound_events = sound_events if isinstance(sound_events, dict) else {}
+            self.settings.sound_theme = str(data.get("sound_theme", "modern") or "modern")
             collapsed = data.get("collapsed_settings_categories", {})
             self.settings.collapsed_settings_categories = collapsed if isinstance(collapsed, dict) else {}
             self.settings.elevenlabs_api_key = str(data.get("elevenlabs_api_key", "") or "")
@@ -694,6 +697,7 @@ class SettingsStore:
             "show_event_log": bool(self.settings.show_event_log),
             "show_vu_meter": bool(self.settings.show_vu_meter),
             "sound_events": self.settings.sound_events or {},
+            "sound_theme": str(self.settings.sound_theme or "modern"),
             "collapsed_settings_categories": self.settings.collapsed_settings_categories or {},
             "elevenlabs_api_key": str(self.settings.elevenlabs_api_key or ""),
             "tts_enabled": bool(self.settings.tts_enabled),

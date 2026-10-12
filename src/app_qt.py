@@ -75,7 +75,7 @@ from health_check import HealthChecker, check_disk_space, check_event_bus, check
 from platform_info import platform_info
 import sr_output
 
-APP_VERSION = "11.2.3"
+APP_VERSION = "11.3.0"
 
 
 def _start_demo_dialog_suppressor() -> None:
@@ -289,6 +289,7 @@ class MainWindow(QMainWindow):
         # Sprech-Warteschlange in Solo-Kanälen (nur Änderungen ansagen)
         self._tx_queue = TransmitQueueTracker()
         self.sound_manager.set_pack_dir(getattr(_ts, "sound_pack_dir", "") or "")
+        self.sound_manager.set_theme(getattr(_ts, "sound_theme", ""))
         self._user_stereo = dict(getattr(_ts, "user_stereo_settings", {}) or {})
         _pron_rules = list(getattr(_ts, "pronunciation_rules", []) or [])
         if not _pron_rules:

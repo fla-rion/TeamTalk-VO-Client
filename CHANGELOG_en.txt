@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-12 (v11.3.0)
+New sound theme "Modern" as default
+
+- **New default sound set "Modern".** All event sounds (join, leave,
+  messages, connection, voice activation, mute, transmit queue,
+  interception warning, etc.) now come as a dedicated, matching set
+  created with ElevenLabs. Frequent sounds (PTT, channel active or silent,
+  sent channel message, typing) are deliberately quieter.
+- **Classic TeamTalk sounds remain available** under Settings → Sound
+  Events → Sound theme. The choice applies immediately, is saved and is
+  synchronised with the settings. Custom WAV files per event and a sound
+  pack folder still take precedence.
+
 2026-10-09 (v11.2.3)
 Bug fix: the macOS installer package replaces the app directly in the Applications folder
 

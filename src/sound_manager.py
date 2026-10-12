@@ -14,6 +14,22 @@ def _sounds_dir() -> Path:
     return Path(__file__).resolve().parent / "sounds"
 
 
+# Mitgelieferte Sound-Themes: Schlüssel → Unterordner im eingebetteten Pack
+# ("" = Wurzel, das klassische TeamTalk-Pack). Fehlt einem Theme eine Datei,
+# greift das klassische Pack.
+SOUND_THEMES: dict[str, str] = {
+    "modern":  "modern",
+    "classic": "",
+}
+DEFAULT_SOUND_THEME = "modern"
+
+# Lesefreundliche Bezeichnungen für die UI (Reihenfolge = Auswahlliste)
+SOUND_THEME_LABELS: dict[str, str] = {
+    "modern":  "Modern (Standard)",
+    "classic": "Klassisch (TeamTalk)",
+}
+
+
 # Zuordnung: interner Ereignis-Schlüssel → Standard-Dateiname im Sound-Pack
 DEFAULT_SOUNDS: dict[str, str] = {
     "user_join":         "newuser.wav",
@@ -98,12 +114,14 @@ class SoundManager:
     Priorität:
       1. Benutzerdefinierter Einzelpfad (sound_events[key])
       2. Benutzerdefinierter Sound-Pack-Ordner (pack_dir / default_filename)
-      3. Eingebettetes Standard-Sound-Pack
+      3. Gewähltes mitgeliefertes Sound-Theme
+      4. Klassisches eingebettetes Sound-Pack
     """
 
     def __init__(self) -> None:
         self._enabled: bool = True
         self._pack_dir: Optional[Path] = None
+        self._theme: str = DEFAULT_SOUND_THEME
 
     # ------------------------------------------------------------------
     # Öffentliche Schnittstelle
@@ -124,6 +142,14 @@ class SoundManager:
             self._pack_dir = p if p.is_dir() else None
         else:
             self._pack_dir = None
+
+    def set_theme(self, theme: Optional[str]) -> None:
+        """Wählt das mitgelieferte Sound-Theme (unbekannt → Standard)."""
+        self._theme = theme if theme in SOUND_THEMES else DEFAULT_SOUND_THEME
+
+    @property
+    def theme(self) -> str:
+        return self._theme
 
     @property
     def pack_dir(self) -> Optional[str]:
@@ -148,30 +174,27 @@ class SoundManager:
             if p.is_file():
                 return str(p)
 
-        filename = DEFAULT_SOUNDS.get(event_key)
-        if filename:
-            # 2. Benutzerdefinierter Sound-Pack-Ordner
-            if self._pack_dir:
-                pack_file = self._pack_dir / filename
-                if pack_file.is_file():
-                    return str(pack_file)
-
-            # 3. Eingebettetes Standard-Sound-Pack
-            bundled = _sounds_dir() / filename
-            if bundled.is_file():
-                return str(bundled)
-
-        fallback = FALLBACK_SOUNDS.get(event_key)
-        if fallback:
-            if self._pack_dir:
-                pack_file = self._pack_dir / fallback
-                if pack_file.is_file():
-                    return str(pack_file)
-            bundled = _sounds_dir() / fallback
-            if bundled.is_file():
-                return str(bundled)
+        for filename in (DEFAULT_SOUNDS.get(event_key), FALLBACK_SOUNDS.get(event_key)):
+            if not filename:
+                continue
+            for directory in self._search_dirs():
+                candidate = directory / filename
+                if candidate.is_file():
+                    return str(candidate)
 
         return None
+
+    def _search_dirs(self) -> list[Path]:
+        # 2. Sound-Pack-Ordner, 3. gewähltes Theme, 4. klassisches Pack
+        dirs: list[Path] = []
+        if self._pack_dir:
+            dirs.append(self._pack_dir)
+        bundled = _sounds_dir()
+        sub = SOUND_THEMES.get(self._theme, "")
+        if sub:
+            dirs.append(bundled / sub)
+        dirs.append(bundled)
+        return dirs
 
     @staticmethod
     def _play_async(path: str) -> None:

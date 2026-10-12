@@ -1,6 +1,19 @@
 Changelog
 =========
 
+2026-10-12 (v11.3.0)
+Neues Sound-Theme "Modern" als Standard
+
+- **Neues Standard-Klangset "Modern".** Alle Ereignistöne (Beitreten,
+  Verlassen, Nachrichten, Verbindung, Sprachaktivierung, Stummschaltung,
+  Warteschlange, Abhör-Warnung usw.) gibt es jetzt als eigenes, aufeinander
+  abgestimmtes Set, mit ElevenLabs erzeugt. Häufige Töne (PTT, Kanal aktiv
+  oder still, gesendete Kanalnachricht, Tippen) sind bewusst leiser.
+- **Klassische TeamTalk-Töne weiterhin wählbar** unter Einstellungen →
+  Sound-Ereignisse → Sound-Theme. Die Auswahl gilt sofort, wird gespeichert
+  und mit den Einstellungen synchronisiert. Eigene WAV-Dateien pro Ereignis
+  und ein Sound-Pack-Ordner haben weiter Vorrang.
+
 2026-10-09 (v11.2.3)
 Fehlerbehebung: macOS-Installationspaket ersetzt die App direkt im Programme-Ordner
 

@@ -27,6 +27,7 @@ from teamtalk_client.client import GENDER_CHOICES, gender_status_flags
 from ui_wx.collapsible import CollapsibleCategories, collect_entries
 import settings_search
 from ui.a11y import set_native_accessibility_label
+from sound_manager import DEFAULT_SOUND_THEME, SOUND_THEME_LABELS
 
 if TYPE_CHECKING:
     from app import MainFrame
@@ -1675,6 +1676,21 @@ class SettingsTab(wx.Panel):
         outer = wx.BoxSizer(wx.VERTICAL)
         s = self.frame.settings_store.settings
 
+        # Mitgeliefertes Sound-Theme
+        theme_row = wx.BoxSizer(wx.HORIZONTAL)
+        theme_row.Add(wx.StaticText(panel, label=_("Sound-Theme:")), 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 8)
+        self._sound_theme_keys = list(SOUND_THEME_LABELS)
+        self._sound_theme_choice = wx.Choice(
+            panel, choices=[_(SOUND_THEME_LABELS[k]) for k in self._sound_theme_keys])
+        self._sound_theme_choice.SetName(_("Sound-Theme"))
+        current_theme = getattr(s, "sound_theme", "") or DEFAULT_SOUND_THEME
+        if current_theme not in self._sound_theme_keys:
+            current_theme = DEFAULT_SOUND_THEME
+        self._sound_theme_choice.SetSelection(self._sound_theme_keys.index(current_theme))
+        self._sound_theme_choice.Bind(wx.EVT_CHOICE, self._on_sound_theme_changed)
+        theme_row.Add(self._sound_theme_choice, 0)
+        outer.Add(theme_row, 0, wx.ALL, 8)
+
         # Scrollable area for events
         scroll = wx.ScrolledWindow(panel, style=wx.VSCROLL)
         scroll.SetScrollRate(0, 20)
@@ -1929,6 +1945,19 @@ class SettingsTab(wx.Panel):
         s.sound_events = events
         self.frame.settings_store.save()
         self.frame.set_status("Sound-Ereignisse gespeichert")
+
+    def _on_sound_theme_changed(self, _event) -> None:
+        idx = self._sound_theme_choice.GetSelection()
+        if not 0 <= idx < len(self._sound_theme_keys):
+            return
+        theme = self._sound_theme_keys[idx]
+        s = self.frame.settings_store.settings
+        s.sound_theme = theme
+        self.frame.settings_store.save()
+        self.frame.sound_manager.set_theme(theme)
+        # Hörprobe, damit man das Theme sofort einordnen kann
+        self.frame.sound_manager.play("server_connect", s.sound_events.get("server_connect"))
+        self.frame.set_status(_("Sound-Theme: {}").format(_(SOUND_THEME_LABELS[theme])))
 
     def _on_browse_sound(self, key: str, ctrl: wx.TextCtrl):
         with wx.FileDialog(
