@@ -34,9 +34,11 @@ SOUND_THEME_LABELS: dict[str, str] = {
 DEFAULT_SOUNDS: dict[str, str] = {
     "user_join":         "newuser.wav",
     "user_leave":        "removeuser.wav",
-    "server_connect":    "logged_on.wav",
+    # Eigene Töne im Theme "modern"; Packs ohne diese Dateien nutzen
+    # FALLBACK_SOUNDS (logged_on.wav bzw. newuser.wav wie bisher)
+    "server_connect":    "connected.wav",
     "server_disconnect": "serverlost.wav",
-    "channel_join":      "newuser.wav",
+    "channel_join":      "joined_channel.wav",
     "msg_private_rx":    "user_msg.wav",
     "msg_private_tx":    "user_msg_sent.wav",
     "msg_channel_rx":    "channel_msg.wav",
@@ -71,6 +73,8 @@ DEFAULT_SOUNDS: dict[str, str] = {
 # Mitgelieferter Ersatz, wenn der Standard-Dateiname weder im Sound-Pack-Ordner
 # noch im eingebetteten Pack liegt
 FALLBACK_SOUNDS: dict[str, str] = {
+    "server_connect":    "logged_on.wav",
+    "channel_join":      "newuser.wav",
     "txqueue_start":     "voiceact_on.wav",
     "txqueue_stop":      "voiceact_off.wav",
 }
@@ -174,10 +178,11 @@ class SoundManager:
             if p.is_file():
                 return str(p)
 
-        for filename in (DEFAULT_SOUNDS.get(event_key), FALLBACK_SOUNDS.get(event_key)):
-            if not filename:
-                continue
-            for directory in self._search_dirs():
+        # Ordner vor Dateiname: ein Sound-Pack-Ordner mit nur dem
+        # Ersatznamen schlägt trotzdem das mitgelieferte Theme
+        filenames = [f for f in (DEFAULT_SOUNDS.get(event_key), FALLBACK_SOUNDS.get(event_key)) if f]
+        for directory in self._search_dirs():
+            for filename in filenames:
                 candidate = directory / filename
                 if candidate.is_file():
                     return str(candidate)

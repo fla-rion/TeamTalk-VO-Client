@@ -7,8 +7,12 @@ Neues Sound-Theme "Modern" als Standard
 - **Neues Standard-Klangset "Modern".** Alle Ereignistöne (Beitreten,
   Verlassen, Nachrichten, Verbindung, Sprachaktivierung, Stummschaltung,
   Warteschlange, Abhör-Warnung usw.) gibt es jetzt als eigenes, aufeinander
-  abgestimmtes Set, mit ElevenLabs erzeugt. Häufige Töne (PTT, Kanal aktiv
-  oder still, gesendete Kanalnachricht, Tippen) sind bewusst leiser.
+  abgestimmtes Set, mit ElevenLabs erzeugt; der Tipp-Ton ist eine
+  echte Notebook-Tastatur-Aufnahme (BigSoundBank, CC0). Häufige Töne (PTT, Kanal aktiv
+  oder still, gesendete Kanalnachricht) sind bewusst leiser.
+- **Jedes Ereignis klingt anders.** "Server-Verbindung erfolgreich" und
+  "Eigenen Kanal betreten" haben im neuen Set eigene Töne (bisher dieselben wie
+  "Benutzer angemeldet" bzw. "Benutzer betritt Kanal").
 - **Klassische TeamTalk-Töne weiterhin wählbar** unter Einstellungen →
   Sound-Ereignisse → Sound-Theme. Die Auswahl gilt sofort, wird gespeichert
   und mit den Einstellungen synchronisiert. Eigene WAV-Dateien pro Ereignis

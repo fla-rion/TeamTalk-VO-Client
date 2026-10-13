@@ -7,9 +7,14 @@ Nouveau thème sonore « Moderne » par défaut
 - **Nouveau jeu de sons par défaut « Moderne ».** Tous les sons
   d'événement (arrivée, départ, messages, connexion, activation vocale,
   sourdine, file de parole, alerte d'interception, etc.) forment désormais
-  un ensemble dédié et harmonisé, créé avec ElevenLabs. Les sons fréquents
-  (PTT, canal actif ou silencieux, message de canal envoyé, saisie) sont
+  un ensemble dédié et harmonisé, créé avec ElevenLabs ; le son de frappe
+  est un véritable enregistrement de clavier (BigSoundBank, CC0). Les sons fréquents
+  (PTT, canal actif ou silencieux, message de canal envoyé) sont
   volontairement plus discrets.
+- **Chaque événement a son propre son.** La connexion réussie au serveur
+  et l'entrée dans son propre canal ont leurs propres sons dans le nouveau
+  jeu (auparavant les mêmes que la connexion ou l'arrivée d'un
+  utilisateur).
 - **Les sons TeamTalk classiques restent disponibles** sous Paramètres →
   Événements sonores → Thème sonore. Le choix s'applique immédiatement, est
   enregistré et synchronisé avec les paramètres. Les fichiers WAV

@@ -1,0 +1,12 @@
+Sound-Theme "Modern" (src/sounds/modern/)
+=========================================
+
+typing.wav
+  Ausschnitt (1,4 s) aus "Quick iMac keyboard" von Joseph Sardin,
+  BigSoundBank, https://bigsoundbank.com/quick-imac-keyboard-s1731.html
+  Lizenz: CC0 1.0 Universal (Public Domain Dedication),
+  https://creativecommons.org/publicdomain/zero/1.0/
+  Bearbeitung: Ausschnitt, Hochpass 80 Hz, Ein-/Ausblenden, Pegel.
+
+Alle übrigen Dateien in src/sounds/modern/ wurden für dieses Projekt mit
+der ElevenLabs-Soundeffekt-API erzeugt (scripts/generate_sound_theme.py).

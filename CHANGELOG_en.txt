@@ -7,8 +7,12 @@ New sound theme "Modern" as default
 - **New default sound set "Modern".** All event sounds (join, leave,
   messages, connection, voice activation, mute, transmit queue,
   interception warning, etc.) now come as a dedicated, matching set
-  created with ElevenLabs. Frequent sounds (PTT, channel active or silent,
-  sent channel message, typing) are deliberately quieter.
+  created with ElevenLabs; the typing sound is a real keyboard recording
+  (BigSoundBank, CC0). Frequent sounds (PTT, channel active or silent,
+  sent channel message) are deliberately quieter.
+- **Every event sounds different.** The successful server connection
+  and joining your own channel have their own sounds in the new set
+  (previously the same as a user logging in or joining the channel).
 - **Classic TeamTalk sounds remain available** under Settings → Sound
   Events → Sound theme. The choice applies immediately, is saved and is
   synchronised with the settings. Custom WAV files per event and a sound
