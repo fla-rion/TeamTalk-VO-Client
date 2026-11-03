@@ -179,9 +179,17 @@ def test_no_backend_sets_reason(monkeypatch, tmp_path):
 
 
 def test_apple_denied_authorization(monkeypatch, tmp_path):
-    import pytest
-    if not vn.apple_speech_available():
-        pytest.skip("Speech-Framework nicht vorhanden")
+    import sys
+    import types
+
+    # transcribe_apple prüft die Framework-Imports vor der Autorisierung.
+    # Leere Module reichen aus, weil dieser Test den Autorisierungsstatus
+    # vorgibt und bei verweigerter Freigabe keine Framework-API aufruft.
+    monkeypatch.setitem(sys.modules, "Speech", types.ModuleType("Speech"))
+    foundation = types.ModuleType("Foundation")
+    for name in ("NSLocale", "NSOperationQueue", "NSURL"):
+        setattr(foundation, name, object())
+    monkeypatch.setitem(sys.modules, "Foundation", foundation)
     monkeypatch.setattr(vn, "_apple_authorize", lambda timeout: vn._AUTH_DENIED)
     assert vn.transcribe_apple(tmp_path / "a.wav", "de") is None
     assert "Spracherkennung" in vn.last_error or vn.last_error
