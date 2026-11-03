@@ -891,12 +891,13 @@ class MainFrame(wx.Frame):
             self.content_panel.SetDoubleBuffered(True)
         self.content_sizer = wx.BoxSizer(wx.VERTICAL)
 
-        self.connection_window = ConnectionWindow(self)
-        self.connection_tab = self.connection_window.connection_tab
+        # Connection content lives in the main panel switcher alongside the
+        # other sections; no auxiliary connection window is needed.
+        self.connection_window = None
+        self.connection_tab = ConnectionTab(self.content_panel, self)
         self.channels_tab = ChannelsTab(self.content_panel, self)
         self.chat_tab = ChatTab(self.content_panel, self)
         self.settings_tab = SettingsTab(self.content_panel, self)
-        self.connection_tab.Reparent(self.content_panel)
         self.audio_tab = self.settings_tab.audio_tab
         self.video_tab = self.settings_tab.video_tab
         self.shortcuts_tab = self.settings_tab.shortcuts_tab
@@ -918,7 +919,10 @@ class MainFrame(wx.Frame):
         self._tab_info_map = {
             "Kanäle": "Kanalliste und Nutzerbaum.",
             "Chat": "Chat-Verlauf und Eingabe.",
-            "Aufnahme und Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
+            "Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
+            "Audio": "Mikrofon, Ausgabe und Push-to-Talk.",
+            "Video": "Videoübertragung und Kamera.",
+            "System": "Systemmeldungen und Sprachausgabe.",
             "Desktop": "Desktopfreigabe senden/Status anzeigen.",
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
@@ -927,13 +931,13 @@ class MainFrame(wx.Frame):
             "Server": self.connection_tab,
             "Kanäle": self.channels_tab,
             "Chat": self.chat_tab,
-            "Aufnahme und Medien": media_placeholder,
+            "Medien": media_placeholder,
             "Desktop": desktop_placeholder,
             "Dateien": files_placeholder,
             "Administration": admin_placeholder,
             "Einstellungen": self.settings_tab,
         }
-        self._panel_order: List[str] = list(self._panels.keys())
+        self._panel_order: List[str] = ["Server", "Kanäle", "Chat", "Audio", "Medien", "Dateien", "Administration", "Video", "System", "Einstellungen"]
 
         for label, p in self._panels.items():
             self.content_sizer.Add(p, 1, wx.EXPAND)
@@ -3424,14 +3428,13 @@ class MainFrame(wx.Frame):
     # ------------------------------------------------------------------
 
     def _open_connection_window(self) -> None:
-        """Öffnet und fokussiert das Verbindungsfenster (z. B. nach Trennen)."""
-        if not self.connection_window.IsShown():
-            self.connection_window.Show()
-        self.connection_window.Raise()
-        wx.CallAfter(self.connection_window.connection_tab.server_list.SetFocus)
+        """Wechselt zum Server-Bereich und fokussiert die Serverliste."""
+        self._switch_to_panel("Server")
+        self._refresh_panel_choice_labels("Server")
+        wx.CallAfter(self.connection_tab.server_list.SetFocus)
 
     def _maybe_show_connection_window(self) -> None:
-        """Zeigt Verbindungsfenster beim Start, falls nicht bereits verbunden."""
+        """Fokussiert beim Start den Server-Bereich, falls nicht verbunden."""
         if not self.client.is_connected():
             self._open_connection_window()
 
@@ -9201,7 +9204,6 @@ class MainFrame(wx.Frame):
             self._analytics.on_connect(self._get_server_key())
             self._session_history.log("connect", f"Verbunden mit {self._get_server_key()}", server=self._get_server_key())
         if result.ok:
-            wx.CallAfter(self.connection_window.Hide)
             wx.CallAfter(self.Raise)
             wx.CallLater(400, self._focus_area, 1)
             if self._reconnect_attempts > 0:
@@ -9678,6 +9680,13 @@ class MainFrame(wx.Frame):
                     wx.CallAfter(self._save_last_channel, channel_id)
                     self.sound_manager.play("channel_join", self.settings_store.settings.sound_events.get("channel_join"))
                     wx.CallAfter(self.channels_tab.refresh_members_for_my_channel)
+                    try:
+                        ch = self.client.get_channel(channel_id)
+                        channel_title = self.tt_str(getattr(ch, "szName", "")) if ch else str(channel_id)
+                        from ui_wx.a11y import post_voiceover_announcement
+                        wx.CallAfter(post_voiceover_announcement, f"Kanal beigetreten: {channel_title}")
+                    except Exception:
+                        pass
                     self.bus.emit("channel_joined", channel_id=channel_id)
                     # v6.7.0 – Auto-Kanal-Zusammenfassung
                     if getattr(self.settings_store.settings, "auto_channel_summary", False):
@@ -10666,9 +10675,16 @@ class MainFrame(wx.Frame):
 
     def _switch_to_panel(self, label: str) -> None:
         """Show the panel for *label* and hide all others."""
+        settings_section = {"Audio": "Audio & Aufnahme", "Video": "Video", "System": "TTS"}.get(label)
+        if settings_section:
+            label = "Einstellungen"
+            try:
+                self.settings_tab._show_section(settings_section)
+            except Exception:
+                pass
         # Lazy-load if needed
         lazy_map = {
-            "Aufnahme und Medien": ("media", MediaTab),
+            "Medien": ("media", MediaTab),
             "Desktop": ("desktop", DesktopTab),
             "Dateien": ("files", FilesTab),
             "Administration": ("admin", AdminTab),
@@ -10704,7 +10720,7 @@ class MainFrame(wx.Frame):
         if placeholder is None:
             return
         label_map = {
-            "media": "Aufnahme und Medien",
+            "media": "Medien",
             "desktop": "Desktop",
             "files": "Dateien",
             "admin": "Administration",
@@ -11473,10 +11489,6 @@ class MainFrame(wx.Frame):
             self.force_close()
             return
         self.Hide()
-        try:
-            self.connection_window.Hide()
-        except Exception:
-            pass
         self.tray.SetIcon(self.tray._icon, f"TeamTalk VoiceOver Client {APP_VERSION} (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
@@ -11598,10 +11610,6 @@ class MainFrame(wx.Frame):
             pass
         try:
             self._menu_bar_icon.hide()
-        except Exception:
-            pass
-        try:
-            self.connection_window.Destroy()
         except Exception:
             pass
         try:

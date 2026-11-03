@@ -536,6 +536,19 @@ class MainWindow(QMainWindow):
         self.notebook.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self.notebook, 1)
 
+        # Server/Verbindung is a first-class navigation page; detailed profiles
+        # remain in the existing connection dialog.
+        self.server_tab = QWidget(self.notebook)
+        server_layout = QVBoxLayout(self.server_tab)
+        server_layout.addWidget(QLabel(_("Server")))
+        self.server_name_list = QListWidget(self.server_tab)
+        self.server_name_list.setAccessibleName(_("Gespeicherte Server"))
+        server_layout.addWidget(self.server_name_list, 1)
+        self.server_connect_button = QPushButton(_("Verbinden..."), self.server_tab)
+        self.server_connect_button.clicked.connect(self.on_menu_connect)
+        server_layout.addWidget(self.server_connect_button)
+        self.notebook.addTab(self.server_tab, _("Server"))
+
         self.channels_tab = ChannelsTab(self.notebook, self)
         self.notebook.addTab(self.channels_tab, _("Kanäle"))
         self.chat_tab = ChatTab(self.notebook, self)
@@ -1059,6 +1072,14 @@ class MainWindow(QMainWindow):
             self._channel_users_label.setText("–")
         self._mic_status_label.setText("🎙️" if not bool(getattr(self.client, "is_input_muted", lambda: False)()) else "🔇")
         self._srv_disconnect_btn.setEnabled(connected)
+        try:
+            profiles = self.store.items()
+            names = [str(p.name or p.host) for p in profiles]
+            if self.server_name_list.count() != len(names) or [self.server_name_list.item(i).text() for i in range(self.server_name_list.count())] != names:
+                self.server_name_list.clear()
+                self.server_name_list.addItems(names)
+        except Exception:
+            pass
 
     def _on_connection_lost(self) -> None:
         self._media_stream_users.clear()

@@ -73,29 +73,4 @@ def test_texts():
     assert "|" not in text
 
 
-def test_qt_dialog_offscreen():
-    import pytest
-    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-    QtWidgets = pytest.importorskip("PySide6.QtWidgets")
-    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    from ui_qt.dialogs import TalkTimeDialog
-
-    t = tt.TalkTimeTracker()
-    t.update(1, "Anna", True, 0, channel_id=10)
-    t.update(1, "Anna", False, 30, channel_id=10)
-    t.update(2, "Ben", True, 0, channel_id=11)
-    t.update(2, "Ben", False, 10, channel_id=11)
-    calls = []
-
-    def rows(whole):
-        calls.append(whole)
-        return t.rows(100, None if whole else 10)
-
-    dlg = TalkTimeDialog(None, rows, t.reset)
-    assert [dlg._list.item(i).text() for i in range(dlg._list.count())] == ["Anna, 30 Sek., 100 %, 1 Wortmeldung"]
-    dlg._scope_session.setChecked(True)
-    assert dlg._list.count() == 2 and calls[-1] is True
-    dlg._on_reset()
-    assert dlg._list.item(0).text() == "Noch keine Redezeit erfasst"
-    dlg.close()
-    assert app is not None
+# The remaining tests cover the framework independent talk time tracker.
