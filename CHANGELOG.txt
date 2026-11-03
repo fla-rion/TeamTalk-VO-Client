@@ -1,18 +1,28 @@
 Changelog
 =========
 
-2026-10-12 (v11.3.0)
-Neues Sound-Theme "Modern" als Standard
+2026-10-14 (v11.3.0)
+Neue Sound-Themes: Modern (Standard), Halloween und Weihnachten
 
-- **Neues Standard-Klangset "Modern".** Alle Ereignistöne (Beitreten,
-  Verlassen, Nachrichten, Verbindung, Sprachaktivierung, Stummschaltung,
-  Warteschlange, Abhör-Warnung usw.) gibt es jetzt als eigenes, aufeinander
-  abgestimmtes Set, mit ElevenLabs erzeugt; der Tipp-Ton ist eine
-  echte Notebook-Tastatur-Aufnahme (BigSoundBank, CC0). Häufige Töne (PTT, Kanal aktiv
-  oder still, gesendete Kanalnachricht) sind bewusst leiser.
+- **Neues Standard-Klangset "Modern" im Stil von Voice-Chat-Apps** wie
+  Discord oder TeamSpeak: kurze, saubere Signaltöne mit klarer Tonsprache –
+  steigend heißt kommt/an, fallend heißt geht/aus. Die Töne sind aus
+  hochwertigen ElevenLabs-Instrumentenklängen (Glocke, Zupfer, Pop, Chime,
+  Pad) mit exakt festgelegten Noten zusammengesetzt; kein Ereignis klingt wie
+  ein anderes. Der Tipp-Ton ist eine echte Tastatur-Aufnahme (BigSoundBank,
+  CC0). Häufige Töne (PTT, Kanal aktiv oder still, gesendete
+  Kanalnachricht) sind bewusst leiser, alle anderen gleich laut.
+- **Neu: Sound-Theme "Weihnachten"** – Glockenspiel, Celesta, Hand- und
+  Kirchenglocken und Schlittenglocken spielen kurze Motive aus "Jingle
+  Bells", "Stille Nacht" und "O Tannenbaum"; dazu Schnee, Geschenkpapier,
+  Kaminfeuer und Türglöckchen, alles in warmem Raumklang.
+- **Neu: Sound-Theme "Halloween"** – Kirchenorgel (Bachs Toccata d-Moll beim
+  Verbinden), verstimmte Spieluhr, Totenglocke, unheimliche Moll- und
+  Tritonus-Klänge im Kathedralenhall; dazu Wolfsheulen, knarrende Türen,
+  Fledermäuse, Herzschlag und Sargdeckel.
 - **Jedes Ereignis klingt anders.** "Server-Verbindung erfolgreich" und
-  "Eigenen Kanal betreten" haben im neuen Set eigene Töne (bisher dieselben wie
-  "Benutzer angemeldet" bzw. "Benutzer betritt Kanal").
+  "Eigenen Kanal betreten" haben in den neuen Themes eigene Töne (bisher
+  dieselben wie "Benutzer angemeldet" bzw. "Benutzer betritt Kanal").
 - **Klassische TeamTalk-Töne weiterhin wählbar** unter Einstellungen →
   Sound-Ereignisse → Sound-Theme. Die Auswahl gilt sofort, wird gespeichert
   und mit den Einstellungen synchronisiert. Eigene WAV-Dateien pro Ereignis

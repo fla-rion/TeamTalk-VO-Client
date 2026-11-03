@@ -2619,6 +2619,7 @@ _TRANSLATIONS.update({
     "Sound-Theme: {}": "Sound theme: {}",
     "Modern (Standard)": "Modern (default)",
     "Klassisch (TeamTalk)": "Classic (TeamTalk)",
+    "Weihnachten": "Christmas",
     "Als Profil speichern...": "Save as profile...",
     "Profil löschen": "Delete profile",
     "Logs exportieren (ZIP)": "Export logs (ZIP)",
@@ -3481,6 +3482,7 @@ _TRANSLATIONS_FR.update({
     "Sound-Theme: {}": "Thème sonore : {}",
     "Modern (Standard)": "Moderne (par défaut)",
     "Klassisch (TeamTalk)": "Classique (TeamTalk)",
+    "Weihnachten": "Noël",
 })
 
 
@@ -4428,6 +4430,7 @@ _TRANSLATIONS_ES.update({
     "Sound-Theme: {}": "Tema de sonido: {}",
     "Modern (Standard)": "Moderno (predeterminado)",
     "Klassisch (TeamTalk)": "Clásico (TeamTalk)",
+    "Weihnachten": "Navidad",
     "Speex Einstellungen": "Configuración Speex",
     "Sperrliste Liste": "Lista de bans",
     "Sperrliste schließen": "Cerrar lista de bans",

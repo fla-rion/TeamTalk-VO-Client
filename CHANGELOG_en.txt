@@ -1,17 +1,27 @@
 Changelog
 =========
 
-2026-10-12 (v11.3.0)
-New sound theme "Modern" as default
+2026-10-14 (v11.3.0)
+New sound themes: Modern (default), Halloween and Christmas
 
-- **New default sound set "Modern".** All event sounds (join, leave,
-  messages, connection, voice activation, mute, transmit queue,
-  interception warning, etc.) now come as a dedicated, matching set
-  created with ElevenLabs; the typing sound is a real keyboard recording
-  (BigSoundBank, CC0). Frequent sounds (PTT, channel active or silent,
-  sent channel message) are deliberately quieter.
-- **Every event sounds different.** The successful server connection
-  and joining your own channel have their own sounds in the new set
+- **New default sound set "Modern" in the style of voice chat apps** such
+  as Discord or TeamSpeak: short, clean signal tones with a clear language –
+  rising means arriving/on, falling means leaving/off. The sounds are built
+  from high-quality ElevenLabs instrument sounds (bell, pluck, pop, chime,
+  pad) with exactly defined notes; no event sounds like another. The typing
+  sound is a real keyboard recording (BigSoundBank, CC0). Frequent sounds
+  (PTT, channel active or silent, sent channel message) are deliberately
+  quieter, all others equally loud.
+- **New: sound theme "Christmas"** – glockenspiel, celesta, hand and church
+  bells and sleigh bells play short motifs from "Jingle Bells", "Silent
+  Night" and "O Christmas Tree"; plus snow, gift wrap, fireplace and door
+  bells, all in a warm room sound.
+- **New: sound theme "Halloween"** – church organ (Bach's Toccata in D minor
+  on connect), detuned music box, death bell, eerie minor and tritone
+  sounds in a cathedral reverb; plus wolf howl, creaking doors, bats,
+  heartbeat and coffin lid.
+- **Every event sounds different.** The successful server connection and
+  joining your own channel have their own sounds in the new themes
   (previously the same as a user logging in or joining the channel).
 - **Classic TeamTalk sounds remain available** under Settings → Sound
   Events → Sound theme. The choice applies immediately, is saved and is

@@ -7,7 +7,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 import sound_manager  # noqa: E402
-from sound_manager import DEFAULT_SOUNDS, FALLBACK_SOUNDS, SOUND_THEMES, SoundManager  # noqa: E402
+from sound_manager import (  # noqa: E402
+    DEFAULT_SOUNDS, SOUND_THEME_PARENTS, SOUND_THEMES, SoundManager,
+)
 
 SOUNDS = Path(__file__).resolve().parent.parent / "src" / "sounds"
 
@@ -19,10 +21,22 @@ def test_default_theme_is_modern():
 
 
 def test_every_theme_covers_all_events():
-    for sub in SOUND_THEMES.values():
+    for theme in SOUND_THEMES:
+        m = SoundManager()
+        m.set_theme(theme)
+        for key in DEFAULT_SOUNDS:
+            assert m._resolve(key, None), (theme, key)
+
+
+def test_seasonal_themes_bring_own_sounds_except_typing():
+    for theme, parent in SOUND_THEME_PARENTS.items():
         for key, filename in DEFAULT_SOUNDS.items():
-            names = [filename, FALLBACK_SOUNDS.get(key)]
-            assert any(n and (SOUNDS / sub / n).is_file() for n in names), (sub, key)
+            if filename == "typing.wav":
+                continue
+            assert (SOUNDS / SOUND_THEMES[theme] / filename).is_file(), (theme, filename)
+        m = SoundManager()
+        m.set_theme(theme)
+        assert Path(m._resolve("user_typing", None)) == SOUNDS / SOUND_THEMES[parent] / "typing.wav"
 
 
 def test_modern_theme_has_own_file_per_event():

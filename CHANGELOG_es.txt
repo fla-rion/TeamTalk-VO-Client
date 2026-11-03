@@ -1,20 +1,32 @@
 Changelog
 =========
 
-2026-10-12 (v11.3.0)
-Nuevo tema de sonido «Moderno» como predeterminado
+2026-10-14 (v11.3.0)
+Nuevos temas de sonido: Moderno (predeterminado), Halloween y Navidad
 
-- **Nuevo conjunto de sonidos predeterminado «Moderno».** Todos los sonidos
-  de eventos (entrar, salir, mensajes, conexión, activación por voz,
-  silencio, cola de turnos, aviso de escucha, etc.) forman ahora un
-  conjunto propio y armonizado, creado con ElevenLabs; el sonido de
-  escritura es una grabación real de teclado (BigSoundBank, CC0). Los sonidos
-  frecuentes (PTT, canal activo o en silencio, mensaje de canal enviado)
-  son deliberadamente más suaves.
-- **Cada evento suena distinto.** La conexión correcta al servidor y
-  la entrada en el propio canal tienen sonidos propios en el nuevo
-  conjunto (antes eran los mismos que cuando un usuario inicia sesión o
-  entra en el canal).
+- **Nuevo conjunto de sonidos predeterminado «Moderno» al estilo de las
+  aplicaciones de chat de voz** como Discord o TeamSpeak: señales cortas y
+  limpias con un lenguaje claro – ascendente significa llegar/activar,
+  descendente significa salir/desactivar. Los sonidos se componen a partir
+  de sonidos de instrumentos de ElevenLabs de alta calidad (campana,
+  punteo, pop, carillón, pad) con notas definidas con precisión; ningún
+  evento suena como otro. El sonido de escritura es una grabación real de
+  teclado (BigSoundBank, CC0). Los sonidos frecuentes (PTT, canal activo o
+  en silencio, mensaje de canal enviado) son deliberadamente más suaves,
+  todos los demás igual de fuertes.
+- **Nuevo: tema de sonido «Navidad»** – glockenspiel, celesta, campanillas,
+  campanas de iglesia y cascabeles tocan breves motivos de «Jingle Bells»,
+  «Noche de paz» y «Oh árbol de Navidad»; además nieve, papel de regalo,
+  chimenea y campanilla de puerta, con un sonido cálido.
+- **Nuevo: tema de sonido «Halloween»** – órgano de iglesia (Tocata en re
+  menor de Bach al conectar), caja de música desafinada, campana fúnebre,
+  sonidos inquietantes en menor y tritono con reverberación de catedral;
+  además aullido de lobo, puertas que chirrían, murciélagos, latidos y
+  tapa de ataúd.
+- **Cada evento suena distinto.** La conexión correcta al servidor y la
+  entrada en el propio canal tienen sonidos propios en los nuevos temas
+  (antes eran los mismos que cuando un usuario inicia sesión o entra en el
+  canal).
 - **Los sonidos clásicos de TeamTalk siguen disponibles** en Configuración
   → Eventos sonoros → Tema de sonido. La elección se aplica de inmediato,
   se guarda y se sincroniza con la configuración. Los archivos WAV propios

@@ -8,5 +8,20 @@ typing.wav
   https://creativecommons.org/publicdomain/zero/1.0/
   Bearbeitung: Ausschnitt, Hochpass 80 Hz, Ein-/Ausblenden, Pegel.
 
-Alle übrigen Dateien in src/sounds/modern/ wurden für dieses Projekt mit
-der ElevenLabs-Soundeffekt-API erzeugt (scripts/generate_sound_theme.py).
+Alle übrigen Dateien in src/sounds/modern/ sind für dieses Projekt aus
+Instrumenten-Samples zusammengesetzt (scripts/compose_sound_theme.py); die
+Samples (scripts/sound_samples/modern/) wurden mit der
+ElevenLabs-Soundeffekt-API erzeugt.
+
+Sound-Themes "Halloween" und "Weihnachten" (src/sounds/halloween/,
+src/sounds/christmas/)
+======================================================================
+
+Melodie- und Signaltöne sind aus ElevenLabs-Instrumenten-Samples
+komponiert (scripts/compose_sound_theme.py, Samples in
+scripts/sound_samples/<theme>/), Geräusch-Töne direkt mit der
+ElevenLabs-Soundeffekt-API erzeugt (scripts/generate_sound_theme.py,
+Beschreibungen in scripts/sound_theme_specs.py). Verwendete Liedmotive
+("Jingle Bells", "Stille Nacht", "O Tannenbaum", J. S. Bach: Toccata und
+Fuge d-Moll BWV 565) sind gemeinfrei. Fehlende Dateien (typing.wav) kommen
+aus "Modern".

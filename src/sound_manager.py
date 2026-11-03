@@ -16,17 +16,26 @@ def _sounds_dir() -> Path:
 
 # Mitgelieferte Sound-Themes: Schlüssel → Unterordner im eingebetteten Pack
 # ("" = Wurzel, das klassische TeamTalk-Pack). Fehlt einem Theme eine Datei,
-# greift das klassische Pack.
+# greift zuerst sein Eltern-Theme (SOUND_THEME_PARENTS), dann das klassische
+# Pack.
 SOUND_THEMES: dict[str, str] = {
-    "modern":  "modern",
-    "classic": "",
+    "modern":    "modern",
+    "classic":   "",
+    "halloween": "halloween",
+    "christmas": "christmas",
+}
+SOUND_THEME_PARENTS: dict[str, str] = {
+    "halloween": "modern",
+    "christmas": "modern",
 }
 DEFAULT_SOUND_THEME = "modern"
 
 # Lesefreundliche Bezeichnungen für die UI (Reihenfolge = Auswahlliste)
 SOUND_THEME_LABELS: dict[str, str] = {
-    "modern":  "Modern (Standard)",
-    "classic": "Klassisch (TeamTalk)",
+    "modern":    "Modern (Standard)",
+    "classic":   "Klassisch (TeamTalk)",
+    "halloween": "Halloween",
+    "christmas": "Weihnachten",
 }
 
 
@@ -190,14 +199,18 @@ class SoundManager:
         return None
 
     def _search_dirs(self) -> list[Path]:
-        # 2. Sound-Pack-Ordner, 3. gewähltes Theme, 4. klassisches Pack
+        # 2. Sound-Pack-Ordner, 3. gewähltes Theme (+ Eltern-Theme),
+        # 4. klassisches Pack
         dirs: list[Path] = []
         if self._pack_dir:
             dirs.append(self._pack_dir)
         bundled = _sounds_dir()
-        sub = SOUND_THEMES.get(self._theme, "")
-        if sub:
-            dirs.append(bundled / sub)
+        theme: Optional[str] = self._theme
+        while theme:
+            sub = SOUND_THEMES.get(theme, "")
+            if sub:
+                dirs.append(bundled / sub)
+            theme = SOUND_THEME_PARENTS.get(theme)
         dirs.append(bundled)
         return dirs
 

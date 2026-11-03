@@ -1,19 +1,31 @@
 Changelog
 =========
 
-2026-10-12 (v11.3.0)
-Nouveau thème sonore « Moderne » par défaut
+2026-10-14 (v11.3.0)
+Nouveaux thèmes sonores : Moderne (par défaut), Halloween et Noël
 
-- **Nouveau jeu de sons par défaut « Moderne ».** Tous les sons
-  d'événement (arrivée, départ, messages, connexion, activation vocale,
-  sourdine, file de parole, alerte d'interception, etc.) forment désormais
-  un ensemble dédié et harmonisé, créé avec ElevenLabs ; le son de frappe
-  est un véritable enregistrement de clavier (BigSoundBank, CC0). Les sons fréquents
-  (PTT, canal actif ou silencieux, message de canal envoyé) sont
-  volontairement plus discrets.
+- **Nouveau jeu de sons par défaut « Moderne » dans le style des
+  applications de chat vocal** comme Discord ou TeamSpeak : signaux courts
+  et nets au langage clair – montant signifie arrivée/activé, descendant
+  signifie départ/désactivé. Les sons sont composés à partir de sons
+  d'instruments ElevenLabs de haute qualité (cloche, pincement, pop,
+  carillon, nappe) avec des notes définies précisément ; aucun événement
+  ne ressemble à un autre. Le son de frappe est un véritable enregistrement
+  de clavier (BigSoundBank, CC0). Les sons fréquents (PTT, canal actif ou
+  silencieux, message de canal envoyé) sont volontairement plus discrets,
+  tous les autres ont le même volume.
+- **Nouveau : thème sonore « Noël »** – glockenspiel, célesta, clochettes,
+  cloches d'église et grelots jouent de courts motifs de « Jingle Bells »,
+  « Douce nuit » et « Mon beau sapin » ; avec neige, papier cadeau, feu
+  de cheminée et clochette de porte, dans une ambiance chaleureuse.
+- **Nouveau : thème sonore « Halloween »** – orgue d'église (Toccata en ré
+  mineur de Bach à la connexion), boîte à musique désaccordée, glas, sons
+  inquiétants en mineur et triton dans une réverbération de cathédrale ;
+  avec hurlement de loup, portes qui grincent, chauves-souris, battements
+  de cœur et couvercle de cercueil.
 - **Chaque événement a son propre son.** La connexion réussie au serveur
-  et l'entrée dans son propre canal ont leurs propres sons dans le nouveau
-  jeu (auparavant les mêmes que la connexion ou l'arrivée d'un
+  et l'entrée dans son propre canal ont leurs propres sons dans les
+  nouveaux thèmes (auparavant les mêmes que la connexion ou l'arrivée d'un
   utilisateur).
 - **Les sons TeamTalk classiques restent disponibles** sous Paramètres →
   Événements sonores → Thème sonore. Le choix s'applique immédiatement, est
