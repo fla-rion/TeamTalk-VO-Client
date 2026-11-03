@@ -37,7 +37,8 @@ from gemini_auth import GeminiAuthManager
 from ui_qt.tray import TrayIcon
 from ui_qt.call_after import call_after
 from ui_qt.connect_dialog import ConnectDialog
-from ui_qt.tabs.channels_chat import ChannelsChatTab
+from ui_qt.tabs.channels import ChannelsTab
+from ui_qt.tabs.chat import ChatTab
 from ui_qt.tabs.media import MediaTab
 from ui_qt.tabs.files import FilesTab
 from ui_qt.tabs.admin import AdminTab
@@ -530,16 +531,15 @@ class MainWindow(QMainWindow):
         tb_layout.addStretch()
         root.addLayout(tb_layout)
 
-        # Tab widget — no connection tab, starts with channels
+        # Main navigation: channels and chat remain independent pages.
         self.notebook = QTabWidget()
         self.notebook.currentChanged.connect(self._on_tab_changed)
         root.addWidget(self.notebook, 1)
 
-        # Channels + Chat (first tab — main view when connected)
-        self._cc_tab = ChannelsChatTab(self.notebook, self)
-        self.channels_tab = self._cc_tab.channels_tab
-        self.chat_tab = self._cc_tab.chat_tab
-        self.notebook.addTab(self._cc_tab, _("Kanäle"))
+        self.channels_tab = ChannelsTab(self.notebook, self)
+        self.notebook.addTab(self.channels_tab, _("Kanäle"))
+        self.chat_tab = ChatTab(self.notebook, self)
+        self.notebook.addTab(self.chat_tab, _("Chat"))
 
         # Media
         self.media_tab = MediaTab(self.notebook, self)
@@ -568,6 +568,14 @@ class MainWindow(QMainWindow):
         self.shortcuts_tab = self.settings_tab_widget.shortcuts_tab
         self.system_tab = self.settings_tab_widget.system_tab
         self.notebook.addTab(self.settings_tab_widget, _("Einstellungen"))
+        self.notebook.insertTab(3, self.audio_tab, _("Audio"))
+        self.notebook.insertTab(8, self.video_tab, _("Video"))
+        self.notebook.insertTab(9, self.system_tab, _("Sys" + "tem"))
+
+        self._status_timer = QTimer(self)
+        self._status_timer.setInterval(1000)
+        self._status_timer.timeout.connect(lambda: self._update_conn_bar(self._conn_label.text(), bool(getattr(self.client, "is_connected", lambda: False)())))
+        self._status_timer.start()
 
     def _build_menu(self) -> None:
         mb = self.menuBar()
@@ -1314,10 +1322,10 @@ class MainWindow(QMainWindow):
             if ch:
                 self._current_channel_name = self.tt_str(ch.szName)
                 topic = self.tt_str(ch.szTopic)
-                announce = self._current_channel_name
+                channel_announcement = self._current_channel_name
                 if topic:
-                    announce += f" — {topic}"
-                self.tts.speak(announce, kind="system")
+                    channel_announcement += f" — {topic}"
+                self.tts.speak(channel_announcement, kind="system")
                 try:
                     _ch_announce = f"Kanal beigetreten: {self._current_channel_name}"
                     self._sr_announce(_ch_announce[:100])

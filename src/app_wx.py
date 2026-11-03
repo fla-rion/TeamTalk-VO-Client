@@ -37,7 +37,8 @@ from ui_wx.tray import TrayIcon
 from ui_wx.tt_file_parser import parse_teamtalk_file
 from ui_wx.accessible_controls import AccessibleSpinCtrl, CustomTextEntryDialog
 from ui_wx.tabs.connection import ConnectionTab
-from ui_wx.tabs.channels_chat import ChannelsChatTab
+from ui_wx.tabs.channels import ChannelsTab
+from ui_wx.tabs.chat import ChatTab
 from ui_wx.tabs.media import MediaTab
 from ui.user_flags import media_stream_state
 from ui_wx.tabs.files import FilesTab
@@ -892,12 +893,9 @@ class MainFrame(wx.Frame):
 
         self.connection_window = ConnectionWindow(self)
         self.connection_tab = self.connection_window.connection_tab
-        self.channels_chat_tab = ChannelsChatTab(self.content_panel, self)
-        self.channels_tab = self.channels_chat_tab.channels_tab
-        self.chat_tab = self.channels_chat_tab.chat_tab
-        self.settings_window = SettingsWindow(self)
-        self.settings_tab = self.settings_window.settings_tab
-        self.settings_tab.Reparent(self.content_panel)
+        self.channels_tab = ChannelsTab(self.content_panel, self)
+        self.chat_tab = ChatTab(self.content_panel, self)
+        self.settings_tab = SettingsTab(self.content_panel, self)
         self.connection_tab.Reparent(self.content_panel)
         self.audio_tab = self.settings_tab.audio_tab
         self.video_tab = self.settings_tab.video_tab
@@ -918,14 +916,17 @@ class MainFrame(wx.Frame):
         }
 
         self._tab_info_map = {
-            "Kanäle und Chat": "Kanalliste, Nutzerliste, Chat und Privatnachrichten.",
+            "Kanäle": "Kanalliste und Nutzerbaum.",
+            "Chat": "Chat-Verlauf und Eingabe.",
             "Aufnahme und Medien": "Aufnahmen, Webradio/YouTube/Twitch-Streams.",
             "Desktop": "Desktopfreigabe senden/Status anzeigen.",
             "Dateien": "Kanaldateien hoch-/runterladen und verwalten.",
             "Administration": "Benutzerkonten, Sperren, Servereigenschaften.",
         }
         self._panels: Dict[str, wx.Panel] = {
-            "Kanäle und Chat": self.channels_chat_tab,
+            "Server": self.connection_tab,
+            "Kanäle": self.channels_tab,
+            "Chat": self.chat_tab,
             "Aufnahme und Medien": media_placeholder,
             "Desktop": desktop_placeholder,
             "Dateien": files_placeholder,
@@ -936,7 +937,7 @@ class MainFrame(wx.Frame):
 
         for label, p in self._panels.items():
             self.content_sizer.Add(p, 1, wx.EXPAND)
-            self.content_sizer.Show(p, label == "Kanäle und Chat")
+            self.content_sizer.Show(p, label == "Server")
         self.content_panel.SetSizer(self.content_sizer)
 
         self._refresh_panel_choice_labels(0)
@@ -1976,7 +1977,7 @@ class MainFrame(wx.Frame):
             # Desired order: Kanäle und Chat, Aufnahme und Medien, Desktop, Dateien, Administration
             # Sprechen is handled by _update_speak_tab separately; only restore if API key set.
             desired_order = [
-                "Kanäle und Chat", "Aufnahme und Medien", "Desktop", "Dateien", "Administration"
+                "Server", "Kanäle", "Chat", "Aufnahme und Medien", "Desktop", "Dateien", "Administration", "Einstellungen"
             ]
             if self._speak_tab_added:
                 desired_order.insert(1, "Sprechen")
@@ -6294,7 +6295,6 @@ class MainFrame(wx.Frame):
     def on_menu_settings(self, _event):
         self._switch_to_panel("Einstellungen")
         try:
-            self.settings_window.Hide()
             self.settings_tab.audio_tab.set_active(True)
             self.settings_tab.snapshot_all()
         except Exception:
@@ -9799,7 +9799,7 @@ class MainFrame(wx.Frame):
                 sizer = self.content_panel.GetSizer()
                 sizer.Add(self.speak_tab, 1, wx.EXPAND)
                 sizer.Show(self.speak_tab, False)
-                self._refresh_panel_choice_labels("Kanäle und Chat")
+                self._refresh_panel_choice_labels("Kanäle")
                 self._speak_tab_added = True
             self.speak_tab.set_api_key(api_key)
         else:
@@ -10538,8 +10538,7 @@ class MainFrame(wx.Frame):
             if self.desktop_tab is not None:
                 self.desktop_tab.set_active(False)
         else:
-            if self.settings_window.IsShown():
-                self.audio_tab.set_active(True)
+            self.audio_tab.set_active(True)
             if self.desktop_tab is not None:
                 self.desktop_tab.set_active(True)
         event.Skip()
@@ -10635,7 +10634,7 @@ class MainFrame(wx.Frame):
         self._refresh_panel_choice_labels(self.tab_choice.GetSelection())
         self._update_tab_info(self.tab_choice.GetSelection())
         _localize_window_tree(self)
-        _localize_window_tree(self.settings_window)
+        _localize_window_tree(self.settings_tab)
         _localize_window_tree(self.connection_window)
 
     def _toggle_mic_accel(self) -> None:
@@ -10650,7 +10649,7 @@ class MainFrame(wx.Frame):
         1 = Kanalliste, 2 = Chatverlauf, 3 = Nachrichteneingabe, 4 = Ereignisprotokoll
         """
         if area in (1, 2, 3):
-            self._switch_to_panel("Kanäle und Chat")
+            self._switch_to_panel("Kanäle")
             if self.tab_choice.GetSelection() != 0:
                 self.tab_choice.SetSelection(0)
         try:
@@ -11478,10 +11477,6 @@ class MainFrame(wx.Frame):
             self.connection_window.Hide()
         except Exception:
             pass
-        try:
-            self.settings_window.Hide()
-        except Exception:
-            pass
         self.tray.SetIcon(self.tray._icon, f"TeamTalk VoiceOver Client {APP_VERSION} (im Tray)")
         self.set_status("Im Tray ausgeblendet")
         event.Veto()
@@ -11492,7 +11487,7 @@ class MainFrame(wx.Frame):
         self._closing = True
         # Geänderte Einstellungen (auch ohne "Speichern") vor dem Beenden sichern
         try:
-            self.settings_window.settings_tab.autosave_changed()
+            self.settings_tab.autosave_changed()
         except Exception:
             pass
         # Dismiss any open modal dialogs so Destroy() can proceed
@@ -11610,7 +11605,7 @@ class MainFrame(wx.Frame):
         except Exception:
             pass
         try:
-            self.settings_window.Destroy()
+            pass
         except Exception:
             pass
         self.Destroy()
