@@ -1,9 +1,43 @@
-"""Barrierefreiheits-Helfer: VoiceOver-Rollen für wxPython auf macOS."""
+"""Plattformübergreifende Accessibility-Helfer."""
 from __future__ import annotations
 
 import sys
 
 import wx
+
+
+def announce(text: str) -> None:
+    """Announce a short live update through the platform accessibility API."""
+    text = str(text or "").strip()
+    if not text:
+        return
+    if sys.platform == "darwin":
+        try:
+            import objc  # noqa: F401
+            import AppKit
+            AppKit.NSAccessibilityPostNotificationWithUserInfo(
+                AppKit.NSApp().mainWindow(),
+                AppKit.NSAccessibilityAnnouncementRequestedNotification,
+                {AppKit.NSAccessibilityAnnouncementKey: text,
+                 AppKit.NSAccessibilityPriorityKey: AppKit.NSAccessibilityPriorityHigh},
+            )
+            return
+        except Exception:
+            pass
+    try:
+        from PySide6.QtGui import QAccessible
+        event_type = getattr(QAccessible, "AnnouncementEvent", None)
+        if event_type is not None:
+            event = event_type(None, text)
+            QAccessible.updateAccessibility(event)
+            return
+    except Exception:
+        pass
+    # wx's native accessibility layer exposes live text changes to NVDA/AT-SPI.
+    try:
+        wx.GetApp().GetTopWindow().SetName(text)
+    except Exception:
+        pass
 
 
 def setup_list_accessible(lb: wx.ListBox) -> None:

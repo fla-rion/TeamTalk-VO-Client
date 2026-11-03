@@ -45,6 +45,7 @@ from ui_wx.tabs.admin import AdminTab
 from ui_wx.tabs.speak import SpeakTab
 from ui_wx.tabs.settings import SettingsTab
 from ui_wx.tabs.desktop import DesktopTab
+from ui.a11y import announce
 from ui_wx.server_tools import BroadcastMessageDialog, OnlineUsersDialog, ServerStatisticsDialog, BanListDialog
 from ui_wx.user_status import ChangeStatusDialog
 from ui_wx.client_stats import ClientStatisticsDialog
@@ -781,6 +782,11 @@ class MainFrame(wx.Frame):
             panel.SetDoubleBuffered(True)
         main_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        # Gemeinsame Verbindungsübersicht oben im Hauptfenster.
+        self.connection_status = wx.StaticText(panel, label="● Nicht verbunden | Server: – | Kanalnutzer: – | Qualität: – | 🎙️")
+        self.connection_status.SetName("Verbindungsübersicht")
+        main_sizer.Add(self.connection_status, 0, wx.LEFT | wx.RIGHT | wx.TOP | wx.EXPAND, 12)
+
         # --- Multi-Server Switcher (v2.0.1) ---
         self.server_panel = wx.Panel(panel)
         self.server_panel.SetName("Server-Switcher")
@@ -891,6 +897,8 @@ class MainFrame(wx.Frame):
         self.chat_tab = self.channels_chat_tab.chat_tab
         self.settings_window = SettingsWindow(self)
         self.settings_tab = self.settings_window.settings_tab
+        self.settings_tab.Reparent(self.content_panel)
+        self.connection_tab.Reparent(self.content_panel)
         self.audio_tab = self.settings_tab.audio_tab
         self.video_tab = self.settings_tab.video_tab
         self.shortcuts_tab = self.settings_tab.shortcuts_tab
@@ -922,6 +930,7 @@ class MainFrame(wx.Frame):
             "Desktop": desktop_placeholder,
             "Dateien": files_placeholder,
             "Administration": admin_placeholder,
+            "Einstellungen": self.settings_tab,
         }
         self._panel_order: List[str] = list(self._panels.keys())
 
@@ -2778,6 +2787,17 @@ class MainFrame(wx.Frame):
 
     def set_status(self, text: str) -> None:
         self.status.SetLabel(text)
+        try:
+            server = self.server_choice.GetStringSelection() or "–"
+            users = self.client.get_users_in_channel(int(self.client.get_my_channel_id() or 0))
+            n_users = len(users or [])
+            muted = bool(getattr(self.client, "is_input_muted", lambda: False)())
+            icon = "●" if self.client.is_connected() else "○"
+            self.connection_status.SetLabel(
+                f"{icon} {text} | Server: {server} | Kanalnutzer: {n_users} | Qualität: – | {'🔇' if muted else '🎙️'}"
+            )
+        except Exception:
+            self.connection_status.SetLabel(f"○ {text} | Server: – | Kanalnutzer: – | Qualität: – | 🎙️")
         self.log.AppendText(text + "\n")
         self.logger.write(text)
         try:
@@ -5166,9 +5186,7 @@ class MainFrame(wx.Frame):
         self._toggle_allow_stream(label, TT_TRANSMITUSERS_FREEFORALL, stream_type, require_user=False)
 
     def on_menu_audio_settings(self, _event):
-        if not self.settings_window.IsShown():
-            self.settings_window.Show()
-        self.settings_window.Raise()
+        self._switch_to_panel("Einstellungen")
         self.settings_tab.show_section("Audio & Aufnahme")
         wx.CallAfter(self.settings_tab.section_choice.SetFocus)
 
@@ -5472,9 +5490,7 @@ class MainFrame(wx.Frame):
             pass
 
     def on_menu_video_settings(self, _event):
-        if not self.settings_window.IsShown():
-            self.settings_window.Show()
-        self.settings_window.Raise()
+        self._switch_to_panel("Einstellungen")
         self.settings_tab.show_section("Video")
         wx.CallAfter(self.settings_tab.section_choice.SetFocus)
 
@@ -6276,10 +6292,14 @@ class MainFrame(wx.Frame):
         dlg.Destroy()
 
     def on_menu_settings(self, _event):
-        if not self.settings_window.IsShown():
-            self.settings_window.Show()
-        self.settings_window.Raise()
-        wx.CallAfter(self.settings_window.settings_tab.section_choice.SetFocus)
+        self._switch_to_panel("Einstellungen")
+        try:
+            self.settings_window.Hide()
+            self.settings_tab.audio_tab.set_active(True)
+            self.settings_tab.snapshot_all()
+        except Exception:
+            pass
+        wx.CallAfter(self.settings_tab.section_choice.SetFocus)
 
     def _get_manual_text_de(self) -> str:
         """Deutsches Benutzerhandbuch."""
@@ -10732,6 +10752,7 @@ class MainFrame(wx.Frame):
             wx.CallAfter(self._reset_typing_state)
             self._status_mode = 0
             wx.CallAfter(self.set_status, "Verbindung verloren")
+            wx.CallAfter(announce, "Verbindung verloren")
             self._analytics.on_error()
             self._analytics.on_disconnect()
             self._session_history.log("disconnect", f"Verbindung verloren: {self._current_server_key}", server=self._current_server_key)
@@ -11007,6 +11028,7 @@ class MainFrame(wx.Frame):
             tts_kind = "user_join"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_joined", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
+            announce(f"{display} ist beigetreten")
             # v2.4.0 – Gespeicherte Lautstärke anwenden
             if user_id:
                 wx.CallAfter(self._apply_saved_user_volume, user_id)
@@ -11033,6 +11055,7 @@ class MainFrame(wx.Frame):
             tts_kind = "user_leave"
             user_id = int(getattr(user, "nUserID", 0) or 0)
             self.bus.emit("user_left", user=name, user_id=user_id, channel_id=channel_id, channel_name=channel_name)
+            announce(f"{display} hat den Kanal verlassen")
             # v2.7.0 – Webhook
             self._webhook.emit("user_leave", {"user": name, "channel": channel_name})
         elif event == tt.ClientEvent.CLIENTEVENT_CMD_USER_UPDATE:
@@ -11281,6 +11304,8 @@ class MainFrame(wx.Frame):
                 # Stummgeschaltete Absender werden weiterhin auch per Benutzername erkannt
                 if from_display == from_user or not self.chat_tab._is_muted_sender(f"{from_user}: "):
                     wx.CallAfter(self.chat_tab.append_chat, f"{from_display}: {content}", kind, speak, _reply_meta)
+                if not is_own:
+                    wx.CallAfter(announce, f"Nachricht von {from_display}: {str(content or '')[:100]}")
             if msg_type == int(tt.TextMsgType.MSGTYPE_USER) and not is_own and from_id:
                 # Nachricht ist da – "schreibt …" sofort beenden
                 wx.CallAfter(self._on_remote_typing, from_id, False)

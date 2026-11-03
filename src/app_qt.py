@@ -43,6 +43,7 @@ from ui_qt.tabs.files import FilesTab
 from ui_qt.tabs.admin import AdminTab
 from ui_qt.tabs.speak import SpeakTab
 from ui_qt.tabs.settings import SettingsTab
+from ui.a11y import announce
 from ui_qt.tabs.desktop import DesktopTab
 from ui_qt.tabs.video import VideoTab
 from tts import TTSManager
@@ -421,6 +422,9 @@ class MainWindow(QMainWindow):
 
         # Connection status bar
         status_bar = QHBoxLayout()
+        self._conn_icon = QLabel("●")
+        self._conn_icon.setAccessibleName(_("Verbindungsstatus"))
+        status_bar.addWidget(self._conn_icon)
         self._conn_label = QLabel(_("Nicht verbunden"))
         self._conn_label.setAccessibleName("Verbindungsstatus")
         self._srv_disconnect_btn = QPushButton(_("&Trennen"))
@@ -428,6 +432,12 @@ class MainWindow(QMainWindow):
         self._srv_disconnect_btn.clicked.connect(self.on_menu_disconnect)
         self._srv_disconnect_btn.setEnabled(False)
         status_bar.addWidget(self._conn_label, 1)
+        self._server_label = QLabel(_("Nicht verbunden"))
+        self._channel_users_label = QLabel("0")
+        self._quality_label = QLabel("–")
+        self._mic_status_label = QLabel("")
+        for label in (self._server_label, self._channel_users_label, self._quality_label, self._mic_status_label):
+            status_bar.addWidget(label)
         status_bar.addWidget(self._srv_disconnect_btn)
         root.addLayout(status_bar)
 
@@ -529,7 +539,7 @@ class MainWindow(QMainWindow):
         self._cc_tab = ChannelsChatTab(self.notebook, self)
         self.channels_tab = self._cc_tab.channels_tab
         self.chat_tab = self._cc_tab.chat_tab
-        self.notebook.addTab(self._cc_tab, _("Kanäle && Chat"))
+        self.notebook.addTab(self._cc_tab, _("Kanäle"))
 
         # Media
         self.media_tab = MediaTab(self.notebook, self)
@@ -551,21 +561,13 @@ class MainWindow(QMainWindow):
         self.desktop_tab = DesktopTab(self.notebook, self)
         self.notebook.addTab(self.desktop_tab, _("Desktop"))
 
-        # Settings — kein Tab mehr, sondern eigenständiges Fenster (Strg+,)
+        # Einstellungen gehören als eigener Bereich in die Hauptnavigation.
         self.settings_tab_widget = SettingsTab(self, self)
         self.audio_tab = self.settings_tab_widget.audio_tab
         self.video_tab = self.settings_tab_widget.video_tab
         self.shortcuts_tab = self.settings_tab_widget.shortcuts_tab
         self.system_tab = self.settings_tab_widget.system_tab
-        from PySide6.QtWidgets import QDialog, QDialogButtonBox
-        self._settings_dialog = QDialog(self)
-        self._settings_dialog.setWindowTitle(_("Einstellungen"))
-        self._settings_dialog.resize(860, 640)
-        _sdlg_layout = QVBoxLayout(self._settings_dialog)
-        _sdlg_layout.addWidget(self.settings_tab_widget, 1)
-        _sdlg_close = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        _sdlg_close.rejected.connect(self._settings_dialog.hide)
-        _sdlg_layout.addWidget(_sdlg_close)
+        self.notebook.addTab(self.settings_tab_widget, _("Einstellungen"))
 
     def _build_menu(self) -> None:
         mb = self.menuBar()
@@ -1040,6 +1042,14 @@ class MainWindow(QMainWindow):
 
     def _update_conn_bar(self, text: str, connected: bool = False) -> None:
         self._conn_label.setText(text)
+        self._conn_icon.setText("●" if connected else "○")
+        self._server_label.setText(str(getattr(self, "_current_server_key", "") or _("Nicht verbunden")))
+        try:
+            users = self.client.get_users_in_channel(int(self.client.get_my_channel_id() or 0))
+            self._channel_users_label.setText(str(len(users or [])))
+        except Exception:
+            self._channel_users_label.setText("–")
+        self._mic_status_label.setText("🎙️" if not bool(getattr(self.client, "is_input_muted", lambda: False)()) else "🔇")
         self._srv_disconnect_btn.setEnabled(connected)
 
     def _on_connection_lost(self) -> None:
@@ -1048,6 +1058,7 @@ class MainWindow(QMainWindow):
         self._away_timer.stop()
         self._away_active = False
         self._update_conn_bar("Verbindung verloren")
+        announce(_("Verbindung verloren"))
         self.set_status("Verbindung verloren")
         _srv = str(self._current_server_key or "")
         if self._notifications.allow_tts("disconnected", server=_srv):
@@ -1163,6 +1174,7 @@ class MainWindow(QMainWindow):
                     self._sr_announce(_join_text)
                 except Exception:
                     pass
+                announce(_join_text)
                 if self._notifications.allow_sound("user_join", user=name, server=_srv, channel=_ch):
                     self.sound_manager.play("user_join", self.settings_store.settings.sound_events.get("user_join"))
                 self._refresh_channels()
@@ -1197,6 +1209,7 @@ class MainWindow(QMainWindow):
                     self._sr_announce(_leave_text)
                 except Exception:
                     pass
+                announce(_leave_text)
             if self._notifications.allow_sound("user_leave", user=name, server=_srv):
                 self.sound_manager.play("user_leave", self.settings_store.settings.sound_events.get("user_leave"))
             self._refresh_channels()
@@ -1308,6 +1321,7 @@ class MainWindow(QMainWindow):
                 try:
                     _ch_announce = f"Kanal beigetreten: {self._current_channel_name}"
                     self._sr_announce(_ch_announce[:100])
+                    announce(_ch_announce)
                 except Exception:
                     pass
                 self._add_to_recent_channels(ch_id, self._current_channel_name)
@@ -1463,6 +1477,7 @@ class MainWindow(QMainWindow):
                         if kind == "private":
                             # Privacy: only announce sender, not the message text
                             self._sr_announce(f"Privatnachricht von {from_display}"[:100])
+                            announce(f"Privatnachricht von {from_display}")
                         else:
                             # Channel chat: only announce when not in the Kanäle+Chat tab (index 0)
                             _cur_tab = self.notebook.currentIndex()
@@ -1471,6 +1486,7 @@ class MainWindow(QMainWindow):
                                 if len(_chat_sr) > 100:
                                     _chat_sr = _chat_sr[:99] + "…"
                                 self._sr_announce(_chat_sr)
+                                announce(_chat_sr)
                     except Exception:
                         pass
                 else:
@@ -4642,9 +4658,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def on_menu_settings(self) -> None:
-        self._settings_dialog.show()
-        self._settings_dialog.raise_()
-        self._settings_dialog.activateWindow()
+        self.notebook.setCurrentWidget(self.settings_tab_widget)
         try:
             self.settings_tab_widget.inner.setFocus()
         except Exception:
